@@ -19,7 +19,8 @@ mandate or status change shows on the next load. A panel that does not apply to 
 | Secretário (current mandate) | yes | + Secretaria (074) |
 | Presidente da Mesa / Magister / Presidente do CV (current mandate) | yes | + Reuniões (075) |
 | Ensaiador / Magister (current mandate) | yes | + Presenças por aprovar, Repertório (075) |
-| System role Mod, Admin or Owner | yes | + Membros (076) |
+| System role Mod, Admin or Owner | yes | + Membros (076), + Novidades (077, `NewsAuthorization.CanWrite`) |
+| Active member | yes | + Galeria (077) |
 | Mod / Admin / Owner | as their member type | as their member type: **a role adds no panel** (Tesouraria / Secretaria follow the position, not the role); on Logística a manager still sees only their own cards (not unowned ones) |
 
 "Active" is the canonical rule of `docs/member-activity-status.md` (`ApplicationUser.IsRetired`, written only by the
@@ -38,6 +39,18 @@ The page cannot approve anything: a past rehearsal "Fui" is pending (`Attended =
 the rehearsal page, exactly as a module "vou". No new permission was added to `EventsAuthorization` or
 `RehearsalsAuthorization`; the retrospective answer is the page's own narrow rule (own, current year from PastFrom,
 not cancelled, unanswered).
+
+### Galeria and Novidades (077)
+
+| Request | Answer |
+| --- | --- |
+| Panel `gallery` as a Reformado / no category | `404` |
+| Panel `news` without Mod / Admin / Owner | `404` |
+| Não tenho / Agora não on a pending row | `204`, own (fiscal year per event / ISO week) |
+| Dismissing an event that has a photo, is cancelled or not over | `404` |
+| Upload with `eventId` of a cancelled / unknown event, or not a number | `400` |
+
+Nothing new may be written: the upload is the gallery's (any member), the composer the news module's.
 
 ### Membros (076)
 

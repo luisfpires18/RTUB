@@ -6,6 +6,13 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
+**Task 077 = As minhas ações pendentes 7/8** (issue #258; `feat/077/pending-actions-photos-news`, not committed). Galeria
+(active members): over, not cancelled events of the fiscal year with no **photo** linked by the new `GalleryMedia.EventId`
+(migration `AddGalleryMediaEventId`, additive, no FK; legacy items never title-matched; a video does not count) →
+Adicionar (gallery upload prefilled, `eventId` validated) / Não tenho (own, fiscal year). Novidades (Mod/Admin/Owner):
+weekly prompt, own draft this Portugal ISO week resolves, Agora não = week; composer asks Público / Apenas RTUB
+explicitly. Not done from #258: integrated journey screenshots, real-device PWA checks, #259 push.
+
 **Task 076 = As minhas ações pendentes 6/8** (issue #257; `feat/076/pending-actions-member-info`, not merged). System role
 Mod completes member info through `GET/PUT /api/members/{id}/info` (Cidade, Contacto, missing Leitão/Caloiro/Tuno dates,
 Padrinho; instruments via the existing endpoints, now Mod too): allow-list by contract, complete date pairs stay

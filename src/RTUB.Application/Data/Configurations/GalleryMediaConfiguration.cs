@@ -62,6 +62,8 @@ public class GalleryMediaConfiguration : IEntityTypeConfiguration<GalleryMedia>
         builder.HasIndex(gm => gm.UploaderId)
             .HasDatabaseName("IX_GalleryMedia_UploaderId");
 
+        builder.HasIndex(gm => gm.EventId);
+
         builder.HasIndex(gm => gm.Year)
             .HasDatabaseName("IX_GalleryMedia_Year");
 

@@ -122,6 +122,11 @@ public sealed class GalleryManagementService : IGalleryManagementService
         }
 
         var details = await DetailErrorsAsync(upload.Title, upload.Date, upload.PersonIds, Array.Empty<string>());
+        if (upload.EventId is { } eventId && !await EventExistsAsync(eventId))
+        {
+            errors["eventId"] = new[] { "Este evento já não existe ou foi cancelado." };
+        }
+
         foreach (var (key, value) in details.Errors)
         {
             errors[key] = value;
@@ -135,7 +140,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
         var (year, month, day) = details.Date!.Value;
         var title = upload.Title!.Trim();
         var url = await _storage.UploadMediaAsync(upload.Content, upload.FileName, contentType, type!.Value, title, year, month, day);
-        var media = await _media.CreateAsync(GalleryMedia.Create(me, title, type.Value, url, year, month, day, null, null, upload.MembersOnly));
+        var media = await _media.CreateAsync(GalleryMedia.Create(me, title, type.Value, url, year, month, day, null, null, upload.MembersOnly, upload.EventId));
         var tagged = upload.PersonIds.Distinct().ToList();
         if (tagged.Count > 0)
         {
@@ -152,6 +157,13 @@ public sealed class GalleryManagementService : IGalleryManagementService
         }
 
         return EventResult<GalleryItemDto>.Ok((await _timeline.GetItemAsync(media.Id, user))!);
+    }
+
+    /// <summary>Task 077: an upload may name an event that exists and is not cancelled (members see every event).</summary>
+    private async Task<bool> EventExistsAsync(int eventId)
+    {
+        await using var db = await _contexts.CreateDbContextAsync();
+        return await db.Events.AnyAsync(e => e.Id == eventId && !e.IsCancelled);
     }
 
     public async Task<EventResult<GalleryItemDto>> UpdateAsync(int id, GalleryEditInput input, ClaimsPrincipal user)

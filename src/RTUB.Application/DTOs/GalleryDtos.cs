@@ -50,7 +50,9 @@ public sealed record GalleryTaggableDto(string Id, string Name, string? FullName
 /// <summary>
 /// A file as the browser sends it, with its details. <c>Date</c> "yyyy-MM-dd": the 1st of January keeps only the
 /// year, the 1st of another month the year and month (the old form's rule). <c>PersonIds</c>: who appears.
+/// <c>EventId</c> (task 077): the event it was taken at, when the upload names one (it must exist and not be cancelled).
 /// </summary>
-public sealed record GalleryUpload(Stream Content, string FileName, string ContentType, long Length, string? Title, string? Date, bool MembersOnly, IReadOnlyList<string> PersonIds);
+public sealed record GalleryUpload(Stream Content, string FileName, string ContentType, long Length, string? Title, string? Date, bool MembersOnly, IReadOnlyList<string> PersonIds,
+    int? EventId = null);
 
 public sealed record GalleryEditInput(string? Title, string? Date, bool MembersOnly, IReadOnlyList<string>? PersonIds);
