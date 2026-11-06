@@ -102,6 +102,7 @@ public partial class ApplicationDbContext
         LogisticsCardReminder r => [("card", r.CardId.ToString())],
         LogisticsCardComment c => [("user", c.AuthorId), ("card", c.CardId.ToString())],
         LogisticsCardAttachment a => [("card", a.CardId.ToString())],
+        LogisticsBoardMember m => [("user", m.UserId)],
         Discussion d => [("event", d.EventId.ToString())],
         MeetingAta a => [("meeting", a.MeetingId.ToString())],
         MeetingAtaAttachment a => [("ata", a.MeetingAtaId.ToString())],
@@ -228,6 +229,7 @@ public partial class ApplicationDbContext
                 LogisticsCardReminder r => Join(" · ", "Lembrete", Name("card", r.CardId.ToString())),
                 LogisticsCardComment c => Join(" → ", User(c.AuthorId), Name("card", c.CardId.ToString())),
                 LogisticsCardAttachment a => Join(" · ", a.Name, Name("card", a.CardId.ToString())),
+                LogisticsBoardMember m => Join(" → ", User(m.UserId), $"quadro {m.BoardId}"),
                 ProductReservation r => Join(" → ", r.UserNickname, Name("product", r.ProductId.ToString()))
                     + (string.IsNullOrWhiteSpace(r.Size) ? "" : $" ({r.Size})"),
                 PushSubscription s => Join(" · ", User(s.UserId), string.IsNullOrWhiteSpace(s.UserAgent) ? null : UserAgentHelper.GetShortUserAgent(s.UserAgent)),

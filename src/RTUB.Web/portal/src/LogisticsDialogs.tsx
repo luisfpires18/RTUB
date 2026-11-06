@@ -2,7 +2,9 @@ import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'reac
 import { Dialog } from './Dialog';
 import type { Outcome } from './eventsApi';
 import { Icon } from './icons';
-import { logisticsApi, problem, type Board, type Card, type List, type MemberOption } from './logisticsApi';
+import { logisticsApi, problem, STATUS, type Board, type Card, type List, type MemberOption, type Status } from './logisticsApi';
+
+const STATUSES: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
 import { DEFAULT_AVATAR } from './membersApi';
 
 const MAX_FILE = 10 * 1024 * 1024;
@@ -38,8 +40,21 @@ const Error = ({ text }: { text?: string }) =>
     </p>
   ) : null;
 
-/** Search members by nickname or name (the server returns at most 20) and pick one. */
-export function MemberPicker({ label, exclude = [], onPick }: { label: string; exclude?: string[]; onPick: (m: MemberOption) => void }) {
+/**
+ * Search members by nickname or name (the server returns at most 20) and pick one. With `boardId` (task 067): only
+ * members who may see that board (a private board's access list, Mod, Admin, Owner).
+ */
+export function MemberPicker({
+  label,
+  exclude = [],
+  onPick,
+  boardId,
+}: {
+  label: string;
+  exclude?: string[];
+  onPick: (m: MemberOption) => void;
+  boardId?: number;
+}) {
   const [query, setQuery] = useState('');
   const [found, setFound] = useState<MemberOption[]>();
   const id = useId();
@@ -47,12 +62,12 @@ export function MemberPicker({ label, exclude = [], onPick }: { label: string; e
   useEffect(() => {
     if (!query.trim()) return setFound(undefined);
     let live = true; // a slower answer for an older query never replaces the newer one
-    const timer = setTimeout(() => logisticsApi.members(query.trim()).then((o) => live && setFound(o.kind === 'ok' ? o.data : [])), 250);
+    const timer = setTimeout(() => logisticsApi.members(query.trim(), boardId).then((o) => live && setFound(o.kind === 'ok' ? o.data : [])), 250);
     return () => {
       live = false;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, boardId]);
 
   const shown = found?.filter((m) => !exclude.includes(m.id));
   return (
@@ -158,35 +173,118 @@ export function ConfirmDialog({
 }
 
 /** "Criar lista" / "Renomear lista". New lists go last, as before. */
+/**
+ * A column: name and (task 067) state - every card in the column has it. Changing a column's state changes its cards'
+ * status at once (the dialog says how many).
+ */
 export function ListDialog({ boardId, list, onClose, onSaved }: { boardId: number; list?: List; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(list?.name ?? '');
+  const [state, setState] = useState<Status>(list?.state ?? 'Todo');
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const fid = useId();
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const o = list ? await logisticsApi.renameList(list.id, name) : await logisticsApi.createList(boardId, name);
+    const o = list ? await logisticsApi.renameList(list.id, name, state) : await logisticsApi.createList(boardId, name, state);
     setBusy(false);
-    if (o.kind !== 'ok') return setError(problem(o, 'guardar a lista'));
+    if (o.kind !== 'ok') return setError(problem(o, 'guardar a coluna'));
     onSaved();
     onClose();
   };
   return (
-    <Dialog title={list ? 'Renomear lista' : 'Criar lista'} onClose={onClose} footer={<Footer onClose={onClose} busy={busy} form={`${fid}-form`} label="Guardar" disabled={!name.trim()} />}>
+    <Dialog title={list ? 'Editar coluna' : 'Nova coluna'} onClose={onClose} footer={<Footer onClose={onClose} busy={busy} form={`${fid}-form`} label="Guardar" disabled={!name.trim()} />}>
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         <div className={error ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${fid}-name`}>Nome da lista</label>
+          <label htmlFor={`${fid}-name`}>Nome da coluna</label>
           <input id={`${fid}-name`} type="text" maxLength={100} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           <Error text={error} />
         </div>
+        <fieldset className="form__field">
+          <legend>Estado dos cartões nesta coluna</legend>
+          <div className="lx-segment lx-segment--four" role="radiogroup">
+            {STATUSES.map((s) => (
+              <button key={s} type="button" role="radio" aria-checked={state === s} aria-pressed={state === s} className={`lx-segment--${s.toLowerCase()}`} onClick={() => setState(s)}>
+                {STATUS[s].label}
+                <small>{STATUS[s].name}</small>
+              </button>
+            ))}
+          </div>
+          {list && state !== list.state && list.cards.length > 0 && (
+            <p className="note">
+              Os {list.cards.length} cartões desta coluna passam a {STATUS[state].name}.
+            </p>
+          )}
+        </fieldset>
       </form>
     </Dialog>
   );
 }
 
+/** Delete a column: its cards never go with it - they move to the chosen column and take its state (task 067). */
+export function DeleteListDialog({ board, list, onClose, onDone }: { board: Board; list: List; onClose: () => void; onDone: () => void }) {
+  const others = board.lists.filter((l) => l.id !== list.id);
+  const [target, setTarget] = useState<number | undefined>(others[0]?.id);
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const fid = useId();
+  const count = list.cards.length;
+  const remove = async () => {
+    setBusy(true);
+    const o = await logisticsApi.removeList(list.id, count > 0 ? target : undefined);
+    setBusy(false);
+    if (o.kind === 'ok' || o.kind === 'notfound') return (onDone(), onClose());
+    setError(problem(o, 'eliminar a coluna'));
+  };
+  return (
+    <Dialog
+      title="Eliminar coluna"
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
+            Cancelar
+          </button>
+          <button type="button" className="btn btn--danger" onClick={remove} disabled={busy || (count > 0 && !target)}>
+            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+            Eliminar coluna
+          </button>
+        </>
+      }
+    >
+      <p>
+        Eliminar a coluna <strong>{list.name}</strong>?
+      </p>
+      {count > 0 &&
+        (others.length === 0 ? (
+          <p className="warning">
+            <Icon name="warning" />
+            Tem {count} {count === 1 ? 'cartão' : 'cartões'} e é a única coluna: crie outra primeiro.
+          </p>
+        ) : (
+          <div className="form__field">
+            <label htmlFor={`${fid}-to`}>
+              {count === 1 ? 'O cartão passa para' : `Os ${count} cartões passam para`}
+            </label>
+            <span className="control control--select control--sm">
+              <select id={`${fid}-to`} value={target} onChange={(e) => setTarget(Number(e.target.value))}>
+                {others.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name} ({STATUS[l.state].label})
+                  </option>
+                ))}
+              </select>
+            </span>
+            <small className="note">E ficam com o estado dessa coluna.</small>
+          </div>
+        ))}
+      <Error text={error} />
+    </Dialog>
+  );
+}
+
 /** "Criar cartão": title, description and the optional "Atribuir a" member, as before. Opens the details after. */
-export function CreateCardDialog({ list, onClose, onCreated }: { list: List; onClose: () => void; onCreated: (id: number) => void }) {
+export function CreateCardDialog({ boardId, list, onClose, onCreated }: { boardId: number; list: List; onClose: () => void; onCreated: (id: number) => void }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [assignee, setAssignee] = useState<MemberOption | null>(null);
@@ -221,7 +319,7 @@ export function CreateCardDialog({ list, onClose, onCreated }: { list: List; onC
           {assignee ? (
             <PersonChip name={assignee.displayName} avatar={assignee.avatarUrl} onRemove={() => setAssignee(null)} removeLabel="Remover" />
           ) : (
-            <MemberPicker label="Atribuir a" onPick={setAssignee} />
+            <MemberPicker label="Atribuir a" boardId={boardId} onPick={setAssignee} />
           )}
           <Error text={errors.assignedToUserId} />
         </div>
@@ -397,7 +495,7 @@ export function ReminderDialog({ board, onClose }: { board: Board; onClose: () =
               ))}
             </div>
           )}
-          <MemberPicker label="Adicionar membro" exclude={people.map((p) => p.id)} onPick={(m) => setPeople([...people, m])} />
+          <MemberPicker label="Adicionar membro" boardId={board.id} exclude={people.map((p) => p.id)} onPick={(m) => setPeople([...people, m])} />
           <Error text={errors.userIds} />
         </div>
       </form>
@@ -453,31 +551,35 @@ export function FilesDialog({ board, onClose, onChanged }: { board: Board; onClo
         </button>
       }
     >
-      <p className="note">Ficam na pasta do quadro na Documentação, no ano letivo atual, e são os mesmos para todos os cartões.</p>
+      <p className="note">
+        São os mesmos para todos os cartões e ficam com o quadro (mudar o nome ou o ano letivo não os perde). Os ficheiros de anos anteriores aparecem com o
+        ano.
+      </p>
       {files.length === 0 ? (
         <p className="note">Ainda sem ficheiros.</p>
       ) : (
         <ul className="lx-files">
           {files.map((f) => (
-            <li key={f.name}>
+            <li key={f.id}>
               <Icon name="file" />
               <span className="lx-files__name">
                 {f.name}
                 <small>
                   {f.extension.replace('.', '').toUpperCase()} · {size(f.sizeBytes)}
+                  {f.year && ` · ${f.year}`}
                 </small>
               </span>
-              <button type="button" className="icon-btn icon-btn--sm" onClick={() => download(f.name)}>
+              <button type="button" className="icon-btn icon-btn--sm" onClick={() => download(f.id)}>
                 <Icon name="download" />
                 <span className="sr-only">Descarregar {f.name}</span>
               </button>
               {board.canManage &&
-                (confirm === f.name ? (
-                  <button type="button" className="btn btn--danger btn--sm" onClick={() => remove(f.name)} disabled={busy}>
+                (confirm === f.id ? (
+                  <button type="button" className="btn btn--danger btn--sm" onClick={() => remove(f.id)} disabled={busy}>
                     Eliminar?
                   </button>
                 ) : (
-                  <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => setConfirm(f.name)}>
+                  <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => setConfirm(f.id)}>
                     <Icon name="trash" />
                     <span className="sr-only">Eliminar {f.name}</span>
                   </button>

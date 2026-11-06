@@ -7,6 +7,7 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
@@ -270,8 +271,15 @@ public sealed class DocumentationService : IDocumentationService
             }
         }
 
+        // Logística 3/5 (067): a private board's pre-067 file folder is only for those who see the board (its access list,
+        // Mod, Admin, Owner), here as on the board - listing, download and delete all go through the visible folders.
+        var hidden = LogisticsAuthorization.CanManage(user)
+            ? new HashSet<string>()
+            : (await db.LogisticsBoards.AsNoTracking()
+                .Where(b => b.Visibility == BoardVisibility.Private && b.LegacyFolder != null && b.LegacyFolder != "" && !b.Members.Any(m => m.UserId == id))
+                .Select(b => b.LegacyFolder!).ToListAsync()).Select(f => $"{Logistics}/{f}").ToHashSet(StringComparer.Ordinal);
         return (null, new Viewer(isOwner, DocumentationAuthorization.CanManage(user), years, selected,
-            folders.Where(f => DocumentationAuthorization.CanSeeFolder(member, isOwner, f.Name)).ToList(), tree));
+            folders.Where(f => DocumentationAuthorization.CanSeeFolder(member, isOwner, f.Name) && !hidden.Contains(f.Name)).ToList(), tree));
     }
 
     private static string? Folder(Viewer viewer, string? folder) =>

@@ -22,7 +22,14 @@ public static class LogisticsEndpoints
         // Boards
         api.MapGet("/", async (string? q, HttpContext http, ILogisticsKanbanService s) => ToResult(await s.GetBoardsAsync(q, http.User)));
         api.MapGet("/events", async (string? q, HttpContext http, ILogisticsKanbanService s) => ToResult(await s.GetEventsAsync(q, http.User)));
-        api.MapGet("/members", async (string? q, HttpContext http, ILogisticsKanbanService s) => ToResult(await s.SearchMembersAsync(q, http.User)));
+        api.MapGet("/members", async (string? q, int? boardId, HttpContext http, ILogisticsKanbanService s) => ToResult(await s.SearchMembersAsync(q, http.User, boardId)));
+        api.MapGet("/templates", async (HttpContext http, ILogisticsKanbanService s) => ToResult(await s.GetTemplatesAsync(http.User)));
+        writes.MapPost("/boards/compose", async (LogisticsComposeInput input, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.ComposeBoardAsync(input, http.User), b => Results.Created($"/api/logistics/boards/{b.Id}", b))).WithMetadata(new RequestSizeLimitAttribute(512 * 1024));
+        writes.MapPost("/boards/{id:int}/archive", async (int id, LogisticsArchiveInput input, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.ArchiveBoardAsync(id, input, http.User))).WithMetadata(small);
+        writes.MapPost("/boards/{id:int}/duplicate", async (int id, LogisticsDuplicateInput input, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.DuplicateBoardAsync(id, input, http.User), b => Results.Created($"/api/logistics/boards/{b.Id}", b))).WithMetadata(small);
         writes.MapPost("/boards", async (LogisticsBoardInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.CreateBoardAsync(input, http.User), b => Results.Created($"/api/logistics/boards/{b.Id}", b))).WithMetadata(small);
         writes.MapPut("/boards/{id:int}", async (int id, LogisticsBoardInput input, HttpContext http, ILogisticsKanbanService s) =>
@@ -42,8 +49,8 @@ public static class LogisticsEndpoints
             ToResult(await s.RenameListAsync(id, input, http.User))).WithMetadata(small);
         writes.MapPost("/lists/{id:int}/move", async (int id, LogisticsPositionInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.MoveListAsync(id, input, http.User), _ => Results.NoContent())).WithMetadata(small);
-        writes.MapDelete("/lists/{id:int}", async (int id, HttpContext http, ILogisticsKanbanService s) =>
-            ToResult(await s.DeleteListAsync(id, http.User), _ => Results.NoContent()));
+        writes.MapDelete("/lists/{id:int}", async (int id, int? moveTo, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.DeleteListAsync(id, moveTo, http.User), _ => Results.NoContent()));
 
         // Cards
         writes.MapPost("/lists/{id:int}/cards", async (int id, LogisticsCardCreateInput input, HttpContext http, ILogisticsKanbanService s) =>
@@ -72,6 +79,10 @@ public static class LogisticsEndpoints
             ToResult(await s.AddAssignmentAsync(id, input, http.User))).WithMetadata(small);
         writes.MapDelete("/cards/{id:int}/assignments/{userId}", async (int id, string userId, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.RemoveAssignmentAsync(id, userId, http.User)));
+        writes.MapPost("/cards/{id:int}/archive", async (int id, LogisticsArchiveInput input, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.ArchiveCardAsync(id, input, http.User))).WithMetadata(small);
+        writes.MapPost("/cards/{id:int}/duplicate", async (int id, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.DuplicateCardAsync(id, http.User))).WithMetadata(small);
         writes.MapDelete("/cards/{id:int}", async (int id, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.DeleteCardAsync(id, http.User), _ => Results.NoContent()));
 
@@ -104,8 +115,9 @@ public static class LogisticsEndpoints
         // Reminders (any member who sees the board) and board files
         writes.MapPost("/boards/{id:int}/reminders", async (int id, LogisticsReminderInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.CreateReminderAsync(id, input, http.User))).WithMetadata(small);
-        api.MapGet("/boards/{id:int}/files", async (int id, string? name, HttpContext http, ILogisticsKanbanService s) =>
-            ToResult(await s.GetFileAsync(id, name, http.User)));
+        // 067: files by id ("f:name" / "l:year/name"); ?name= still works for older pages.
+        api.MapGet("/boards/{id:int}/files", async (int id, string? file, string? name, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.GetFileAsync(id, file ?? name, http.User)));
         writes.MapPost("/boards/{id:int}/files", async (int id, IFormCollection form, HttpContext http, ILogisticsKanbanService s) =>
             {
                 if (form.Files.GetFile("file") is not { } file)
@@ -118,8 +130,8 @@ public static class LogisticsEndpoints
                 return ToResult(await s.UploadFileAsync(id, new LogisticsFileUpload(content, file.FileName, file.ContentType ?? string.Empty, file.Length), http.User));
             })
             .WithMetadata(new RequestSizeLimitAttribute(LogisticsKanbanService.MaxFileBytes + 64 * 1024));
-        writes.MapDelete("/boards/{id:int}/files", async (int id, string? name, HttpContext http, ILogisticsKanbanService s) =>
-            ToResult(await s.DeleteFileAsync(id, name, http.User), _ => Results.NoContent()));
+        writes.MapDelete("/boards/{id:int}/files", async (int id, string? file, string? name, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.DeleteFileAsync(id, file ?? name, http.User), _ => Results.NoContent()));
     }
 
     private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
@@ -130,6 +142,7 @@ public static class LogisticsEndpoints
         EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
             statusCode: StatusCodes.Status401Unauthorized),
         EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
+        EventResultStatus.Closed => Results.Problem(title: "Arquivado: só leitura.", statusCode: StatusCodes.Status409Conflict, type: "logistics:archived"),
         EventResultStatus.Conflict => Results.Problem(title: "O cartão mudou entretanto.", statusCode: StatusCodes.Status409Conflict, type: "logistics:conflict"),
         _ => Results.Problem(title: "Não encontrado.", statusCode: StatusCodes.Status404NotFound),
     };

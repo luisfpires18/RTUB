@@ -3,10 +3,10 @@ import { Loading } from './App';
 import { Icon } from './icons';
 import { day, logisticsApi, PRIORITY, problem, STATUS, type Board, type Card, type List, type Status } from './logisticsApi';
 import { CardWorkspace, deadline } from './LogisticsCard';
-import { ConfirmDialog, CreateCardDialog, FilesDialog, ListDialog, MoveCardDialog, ReminderDialog } from './LogisticsDialogs';
+import { DeleteListDialog, ConfirmDialog, CreateCardDialog, FilesDialog, ListDialog, MoveCardDialog, ReminderDialog } from './LogisticsDialogs';
 import { loginTo } from './musicApi';
 
-const STATUSES: Status[] = ['Todo', 'InProgress', 'Done'];
+const STATUSES: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
 const HEX = /^#[0-9a-f]{6}$/i;
 
 type Drag = { cardId: number; fromList: number };
@@ -167,7 +167,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
           ) : board === 'forbidden' ? (
             <p>Não tem acesso a este quadro.</p>
           ) : board === 'missing' ? (
-            <p>Este quadro já não existe.</p>
+            <p>Este quadro não existe ou não tem acesso a ele.</p>
           ) : (
             <>
               <p>Não conseguimos abrir o quadro agora.</p>
@@ -201,6 +201,10 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
         (q === '' || c.title.toLocaleLowerCase('pt').includes(q) || c.description.toLocaleLowerCase('pt').includes(q)),
     );
   const total = data.lists.reduce((n, l) => n + l.cards.length, 0);
+  // Task 067: an archived board is read-only for everyone; managers only restore it.
+  const archived = !!data.archivedAt;
+  const manage = data.canManage && !archived;
+  const states = STATUSES.filter((s) => data.lists.some((l) => l.state === s));
 
   const run = async (o: Promise<{ kind: string }>, what: string) => {
     setMessage(undefined);
@@ -263,6 +267,16 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
             </h1>
             <p className="lx-head__meta">
               {data.isCompleted && <span className="lx-chip lx-chip--done">Concluído</span>}
+              {data.visibility === 'Private' && (
+                <span className="lx-chip lx-chip--private" title={data.members.map((m) => m.displayName).join(', ') || undefined}>
+                  <Icon name="lock" />
+                  Privado · {data.members.length} {data.members.length === 1 ? 'membro' : 'membros'}
+                </span>
+              )}
+              <span className={data.owner ? 'lx-chip' : 'lx-chip lx-chip--warn'}>
+                <Icon name="person" />
+                {data.owner ? `Responsável: ${data.owner.displayName}` : 'Sem responsável'}
+              </span>
               {data.event && (
                 <a className="lx-chip" href={`/events/${data.event.id}`}>
                   <Icon name="calendar" />
@@ -270,7 +284,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                 </a>
               )}
               <span className="lx-head__count">
-                {data.lists.length} {data.lists.length === 1 ? 'lista' : 'listas'} · {total} {total === 1 ? 'cartão' : 'cartões'}
+                {data.lists.length} {data.lists.length === 1 ? 'coluna' : 'colunas'} · {total} {total === 1 ? 'cartão' : 'cartões'}
               </span>
             </p>
             {data.description && <p className="lx-head__desc">{data.description}</p>}
@@ -280,18 +294,34 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
               <Icon name="file" />
               Ficheiros{data.files.length > 0 && ` (${data.files.length})`}
             </button>
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen({ kind: 'reminder' })} disabled={total === 0}>
-              <Icon name="bell" />
-              Criar lembrete
-            </button>
-            {data.canManage && (
+            {!archived && (
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen({ kind: 'reminder' })} disabled={total === 0}>
+                <Icon name="bell" />
+                Criar lembrete
+              </button>
+            )}
+            {manage && (
               <button type="button" className="btn btn--primary btn--sm" onClick={() => setOpen({ kind: 'list' })}>
                 <Icon name="plus" />
-                Adicionar lista
+                Adicionar coluna
               </button>
             )}
           </div>
         </div>
+        {archived && (
+          <div className="lx-archived-banner" role="status">
+            <p>
+              <Icon name="folder" />
+              Quadro arquivado a {day(data.archivedAt)}: só leitura.
+            </p>
+            {data.canManage && (
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => run(logisticsApi.archiveBoard(data.id, false), 'restaurar o quadro')}>
+                <Icon name="restore" />
+                Restaurar
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       <div className="lx-toolbar" role="search">
@@ -349,10 +379,10 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
       {data.lists.length === 0 ? (
         <div className="notice" role="status">
           <p>Este quadro ainda não tem listas.</p>
-          {data.canManage && (
+          {manage && (
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setOpen({ kind: 'list' })}>
               <Icon name="plus" />
-              Criar a primeira lista
+              Criar a primeira coluna
             </button>
           )}
         </div>
@@ -372,14 +402,17 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
               >
                 <header className="lx-col__head">
                   <h2 className="lx-col__title">{list.name}</h2>
+                  <span className={`lx-status lx-view__status--${list.state.toLowerCase()}`} title={`Cartões nesta coluna: ${STATUS[list.state].name}`}>
+                    {STATUS[list.state].label}
+                  </span>
                   <span className="lx-col__count">{filtering ? `${cards.length}/${list.cards.length}` : list.cards.length}</span>
-                  {data.canManage && (
+                  {manage && (
                     <Menu label={`Ações da lista ${list.name}`}>
                       {(close) => (
                         <>
                           <button type="button" role="menuitem" onClick={() => (close(), setOpen({ kind: 'list', list }))}>
                             <Icon name="pencil" />
-                            Renomear
+                            Nome e estado
                           </button>
                           <button type="button" role="menuitem" disabled={li === 0} onClick={() => (close(), run(logisticsApi.moveList(list.id, li - 1), 'mover a lista'))}>
                             <Icon name="prev" />
@@ -396,7 +429,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                           </button>
                           <button type="button" role="menuitem" className="lx-menu__danger" onClick={() => (close(), setOpen({ kind: 'delete-list', list }))}>
                             <Icon name="trash" />
-                            Eliminar lista
+                            Eliminar coluna
                           </button>
                         </>
                       )}
@@ -418,7 +451,8 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                       )}
                       <CardFace
                         card={card}
-                        canManage={data.canManage}
+                        canManage={manage}
+                        canMove={!archived && (data.canManage || card.mine)}
                         dragging={drag?.cardId === card.id}
                         onOpen={() => setOpen({ kind: 'card', id: card.id })}
                         onDragStart={(e) => {
@@ -434,20 +468,34 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                         }}
                         menu={(close) => (
                           <>
-                            {STATUSES.filter((s) => s !== card.status).map((s) => (
-                              <button key={s} type="button" role="menuitem" onClick={() => (close(), run(logisticsApi.setStatus(card.id, s), 'mudar o estado'))}>
-                                <span className={`lx-dot lx-dot--${s.toLowerCase()}`} aria-hidden="true" />
-                                Marcar {STATUS[s].label}
-                              </button>
-                            ))}
+                            {states
+                              .filter((s) => s !== card.status)
+                              .map((s) => (
+                                <button key={s} type="button" role="menuitem" onClick={() => (close(), run(logisticsApi.setStatus(card.id, s), 'mudar o estado'))}>
+                                  <span className={`lx-dot lx-dot--${s.toLowerCase()}`} aria-hidden="true" />
+                                  Marcar {STATUS[s].label}
+                                </button>
+                              ))}
                             <button type="button" role="menuitem" onClick={() => (close(), setOpen({ kind: 'move', card, listId: list.id }))}>
                               <Icon name="arrow" />
                               Mover…
                             </button>
-                            <button type="button" role="menuitem" className="lx-menu__danger" onClick={() => (close(), setOpen({ kind: 'delete-card', card }))}>
-                              <Icon name="trash" />
-                              Eliminar cartão
-                            </button>
+                            {manage && (
+                              <>
+                                <button type="button" role="menuitem" onClick={() => (close(), run(logisticsApi.duplicateCard(card.id), 'duplicar o cartão'))}>
+                                  <Icon name="kanban" />
+                                  Duplicar
+                                </button>
+                                <button type="button" role="menuitem" onClick={() => (close(), run(logisticsApi.archiveCard(card.id, true), 'arquivar o cartão'))}>
+                                  <Icon name="folder" />
+                                  Arquivar
+                                </button>
+                                <button type="button" role="menuitem" className="lx-menu__danger" onClick={() => (close(), setOpen({ kind: 'delete-card', card }))}>
+                                  <Icon name="trash" />
+                                  Eliminar cartão
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
                       />
@@ -460,7 +508,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                   )}
                   {cards.length === 0 && !drop && <li className="lx-col__empty">{filtering ? 'Nada com estes filtros.' : 'Sem cartões.'}</li>}
                 </ol>
-                {data.canManage && (
+                {manage && (
                   <button type="button" className="lx-col__add" onClick={() => setOpen({ kind: 'create-card', list })}>
                     <Icon name="plus" />
                     Adicionar cartão
@@ -469,13 +517,36 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
               </section>
             );
           })}
-          {data.canManage && (
+          {manage && (
             <button type="button" className="lx-col lx-col--new" onClick={() => setOpen({ kind: 'list' })}>
               <Icon name="plus" />
-              Adicionar lista
+              Adicionar coluna
             </button>
           )}
         </div>
+      )}
+
+      {data.archivedCards.length > 0 && (
+        <details className="lx-archived">
+          <summary>
+            Cartões arquivados <small>{data.archivedCards.length}</small>
+          </summary>
+          <ul className="lx-archived__list">
+            {data.archivedCards.map((c) => (
+              <li key={c.id}>
+                <button type="button" className="lx-files__open" onClick={() => setOpen({ kind: 'card', id: c.id })}>
+                  {c.title}
+                </button>
+                {manage && (
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => run(logisticsApi.archiveCard(c.id, false), 'restaurar o cartão')}>
+                    <Icon name="restore" />
+                    Restaurar
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
 
       {open?.kind === 'card' && (
@@ -489,6 +560,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
       )}
       {open?.kind === 'create-card' && (
         <CreateCardDialog
+          boardId={data.id}
           list={open.list}
           onClose={() => setOpen(undefined)}
           onCreated={(id) => {
@@ -498,16 +570,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
         />
       )}
       {open?.kind === 'list' && <ListDialog boardId={data.id} list={open.list} onClose={() => setOpen(undefined)} onSaved={load} />}
-      {open?.kind === 'delete-list' && (
-        <ConfirmDialog
-          title="Eliminar lista"
-          what={<>a lista <strong>{open.list.name}</strong></>}
-          warning="Os cartões da lista vão com ela. Não dá para desfazer."
-          action={() => logisticsApi.removeList(open.list.id)}
-          onClose={() => setOpen(undefined)}
-          onDone={load}
-        />
-      )}
+      {open?.kind === 'delete-list' && <DeleteListDialog board={data} list={open.list} onClose={() => setOpen(undefined)} onDone={load} />}
       {open?.kind === 'delete-card' && (
         <ConfirmDialog
           title="Eliminar cartão"
@@ -539,6 +602,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
 function CardFace({
   card,
   canManage,
+  canMove,
   dragging,
   onOpen,
   onDragStart,
@@ -547,6 +611,8 @@ function CardFace({
 }: {
   card: Card;
   canManage: boolean;
+  /** Task 067: managers, and a card's owner / collaborators, move it (drag or "Mover…"). */
+  canMove: boolean;
   dragging: boolean;
   onOpen: () => void;
   onDragStart: (e: DragEvent<HTMLElement>) => void;
@@ -560,9 +626,9 @@ function CardFace({
     <article
       className={`lx-card lx-card--${s} lx-card--open${dragging ? ' lx-card--dragging' : ''}${card.mine ? ' lx-card--mine' : ''}`}
       data-card={card.id}
-      draggable={canManage}
-      onDragStart={canManage ? onDragStart : undefined}
-      onDragEnd={canManage ? onDragEnd : undefined}
+      draggable={canMove}
+      onDragStart={canMove ? onDragStart : undefined}
+      onDragEnd={canMove ? onDragEnd : undefined}
       // The whole card opens the details (a native drag cannot start on a button); the title button is the keyboard path.
       onClick={onOpen}
     >
@@ -579,7 +645,7 @@ function CardFace({
         {card.priority !== 'Normal' && <span className={`lx-prio lx-prio--${card.priority.toLowerCase()}`}>{PRIORITY[card.priority]}</span>}
         {due && <span className={`lx-due lx-due--${due.tone}`}>{due.text}</span>}
         {card.mine && <span className="lx-chip lx-chip--mine">Atribuído a si</span>}
-        {canManage && <Menu label={`Ações do cartão ${card.title}`}>{menu}</Menu>}
+        {(canManage || canMove) && <Menu label={`Ações do cartão ${card.title}`}>{menu}</Menu>}
       </div>
       <h3 className="lx-card__title">
         <button

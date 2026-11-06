@@ -11,8 +11,15 @@ public interface ILogisticsKanbanService
     Task<EventResult<LogisticsBoardSummaryDto>> UpdateBoardAsync(int id, LogisticsBoardInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsBoardSummaryDto>> SetBoardStateAsync(int id, LogisticsBoardStateInput input, ClaimsPrincipal user);
     Task<EventResult<bool>> DeleteBoardAsync(int id, ClaimsPrincipal user);
+    // Task 067: archive, copies and templates
+    Task<EventResult<LogisticsBoardSummaryDto>> ArchiveBoardAsync(int id, LogisticsArchiveInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsBoardSummaryDto>> DuplicateBoardAsync(int id, LogisticsDuplicateInput input, ClaimsPrincipal user);
+    Task<EventResult<IReadOnlyList<LogisticsTemplateDto>>> GetTemplatesAsync(ClaimsPrincipal user);
+    Task<EventResult<LogisticsBoardSummaryDto>> ComposeBoardAsync(LogisticsComposeInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> ArchiveCardAsync(int id, LogisticsArchiveInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> DuplicateCardAsync(int id, ClaimsPrincipal user);
     Task<EventResult<IReadOnlyList<LogisticsEventDto>>> GetEventsAsync(string? search, ClaimsPrincipal user);
-    Task<EventResult<IReadOnlyList<LogisticsMemberOptionDto>>> SearchMembersAsync(string? search, ClaimsPrincipal user);
+    Task<EventResult<IReadOnlyList<LogisticsMemberOptionDto>>> SearchMembersAsync(string? search, ClaimsPrincipal user, int? boardId = null);
 
     /// <summary><paramref name="includeFiles"/> false leaves <c>Files</c> empty: the file listing is a storage round trip, so the page asks for it separately (<see cref="GetFilesAsync"/>).</summary>
     Task<EventResult<LogisticsBoardDto>> GetBoardAsync(int id, ClaimsPrincipal user, bool includeFiles = true);
@@ -22,7 +29,7 @@ public interface ILogisticsKanbanService
     Task<EventResult<LogisticsListDto>> CreateListAsync(int boardId, LogisticsListInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsListDto>> RenameListAsync(int id, LogisticsListInput input, ClaimsPrincipal user);
     Task<EventResult<bool>> MoveListAsync(int id, LogisticsPositionInput input, ClaimsPrincipal user);
-    Task<EventResult<bool>> DeleteListAsync(int id, ClaimsPrincipal user);
+    Task<EventResult<bool>> DeleteListAsync(int id, int? moveTo, ClaimsPrincipal user);
 
     Task<EventResult<LogisticsCardDetailDto>> CreateCardAsync(int listId, LogisticsCardCreateInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsCardDetailDto>> GetCardAsync(int id, ClaimsPrincipal user);
@@ -51,6 +58,6 @@ public interface ILogisticsKanbanService
     Task<EventResult<LogisticsReminderDto>> CreateReminderAsync(int boardId, LogisticsReminderInput input, ClaimsPrincipal user);
 
     Task<EventResult<LogisticsFileDto>> UploadFileAsync(int boardId, LogisticsFileUpload upload, ClaimsPrincipal user);
-    Task<EventResult<DocumentLinkDto>> GetFileAsync(int boardId, string? name, ClaimsPrincipal user);
-    Task<EventResult<bool>> DeleteFileAsync(int boardId, string? name, ClaimsPrincipal user);
+    Task<EventResult<DocumentLinkDto>> GetFileAsync(int boardId, string? fileId, ClaimsPrincipal user);
+    Task<EventResult<bool>> DeleteFileAsync(int boardId, string? fileId, ClaimsPrincipal user);
 }

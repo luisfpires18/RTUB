@@ -108,3 +108,10 @@ write and per year, not kept on failure (`DocumentTreeCacheTests` for the cache 
 
 - `FolderCard` and `DocumentCard` (Shared) and their bUnit tests have no page caller since the page went; the global
   `.folder-card` / `.document-card` CSS is unused.
+
+## Logística folders (task 067)
+
+Pre-067 Logística board files stay in `Logistics/{board}` of each year and keep showing here, except a **private**
+board's folder, hidden from members off its access list (Mod, Admin, Owner still see it; listing, download and delete
+all go through the visible folders). Board files uploaded since 067 live with the board (`logistics/{env}/boards/{id}/`)
+and are not in Documentação. See [react-logistics](react-logistics.md).
