@@ -41,6 +41,7 @@ except restore.
 | Boards list, board, columns, card faces, card details, discussion, history | ✓ | ✓ | ✓ (every board) |
 | Download board files and the card's files / open its links | ✓ | ✓ | ✓ |
 | "As minhas tarefas": own cards on boards they see | ✓ | ✓ | ✓ + open cards without a responsible member |
+| Board views Quadro / Lista / Calendário and their summary (070): the same cards, read-only views; every change through the card | ✓ | ✓ | ✓ |
 | Reminders on the card: create, edit, delete | - | for themselves only (personal; another target `403`); edit / delete their own while still a worker | for any board viewers; edit / delete any |
 | See the card's reminders | own only | own only | all |
 | Edit the card's title, details, priority, start, deadline (version-checked, `409` when stale) | - | ✓ | ✓ |

@@ -1,12 +1,63 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { Loading } from './App';
 import { Icon } from './icons';
-import { day, logisticsApi, PRIORITY, problem, STATUS, type Board, type Card, type List, type Status } from './logisticsApi';
+import { day, logisticsApi, PRIORITY, problem, STATUS, type Board, type Card, type List, type Priority, type Status } from './logisticsApi';
 import { CardWorkspace, deadline } from './LogisticsCard';
 import { DeleteListDialog, ConfirmDialog, CreateCardDialog, FilesDialog, ListDialog, MoveCardDialog } from './LogisticsDialogs';
+import { CalendarView, isLate, lisbonToday, ListView, sortRows, Summary, type Row, type Sort } from './LogisticsViews';
 import { loginTo } from './musicApi';
 
 const STATUSES: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
+const PRIORITIES: Priority[] = ['Urgent', 'High', 'Normal', 'Low'];
+type View = 'board' | 'list' | 'calendar';
+type Due = '' | 'late' | 'soon' | 'none';
+const VIEWS: { key: View; label: string; icon: 'kanban' | 'listOl' | 'calendar' }[] = [
+  { key: 'board', label: 'Quadro', icon: 'kanban' },
+  { key: 'list', label: 'Lista', icon: 'listOl' },
+  { key: 'calendar', label: 'Calendário', icon: 'calendar' },
+];
+
+/**
+ * Task 070: what the address keeps - the view, the filters, the list order, the calendar month and the open card - so
+ * refresh and back restore the board as it was. Only the member's own choices: a person filter is kept only as "mine" /
+ * "none" (never a name), and nothing from a card but its id.
+ */
+type UrlState = { view: View; q: string; status: Status | ''; label: string; who: string; prio: Priority | ''; due: Due; sort: Sort; month: string; card?: number };
+const readUrl = (): UrlState => {
+  const p = new URLSearchParams(location.search);
+  const pick = <T extends string>(key: string, allowed: readonly T[], fallback: T) => (allowed.includes(p.get(key) as T) ? (p.get(key) as T) : fallback);
+  const card = Number(p.get('card'));
+  return {
+    view: pick<View>('view', ['board', 'list', 'calendar'], 'board'),
+    q: p.get('q') ?? '',
+    status: pick<Status | ''>('status', ['', ...STATUSES], ''),
+    label: p.get('label') ?? '',
+    who: pick('who', ['', 'mine', 'none'], ''),
+    prio: pick<Priority | ''>('prio', ['', ...PRIORITIES], ''),
+    due: pick<Due>('due', ['', 'late', 'soon', 'none'], ''),
+    sort: pick<Sort>('sort', ['due', 'priority', 'status', 'title'], 'due'),
+    month: /^\d{4}-(0[1-9]|1[0-2])$/.test(p.get('month') ?? '') ? p.get('month')! : lisbonToday().slice(0, 7),
+    card: Number.isInteger(card) && card > 0 ? card : undefined,
+  };
+};
+const writeUrl = (u: UrlState, push: boolean) => {
+  const p = new URLSearchParams();
+  if (u.view !== 'board') p.set('view', u.view);
+  if (u.q) p.set('q', u.q);
+  if (u.status) p.set('status', u.status);
+  if (u.label) p.set('label', u.label);
+  if (u.who === 'mine' || u.who === 'none') p.set('who', u.who);
+  if (u.prio) p.set('prio', u.prio);
+  if (u.due) p.set('due', u.due);
+  if (u.view === 'list' && u.sort !== 'due') p.set('sort', u.sort);
+  if (u.view === 'calendar' && u.month !== lisbonToday().slice(0, 7)) p.set('month', u.month);
+  if (u.card) p.set('card', String(u.card));
+  const query = p.toString();
+  const next = `${location.pathname}${query ? `?${query}` : ''}`;
+  if (next === `${location.pathname}${location.search}`) return;
+  if (push) history.pushState(history.state, '', next);
+  else history.replaceState(history.state, '', next);
+};
 const HEX = /^#[0-9a-f]{6}$/i;
 
 type Drag = { cardId: number; fromList: number };
@@ -105,22 +156,28 @@ const fullIndex = (list: List, visible: number[], index: number, dragged: number
 export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const [board, setBoard] = useState<Board | 'signin' | 'forbidden' | 'missing' | null>();
   const [files, setFiles] = useState<Board['files']>();
-  const [text, setText] = useState('');
-  const [status, setStatus] = useState<Status | ''>('');
-  const [label, setLabel] = useState('');
-  const [onlyMine, setOnlyMine] = useState(false);
+  const [initial] = useState(readUrl);
+  const [view, setView] = useState<View>(initial.view);
+  const [text, setText] = useState(initial.q);
+  const [status, setStatus] = useState<Status | ''>(initial.status);
+  const [label, setLabel] = useState(initial.label);
+  const [who, setWho] = useState(initial.who);
+  const [prio, setPrio] = useState<Priority | ''>(initial.prio);
+  const [due, setDue] = useState<Due>(initial.due);
+  const [sort, setSort] = useState<Sort>(initial.sort);
+  const [month, setMonth] = useState(initial.month);
   // ?card=<id> (task 069): a link or a push opens that card; the address follows the open card, so it can be shared.
-  const [open, setOpen] = useState<Open | undefined>(() => {
-    const id = Number(new URLSearchParams(location.search).get('card'));
-    return Number.isInteger(id) && id > 0 ? { kind: 'card', id } : undefined;
-  });
+  const [open, setOpen] = useState<Open | undefined>(() => (initial.card ? { kind: 'card', id: initial.card } : undefined));
+  const pushNext = useRef(false);
+  // Phones: the extra filters fold behind "Filtros", so the sticky bar stays one or two rows high.
+  const [moreFilters, setMoreFilters] = useState(false);
   const [message, setMessage] = useState<string>();
   const [drag, setDrag] = useState<Drag>();
   const [drop, setDrop] = useState<Drop>();
   const columns = useRef<Record<number, HTMLElement | null>>({});
   // The dragged card, read by the drop handler directly (state may not have re-rendered between dragover and drop).
   const dragged = useRef<Drag | undefined>(undefined);
-  const ids = { q: useId(), status: useId(), label: useId() };
+  const ids = { q: useId(), status: useId(), label: useId(), who: useId(), prio: useId(), due: useId(), sort: useId() };
 
   // The files are a storage listing (one slow R2 round trip): fetched on open and after a file change only, never
   // again on each card / list change. The board renders as soon as it arrives; the files join when they do.
@@ -145,14 +202,36 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
     load();
   }, [boardId]);
 
+  // The address follows the view, filters, order, month and open card (task 070). Changing the view adds a history
+  // entry, so Back returns to the previous view; everything else replaces the current one.
+  const cardOpen = open?.kind === 'card' ? open.id : undefined;
   useEffect(() => {
-    const url = new URL(location.href);
-    const card = open?.kind === 'card' ? String(open.id) : null;
-    if (url.searchParams.get('card') === card) return;
-    if (card) url.searchParams.set('card', card);
-    else url.searchParams.delete('card');
-    history.replaceState(history.state, '', url);
-  }, [open]);
+    writeUrl({ view, q: text.trim(), status, label, who, prio, due, sort, month, card: cardOpen }, pushNext.current);
+    pushNext.current = false;
+  }, [view, text, status, label, who, prio, due, sort, month, cardOpen]);
+
+  useEffect(() => {
+    const back = () => {
+      const u = readUrl();
+      setView(u.view);
+      setText(u.q);
+      setStatus(u.status);
+      setLabel(u.label);
+      setWho(u.who);
+      setPrio(u.prio);
+      setDue(u.due);
+      setSort(u.sort);
+      setMonth(u.month);
+      setOpen(u.card ? { kind: 'card', id: u.card } : undefined);
+    };
+    window.addEventListener('popstate', back);
+    return () => window.removeEventListener('popstate', back);
+  }, []);
+  const switchView = (v: View) => {
+    if (v === view) return;
+    pushNext.current = true;
+    setView(v);
+  };
 
   const data = board && typeof board === 'object' ? { ...board, files: files ?? board.files } : null;
 
@@ -202,17 +281,36 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   }
 
   const q = text.trim().toLocaleLowerCase('pt');
-  const filtering = q !== '' || status !== '' || label !== '' || onlyMine;
-  const anyMine = data.lists.some((l) => l.cards.some((c) => c.mine));
+  const filtering = q !== '' || status !== '' || label !== '' || who !== '' || prio !== '' || due !== '';
+  const today = lisbonToday();
+  const soon = (() => {
+    const d = new Date(`${today}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 7);
+    return d.toISOString().slice(0, 10);
+  })();
+  const people = [...new Set(data.lists.flatMap((l) => l.cards.flatMap((c) => (c.assignedTo ? [c.assignedTo.displayName] : [])))).values()].sort((a, b) =>
+    a.localeCompare(b, 'pt-PT'),
+  );
+  // One filter for every view (task 070): state, label, responsible member, priority, deadline, title / details.
   const visible = (cards: Card[]) =>
     cards.filter(
       (c) =>
         (status === '' || c.status === status) &&
-        (!onlyMine || c.mine) &&
+        (who === '' || (who === 'mine' ? c.mine : who === 'none' ? !c.assignedTo : c.assignedTo?.displayName === who)) &&
+        (prio === '' || c.priority === prio) &&
+        (due === '' ||
+          (due === 'late'
+            ? isLate(c, today)
+            : due === 'none'
+              ? !c.dueDate
+              : c.status !== 'Done' && !!c.dueDate && c.dueDate.slice(0, 10) >= today && c.dueDate.slice(0, 10) <= soon)) &&
         (label === '' || c.labels.some((l) => l.text === label)) &&
         (q === '' || c.title.toLocaleLowerCase('pt').includes(q) || c.description.toLocaleLowerCase('pt').includes(q)),
     );
-  const total = data.lists.reduce((n, l) => n + l.cards.length, 0);
+  const allCards = data.lists.flatMap((l) => l.cards);
+  const total = allCards.length;
+  const rows: Row[] = data.lists.flatMap((list) => visible(list.cards).map((card) => ({ card, list })));
+  const clear = () => (setText(''), setStatus(''), setLabel(''), setWho(''), setPrio(''), setDue(''));
   // Task 067: an archived board is read-only for everyone; managers only restore it.
   const archived = !!data.archivedAt;
   const manage = data.canManage && !archived;
@@ -334,6 +432,15 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
         )}
       </header>
 
+      <div className="lx-views" role="group" aria-label="Vista">
+        {VIEWS.map((v) => (
+          <button key={v.key} type="button" aria-pressed={view === v.key} onClick={() => switchView(v.key)}>
+            <Icon name={v.icon} />
+            {v.label}
+          </button>
+        ))}
+      </div>
+
       <div className="lx-toolbar" role="search">
         <label className="control control--sm" htmlFor={ids.q}>
           <span className="sr-only">Procurar cartão</span>
@@ -350,26 +457,82 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
             </button>
           ))}
         </div>
-        {(anyMine || onlyMine) && (
-          <button type="button" className="lx-mine-filter" aria-pressed={onlyMine} onClick={() => setOnlyMine(!onlyMine)}>
-            <Icon name="person" />
-            Só os meus
-          </button>
-        )}
-        {data.labels.length > 0 && (
-          <label className="control control--select control--sm" htmlFor={ids.label}>
-            <span className="sr-only">Etiqueta</span>
-            <select id={ids.label} value={label} onChange={(e) => setLabel(e.target.value)}>
-              <option value="">Todas as etiquetas</option>
-              {data.labels.map((l) => (
-                <option key={l} value={l}>
-                  {l}
+        <button
+          type="button"
+          className="lx-more-toggle"
+          aria-expanded={moreFilters}
+          aria-controls={`${ids.who}-more`}
+          onClick={() => setMoreFilters(!moreFilters)}
+        >
+          <Icon name="chevronDown" />
+          Filtros{(who || prio || due || label) && ` (${[who, prio, due, label].filter(Boolean).length})`}
+        </button>
+        <div id={`${ids.who}-more`} className={moreFilters ? 'lx-toolbar__more lx-toolbar__more--open' : 'lx-toolbar__more'}>
+          <label className="control control--select control--sm" htmlFor={ids.who}>
+            <span className="sr-only">Responsável</span>
+            <select id={ids.who} value={who} onChange={(e) => setWho(e.target.value)}>
+              <option value="">Qualquer responsável</option>
+              <option value="mine">Os meus cartões</option>
+              <option value="none">Sem responsável</option>
+              {people.map((p) => (
+                <option key={p} value={p}>
+                  {p}
                 </option>
               ))}
             </select>
           </label>
+          <label className="control control--select control--sm" htmlFor={ids.prio}>
+            <span className="sr-only">Prioridade</span>
+            <select id={ids.prio} value={prio} onChange={(e) => setPrio(e.target.value as Priority | '')}>
+              <option value="">Qualquer prioridade</option>
+              {PRIORITIES.map((p) => (
+                <option key={p} value={p}>
+                  {PRIORITY[p]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="control control--select control--sm" htmlFor={ids.due}>
+            <span className="sr-only">Prazo</span>
+            <select id={ids.due} value={due} onChange={(e) => setDue(e.target.value as Due)}>
+              <option value="">Qualquer prazo</option>
+              <option value="late">Atrasados</option>
+              <option value="soon">Próximos 7 dias</option>
+              <option value="none">Sem prazo</option>
+            </select>
+          </label>
+          {data.labels.length > 0 && (
+            <label className="control control--select control--sm" htmlFor={ids.label}>
+              <span className="sr-only">Etiqueta</span>
+              <select id={ids.label} value={label} onChange={(e) => setLabel(e.target.value)}>
+                <option value="">Todas as etiquetas</option>
+                {data.labels.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {view === 'list' && (
+            <label className="control control--select control--sm" htmlFor={ids.sort}>
+              <span className="sr-only">Ordenar</span>
+              <select id={ids.sort} value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+                <option value="due">Ordenar por prazo</option>
+                <option value="priority">Ordenar por prioridade</option>
+                <option value="status">Ordenar por estado</option>
+                <option value="title">Ordenar por título</option>
+              </select>
+            </label>
+          )}
+        </div>
+        {filtering && (
+          <button type="button" className="btn btn--ghost btn--sm" onClick={clear}>
+            <Icon name="close" />
+            Limpar filtros
+          </button>
         )}
-        {data.lists.length > 1 && (
+        {view === 'board' && data.lists.length > 1 && (
           <nav className="lx-jump" aria-label="Ir para a lista">
             {data.lists.map((l) => (
               <button key={l.id} type="button" onClick={() => columns.current[l.id]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })}>
@@ -386,7 +549,26 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
         </p>
       )}
 
-      {data.lists.length === 0 ? (
+      {data.lists.length > 0 && <Summary all={allCards} shown={rows.length} filtering={filtering} />}
+
+      {data.lists.length > 0 && view !== 'board' && filtering && rows.length === 0 ? (
+        <div className="lx-empty" role="status">
+          <p>Nenhum cartão corresponde aos filtros.</p>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={clear}>
+            Limpar filtros
+          </button>
+        </div>
+      ) : data.lists.length > 0 && view === 'list' ? (
+        rows.length === 0 ? (
+          <div className="lx-empty" role="status">
+            <p>Este quadro ainda não tem cartões.</p>
+          </div>
+        ) : (
+          <ListView rows={sortRows(rows, sort)} sort={sort} onSort={setSort} onOpen={(id) => setOpen({ kind: 'card', id })} />
+        )
+      ) : data.lists.length > 0 && view === 'calendar' ? (
+        <CalendarView rows={rows} month={month} onMonth={setMonth} onOpen={(id) => setOpen({ kind: 'card', id })} />
+      ) : data.lists.length === 0 ? (
         <div className="notice" role="status">
           <p>Este quadro ainda não tem listas.</p>
           {manage && (

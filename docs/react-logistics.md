@@ -11,6 +11,7 @@
 | `/logistics`, `/logistics/{id}` | React, signed-in members, Leitões included since 065 (visitors: 302 to `/login?returnUrl=…`, query kept since 069) |
 | `/logistics/{id}?card={cardId}` | the board with that card open (069; links, pushes); a card or board the member can't see shows "não existe ou não tem acesso" |
 | `/logistics/tasks` | "As minhas tarefas" (069, `LogisticsTasks.tsx`), signed-in members |
+| `/logistics/{id}?view=list\|calendar&…` | the board's list or calendar view (070, `LogisticsViews.tsx`); filters, order and month in the address |
 
 Links: the React member menu, Gestão → Logística (`MemberMenuAccess.Logistics`, every member since 065; a Leitão's
 Gestão shows Logística only), and the React `/profile` actions.
@@ -101,6 +102,37 @@ deslocação/atuação** (`LogisticsTemplates`): pick one, anchor it to an event
 Privado, its event, responsible member (or "Sem responsável"), progress (done / total) and overdue, without-owner and
 own-task counts; managers' ⋯ menu (edit and access, duplicate, finish / reopen, archive / restore, delete); empty states
 offer a template or a blank board.
+
+## Views: Quadro, Lista, Calendário (task 070, issue #250)
+
+Every board has three views over **the same cards**: the active cards of `GET /boards/{id}` (only what the caller may
+see; archived cards stay in "Cartões arquivados" and count nowhere), after **the same filters**. All three open the
+same card workspace, and nothing in the list or calendar writes: every change goes through the card (or the Kanban's
+move), under the card's rules - no new endpoint, so the API limits are the Kanban's (`LogisticsApiTests.Views_…`).
+
+- **Filters** (one bar, every view): search in title and details, state, responsible member ("Os meus cartões", "Sem
+  responsável", or a name), priority, deadline ("Atrasados", "Próximos 7 dias", "Sem prazo"), label; "Limpar filtros".
+  On phones the extra filters fold behind "Filtros" so the sticky bar stays short.
+- **Address**: `view`, `q`, `status`, `label`, `who` (only `mine` / `none` - a name is never put in the address),
+  `prio`, `due`, `sort` (list), `month` (calendar) and `card`. Refresh restores the board as it was; switching the view
+  adds a history entry (Back returns to the previous view), every other change replaces it.
+- **Summary** (every view): Feitos (done / all active cards), Atrasados (deadline before today in Portugal, not done),
+  Bloqueados (state Bloqueado), Sem responsável (not done, no responsible member), each with its definition on hover.
+  The numbers are always board-wide; with filters on, "A mostrar X de Y (filtros ativos)" says so.
+- **Lista**: a table (Cartão, Estado, Coluna, Responsável, Prioridade, Prazo, Checklist), ordered by deadline (undated
+  last), priority, state or title (`sort`, the column headers or the select); each title is a button that opens the
+  card. Below 768px each row is a stacked card.
+- **Calendário**: a month (Monday first) of Portuguese calendar days - a deadline is a date, compared with today in
+  Europe/Lisbon - with the neighbouring months' days, previous / next month (year boundaries included), "Hoje",
+  "Mostrar feitos". Overdue cards are outlined; overdue cards from earlier months are listed above the grid; cards
+  without a deadline are in "Sem prazo" below, never dropped. Below 768px the grid becomes an agenda (the month's days
+  that have cards, in order).
+- **Keyboard**: the views, filters, rows and calendar chips are buttons; Enter opens the card, Escape closes it. The
+  Kanban keeps "Mover…" for moving without dragging.
+
+Responsive audit: `tests/responsive/responsive_audit.py` has `logistics-template`, `logistics-board`, `logistics-list`,
+`logistics-calendar`, `logistics-card`, `logistics-list-card` and `logistics-tasks` (070); the Kanban's own scroller is
+reported as contained, never as overflow.
 
 ## Reminders, notifications and "As minhas tarefas" (task 069, issue #249)
 
@@ -267,7 +299,8 @@ Since 069: reminders are delivered and assignments / mentions push (above). No e
 - (065, resolved) Members open card details read-only; assignees tick the checklist and change the status.
 - (066, resolved) Ownership, discussion, history and card attachments.
 - (067, resolved) Private boards and access lists, workflow columns, stable board files, archive, copies and templates.
-  Next: list / calendar views (#250).
+  (070, resolved) List and calendar views, board summary, filters in the address.
+- Not built (outside #245): external calendar subscription (iCal), per-category push preferences.
 - Rollback across 069: the 2.3.x / 067 app ignores the new reminder columns and never sends; reminders saved after 069
   stay stored. Nothing to undo.
 - Rollback across 067: the 2.3.x app ignores visibility (a private board is visible to every member again), columns'
