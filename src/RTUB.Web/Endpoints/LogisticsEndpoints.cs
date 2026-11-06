@@ -7,8 +7,9 @@ namespace RTUB.Web.Endpoints;
 
 /// <summary>
 /// The React /logistics and /logistics/{id} ("Logística", React track 023, docs/react-logistics.md; were the Blazor pages).
-/// Thin: every rule lives in <see cref="ILogisticsKanbanService"/>, decided from the session. Signed-in members, Leitões
-/// refused unless they manage. Every write needs the antiforgery token in the X-CSRF-TOKEN header.
+/// Thin: every rule lives in <see cref="ILogisticsKanbanService"/>, decided from the session. Signed-in members (Leitões
+/// included since 065) read; assignees tick checklists and change status; managers do the rest. Every write needs the
+/// antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class LogisticsEndpoints
 {
@@ -58,6 +59,8 @@ public static class LogisticsEndpoints
             ToResult(await s.SetLabelsAsync(id, input, http.User))).WithMetadata(small);
         writes.MapPut("/cards/{id:int}/checklist", async (int id, LogisticsChecklistInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.SetChecklistAsync(id, input, http.User))).WithMetadata(small);
+        writes.MapPost("/cards/{id:int}/checklist/{index:int}", async (int id, int index, LogisticsChecklistToggleInput input, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.ToggleChecklistItemAsync(id, index, input, http.User))).WithMetadata(small);
         writes.MapPut("/cards/{id:int}/links", async (int id, LogisticsLinksInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.SetLinksAsync(id, input, http.User))).WithMetadata(small);
         writes.MapPost("/cards/{id:int}/assignments", async (int id, LogisticsAssignmentInput input, HttpContext http, ILogisticsKanbanService s) =>

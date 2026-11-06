@@ -7,7 +7,7 @@ import { day, logisticsApi, problem, type BoardSummary, type Boards, type Logist
 import { loginTo } from './musicApi';
 
 /**
- * /logistics - Logística (React track 023; was the Blazor page). Signed-in members, Leitões excepted. Active boards,
+ * /logistics - Logística (React track 023; was the Blazor page). Every signed-in member (Leitões too since 065). Active boards,
  * then completed ones, newest first, with search. Mod, Admin and Owner create, edit, finish, reopen and delete boards.
  */
 export default function Logistics() {
@@ -118,7 +118,7 @@ export default function Logistics() {
         </div>
       ) : boards === 'forbidden' ? (
         <div className="notice" role="status">
-          <p>Os quadros de logística ainda não estão disponíveis para Leitões.</p>
+          <p>Não tem acesso à logística.</p>
         </div>
       ) : boards === null ? (
         <div className="notice" role="status">

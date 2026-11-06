@@ -12,12 +12,15 @@ export function Dialog({
   children,
   footer,
   size = 'md',
+  className,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
   size?: 'md' | 'lg';
+  /** An extra class on the <dialog> (e.g. a full-screen view on phones). */
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -31,7 +34,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className={`modal modal--${size}`}
+      className={`modal modal--${size}${className ? ` ${className}` : ''}`}
       aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();

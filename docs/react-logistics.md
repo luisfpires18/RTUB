@@ -3,13 +3,14 @@
 `/logistics` (boards) and `/logistics/{id}` (one board, a Kanban) are React (`portal/src/Logistics.tsx`,
 `LogisticsBoard.tsx`, `LogisticsDialogs.tsx`) over `/api/logistics` (`Endpoints/LogisticsEndpoints.cs` →
 `ILogisticsKanbanService`), replacing the Blazor `Pages/Management/Logistics.razor` and `LogisticsBoard.razor` (and
-`wwwroot/js/kanban.js`). DEV only; **no schema change**.
+`wwwroot/js/kanban.js`). DEV only; **no schema change** (065 none either).
 
 | Route | Owner after 023 |
 | --- | --- |
-| `/logistics`, `/logistics/{id}` | React, signed-in members (visitors: 302 to `/login?returnUrl=…`; Leitões: a notice, API 403) |
+| `/logistics`, `/logistics/{id}` | React, signed-in members, Leitões included since 065 (visitors: 302 to `/login?returnUrl=…`) |
 
-Links: the Blazor `MainLayout` "Gestão" menu (same URL) and the React `/profile` actions.
+Links: the React member menu, Gestão → Logística (`MemberMenuAccess.Logistics`, every member since 065; a Leitão's
+Gestão shows Logística only), and the React `/profile` actions.
 
 ## Audit (old pages: boards 496 lines, board 1945 lines, both `[Authorize]`)
 
@@ -42,18 +43,22 @@ Links: the Blazor `MainLayout` "Gestão" menu (same URL) and the React `/profile
 Everything moved: boards (CRUD, finish / reopen, search), lists (CRUD, now reorderable), cards (CRUD, status, labels,
 dates, checklist, links, members, "Atribuir a"), drag and drop, label filter, board files, reminders. No bridge.
 
-## Rules now (`LogisticsAuthorization`, server-side)
+## Rules now (`LogisticsAuthorization`, server-side; task 065, issue #246)
 
-| Who | Boards and cards (read) | Reminders | Card details, any change, files upload / delete |
-| --- | --- | --- | --- |
-| Visitor | `401` (page: 302) | `401` | `401` |
-| Leitão (not a manager) | `403` (both pages) | `403` | `403` |
-| Member | yes, files download | yes | `403` |
-| Mod, Admin, Owner | yes | yes | yes (Owner inherits Admin) |
+| Who | Boards, cards, card details (read), file download | Reminders | Tick checklist, change status | Any other change, files upload / delete |
+| --- | --- | --- | --- | --- |
+| Visitor | `401` (page: 302) | `401` | `401` | `401` |
+| Member, Leitão included | yes | yes | only on cards assigned to them | `403` |
+| Mod, Admin, Owner | yes | yes | yes | yes (Owner inherits Admin) |
+
+"Assigned" = the card's "Atribuir a" member or one of its "Membros atribuídos", read from the database on every write
+(removing the assignment refuses the next write). Private boards / board access are phase 3 (#248): not implemented,
+every board is visible to every member. Detail: [permissions/logistics](permissions/logistics.md).
 
 Validation as the entities: names / titles required and capped, description ≤ 2000, event and members must exist,
 links only to other cards of the same board, at most 20 labels (≤ 50, `#rrggbb`), 100 checklist items (≤ 200).
-Members see names and avatars only; a member id reaches managers only where they change an assignment.
+Members see names and avatars only; a member id reaches managers only where they change an assignment (card details
+send `userId: null` to non-managers).
 
 ## Kanban UX (compared with the Blazor board)
 
@@ -65,6 +70,13 @@ Members see names and avatars only; a member id reaches managers only where they
   of always-visible buttons; "Adicionar cartão" at the foot of each column, "Adicionar lista" as a last column.
 - **Drag and drop** with a drop line (mouse); **"Mover…"** (list + position) for touch and keyboard.
 - Card details in one dialog: status as three buttons, core fields saved together, the rest saved as you go.
+- Task 065: **every card opens** (click or the title button). Non-managers get a read view (`CardView` in
+  `LogisticsDialogs.tsx`): status, list, dates, a role note ("Só leitura" or "atribuído a si"), details with line
+  breaks, checklist (read-only ticks), people (responsável first), labels, links and the board files with download.
+  Assignees also get the three status buttons and live checkboxes; each change waits for the server and shows the
+  server's card (an error stays next to the section; nothing shows as saved before the answer). Full screen on phones
+  (`.lx-card-modal`, ≤ 599 px, safe areas). Cards assigned to the caller carry an "Atribuído a si" chip and a purple
+  edge, and the toolbar offers "Só os meus" when there is at least one.
 - Board files in one "Ficheiros" dialog on the board header (they were always per board), not repeated on each card.
 - Mobile: no page overflow at 375 px; columns ~84 % of the screen, list chips to jump.
 
@@ -77,9 +89,10 @@ Members see names and avatars only; a member id reaches managers only where they
 | `GET /events?q=`, `GET /members?q=` | event picker (managers), member picker (≤ 20, not expelled) |
 | `GET /boards/{id}` | lists, card faces, label texts, board files, `canManage` |
 | `POST /boards/{id}/lists`, `PUT /lists/{id}`, `POST /lists/{id}/move`, `DELETE /lists/{id}` | lists |
-| `POST /lists/{id}/cards`, `GET`/`PUT`/`DELETE /cards/{id}` | cards (details: managers) |
-| `POST /cards/{id}/status`, `POST /cards/{id}/move` | `{ status }`, `{ listId, position }` |
-| `PUT /cards/{id}/labels`, `/checklist`, `/links` | replace the set |
+| `POST /lists/{id}/cards`, `GET`/`PUT`/`DELETE /cards/{id}` | cards (`GET` details: every member, with `canManage`, `canWork`) |
+| `POST /cards/{id}/status`, `POST /cards/{id}/move` | `{ status }` (managers, assignees), `{ listId, position }` |
+| `POST /cards/{id}/checklist/{index}` | `{ task, done }`: one item's tick (managers, assignees); `task` must match, else `400 items` |
+| `PUT /cards/{id}/labels`, `/checklist`, `/links` | replace the set (managers) |
 | `POST /cards/{id}/assignments`, `DELETE /cards/{id}/assignments/{userId}` | members |
 | `POST /boards/{id}/reminders` | `{ cardId, frequency, nextReminderDate, userIds }` |
 | `GET`/`POST`/`DELETE /boards/{id}/files` | `?name=` → `{ url }`; multipart `file`; `?name=` |
@@ -105,5 +118,7 @@ Reminders are stored exactly as before and still never sent (unchanged). No emai
 - Reminder delivery (a job reading `LogisticsCardReminders`) never existed; decide whether to build or drop it.
 - (042, resolved) `ILogistics{Board,List,Card}Service` and their repositories (no page caller) are removed; the board
   folder sanitizer moved unchanged into `LogisticsKanbanService`. `BoardCard` and `kanban.css` went with 037.
-- Members still cannot open card details (as before); a read-only view would expose checklist and links.
+- (065, resolved) Members open card details read-only; assignees tick the checklist and change the status. Comments,
+  ownership and history are phase 2 (#247); private boards and board access phase 3 (#248); reminder delivery and
+  "As minhas tarefas" phase 4 (#249).
 - Board files follow the current fiscal year: after 1 September a board shows an empty folder (unchanged).

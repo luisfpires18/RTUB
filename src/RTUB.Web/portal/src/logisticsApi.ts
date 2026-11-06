@@ -1,7 +1,8 @@
 import { call, type Outcome } from './eventsApi';
 
-// /api/logistics (Endpoints/LogisticsEndpoints.cs, React track 023). Signed-in members, Leitões refused unless they
-// manage; Mod, Admin and Owner manage. The server decides every rule (LogisticsKanbanService).
+// /api/logistics (Endpoints/LogisticsEndpoints.cs, React track 023). Signed-in members read (Leitões too since 065);
+// assignees tick checklists and change status; Mod, Admin and Owner manage. The server decides every rule
+// (LogisticsKanbanService).
 
 export type LogisticsEvent = { id: number; name: string; date: string };
 export type BoardSummary = { id: number; name: string; description: string; event: LogisticsEvent | null; isCompleted: boolean; completedAt: string | null };
@@ -23,6 +24,8 @@ export type Card = {
   checklistDone: number;
   checklistTotal: number;
   links: number;
+  /** The caller is the "Atribuir a" member or one of the "Membros atribuídos" (task 065). */
+  mine: boolean;
 };
 export type List = { id: number; name: string; cards: Card[] };
 export type BoardFile = { name: string; extension: string; sizeBytes: number };
@@ -37,7 +40,8 @@ export type Board = {
   files: BoardFile[];
   canManage: boolean;
 };
-export type Assignee = { userId: string; displayName: string; fullName: string | null; avatarUrl: string | null };
+/** `userId` only for managers (they change assignments); null for everyone else. */
+export type Assignee = { userId: string | null; displayName: string; fullName: string | null; avatarUrl: string | null };
 export type ChecklistItem = { task: string; done: boolean };
 export type CardDetail = {
   card: Card;
@@ -46,6 +50,10 @@ export type CardDetail = {
   checklist: ChecklistItem[];
   links: { cardId: number | null; name: string }[];
   assignments: Assignee[];
+  /** May edit everything (Mod, Admin, Owner). */
+  canManage: boolean;
+  /** May tick the checklist and change the status: a manager or an assignee (task 065). */
+  canWork: boolean;
 };
 export type MemberOption = { id: string; displayName: string; fullName: string | null; avatarUrl: string | null };
 export type CardInput = { title: string; description: string; startDate: string | null; dueDate: string | null; assignedToUserId: string | null };
@@ -82,6 +90,9 @@ export const logisticsApi = {
   moveCard: (id: number, listId: number, position: number) => call<void>('POST', `/api/logistics/cards/${id}/move`, { listId, position }),
   setLabels: (id: number, labels: Label[]) => call<CardDetail>('PUT', `/api/logistics/cards/${id}/labels`, { labels }),
   setChecklist: (id: number, items: ChecklistItem[]) => call<CardDetail>('PUT', `/api/logistics/cards/${id}/checklist`, { items }),
+  /** One item's tick (assignees too); `task` must still be the item's text. */
+  toggleItem: (id: number, index: number, task: string, done: boolean) =>
+    call<CardDetail>('POST', `/api/logistics/cards/${id}/checklist/${index}`, { task, done }),
   setLinks: (id: number, cardIds: number[]) => call<CardDetail>('PUT', `/api/logistics/cards/${id}/links`, { cardIds }),
   assign: (id: number, userId: string) => call<CardDetail>('POST', `/api/logistics/cards/${id}/assignments`, { userId }),
   unassign: (id: number, userId: string) => call<CardDetail>('DELETE', `/api/logistics/cards/${id}/assignments/${encodeURIComponent(userId)}`),
@@ -108,7 +119,7 @@ export const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'invalid'
     ? Object.values(o.errors)[0]
     : o.kind === 'forbidden'
-      ? 'Só Mod, Admin ou Owner gerem a logística.'
+      ? 'Sem permissão: só Mod, Admin, Owner ou quem tem o cartão atribuído.'
       : o.kind === 'notfound'
         ? 'Isto já não existe. Recarrega a página.'
         : o.kind === 'signin'
