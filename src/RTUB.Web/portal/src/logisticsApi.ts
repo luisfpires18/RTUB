@@ -1,3 +1,4 @@
+import { antiforgeryToken } from './api';
 import { call, type Outcome } from './eventsApi';
 
 // /api/logistics (Endpoints/LogisticsEndpoints.cs, React track 023). Signed-in members read (Leitões too since 065);
@@ -10,6 +11,7 @@ export type Boards = { active: BoardSummary[]; completed: BoardSummary[]; canMan
 export type Label = { text: string; color: string };
 export type Person = { displayName: string; fullName: string | null; avatarUrl: string | null };
 export type Status = 'Todo' | 'InProgress' | 'Done';
+export type Priority = 'Low' | 'Normal' | 'High' | 'Urgent';
 export type Card = {
   id: number;
   title: string;
@@ -24,8 +26,11 @@ export type Card = {
   checklistDone: number;
   checklistTotal: number;
   links: number;
-  /** The caller is the "Atribuir a" member or one of the "Membros atribuídos" (task 065). */
+  /** The caller is the owner or a collaborator (task 065). */
   mine: boolean;
+  priority: Priority;
+  comments: number;
+  attachments: number;
 };
 export type List = { id: number; name: string; cards: Card[] };
 export type BoardFile = { name: string; extension: string; sizeBytes: number };
@@ -50,13 +55,49 @@ export type CardDetail = {
   checklist: ChecklistItem[];
   links: { cardId: number | null; name: string }[];
   assignments: Assignee[];
-  /** May edit everything (Mod, Admin, Owner). */
+  /** May change everything (Mod, Admin, Owner): owner, collaborators, labels, card links, delete. */
   canManage: boolean;
-  /** May tick the checklist and change the status: a manager or an assignee (task 065). */
+  /** Owner, collaborator or manager (task 066): edits the card's fields and checklist, status, comments, attaches. */
   canWork: boolean;
+  /** Sent back with a field edit; a stale one answers 409 ('conflict'). */
+  version: number;
+  comments: CardComment[];
+  attachments: CardAttachment[];
+  activity: CardActivity[];
 };
+export type CardComment = {
+  id: number;
+  author: Person | null;
+  body: string;
+  mentions: string[];
+  createdAt: string;
+  editedAt: string | null;
+  canEdit: boolean;
+  canDelete: boolean;
+};
+export type CardAttachment = {
+  id: number;
+  kind: 'File' | 'Link';
+  name: string;
+  host: string | null;
+  sizeBytes: number;
+  extension: string | null;
+  addedBy: Person | null;
+  createdAt: string;
+  canDelete: boolean;
+};
+export type CardActivity = { actor: Person | null; action: string; detail: string; at: string };
 export type MemberOption = { id: string; displayName: string; fullName: string | null; avatarUrl: string | null };
-export type CardInput = { title: string; description: string; startDate: string | null; dueDate: string | null; assignedToUserId: string | null };
+export type CardInput = {
+  title: string;
+  description: string;
+  startDate: string | null;
+  dueDate: string | null;
+  /** The owner: only a manager changes or clears it; everyone else sends null (kept). */
+  assignedToUserId: string | null;
+  priority: Priority;
+  version: number;
+};
 
 const q = (params: Record<string, string>) => {
   const p = new URLSearchParams();
@@ -89,7 +130,12 @@ export const logisticsApi = {
   setStatus: (id: number, status: Status) => call<CardDetail>('POST', `/api/logistics/cards/${id}/status`, { status }),
   moveCard: (id: number, listId: number, position: number) => call<void>('POST', `/api/logistics/cards/${id}/move`, { listId, position }),
   setLabels: (id: number, labels: Label[]) => call<CardDetail>('PUT', `/api/logistics/cards/${id}/labels`, { labels }),
-  setChecklist: (id: number, items: ChecklistItem[]) => call<CardDetail>('PUT', `/api/logistics/cards/${id}/checklist`, { items }),
+  // The checklist one item at a time (task 066): the item's text identifies it, so two people never overwrite each other.
+  addItem: (id: number, task: string) => call<CardDetail>('POST', `/api/logistics/cards/${id}/checklist`, { task }),
+  renameItem: (id: number, index: number, expected: string, task: string) =>
+    call<CardDetail>('PUT', `/api/logistics/cards/${id}/checklist/${index}`, { expected, task }),
+  removeItem: (id: number, index: number, expected: string) =>
+    call<CardDetail>('DELETE', `/api/logistics/cards/${id}/checklist/${index}${q({ task: expected })}`),
   /** One item's tick (assignees too); `task` must still be the item's text. */
   toggleItem: (id: number, index: number, task: string, done: boolean) =>
     call<CardDetail>('POST', `/api/logistics/cards/${id}/checklist/${index}`, { task, done }),
@@ -97,6 +143,13 @@ export const logisticsApi = {
   assign: (id: number, userId: string) => call<CardDetail>('POST', `/api/logistics/cards/${id}/assignments`, { userId }),
   unassign: (id: number, userId: string) => call<CardDetail>('DELETE', `/api/logistics/cards/${id}/assignments/${encodeURIComponent(userId)}`),
   removeCard: (id: number) => call<void>('DELETE', `/api/logistics/cards/${id}`),
+
+  comment: (id: number, body: string, mentionUserIds: string[]) => call<CardDetail>('POST', `/api/logistics/cards/${id}/comments`, { body, mentionUserIds }),
+  editComment: (commentId: number, body: string) => call<CardDetail>('PUT', `/api/logistics/comments/${commentId}`, { body }),
+  removeComment: (commentId: number) => call<CardDetail>('DELETE', `/api/logistics/comments/${commentId}`),
+  addLink: (id: number, url: string, name: string) => call<CardDetail>('POST', `/api/logistics/cards/${id}/links`, { url, name }),
+  attachment: (id: number, attachmentId: number) => call<{ url: string }>('GET', `/api/logistics/cards/${id}/attachments/${attachmentId}`),
+  removeAttachment: (id: number, attachmentId: number) => call<CardDetail>('DELETE', `/api/logistics/cards/${id}/attachments/${attachmentId}`),
 
   createReminder: (boardId: number, input: { cardId: number; frequency: string; nextReminderDate: string; userIds: string[] }) =>
     call<unknown>('POST', `/api/logistics/boards/${boardId}/reminders`, input),
@@ -115,11 +168,15 @@ export const STATUS: Record<Status, { label: string; name: string }> = {
   Done: { label: 'DONE', name: 'Feito' },
 };
 
+export const PRIORITY: Record<Priority, string> = { Low: 'Baixa', Normal: 'Normal', High: 'Alta', Urgent: 'Urgente' };
+
 export const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
+  o.kind === 'conflict'
+    ? 'O cartão foi alterado por outra pessoa entretanto.'
+    : o.kind === 'invalid'
     ? Object.values(o.errors)[0]
     : o.kind === 'forbidden'
-      ? 'Sem permissão: só Mod, Admin, Owner ou quem tem o cartão atribuído.'
+      ? 'Sem permissão: só o responsável, os colaboradores, Mod, Admin ou Owner.'
       : o.kind === 'notfound'
         ? 'Isto já não existe. Recarrega a página.'
         : o.kind === 'signin'
@@ -128,3 +185,49 @@ export const problem = (o: Outcome<unknown>, what: string) =>
 
 /** "2026-10-04T00:00:00" → "04/10/2026". */
 export const day = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '');
+
+/**
+ * A card file (task 066), through XHR so the upload reports its progress. Same outcomes as `call`; a refused antiforgery
+ * token is fetched again once.
+ */
+export async function uploadAttachment(cardId: number, file: File, onProgress: (share: number) => void, retried = false): Promise<Outcome<CardDetail>> {
+  let token: string;
+  try {
+    token = await antiforgeryToken(retried);
+  } catch {
+    return { kind: 'failed' };
+  }
+
+  const body = new FormData();
+  body.append('file', file, file.name);
+  const answer = await new Promise<{ status: number; text: string }>((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api/logistics/cards/${cardId}/attachments`);
+    xhr.setRequestHeader('X-CSRF-TOKEN', token);
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+    xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText });
+    xhr.onerror = () => resolve({ status: 0, text: '' });
+    xhr.send(body);
+  });
+
+  const json = (() => {
+    try {
+      return JSON.parse(answer.text) as CardDetail & { errors?: Record<string, string[]> };
+    } catch {
+      return null;
+    }
+  })();
+  if (answer.status === 200 && json) return { kind: 'ok', data: json };
+  if (answer.status === 400 && json?.errors) {
+    const errors: Record<string, string> = {};
+    for (const [k, v] of Object.entries(json.errors)) errors[k.charAt(0).toLowerCase() + k.slice(1)] = v[0];
+    return { kind: 'invalid', errors };
+  }
+  if (answer.status === 400 && !retried) return uploadAttachment(cardId, file, onProgress, true);
+  if (answer.status === 413) return { kind: 'invalid', errors: { file: 'O ficheiro é demasiado grande. Tamanho máximo: 10MB' } };
+  if (answer.status === 401) return { kind: 'signin' };
+  if (answer.status === 403) return { kind: 'forbidden' };
+  if (answer.status === 404) return { kind: 'notfound' };
+  return { kind: 'failed' };
+}

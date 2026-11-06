@@ -314,6 +314,8 @@ export type Outcome<T> =
   | { kind: 'notfound' }
   | { kind: 'forbidden' }
   | { kind: 'inuse' }
+  /** 409 from a Logística card saved from an older copy (task 066). */
+  | { kind: 'conflict' }
   | { kind: 'failed' };
 
 let token: Promise<string> | null = null;
@@ -361,7 +363,7 @@ export async function call<T>(method: string, url: string, body?: unknown, retri
     if (r.status === 401) return { kind: 'signin' };
     if (r.status === 404) return { kind: 'notfound' };
     if (r.status === 403) return { kind: 'forbidden' };
-    if (r.status === 409) return { kind: problem.type === 'events:in-use' ? 'inuse' : 'closed' };
+    if (r.status === 409) return { kind: problem.type === 'events:in-use' ? 'inuse' : problem.type === 'logistics:conflict' ? 'conflict' : 'closed' };
     return { kind: 'failed' };
   } catch {
     return { kind: 'failed' };

@@ -30,12 +30,23 @@ public interface ILogisticsKanbanService
     Task<EventResult<LogisticsCardDetailDto>> SetStatusAsync(int id, LogisticsStatusInput input, ClaimsPrincipal user);
     Task<EventResult<bool>> MoveCardAsync(int id, LogisticsMoveInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsCardDetailDto>> SetLabelsAsync(int id, LogisticsLabelsInput input, ClaimsPrincipal user);
-    Task<EventResult<LogisticsCardDetailDto>> SetChecklistAsync(int id, LogisticsChecklistInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> AddChecklistItemAsync(int id, LogisticsChecklistItemInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> RenameChecklistItemAsync(int id, int index, LogisticsChecklistItemInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> RemoveChecklistItemAsync(int id, int index, string? expected, ClaimsPrincipal user);
     Task<EventResult<LogisticsCardDetailDto>> ToggleChecklistItemAsync(int id, int index, LogisticsChecklistToggleInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsCardDetailDto>> SetLinksAsync(int id, LogisticsLinksInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsCardDetailDto>> AddAssignmentAsync(int id, LogisticsAssignmentInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsCardDetailDto>> RemoveAssignmentAsync(int id, string userId, ClaimsPrincipal user);
     Task<EventResult<bool>> DeleteCardAsync(int id, ClaimsPrincipal user);
+
+    // Task 066: the card's discussion and attachments
+    Task<EventResult<LogisticsCardDetailDto>> AddCommentAsync(int cardId, LogisticsCommentInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> EditCommentAsync(int commentId, LogisticsCommentInput input, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> DeleteCommentAsync(int commentId, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> UploadAttachmentAsync(int cardId, LogisticsFileUpload upload, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> AddLinkAsync(int cardId, LogisticsLinkInput input, ClaimsPrincipal user);
+    Task<EventResult<DocumentLinkDto>> GetAttachmentAsync(int cardId, int attachmentId, ClaimsPrincipal user);
+    Task<EventResult<LogisticsCardDetailDto>> DeleteAttachmentAsync(int cardId, int attachmentId, ClaimsPrincipal user);
 
     Task<EventResult<LogisticsReminderDto>> CreateReminderAsync(int boardId, LogisticsReminderInput input, ClaimsPrincipal user);
 

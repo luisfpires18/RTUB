@@ -67,6 +67,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<LogisticsCard> LogisticsCards { get; set; }
     public DbSet<LogisticsCardAssignment> LogisticsCardAssignments { get; set; }
     public DbSet<LogisticsCardReminder> LogisticsCardReminders { get; set; }
+    public DbSet<LogisticsCardComment> LogisticsCardComments { get; set; }
+    public DbSet<LogisticsCardActivity> LogisticsCardActivities { get; set; }
+    public DbSet<LogisticsCardAttachment> LogisticsCardAttachments { get; set; }
 
     // Audit Log DbSet
     public DbSet<AuditLog> AuditLogs { get; set; }

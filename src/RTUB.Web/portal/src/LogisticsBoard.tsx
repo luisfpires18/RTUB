@@ -1,8 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { Loading } from './App';
 import { Icon } from './icons';
-import { day, logisticsApi, problem, STATUS, type Board, type Card, type List, type Status } from './logisticsApi';
-import { CardDialog, ConfirmDialog, CreateCardDialog, FilesDialog, ListDialog, MoveCardDialog, ReminderDialog } from './LogisticsDialogs';
+import { day, logisticsApi, PRIORITY, problem, STATUS, type Board, type Card, type List, type Status } from './logisticsApi';
+import { CardWorkspace, deadline } from './LogisticsCard';
+import { ConfirmDialog, CreateCardDialog, FilesDialog, ListDialog, MoveCardDialog, ReminderDialog } from './LogisticsDialogs';
 import { loginTo } from './musicApi';
 
 const STATUSES: Status[] = ['Todo', 'InProgress', 'Done'];
@@ -478,7 +479,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
       )}
 
       {open?.kind === 'card' && (
-        <CardDialog
+        <CardWorkspace
           board={data}
           cardId={open.id}
           onClose={() => setOpen(undefined)}
@@ -554,6 +555,7 @@ function CardFace({
 }) {
   const s = card.status.toLowerCase();
   const progress = card.checklistTotal ? Math.round((card.checklistDone / card.checklistTotal) * 100) : 0;
+  const due = deadline(card.dueDate, card.status);
   return (
     <article
       className={`lx-card lx-card--${s} lx-card--open${dragging ? ' lx-card--dragging' : ''}${card.mine ? ' lx-card--mine' : ''}`}
@@ -574,6 +576,8 @@ function CardFace({
             {day(card.dueDate)}
           </span>
         )}
+        {card.priority !== 'Normal' && <span className={`lx-prio lx-prio--${card.priority.toLowerCase()}`}>{PRIORITY[card.priority]}</span>}
+        {due && <span className={`lx-due lx-due--${due.tone}`}>{due.text}</span>}
         {card.mine && <span className="lx-chip lx-chip--mine">Atribuído a si</span>}
         {canManage && <Menu label={`Ações do cartão ${card.title}`}>{menu}</Menu>}
       </div>
@@ -610,34 +614,47 @@ function CardFace({
           </small>
         </div>
       )}
-      {(card.eventName || card.assignedTo || card.assignments > 0 || card.links > 0) && (
-        <div className="lx-card__meta">
-          {card.eventName && (
-            <span>
-              <Icon name="calendar" />
-              {card.eventName}
-            </span>
-          )}
-          {card.assignedTo && (
-            <span title={card.assignedTo.fullName ?? undefined}>
-              <Icon name="person" />
-              {card.assignedTo.displayName}
-            </span>
-          )}
-          {card.assignments > 0 && (
-            <span title="Membros atribuídos">
-              <Icon name="person" />
-              {card.assignments}
-            </span>
-          )}
-          {card.links > 0 && (
-            <span title="Ligações">
-              <Icon name="link" />
-              {card.links}
-            </span>
-          )}
-        </div>
-      )}
+      {/* Always shown: the owner, or "Sem responsável" (task 066). */}
+      <div className="lx-card__meta">
+        {card.eventName && (
+          <span>
+            <Icon name="calendar" />
+            {card.eventName}
+          </span>
+        )}
+        {card.assignedTo ? (
+          <span title={card.assignedTo.fullName ?? 'Responsável'}>
+            <Icon name="person" />
+            {card.assignedTo.displayName}
+          </span>
+        ) : (
+          <span className="lx-card__unowned">Sem responsável</span>
+        )}
+        {card.assignments > 0 && (
+          <span title="Colaboradores">
+            <Icon name="people" />
+            {card.assignments}
+          </span>
+        )}
+        {card.comments > 0 && (
+          <span title="Comentários">
+            <Icon name="chat" />
+            {card.comments}
+          </span>
+        )}
+        {card.attachments > 0 && (
+          <span title="Anexos">
+            <Icon name="file" />
+            {card.attachments}
+          </span>
+        )}
+        {card.links > 0 && (
+          <span title="Cartões ligados">
+            <Icon name="link" />
+            {card.links}
+          </span>
+        )}
+      </div>
     </article>
   );
 }
