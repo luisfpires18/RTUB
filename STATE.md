@@ -6,8 +6,8 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
-**Task 071 = As minhas ações pendentes 1/8** (issue #252 under roadmap #251; `feat/071/pending-actions-foundation`, not
-committed). `/pending-actions`: grouped panels paged on their own (3 rows, previous / next, clamped last page), sources
+**Task 071 = As minhas ações pendentes 1/8** (issue #252 under roadmap #251; `feat/071/pending-actions-foundation`, PR #272 open,
+not merged). `/pending-actions`: grouped panels paged on their own (3 rows, previous / next, clamped last page), sources
 per module (`IPendingActionSource`), Atuações + Ensaios for active members (unanswered; every upcoming, past = current
 fiscal year; rows open the module), menu link in Membro, active-member login landing (a local `returnUrl` wins),
 server-side optional dismissals (`PendingActionDismissals`, migration `AddPendingActionDismissals`, additive). In-page
