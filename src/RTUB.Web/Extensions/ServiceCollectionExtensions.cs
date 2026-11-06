@@ -163,6 +163,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventContactsAdminService, EventContactsAdminService>();
         services.AddScoped<IRehearsalAgendaService, RehearsalAgendaService>();
         services.AddScoped<IRehearsalAdminService, RehearsalAdminService>();
+        // Task 071: As minhas ações pendentes. One source per panel, in page order (docs/react-pending-actions.md).
+        services.AddScoped<IPendingActionSource, EventResponsePendingActionSource>();
+        services.AddScoped<IPendingActionSource, RehearsalResponsePendingActionSource>();
+        services.AddScoped<IPendingActionsService, PendingActionsService>();
         services.AddScoped<IGalleryManagementService, GalleryManagementService>();
         services.AddScoped<ISongContentService, SongContentService>();
         services.AddScoped<IRequestService, RequestService>();

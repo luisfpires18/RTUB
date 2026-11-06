@@ -23,6 +23,8 @@ export const memberMenu: MenuGroup[] = [
     key: 'member',
     label: 'Membro',
     links: [
+      // Task 071: every signed-in member (Leitões too), outside Gestão; the page decides its panels.
+      { href: portal.pendingActions, label: 'As minhas ações pendentes', icon: 'calendarCheck' },
       { href: portal.events, label: 'Atuações', icon: 'calendar' },
       { href: portal.rehearsals, label: 'Ensaios', icon: 'clock' },
       { href: portal.music, label: 'Música', icon: 'music' },

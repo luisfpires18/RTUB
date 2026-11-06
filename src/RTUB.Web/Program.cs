@@ -503,6 +503,7 @@ public class Program
         app.MapShopEndpoints();
         app.MapDocumentationEndpoints();
         app.MapLogisticsEndpoints();
+        app.MapPendingActionsEndpoints();
         app.MapTreasuryEndpoints();
 
         // --------- Public "Novidades" feed for the React /news (React track 025) ---------
@@ -587,10 +588,11 @@ public class Program
         // Task 034: /meetings, members only (the Blazor page was [Authorize]; the API refuses Leitões and decides the rest).
         // Task 041: /messages, Messaging v2 (React; the conversation is ?c=<id>), members only. /messages/{id} and the old
         // /hubs/messages stay 404: nothing of the 027-retired inbox comes back.
+        // Task 071: /pending-actions (As minhas ações pendentes), members only; the API decides each panel.
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
                      "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/tasks", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
-                     "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/meetings", "/messages" })
+                     "/pending-actions", "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/meetings", "/messages" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {
@@ -716,11 +718,11 @@ public class Program
         // A signed-in member never sees the form and goes to the members' landing page. The return
         // URL is deliberately ignored here: /login is also the cookie's AccessDeniedPath, so a member
         // bounced off a page their role cannot open would be sent straight back to it, in a loop.
-        app.MapMethods("/login", ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
+        app.MapMethods("/login", ["GET", "HEAD"], async (HttpContext context, IWebHostEnvironment env, UserManager<ApplicationUser> users) =>
         {
             if (context.User.Identity?.IsAuthenticated == true)
             {
-                return Results.Redirect(MemberLanding(null));
+                return Results.Redirect(MemberLanding(null, await users.GetUserAsync(context.User) is { } me && IsActiveMember(me)));
             }
 
             context.Response.Headers.CacheControl = "no-cache";
@@ -733,9 +735,16 @@ public class Program
         app.Run();
     }
 
-    /// <summary>Where a signed-in member goes: a local return URL, otherwise the (React) events page.</summary>
-    internal static string MemberLanding(string? returnUrl) =>
-        RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl) ? returnUrl! : "/events";
+    /// <summary>
+    /// Where a signed-in member goes: a local return URL (a deep link, a PWA target) always wins; otherwise an active member
+    /// lands on "As minhas ações pendentes" (task 071) and everyone else on the (React) events page.
+    /// </summary>
+    internal static string MemberLanding(string? returnUrl, bool activeMember = false) =>
+        RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl) ? returnUrl! : activeMember ? "/pending-actions" : "/events";
+
+    /// <summary>The canonical active member (docs/member-activity-status.md): covered by the activity rule and not Reformado.</summary>
+    internal static bool IsActiveMember(ApplicationUser user) =>
+        RTUB.Application.Services.MemberActivityStatusEvaluator.IsSubjectToRule(user) && !user.IsRetired;
 
     /// <summary>
     /// Why an account may not sign in, whatever the method (password or passkey): <c>Invalid</c> for an
@@ -823,7 +832,7 @@ public class Program
 
         // A local return URL is honoured; anything else (missing, external, malformed) lands on
         // the members' landing page.
-        var target = MemberLanding(returnUrl);
+        var target = MemberLanding(returnUrl, IsActiveMember(user));
         return wantsJson ? Results.Json(new { redirect = target }) : Results.Redirect(target);
     }
 }
