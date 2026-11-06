@@ -209,7 +209,7 @@ function BoardTile({
         <span className="lx-board__top">
           <strong>{b.name}</strong>
           {b.visibility === 'Private' && (
-            <span className="lx-chip lx-chip--private" title="Só para a lista de acesso (e Mod, Admin, Owner)">
+            <span className="lx-chip lx-chip--private" title="Só para a lista de acesso">
               <Icon name="lock" />
               Privado
             </span>
@@ -333,7 +333,7 @@ export function AccessFields({
           <input type="radio" name={`${fid}-vis`} checked={visibility === 'Private'} onChange={() => setVisibility('Private')} />
           <span>
             <strong>Privado</strong>
-            <small>Só a lista de acesso abaixo. Mod, Admin e Owner veem sempre. Atribuir um cartão não dá acesso.</small>
+            <small>Só a lista de acesso abaixo. Atribuir um cartão não dá acesso.</small>
           </span>
         </label>
         {err('visibility')}
@@ -357,7 +357,7 @@ export function AccessFields({
               ))}
             </div>
           ) : (
-            <p className="note">Ninguém além de Mod, Admin e Owner.</p>
+            <p className="note">Ainda ninguém na lista de acesso.</p>
           )}
           <MemberPicker label="Dar acesso a" exclude={members.map((m) => m.id)} onPick={(m) => setMembers([...members, { id: m.id, name: m.displayName, avatar: m.avatarUrl }])} />
           {err('memberIds')}

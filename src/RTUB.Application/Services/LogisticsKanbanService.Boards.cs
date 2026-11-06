@@ -617,7 +617,7 @@ public sealed partial class LogisticsKanbanService
             if (await db.LogisticsLists.Where(l => l.BoardId == access.BoardId && l.State == status).OrderBy(l => l.Position).ThenBy(l => l.Id)
                     .FirstOrDefaultAsync() is not { } target)
             {
-                return EventResult<LogisticsCardDetailDto>.Invalid("status", $"Este quadro não tem uma coluna {StatusName(status)}. Peça a um gestor para a criar.");
+                return EventResult<LogisticsCardDetailDto>.Invalid("status", $"Este quadro não tem uma coluna {StatusName(status)}.");
             }
 
             await PlaceAsync(db, card, target, int.MaxValue, access);

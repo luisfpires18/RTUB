@@ -223,11 +223,11 @@ export const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'conflict'
     ? 'O cartão foi alterado por outra pessoa entretanto.'
     : o.kind === 'closed'
-      ? 'Está arquivado: só leitura. Um gestor pode restaurá-lo.'
+      ? 'Está arquivado: só leitura.'
     : o.kind === 'invalid'
     ? Object.values(o.errors)[0]
     : o.kind === 'forbidden'
-      ? 'Sem permissão: só o responsável, os colaboradores, Mod, Admin ou Owner.'
+      ? 'Não tem permissão para fazer isto.'
       : o.kind === 'notfound'
         ? 'Isto já não existe. Recarrega a página.'
         : o.kind === 'signin'

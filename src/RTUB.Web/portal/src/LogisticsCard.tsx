@@ -286,7 +286,7 @@ export function CardWorkspace({
         {!detail.canWork && !detail.readOnly && (
           <p className="lx-view__role">
             <Icon name="eye" />
-            Só leitura: este cartão é trabalhado pelo responsável, pelos colaboradores e por Mod, Admin ou Owner.
+            Só leitura: este cartão é trabalhado pelo responsável e pelos colaboradores.
           </p>
         )}
         {conflict && (
