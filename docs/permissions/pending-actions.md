@@ -15,7 +15,9 @@ mandate or status change shows on the next load. A panel that does not apply to 
 | Active member (`IsSubjectToRule && !IsRetired`: Leitão, Caloiro, Tuno, Veterano, Tunossauro not Reformado) | yes | Atuações, Ensaios (answer in place, 072); Logística, Questões (073) |
 | Reformado | yes | Logística, Questões (their own work; no participation panels) |
 | Account with no membership category (e.g. only Tuno Honorário, a bare Owner account) | yes | Logística, Questões |
-| Mod / Admin / Owner | as their member type | as their member type: **a role adds no panel**; on Logística a manager still sees only their own cards (not unowned ones) |
+| 1.º / 2.º Tesoureiro (current mandate) | yes | + Tesouraria (074) |
+| Secretário (current mandate) | yes | + Secretaria (074) |
+| Mod / Admin / Owner | as their member type | as their member type: **a role adds no panel** (Tesouraria / Secretaria follow the position, not the role); on Logística a manager still sees only their own cards (not unowned ones) |
 
 "Active" is the canonical rule of `docs/member-activity-status.md` (`ApplicationUser.IsRetired`, written only by the
 reconciliation); the page never computes its own activity status, and being active grants no module permission.
@@ -33,6 +35,18 @@ The page cannot approve anything: a past rehearsal "Fui" is pending (`Attended =
 the rehearsal page, exactly as a module "vou". No new permission was added to `EventsAuthorization` or
 `RehearsalsAuthorization`; the retrospective answer is the page's own narrow rule (own, current year from PastFrom,
 not cancelled, unanswered).
+
+### Tesouraria and Secretaria commands (074)
+
+| Request | Answer |
+| --- | --- |
+| Any Tesouraria / Secretaria command by someone who does not hold the position now (Admin / Owner included) | `404` (as the panel) |
+| Criar relatório while the year's report is missing | `204` through `CreateReportAsync`; a concurrent second one `404` / `409`; one report |
+| Dismissing the report row | `403` (required) |
+| Não / Reabrir on a begun, not cancelled event of the year | `204` if `CanManageReports` (normally given by the position's role), else `403` |
+| Não on an event already classified, out of the year, future, cancelled | `404` |
+| Criar pastas | `204` through `CreateFolderAsync` for the missing names only; existing names untouched |
+| Agora não (Secretaria) | `204`, the Secretário's own, for this fiscal year |
 
 ### Logística and Questões commands (073)
 

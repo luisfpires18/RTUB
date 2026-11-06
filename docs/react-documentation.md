@@ -115,3 +115,9 @@ Pre-067 Logística board files stay in `Logistics/{board}` of each year and keep
 board's folder, hidden from members off its access list (Mod, Admin, Owner still see it; listing, download and delete
 all go through the visible folders). Board files uploaded since 067 live with the board (`logistics/{env}/boards/{id}/`)
 and are not in Documentação. See [react-logistics](react-logistics.md).
+
+## As minhas ações pendentes (074)
+
+The Secretaria panel of `/pending-actions` suggests creating, in the current fiscal year, the top-level folders the
+previous year had and this year lacks (the board files folder left out), through the same `CreateFolderAsync`.
+docs/react-pending-actions.md → Secretaria.

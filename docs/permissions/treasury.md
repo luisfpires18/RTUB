@@ -13,3 +13,11 @@ Source: `TreasuryAuthorization`. Page doc: [react-treasury](../react-treasury.md
 
 "Treasury team" = 1.º or 2.º Tesoureiro (a position, not a role). The nav group "Logística e Tesouraria" shows for
 Admin, Owner, Mod or any Tuno.
+
+## As minhas ações pendentes (074)
+
+The current 1.º / 2.º Tesoureiro (position, not role) get the Tesouraria panel on `/pending-actions`: create the year's
+report (through `CreateReportAsync`, now one per year under a lock) and classify each begun event (an activity linked to
+it, or the shared "Sem movimentos", which needs `CanManageReports`). Nothing new is allowed here: the writes keep the
+rules above. Activities may now name the event they account for (optional "Atuação" on the report page, events of the
+report's fiscal year, not cancelled). Detail: [pending-actions](pending-actions.md).

@@ -45,6 +45,13 @@ public class Event : BaseEntity
     /// </summary>
     public bool IsPublic { get; set; } = true;
 
+    /// <summary>
+    /// Task 074: a treasurer's shared answer "este evento não teve despesas nem receitas" for "As minhas ações pendentes"
+    /// (both treasurers, every device). False = not decided; an activity linked to the event also classifies it. Audited
+    /// with the event; reopened from the same page.
+    /// </summary>
+    public bool HasNoFinances { get; set; }
+
     // Navigation properties
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     public virtual ICollection<EventRepertoire> RepertoireSongs { get; set; } = new List<EventRepertoire>();

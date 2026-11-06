@@ -6,7 +6,15 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
-**Task 073 = As minhas ações pendentes 3/8** (issue #254; `feat/073/pending-actions-logistics-questions`, not merged).
+**Task 074 = As minhas ações pendentes 4/8** (issue #255; `feat/074/pending-actions-treasury-secretary`, not merged).
+Tesouraria (current 1.º/2.º Tesoureiro): required "Criar relatório" (one report per year under a lock in
+`CreateReportAsync`), then each begun event of the year: Sim = report page "Nova atividade" linked to the event
+(`Activity.EventId`), Não = shared `Event.HasNoFinances` (reopen under "Sem movimentos"). Secretaria (current Secretário):
+create last year's top-level folders missing this year, or "Agora não" for the year. Panels follow the position, writes
+the module's rule; no permission added. Migration `AddEventFinanceClassification` (additive, no FK). Secretaria not
+visually checked with real storage (local run has no R2 listing).
+
+**Task 073 = As minhas ações pendentes 3/8** (issue #254; PR #274 merged into `dev`, not released).
 Logística panel (own open cards on boards the member sees, the "As minhas tarefas" rule extracted as `WorkableCards`;
 Concluir = the board's `SetStatusAsync`) and Questões panel (own open questions; Fechar questão = `CloseAsync`, author
 only, confirmed first; `/questions?question={id}` deep link), for every member incl. Reformados. Module services run as

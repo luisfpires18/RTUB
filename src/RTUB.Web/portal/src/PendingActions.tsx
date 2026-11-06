@@ -27,14 +27,23 @@ const NOTES_MAX: Record<string, number> = { 'event.response': 1000, 'rehearsal.r
 const EMPTY_PANEL: Record<string, string> = {
   logistics: 'Não tens cartões por concluir.',
   questions: 'Não tens questões abertas.',
+  secretary: 'Nada por criar nas pastas deste ano.',
 };
 
 /** What a saved command says (072 answers: the default). */
-const DONE: Record<string, string> = { done: 'Cartão concluído.', close: 'Questão fechada.' };
+const DONE: Record<string, string> = {
+  done: 'Cartão concluído.',
+  close: 'Questão fechada.',
+  create: 'Criado.',
+  none: 'Marcado sem movimentos.',
+  reopen: 'Reaberto: volta a «Por classificar».',
+};
 
 const EMPTY: Record<string, string> = {
   upcoming: 'Nada por responder nas próximas.',
   past: 'Nada por responder neste ano.',
+  open: 'Todos os eventos do ano estão classificados.',
+  none: 'Nenhum evento marcado sem movimentos.',
 };
 
 /** "yyyy-mm-dd" as a calendar day (no time zone shift). */
@@ -358,7 +367,7 @@ function ActionPanel({
                   requestAnimationFrame(() => heading.current?.focus({ preventScroll: true }));
                 }}
               >
-                {confirming.button.label}
+                {confirming.button.confirmLabel ?? confirming.button.label}
               </button>
             </>
           }

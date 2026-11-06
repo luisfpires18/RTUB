@@ -155,15 +155,23 @@ public sealed class PendingActionsService : IPendingActionsService
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }
 
-        // Task 073: commands (Concluir, Fechar questão) go to their own source; the rest are the attendance answers below.
-        if (_sources.Where(s => s.AppliesTo(member)).OfType<IPendingActionCommand>().FirstOrDefault(c => c.Kind == kind) is { } command)
+        // Task 073: commands (Concluir, Fechar questão, 074: Tesouraria, Secretaria) go to their own source; the rest are the
+        // attendance answers below. A command of a panel that does not apply to the member (no position, no longer in
+        // office) is a 404, like the panel itself.
+        if (_sources.OfType<IPendingActionCommand>().FirstOrDefault(c => c.Kind == kind) is { } command)
         {
+            if (!((IPendingActionSource)command).AppliesTo(member))
+            {
+                return EventResult<bool>.Fail(EventResultStatus.NotFound);
+            }
+
             if (!command.Answers.Contains(answer))
             {
                 return EventResult<bool>.Invalid("answer", "Resposta inválida.");
             }
 
-            return sourceKey.Length is 0 or > 64
+            // Each command checks its own key ("" is the Secretaria's single row).
+            return sourceKey.Length > 64
                 ? EventResult<bool>.Fail(EventResultStatus.NotFound)
                 : await command.RunAsync(db, member, sourceKey, answer);
         }
@@ -270,7 +278,7 @@ public sealed class PendingActionsService : IPendingActionsService
         return new PendingActionMember(
             userId, user.Categories, roles.ToHashSet(),
             MemberActivityStatusEvaluator.IsSubjectToRule(user), user.IsRetired,
-            today, FiscalYearHelper.GetFiscalYearStartYear(today), JoinedOn(user));
+            today, FiscalYearHelper.GetFiscalYearStartYear(today), JoinedOn(user), user.Positions);
     }
 
     /// <summary>The first day of the earliest admission month (Leitão, Caloiro, Tuno; a missing month is January), if any.</summary>

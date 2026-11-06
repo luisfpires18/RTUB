@@ -158,3 +158,14 @@ URL; no endpoint sends e-mail or push (tests assert it with recording mocks and 
 - `ReportCard`, `TransactionCard`, `MbwayTransferCard`, `NerbaOrderCard` (Shared, + `ReportCardTests`) and
   `ITransactionFilterService` / `IDebtService` have no page caller.
 - `Transactions` rows with no activity (14 locally) appear nowhere; decide whether to clean them up.
+
+## As minhas ações pendentes (074)
+
+- **Activity ↔ event** (migration `AddEventFinanceClassification`): an activity may name the event it accounts for
+  (`Activity.EventId`, optional "Atuação" select in "Nova / Editar atividade": not cancelled events starting in the
+  report's fiscal year; "Nenhuma" unlinks). The activity row shows the event's name as a tag.
+- `/treasury/reports/{id}?activityForEvent={eventId}` opens "Nova atividade" prefilled with that event's name, dates
+  and link (managers, draft reports only); the query is removed from the address once read.
+- `CreateReportAsync` checks and creates under one lock: one report per year even with parallel clicks.
+- The treasurers' "Sem movimentos" is `Event.HasNoFinances`, set and reopened from `/pending-actions`.
+  docs/react-pending-actions.md → Tesouraria.

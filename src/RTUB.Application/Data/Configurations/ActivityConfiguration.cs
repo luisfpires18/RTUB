@@ -15,5 +15,9 @@ public class ActivityConfiguration : IEntityTypeConfiguration<Activity>
         // Index for querying activities by report (most common query pattern)
         builder.HasIndex(a => a.ReportId)
             .HasDatabaseName("IX_Activities_ReportId");
+
+        // Task 074: the event an activity accounts for. Indexed, no foreign key: SQLite would rebuild Activities to add one
+        // (precedent: LogisticsBoards.OwnerUserId, 067). EventService.DeleteEventAsync clears it in the deletion's own save.
+        builder.HasIndex(a => a.EventId);
     }
 }

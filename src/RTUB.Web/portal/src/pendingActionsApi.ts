@@ -7,7 +7,15 @@ import { call, type Outcome } from './api';
  * A link to the module's page, or an in-page answer sent to /responses: 'yes' / 'no' (072), 'done' / 'close' (073).
  * `confirm`: the server's question to ask first (a change the member cannot undo here).
  */
-export type ActionButton = { label: string; href: string | null; primary: boolean; answer: string | null; confirm: string | null };
+export type ActionButton = {
+  label: string;
+  href: string | null;
+  primary: boolean;
+  answer: string | null;
+  confirm: string | null;
+  /** The confirmation's button, when `label` alone would be ambiguous there. */
+  confirmLabel: string | null;
+};
 export type ActionRow = {
   kind: string;
   sourceKey: string;

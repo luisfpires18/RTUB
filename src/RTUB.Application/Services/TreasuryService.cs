@@ -83,6 +83,8 @@ public sealed class TreasuryService : ITreasuryService
             canCreate ? Years().Where(y => !taken.Contains(y)).ToList() : Array.Empty<int>()));
     }
 
+    private static readonly SemaphoreSlim ReportCreation = new(1, 1);
+
     public async Task<EventResult<TreasuryReportSummaryDto>> CreateReportAsync(TreasuryReportInput input, ClaimsPrincipal user)
     {
         var (_, refused) = await CallerAsync(user, TreasuryAuthorization.CanManageReports);
@@ -96,14 +98,25 @@ public sealed class TreasuryService : ITreasuryService
             return EventResult<TreasuryReportSummaryDto>.Invalid("year", "Escolha um ano letivo válido (entre 1991 e o ano atual).");
         }
 
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.Reports.AnyAsync(r => r.Year == year))
+        // Task 074: the check and the insert under one lock, so two treasurers (this page and "As minhas ações pendentes")
+        // clicking at once make one report; the loser gets the "already exists" answer.
+        // ponytail: process-wide lock, single App Service instance; a unique index on Reports.Year if it ever scales out.
+        await ReportCreation.WaitAsync();
+        try
         {
-            return EventResult<TreasuryReportSummaryDto>.Invalid("year", $"Já existe um relatório para o ano letivo {year}-{year + 1}.");
-        }
+            await using var db = await _contexts.CreateDbContextAsync();
+            if (await db.Reports.AnyAsync(r => r.Year == year))
+            {
+                return EventResult<TreasuryReportSummaryDto>.Invalid("year", $"Já existe um relatório para o ano letivo {year}-{year + 1}.");
+            }
 
-        var report = await _reports.CreateReportAsync($"Relatório de Contas {year} - {year + 1}", year);
-        return EventResult<TreasuryReportSummaryDto>.Ok(Summary(report.Id, report.Title, report.Year, false, null, Array.Empty<Activity>()));
+            var report = await _reports.CreateReportAsync($"Relatório de Contas {year} - {year + 1}", year);
+            return EventResult<TreasuryReportSummaryDto>.Ok(Summary(report.Id, report.Title, report.Year, false, null, Array.Empty<Activity>()));
+        }
+        finally
+        {
+            ReportCreation.Release();
+        }
     }
 
     public async Task<EventResult<TreasuryReportSummaryDto>> PublishReportAsync(int id, ClaimsPrincipal user)
@@ -208,28 +221,60 @@ public sealed class TreasuryService : ITreasuryService
 
     public async Task<EventResult<TreasuryReportDto>> CreateActivityAsync(int reportId, TreasuryActivityInput input, ClaimsPrincipal user) =>
         await ChangeAsync(user, async db => await db.Reports.AsNoTracking().Where(r => r.Id == reportId).Select(r => (int?)r.Id).SingleOrDefaultAsync(),
-            async _ =>
+            async db =>
             {
-                if (ActivityError(input) is { } error)
+                if ((ActivityError(input) ?? await EventError(db, reportId, input.EventId)) is { } error)
                 {
                     return error;
                 }
 
-                await _activities.CreateActivityAsync(reportId, input.Name!.Trim(), input.StartDate!.Value.Date, Text(input.Description), input.EndDate?.Date);
+                var created = await _activities.CreateActivityAsync(reportId, input.Name!.Trim(), input.StartDate!.Value.Date, Text(input.Description), input.EndDate?.Date);
+                await LinkEventAsync(db, created.Id, input.EventId);
                 return null;
             });
 
     public async Task<EventResult<TreasuryReportDto>> UpdateActivityAsync(int id, TreasuryActivityInput input, ClaimsPrincipal user) =>
-        await ChangeAsync(user, db => ReportOfActivityAsync(db, id), async _ =>
+        await ChangeAsync(user, db => ReportOfActivityAsync(db, id), async db =>
         {
-            if (ActivityError(input) is { } error)
+            var reportId = (await ReportOfActivityAsync(db, id))!.Value;
+            if ((ActivityError(input) ?? await EventError(db, reportId, input.EventId)) is { } error)
             {
                 return error;
             }
 
             await _activities.UpdateActivityAsync(id, input.Name!.Trim(), input.StartDate!.Value.Date, Text(input.Description), input.EndDate?.Date);
+            await LinkEventAsync(db, id, input.EventId);
             return null;
         });
+
+    /// <summary>
+    /// Task 074: an activity may account for an event that is not cancelled and starts in the report's fiscal year (the
+    /// same events "As minhas ações pendentes" asks the treasurers about).
+    /// </summary>
+    private static async Task<(string, string)?> EventError(ApplicationDbContext db, int reportId, int? eventId)
+    {
+        if (eventId is not { } id)
+        {
+            return null;
+        }
+
+        var year = await db.Reports.AsNoTracking().Where(r => r.Id == reportId).Select(r => r.Year).SingleAsync();
+        var (from, to) = (new DateTime(year, 9, 1), new DateTime(year + 1, 9, 1));
+        return await db.Events.AsNoTracking().AnyAsync(e => e.Id == id && !e.IsCancelled && e.Date >= from && e.Date < to)
+            ? null
+            : ("eventId", "Escolha uma atuação deste ano letivo.");
+    }
+
+    /// <summary>Sets (or clears) the activity's event, through the context so the change is audited with the activity.</summary>
+    private static async Task LinkEventAsync(ApplicationDbContext db, int activityId, int? eventId)
+    {
+        var activity = await db.Activities.SingleAsync(a => a.Id == activityId);
+        if (activity.EventId != eventId)
+        {
+            activity.EventId = eventId;
+            await db.SaveChangesAsync();
+        }
+    }
 
     public async Task<EventResult<TreasuryReportDto>> SetActivityLockAsync(int id, TreasuryLockInput input, ClaimsPrincipal user) =>
         await ChangeAsync(user, db => ReportOfActivityAsync(db, id), async _ =>
@@ -347,6 +392,13 @@ public sealed class TreasuryService : ITreasuryService
         var counted = activities.Where(a => !a.IsHiddenFromCalculations()).ToList();
         var income = counted.Sum(a => a.TotalIncome);
         var expenses = counted.Sum(a => a.TotalExpenses);
+        // Task 074: the events this report's activities may account for (not cancelled, starting in its fiscal year).
+        var (fyFrom, fyTo) = (new DateTime(report.Year, 9, 1), new DateTime(report.Year + 1, 9, 1));
+        var events = (await db.Events.AsNoTracking().Where(e => !e.IsCancelled && e.Date >= fyFrom && e.Date < fyTo)
+                .OrderBy(e => e.Date).ThenBy(e => e.Id)
+                .Select(e => new TreasuryEventOptionDto(e.Id, e.Name, e.Date, e.EndDate)).ToListAsync())
+            .ToDictionary(e => e.Id);
+        TreasuryEventOptionDto? Linked(Activity a) => a.EventId is { } eventId ? events.GetValueOrDefault(eventId) : null;
         var bank = activities.FirstOrDefault(a => a.Name.Contains("BANCO", StringComparison.OrdinalIgnoreCase))?.Balance ?? 0;
         var cash = activities.FirstOrDefault(a => a.Name.Contains("CAIXA", StringComparison.OrdinalIgnoreCase))?.Balance ?? 0;
 
@@ -357,11 +409,13 @@ public sealed class TreasuryService : ITreasuryService
                 .Select(a => new TreasuryActivityDto(a.Id, a.Name, a.Description, a.StartDate, a.EndDate, a.IsLocked, a.TotalIncome, a.TotalExpenses, a.Balance,
                     a.Transactions.OrderByDescending(t => t.Date).ThenByDescending(t => t.Id)
                         .Select(t => new TreasuryTransactionDto(t.Id, t.Date, t.Description, t.Category, t.Amount, t.Type, t.ReceiptUrl))
-                        .ToList()))
+                        .ToList(),
+                    Linked(a)?.Id, Linked(a)?.Name))
                 .ToList(),
             TreasuryAuthorization.CanManageReports(me, user),
             TreasuryAuthorization.CanPublish(me, user),
-            TreasuryAuthorization.CanSeeHistory(user));
+            TreasuryAuthorization.CanSeeHistory(user),
+            TreasuryAuthorization.CanManageReports(me, user) ? events.Values.ToList() : null);
     }
 
     private static async Task<decimal> CalotesAsync(ApplicationDbContext db, int year) =>

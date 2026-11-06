@@ -1,13 +1,13 @@
 # React: As minhas ações pendentes (`/pending-actions`)
 
 Roadmap #251; foundation = task 071 (issue #252); in-page answers = task 072 (issue #253); Logística and Questões =
-task 073 (issue #254). Permissions: [permissions/pending-actions](permissions/pending-actions.md).
+task 073 (issue #254); Tesouraria and Secretaria = task 074 (issue #255). Permissions: [permissions/pending-actions](permissions/pending-actions.md).
 
 A page of **grouped actions** with the buttons on each row. Not an inbox, notifications feed, chat or one-at-a-time
 wizard, and not a statistics page. Nothing is copied into a generic "actions" table: every panel is a query over its
 module's own data, run on every load; the only thing stored is a member's own dismissal of an optional action.
 
-## Delivered (071-073) and still to come
+## Delivered (071-074) and still to come
 
 | Panel | Category | State | Rows / buttons |
 | --- | --- | --- | --- |
@@ -15,7 +15,8 @@ module's own data, run on every load; the only thing stored is a member's own di
 | Ensaios | participation | **delivered (072)** | unanswered rehearsals: Próximas → **Vou / Não vou**; Passadas → **Fui / Não fui** (a "Fui" stays pending until approved); the title opens `/rehearsals/{id}` |
 | Logística | tasks | **delivered (073)** | the member's own open cards (owner or collaborator) on boards they see: **Concluir** (the board's own status change to its done column) and **Abrir** (`/logistics/{board}?card={id}`) |
 | Questões | tasks | **delivered (073)** | the member's own open questions (the ones they may close): **Fechar questão** (asks first) and **Abrir** (`/questions?question={id}` opens the conversation) |
-| Tesouraria, Secretaria | responsibilities | #255 | - |
+| Tesouraria | responsibilities | **delivered (074)** | current 1.º / 2.º Tesoureiro: **Criar relatório** (Obrigatório while the year's report is missing), then each begun event of the year: **Sim** (opens the report's "Nova atividade" for that event) / **Não** (shared "Sem movimentos", confirmed); "Sem movimentos" filter with **Reabrir** |
+| Secretaria | responsibilities | **delivered (074)** | current Secretário: **Criar pastas** (last year's top-level folders missing this year, confirmed) / **Agora não** (own, this fiscal year) |
 | Reuniões / atas, presenças por aprovar, repertório | responsibilities | #256 | - |
 | Membros (campos em falta) | responsibilities | #257 | - |
 | Galeria e novidades | participation | #258 | - |
@@ -131,6 +132,43 @@ member, with the roles read from the database** (`PendingActionMember.ToPrincipa
 - Retries: a second Concluir / Fechar finds nothing pending (`404`).
 - `/questions?question={id}` (new) opens that conversation once; the API decides access as before.
 
+## Tesouraria and Secretaria (074)
+
+Shown by the **current mandate**: `ApplicationUser.Positions` (the mandate in office, synced by `SyncCurrentMandateAsync`;
+the previous one stays until the new year's first assignment). A role without the position shows nothing (`404` on the
+panel and its commands); a mandate that ends removes the panel at once. Writes still follow the module's rule, as the
+member with the database's roles. Holding a Direção position grants Admin (Mod for a Caloiro) on its own
+(`RoleManagementService`), so a treasurer passes `TreasuryAuthorization.CanManageReports`; if that role was removed by
+hand the module refuses (`403`) and the page says so. **No permission was added.**
+
+### Tesouraria (1.º / 2.º Tesoureiro, shared by both)
+
+| Row | Pending when | Buttons | Resolves |
+| --- | --- | --- | --- |
+| Relatório de contas {ano} — **Obrigatório** | no `Reports` row with `Year` = the fiscal year's start | Criar relatório → `ITreasuryService.CreateReportAsync` (title "Relatório de Contas Y - Y+1", year rule, permission) | a report of the year exists (made here or on `/treasury`). Not dismissible (`403`) |
+| one per event (only once the report exists) | not cancelled, starts in the fiscal year and **has begun** (start before tomorrow), `Event.HasNoFinances` false, and no activity **of this year's report** with `Activity.EventId` = the event | **Sim** → `/treasury/reports/{id}?activityForEvent={event}`: the report page opens "Nova atividade" with the event's name, dates and link (nothing is saved until Guardar; Cancelar leaves the row). **Não** (confirmed, "Marcar sem movimentos") → `HasNoFinances = true` | an activity linked to the event is saved (on the report page, any treasurer), or "Não". Deleting the activity or unlinking it (edit → Atuação: Nenhuma) brings the row back |
+| "Sem movimentos" filter | `HasNoFinances` true for a begun event of the year | **Reabrir** → `HasNoFinances = false` | back under "Por classificar" |
+
+- No transaction is ever created from the page; "Sim" only opens the activity form. Association is the durable
+  `Activity.EventId`, never a name match.
+- "Não" / "Reabrir" have no module page; they require `TreasuryAuthorization.CanManageReports` (the report rule) and are
+  audited with the event (`Event.HasNoFinances` is a column of the audited `Events`).
+- **Concurrency**: `TreasuryService.CreateReportAsync` now checks and inserts under one process-wide lock (single App
+  Service instance; a unique index on `Reports.Year` would be needed to scale out), so parallel clicks from both
+  treasurers, here or on `/treasury`, make one report: the others get `404` / `409` and the page refreshes.
+- Order: events by date (oldest first); "Sem movimentos" newest first. Future events are not asked yet.
+
+### Secretaria (Secretário)
+
+- **Structure**: the previous fiscal year's top-level Documentação folders, as they are (the board files folder
+  `Logistics` and its sub-folders left out). No folder list is invented; a first year (no previous folders) asks nothing.
+- **Pending when** one of those names (case-insensitive) is missing in the current year. One row, previewing the names.
+- **Criar pastas** (confirmed: "Criar N pastas em AAAA-AAAA: …? Nenhuma pasta ou ficheiro existente é alterado.") →
+  `IDocumentationService.CreateFolderAsync` for each missing name, as the member: its name rule and permission; it
+  refuses a name that exists, so nothing is overwritten and a repeat is harmless. Folders are only created, never deleted.
+- **Agora não**: the Secretário's own dismissal, period = the fiscal year (back next September, or for a new Secretário).
+- When storage cannot be listed the module shows no folders, so nothing is suggested ("Nada por criar…").
+
 ## Dismissal (`PendingActionDismissals`, migration `AddPendingActionDismissals`)
 
 | Property | Rule |
@@ -144,8 +182,7 @@ member, with the roles read from the database** (`PendingActionMember.ToPrincipa
 | Account deleted | rows cascade |
 | Audit | not audited (personal, low value), like `LoginEvents` |
 
-In 071 no delivered panel is optional, so the page never shows "Agora não" yet; the mechanism is covered by tests with
-stand-in sources and is used from #255 / #258.
+The first optional row is the Secretaria's (074); the news prompt (#258) follows.
 
 ## Login landing
 
@@ -155,6 +192,14 @@ on `/events`. A signed-in active member opening `/login` goes to `/pending-actio
 (`/`) is unchanged.
 
 ## Migration and rollback
+
+**074** `AddEventFinanceClassification`: additive — `Events.HasNoFinances` (INTEGER, default 0) and `Activities.EventId`
+(nullable, indexed, **no foreign key**: SQLite would rebuild `Activities`; precedent `LogisticsBoards.OwnerUserId`, 067).
+Deleting an event (`EventService.DeleteEventAsync`, the only deletion path) clears its activities' `EventId` in the same
+save, so no activity points at a deleted event. N-1 safe: 2.3.x ignores both columns and inserts events with
+the default. Rolling back loses only the links' use; no data to restore.
+
+**071**:
 
 `AddPendingActionDismissals` is additive (one new table, one unique index, FK to `AspNetUsers` with cascade). N-1
 safe: 2.3.x ignores the table. Rolling the app back hides the page and leaves the rows unused; nothing to restore.
