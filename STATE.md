@@ -6,7 +6,13 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
-**Task 075 = As minhas ações pendentes 5/8** (issue #256; `feat/075/pending-actions-meetings-rehearsals`, not merged).
+**Task 076 = As minhas ações pendentes 6/8** (issue #257; `feat/076/pending-actions-member-info`, not merged). System role
+Mod completes member info through `GET/PUT /api/members/{id}/info` (Cidade, Contacto, missing Leitão/Caloiro/Tuno dates,
+Padrinho; instruments via the existing endpoints, now Mod too): allow-list by contract, complete date pairs stay
+Owner/Magister, stale stamp = 409, audited. `MemberInfoRules` decides what applies by category; "Membros" queue (Mod /
+Admin / Owner) paged in SQL; `/members?info=` dialog. No schema change.
+
+**Task 075 = As minhas ações pendentes 5/8** (issue #256; PR #276 merged into `dev`, not released).
 Meetings: each body's current president (Mesa: AG/AGE; Magister: Direção; CV president: CV) creates/manages its meetings
 and writes its atas, Owner every type and sees every type, union for several, Admin alone none; a backdated meeting is
 not pushed. Rehearsals: current Ensaiador/Magister approve and refuse (durable "não foi" + push, not delete) without

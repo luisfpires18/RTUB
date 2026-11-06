@@ -18,7 +18,15 @@ export type MemberCard = {
   expelled: boolean;
 };
 export type Option = { value: string; label: string };
-export type Directory = { members: MemberCard[]; leitoes: MemberCard[]; instruments: Option[]; canManage: boolean; canDeleteMembers: boolean };
+export type Directory = {
+  members: MemberCard[];
+  leitoes: MemberCard[];
+  instruments: Option[];
+  canManage: boolean;
+  canDeleteMembers: boolean;
+  /** Task 076: the limited member-information edit (Mod, Admin, Owner). */
+  canEditInfo: boolean;
+};
 export type DirectoryFilters = { q: string; category: string; subCategory: string; instrument: string; activeOnly: boolean };
 
 export type TimelineItem = { label: string; years: string; kind: string; state: string; accent: string; notes: string | null };
@@ -122,7 +130,31 @@ export type Mentor = { id: string; displayName: string; fullName: string | null;
 
 const at = (id: string) => `/api/members/${encodeURIComponent(id)}`;
 
+/** Task 076: the limited member-information edit. `fields` apply to the member; `missing` are still empty. */
+export type MemberInfo = {
+  id: string;
+  displayName: string;
+  city: string | null;
+  phoneNumber: string | null;
+  yearLeitao: number | null;
+  monthLeitao: number | null;
+  yearCaloiro: number | null;
+  monthCaloiro: number | null;
+  yearTuno: number | null;
+  monthTuno: number | null;
+  mentorId: string | null;
+  mentorName: string | null;
+  instruments: MemberInstrument[];
+  fields: string[];
+  missing: string[];
+  lockedDates: { leitao: boolean; caloiro: boolean; tuno: boolean };
+  stamp: string;
+};
+export type MemberInfoInput = Omit<MemberInfo, 'id' | 'displayName' | 'mentorName' | 'instruments' | 'fields' | 'missing' | 'lockedDates'>;
+
 export const memberAdminApi = {
+  info: (id: string) => call<MemberInfo>('GET', `${at(id)}/info`),
+  saveInfo: (id: string, input: MemberInfoInput) => call<MemberInfo>('PUT', `${at(id)}/info`, input),
   edit: (id: string) => call<MemberEdit>('GET', `${at(id)}/edit`),
   mentors: (q: string, exclude?: string) => call<Mentor[]>('GET', `/api/members/mentors${query({ q, exclude: exclude ?? '' })}`),
   create: (input: MemberInput) => call<{ id: string }>('POST', '/api/members', input),

@@ -70,3 +70,43 @@ public sealed record MemberInstrumentDto(int Id, string Instrument, string Label
 public sealed record MentorCandidateDto(string Id, string DisplayName, string? FullName, string? AvatarUrl);
 
 public sealed record MemberCreatedDto(string Id);
+
+/// <summary>
+/// Task 076: the Mod's limited edit of one member (also Admin / Owner). <c>Fields</c>: the fields that apply to this member
+/// (<c>MemberInfoRules</c>); <c>Missing</c>: those still empty; <c>LockedDates</c>: complete date pairs only Owner or the
+/// Magister may change; <c>Stamp</c>: send it back unchanged - a save over a newer version is refused (409).
+/// </summary>
+public sealed record MemberInfoDto(
+    string Id,
+    string DisplayName,
+    string? City,
+    string? PhoneNumber,
+    int? YearLeitao,
+    int? MonthLeitao,
+    int? YearCaloiro,
+    int? MonthCaloiro,
+    int? YearTuno,
+    int? MonthTuno,
+    string? MentorId,
+    string? MentorName,
+    IReadOnlyList<MemberInstrumentDto> Instruments,
+    IReadOnlyList<string> Fields,
+    IReadOnlyList<string> Missing,
+    MemberLockedDatesDto LockedDates,
+    string Stamp);
+
+/// <summary>
+/// Task 076: what the limited edit may change - and nothing else (no name, email, category, role, position, status).
+/// A field that does not apply to the member must be empty.
+/// </summary>
+public sealed record MemberInfoInput(
+    string? City,
+    string? PhoneNumber,
+    int? YearLeitao,
+    int? MonthLeitao,
+    int? YearCaloiro,
+    int? MonthCaloiro,
+    int? YearTuno,
+    int? MonthTuno,
+    string? MentorId,
+    string? Stamp);

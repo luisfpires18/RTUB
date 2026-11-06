@@ -19,6 +19,7 @@ mandate or status change shows on the next load. A panel that does not apply to 
 | Secretário (current mandate) | yes | + Secretaria (074) |
 | Presidente da Mesa / Magister / Presidente do CV (current mandate) | yes | + Reuniões (075) |
 | Ensaiador / Magister (current mandate) | yes | + Presenças por aprovar, Repertório (075) |
+| System role Mod, Admin or Owner | yes | + Membros (076) |
 | Mod / Admin / Owner | as their member type | as their member type: **a role adds no panel** (Tesouraria / Secretaria follow the position, not the role); on Logística a manager still sees only their own cards (not unowned ones) |
 
 "Active" is the canonical rule of `docs/member-activity-status.md` (`ApplicationUser.IsRetired`, written only by the
@@ -37,6 +38,17 @@ The page cannot approve anything: a past rehearsal "Fui" is pending (`Attended =
 the rehearsal page, exactly as a module "vou". No new permission was added to `EventsAuthorization` or
 `RehearsalsAuthorization`; the retrospective answer is the page's own narrow rule (own, current year from PastFrom,
 not cancelled, unanswered).
+
+### Membros (076)
+
+| Request | Answer |
+| --- | --- |
+| Panel `members` without Mod / Admin / Owner (same category included) | `404` |
+| `GET` / `PUT /api/members/{id}/info`, instruments, mentors without Mod / Admin / Owner | `403` |
+| A Mod's full edit, create, delete, nickname, expel, reminder | `403` (unchanged Admin / Owner) |
+| A forged body with name / email / category / role / position / status | those fields are not bound: unchanged |
+| A complete date pair changed by a Mod; a date that does not apply | `400` |
+| A save with a stale stamp | `409`, nothing written |
 
 ### Reuniões, presenças, repertório (075)
 
