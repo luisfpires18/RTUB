@@ -19,7 +19,7 @@ the full edit stays Admin / Owner.
 | --- | --- | --- |
 | Cidade, Contacto | edit | every member in scope |
 | Instruments (add, remove, primary) | edit (the existing instrument endpoints, now Mod too) | everyone but a Tuno Honorário |
-| Entrada na Tuna (Leitão date) | fill when missing; a complete pair stays Owner / Magister | Leitão, Caloiro, Tuno; not Fundador / Honorário |
+| Entrada na Tuna (Leitão date) | fill when missing; a complete pair stays Owner, or the current Magister **with Admin** (a Caloiro Magister holds Mod, so not) | Leitão, Caloiro, Tuno; not Fundador / Honorário |
 | Passagem a Caloiro | same | Caloiro, Tuno; not Fundador / Honorário (a Leitão is never asked early) |
 | Passagem a Tuno | same | Tuno; not Fundador (always December 1991) |
 | Padrinho | edit (Tuno or above; nobody their own) | Leitão, Caloiro, Tuno; not Fundador / Honorário |

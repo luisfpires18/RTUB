@@ -600,6 +600,24 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
             "the stamp read before is stale: no silent overwrite");
     }
 
+    /// <summary>Security review of PR #277: a Mod who is also the current Magister still cannot change a complete date pair.</summary>
+    [Fact]
+    public async Task AModMagister_CannotChangeACompleteDatePair()
+    {
+        var (mod, modUser) = await SignInAsync([MemberCategory.Caloiro], retired: false, role: "Mod", positions: [Position.Magister]);
+        await AddMagisterAssignmentAsync(modUser.Id);
+        await WithTokenAsync(mod);
+        var tuno = await AddMemberAsync([MemberCategory.Tuno], city: "Porto", yearLeitao: 2015, monthLeitao: 10, yearTuno: 2018, monthTuno: 6);
+
+        var info = await mod.GetFromJsonAsync<JsonElement>($"/api/members/{tuno}/info");
+        info.GetProperty("lockedDates").GetProperty("leitao").GetBoolean().Should().BeTrue("Owner, or an Admin who is the Magister");
+        (await mod.PutAsJsonAsync($"/api/members/{tuno}/info", new
+        {
+            city = "Porto", phoneNumber = "912345678", yearLeitao = 2014, monthLeitao = 10, yearTuno = 2018, monthTuno = 6,
+            stamp = info.GetProperty("stamp").GetString(),
+        })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     [Fact]
     public async Task TheMembersQueue_LeavesOutTheExpelled_AndWhatDoesNotApply()
     {
@@ -617,6 +635,15 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
     // ---------- helpers ----------
 
     private static int _approvalDay;
+
+    private async Task AddMagisterAssignmentAsync(string userId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var fy = CurrentFiscalYearStart();
+        db.RoleAssignments.Add(RoleAssignment.Create(userId, Position.Magister, fy, fy + 1));
+        await db.SaveChangesAsync();
+    }
 
     private async Task<string> AddMemberAsync(List<MemberCategory> categories, string? city, int? yearLeitao = null, int? monthLeitao = null,
         int? yearTuno = null, int? monthTuno = null, bool expelled = false, bool instrument = false, bool mentor = false)

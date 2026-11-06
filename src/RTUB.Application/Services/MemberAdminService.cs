@@ -721,12 +721,20 @@ public sealed class MemberAdminService : IMemberAdminService
 
     private static bool Complete(int? year, int? month) => year.HasValue && month.HasValue;
 
-    /// <summary>Owner, or an Admin who is this fiscal year's Magister.</summary>
+    /// <summary>
+    /// Owner, or an Admin who is this fiscal year's Magister. The Admin check matters since task 076: a Mod reaches the
+    /// limited edit, and a Magister who is a Caloiro holds Mod, not Admin - holding the position alone is not enough.
+    /// </summary>
     private async Task<bool> CanEditDatesAsync(ClaimsPrincipal user)
     {
         if (user.IsInRole("Owner"))
         {
             return true;
+        }
+
+        if (!MembersAuthorization.CanManage(user))
+        {
+            return false;
         }
 
         var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
