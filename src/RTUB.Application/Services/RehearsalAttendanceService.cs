@@ -114,6 +114,22 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             return existing;
         }
 
+        return await AddAsync(rehearsalId, userId, willAttend, instrument, notes, otherInstruments, skipNotification);
+    }
+
+    public async Task<RehearsalAttendance> AddFirstAttendanceAsync(int rehearsalId, string userId, bool willAttend, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null, bool skipNotification = false)
+    {
+        if (await _attendanceRepository.GetAttendanceByRehearsalAndUserAsync(rehearsalId, userId) is not null)
+        {
+            throw new InvalidOperationException("Este membro já respondeu a este ensaio.");
+        }
+
+        return await AddAsync(rehearsalId, userId, willAttend, instrument, notes, otherInstruments, skipNotification);
+    }
+
+    /// <summary>A new attendance row, pending (Attended = false), with its category snapshot and the attendees' push.</summary>
+    private async Task<RehearsalAttendance> AddAsync(int rehearsalId, string userId, bool willAttend, InstrumentType? instrument, string? notes, string? otherInstruments, bool skipNotification)
+    {
         // Create new attendance (defaults to pending - Attended = false)
         var attendance = RehearsalAttendance.Create(rehearsalId, userId, instrument);
         attendance.WillAttend = willAttend;

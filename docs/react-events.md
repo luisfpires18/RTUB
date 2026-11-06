@@ -412,3 +412,11 @@ image (012A) and videos (012C), through the existing storage services.
 - Deleting an event leaves its video files in R2 (the rows go, as before).
 - Event images and videos are `PublicRead` objects: never listed beyond what visitors see, but
   reachable by URL (same as Gallery). Private storage would need signed URLs.
+
+## As minhas ações pendentes (072)
+
+`/pending-actions` answers a member's own **unanswered** events in place (docs/react-pending-actions.md → Answers), through
+`IEnrollmentService.CreateEnrollmentAsync`, create-only. New on purpose: a member may now give a **first** answer to a
+past event of the current fiscal year (Fui / Não fui; the event page still only lets someone who went withdraw). A
+"Fui" is the same Enrollment an Admin adds in "Quem foi": it counts as a performance and in XP at once, and the member's
+activity status is reconciled. Answers already given are never changed from there.

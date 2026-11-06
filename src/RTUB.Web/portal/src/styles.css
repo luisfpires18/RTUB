@@ -16257,3 +16257,15 @@ html.app-screen .footer {
 .pa-none p {
   margin: 0;
 }
+
+/* 072: the row title opens the activity's own page; the answers are the buttons. */
+.pa-row__title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.pa-row__title a:hover,
+.pa-row__title a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

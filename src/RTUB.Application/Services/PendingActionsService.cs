@@ -5,6 +5,7 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
@@ -51,8 +52,11 @@ public sealed class PendingActionsService : IPendingActionsService
         }
 
         var status = !member.IsSubjectToActivityRule ? "none" : member.IsRetired ? "retired" : "active";
+        var (options, primary) = panels.Count == 0 ? ([], null) : await InstrumentOptionsAsync(db, member);
         return EventResult<PendingActionsPageDto>.Ok(new PendingActionsPageDto(
-            member.Today.ToString("yyyy-MM-dd"), member.FiscalYear, status, panels));
+            member.Today.ToString("yyyy-MM-dd"), member.FiscalYear, status, panels,
+            options.Select(i => new EventInstrumentOptionDto(i.ToString(), StatusHelper.GetInstrumentDisplay(i))).ToList(),
+            primary?.ToString()));
     }
 
     public async Task<EventResult<PendingActionPanelDto>> GetPanelAsync(ClaimsPrincipal user, string panel, string? filter, int page)
@@ -134,6 +138,60 @@ public sealed class PendingActionsService : IPendingActionsService
         return EventResult<bool>.Fail(EventResultStatus.NotFound);
     }
 
+    public async Task<EventResult<bool>> RespondAsync(ClaimsPrincipal user, PendingActionResponseInput input)
+    {
+        if (EventsAuthorization.UserId(user) is not { } userId)
+        {
+            return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        var kind = input.Kind?.Trim() ?? "";
+        var sourceKey = input.SourceKey?.Trim() ?? "";
+        var yes = input.Answer?.Trim() switch { "yes" => true, "no" => false, _ => (bool?)null };
+        if (yes is null)
+        {
+            return EventResult<bool>.Invalid("answer", "Resposta inválida.");
+        }
+
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await LoadMemberAsync(db, userId) is not { } member)
+        {
+            return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
+        }
+
+        var responder = _sources.Where(s => s.AppliesTo(member)).OfType<IPendingActionResponder>().FirstOrDefault(r => r.Kind == kind);
+        if (responder is null || sourceKey.Length is 0 or > 64)
+        {
+            return EventResult<bool>.Fail(EventResultStatus.NotFound);
+        }
+
+        // As on the event and rehearsal pages: a note either way (a reason for missing it, or one for going); only someone who
+        // goes plays, and the instrument must be one the page offered (none named = not playing).
+        var notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
+        if (notes?.Length > responder.NotesMax)
+        {
+            return EventResult<bool>.Invalid("notes", $"A nota não pode exceder {responder.NotesMax} caracteres.");
+        }
+
+        InstrumentType? instrument = null;
+        string? others = null;
+        if (yes.Value && !string.IsNullOrWhiteSpace(input.Instrument))
+        {
+            var (options, _) = await InstrumentOptionsAsync(db, member);
+            if (!Enum.TryParse<InstrumentType>(input.Instrument, out var offered) || !Enum.IsDefined(offered) || !options.Contains(offered))
+            {
+                return EventResult<bool>.Invalid("instrument", "Escolha um dos instrumentos indicados.");
+            }
+
+            instrument = offered;
+            // As the old pages did: the member's other instruments, by display name.
+            others = string.Join(", ", (await RegisteredAsync(db, member.UserId)).Where(i => i != offered).Select(StatusHelper.GetInstrumentDisplay));
+            others = others.Length == 0 ? null : others;
+        }
+
+        return await responder.RespondAsync(db, member, sourceKey, yes.Value, instrument, others, notes);
+    }
+
     public async Task<int> CountPendingAsync(string userId)
     {
         await using var db = await _contexts.CreateDbContextAsync();
@@ -197,6 +255,32 @@ public sealed class PendingActionsService : IPendingActionsService
         return new PendingActionMember(
             userId, user.Categories, roles.ToHashSet(),
             MemberActivityStatusEvaluator.IsSubjectToRule(user), user.IsRetired,
-            today, FiscalYearHelper.GetFiscalYearStartYear(today));
+            today, FiscalYearHelper.GetFiscalYearStartYear(today), JoinedOn(user));
+    }
+
+    /// <summary>The first day of the earliest admission month (Leitão, Caloiro, Tuno; a missing month is January), if any.</summary>
+    internal static DateTime? JoinedOn(ApplicationUser user) =>
+        new[] { (user.YearLeitao, user.MonthLeitao), (user.YearCaloiro, user.MonthCaloiro), (user.YearTuno, user.MonthTuno) }
+            .Where(m => m.Item1 is >= 1 and <= 9999)
+            .Select(m => (DateTime?)new DateTime(m.Item1!.Value, m.Item2 is >= 1 and <= 12 ? m.Item2.Value : 1, 1))
+            .Min();
+
+    private static Task<List<InstrumentType>> RegisteredAsync(ApplicationDbContext db, string userId) =>
+        db.MemberInstruments.AsNoTracking()
+            .Where(i => i.MemberId == userId)
+            .OrderByDescending(i => i.IsPrimary).ThenBy(i => i.Id)
+            .Select(i => i.InstrumentType)
+            .ToListAsync();
+
+    /// <summary>
+    /// The instruments an answer may name, as the event and rehearsal pages offer them (EventAgendaService /
+    /// RehearsalAgendaService): the member's own, primary first; a Leitão with none may pick any; anyone else with none, none.
+    /// </summary>
+    private static async Task<(List<InstrumentType> Options, InstrumentType? Primary)> InstrumentOptionsAsync(ApplicationDbContext db, PendingActionMember member)
+    {
+        var registered = await RegisteredAsync(db, member.UserId);
+        var options = registered.Count > 0 ? registered
+            : member.Categories.Contains(MemberCategory.Leitao) ? Enum.GetValues<InstrumentType>().ToList() : [];
+        return (options, registered.Count > 0 ? registered[0] : null);
     }
 }

@@ -1,8 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Loading } from './App';
+import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { loginTo } from './musicApi';
-import { pendingActionsApi, type ActionRow, type Category, type Panel, type PendingActions as Data } from './pendingActionsApi';
+import {
+  pendingActionsApi,
+  type ActionButton,
+  type ActionRow,
+  type Answer,
+  type Category,
+  type InstrumentOption,
+  type Panel,
+  type PendingActions as Data,
+} from './pendingActionsApi';
 
 const CATEGORIES: { key: Category | 'all'; label: string }[] = [
   { key: 'all', label: 'Tudo' },
@@ -36,7 +46,7 @@ const rowDate = (iso: string, today: string) =>
 /**
  * /pending-actions - "As minhas ações pendentes" (task 071, docs/react-pending-actions.md). A page of grouped actions, not
  * an inbox: one panel per module, each paged on its own (three rows, previous / next), with the action buttons on the
- * row. The server decides which panels, rows and buttons a member gets. Coming back to the page (back button, PWA
+ * row (072: Vou / Não vou, Fui / Não fui answered in place). The server decides which panels, rows and buttons a member gets. Coming back to the page (back button, PWA
  * resume) asks every panel again for the page it shows, so something answered elsewhere disappears.
  */
 export default function PendingActions() {
@@ -131,7 +141,7 @@ export default function PendingActions() {
           )}
           <div className="pa-grid">
             {shown.map((p) => (
-              <ActionPanel key={p.key} initial={p} today={page.today} resumed={resumed} />
+              <ActionPanel key={p.key} initial={p} today={page.today} resumed={resumed} instruments={page.instruments} defaultInstrument={page.defaultInstrument} />
             ))}
           </div>
         </>
@@ -147,8 +157,21 @@ type PanelState = { panel: Panel; busy: boolean; failed: boolean; notice: string
  * already clamped there: an emptied last page shows the one before it). A response that arrives after a newer request
  * left is dropped, so fast clicking never shows an older page.
  */
-function ActionPanel({ initial, today, resumed }: { initial: Panel; today: string; resumed: number }) {
+function ActionPanel({
+  initial,
+  today,
+  resumed,
+  instruments,
+  defaultInstrument,
+}: {
+  initial: Panel;
+  today: string;
+  resumed: number;
+  instruments: InstrumentOption[];
+  defaultInstrument: string | null;
+}) {
   const [state, setState] = useState<PanelState>({ panel: initial, busy: false, failed: false, notice: null });
+  const [asking, setAsking] = useState<{ row: ActionRow; button: ActionButton } | null>(null);
   const latest = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
   const { panel } = state;
@@ -187,6 +210,38 @@ function ActionPanel({ initial, today, resumed }: { initial: Panel; today: strin
     heading.current?.focus({ preventScroll: true });
   };
 
+  /**
+   * An answer (072). Nothing changes on the page until the server says so: saved → the same page again, in place (the
+   * row leaves, the counts drop, an emptied last page shows the one before); already answered or changed meanwhile →
+   * the page again, with the reason; anything else → the row stays, with the error. Returns the field error, if any,
+   * for the instrument dialog.
+   */
+  const respond = async (row: ActionRow, a: Answer): Promise<string | null> => {
+    setState((s) => ({ ...s, busy: true, notice: null, failed: false }));
+    const o = await pendingActionsApi.respond(row, a);
+    if (o.kind === 'invalid') {
+      setState((s) => ({ ...s, busy: false }));
+      return Object.values(o.errors)[0] ?? 'Há campos por corrigir.';
+    }
+    if (o.kind === 'ok' || o.kind === 'notfound' || o.kind === 'conflict' || o.kind === 'closed') {
+      await go(panel.filter, panel.page, o.kind === 'ok' ? 'Resposta guardada.' : 'Esta atividade já tinha resposta ou mudou entretanto.');
+      heading.current?.focus({ preventScroll: true });
+      return null;
+    }
+    setState((s) => ({
+      ...s,
+      busy: false,
+      notice: o.kind === 'signin' ? 'A sessão terminou. Entra de novo para responder.' : 'Não foi possível guardar. Verifica a ligação e tenta de novo.',
+    }));
+    return null;
+  };
+
+  // Vou / Fui asks for the instrument only when there is a choice; otherwise it is sent at once with the primary.
+  const answer = (row: ActionRow, button: ActionButton) => {
+    if (button.answer === 'yes' && instruments.length > 1) setAsking({ row, button });
+    else respond(row, { answer: button.answer!, instrument: button.answer === 'yes' ? defaultInstrument : null });
+  };
+
   const last = Math.max(1, Math.ceil(panel.total / panel.pageSize));
   const from = panel.total === 0 ? 0 : (panel.page - 1) * panel.pageSize + 1;
   const to = Math.min(panel.total, panel.page * panel.pageSize);
@@ -223,7 +278,7 @@ function ActionPanel({ initial, today, resumed }: { initial: Panel; today: strin
         {panel.rows.length > 0 ? (
           <ul className="pa-list">
             {panel.rows.map((row) => (
-              <Row key={`${row.kind}:${row.sourceKey}`} row={row} today={today} busy={state.busy} onDismiss={dismiss} />
+              <Row key={`${row.kind}:${row.sourceKey}`} row={row} today={today} busy={state.busy} onDismiss={dismiss} onAnswer={answer} />
             ))}
           </ul>
         ) : (
@@ -264,16 +319,117 @@ function ActionPanel({ initial, today, resumed }: { initial: Panel; today: strin
           <span className="sr-only">Página seguinte de {panel.title}</span>
         </button>
       </footer>
+
+      {asking && (
+        <AnswerDialog
+          row={asking.row}
+          label={asking.button.label}
+          instruments={instruments}
+          defaultInstrument={defaultInstrument}
+          onClose={() => setAsking(null)}
+          onSubmit={async (a) => {
+            const error = await respond(asking.row, a);
+            if (!error) {
+              // The dialog gives focus back to the button it came from, which has just left the page: keep it in this panel.
+              setAsking(null);
+              requestAnimationFrame(() => heading.current?.focus({ preventScroll: true }));
+            }
+            return error;
+          }}
+        />
+      )}
     </section>
   );
 }
 
-function Row({ row, today, busy, onDismiss }: { row: ActionRow; today: string; busy: boolean; onDismiss: (row: ActionRow) => void }) {
+/** Vou / Fui with a choice of instrument (and an optional note), as on the module pages. Cancelling sends nothing. */
+function AnswerDialog({
+  row,
+  label,
+  instruments,
+  defaultInstrument,
+  onClose,
+  onSubmit,
+}: {
+  row: ActionRow;
+  label: string;
+  instruments: InstrumentOption[];
+  defaultInstrument: string | null;
+  onClose: () => void;
+  onSubmit: (a: Answer) => Promise<string | null>;
+}) {
+  const [instrument, setInstrument] = useState(defaultInstrument ?? '');
+  const [notes, setNotes] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ids = { instrument: useId(), notes: useId() };
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const failed = await onSubmit({ answer: 'yes', instrument: instrument || null, notes: notes.trim() || null });
+    setBusy(false);
+    setError(failed);
+  };
+
+  return (
+    <Dialog title={`${label}: ${row.title}`} onClose={onClose}>
+      <form className="answer" onSubmit={submit}>
+        <div className="form__field">
+          <label htmlFor={ids.instrument}>Instrumento</label>
+          <span className="control control--select">
+            <select id={ids.instrument} value={instrument} onChange={(e) => setInstrument(e.target.value)}>
+              <option value="">Sem instrumento</option>
+              {instruments.map((i) => (
+                <option key={i.value} value={i.value}>
+                  {i.label}
+                </option>
+              ))}
+            </select>
+          </span>
+        </div>
+        <div className="form__field">
+          <label htmlFor={ids.notes}>Nota (opcional)</label>
+          <textarea id={ids.notes} rows={2} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+        {error && (
+          <p className="form__error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="answer__actions">
+          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
+            Cancelar
+          </button>
+          <button type="submit" className="btn btn--primary" disabled={busy}>
+            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+            Confirmar
+          </button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+function Row({
+  row,
+  today,
+  busy,
+  onDismiss,
+  onAnswer,
+}: {
+  row: ActionRow;
+  today: string;
+  busy: boolean;
+  onDismiss: (row: ActionRow) => void;
+  onAnswer: (row: ActionRow, button: ActionButton) => void;
+}) {
   return (
     <li className="pa-row">
       <div className="pa-row__text">
         <strong className="pa-row__title">
-          {row.title}
+          {row.href ? <a href={row.href}>{row.title}</a> : row.title}
           {row.required && <span className="pa-required">Obrigatório</span>}
         </strong>
         {(row.date || row.context) && (
@@ -289,11 +445,24 @@ function Row({ row, today, busy, onDismiss }: { row: ActionRow; today: string; b
         )}
       </div>
       <div className="pa-row__actions">
-        {row.actions.map((a) => (
-          <a key={a.href} className={`btn btn--sm ${a.primary ? 'btn--primary' : 'btn--ghost'}`} href={a.href}>
-            {a.label}
-          </a>
-        ))}
+        {row.actions.map((a) =>
+          a.answer ? (
+            <button
+              key={a.answer}
+              type="button"
+              className={`btn btn--sm ${a.primary ? 'btn--primary' : 'btn--ghost'}`}
+              disabled={busy}
+              aria-label={`${a.label}: ${row.title}`}
+              onClick={() => onAnswer(row, a)}
+            >
+              {a.label}
+            </button>
+          ) : (
+            <a key={a.href} className={`btn btn--sm ${a.primary ? 'btn--primary' : 'btn--ghost'}`} href={a.href!}>
+              {a.label}
+            </a>
+          ),
+        )}
         {row.dismissible && !row.required && (
           <button type="button" className="btn btn--sm btn--ghost" disabled={busy} onClick={() => onDismiss(row)}>
             Agora não

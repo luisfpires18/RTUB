@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FluentAssertions;
+using Moq;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
@@ -14,9 +15,12 @@ using Xunit;
 namespace RTUB.Application.Tests.Services;
 
 /// <summary>
-/// "As minhas ações pendentes" (task 071): who gets which panel, what counts as pending in Atuações / Ensaios
-/// (unanswered, not cancelled; every upcoming one; past ones of the current fiscal year), independent paging with the
-/// last page clamped, and the dismissal rules (optional only, server-decided, per member and period, idempotent).
+/// "As minhas ações pendentes" (tasks 071 / 072): who gets which panel, what counts as pending in Atuações / Ensaios
+/// (unanswered, not cancelled; every upcoming one; past ones of the current fiscal year from the admission month),
+/// independent paging with the last page clamped, the dismissal rules (optional only, server-decided, per member and
+/// period, idempotent) and the in-page answers (routed to the domain services, create-only, validated). The domain
+/// services are fakes that write the row they would write; their own rules and the real SQLite unique indexes are
+/// covered by RehearsalAttendanceAdminWorkflowTests and PendingActionsApiTests.
 /// Each test gets its own database and a frozen clock: Friday 6 Nov 2026, fiscal year 2026-2027.
 /// </summary>
 public class PendingActionsServiceTests
@@ -25,8 +29,42 @@ public class PendingActionsServiceTests
     private readonly TimeProvider _clock = new FixedClock(new DateTimeOffset(2026, 11, 6, 12, 0, 0, TimeSpan.Zero));
     private readonly DatabaseFixture _db = new();
 
+    private readonly Mock<IEnrollmentService> _enrollments = new();
+    private readonly Mock<IRehearsalAttendanceService> _attendance = new();
+    private readonly Mock<IMemberStatusService> _status = new();
+
+    public PendingActionsServiceTests()
+    {
+        _enrollments.Setup(s => s.CreateEnrollmentAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<InstrumentType?>(), It.IsAny<string?>(),
+                It.IsAny<bool>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns((string userId, int eventId, InstrumentType? instrument, string? notes, bool willAttend, string? others, bool _, CancellationToken _) =>
+            {
+                using var db = _db.CreateContext();
+                var x = Enrollment.Create(userId, eventId);
+                (x.Instrument, x.Notes, x.WillAttend, x.OtherInstruments) = (instrument, notes, willAttend, others);
+                db.Enrollments.Add(x);
+                db.SaveChanges();
+                return Task.FromResult(x);
+            });
+        _attendance.Setup(s => s.AddFirstAttendanceAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<InstrumentType?>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()))
+            .Returns((int rehearsalId, string userId, bool willAttend, InstrumentType? instrument, string? notes, string? others, bool _) =>
+            {
+                using var db = _db.CreateContext();
+                var a = RehearsalAttendance.Create(rehearsalId, userId, instrument);
+                (a.WillAttend, a.Notes, a.OtherInstruments) = (willAttend, notes, others);
+                db.RehearsalAttendances.Add(a);
+                db.SaveChanges();
+                return Task.FromResult(a);
+            });
+    }
+
     private PendingActionsService Service(params IPendingActionSource[] extra) =>
-        new(new Contexts(_db), new IPendingActionSource[] { new EventResponsePendingActionSource(), new RehearsalResponsePendingActionSource() }.Concat(extra), _clock);
+        new(new Contexts(_db), new IPendingActionSource[]
+        {
+            new EventResponsePendingActionSource(_enrollments.Object, _status.Object),
+            new RehearsalResponsePendingActionSource(_attendance.Object),
+        }.Concat(extra), _clock);
 
     // ---------- access ----------
 
@@ -94,7 +132,9 @@ public class PendingActionsServiceTests
 
         upcoming.Total.Should().Be(3);
         upcoming.Rows.Select(r => r.SourceKey).Should().Equal(Key(today), Key(soon), Key(far));
-        upcoming.Rows[0].Actions.Single().Href.Should().Be($"/events/{today}?respond=1");
+        upcoming.Rows[0].Href.Should().Be($"/events/{today}");
+        upcoming.Rows[0].Actions.Select(a => (a.Label, a.Answer)).Should().Equal(("Vou", "yes"), ("Não vou", "no"));
+        past.Rows.Single().Actions.Select(a => (a.Label, a.Answer)).Should().Equal(("Fui", "yes"), ("Não fui", "no"));
         upcoming.Rows.Should().OnlyContain(r => !r.Required && !r.Dismissible);
         past.Total.Should().Be(1, "the fiscal year starts on 1 September");
         past.Rows.Single().SourceKey.Should().Be(Key(september));
@@ -118,7 +158,7 @@ public class PendingActionsServiceTests
         var past = (await Service().GetPanelAsync(SignedIn(me), "rehearsals", "past", 1)).Value!;
 
         upcoming.Rows.Select(r => r.SourceKey).Should().Equal(Key(next));
-        upcoming.Rows.Single().Actions.Single().Href.Should().Be($"/rehearsals/{next}");
+        upcoming.Rows.Single().Href.Should().Be($"/rehearsals/{next}");
         past.Rows.Select(r => r.SourceKey).Should().Equal(Key(lastWeek));
         (await Service().CountPendingAsync(me)).Should().Be(2);
         (await Service().GetPanelAsync(SignedIn(other), "rehearsals", "upcoming", 1)).Value!.Rows.Select(r => r.SourceKey)
@@ -176,9 +216,9 @@ public class PendingActionsServiceTests
         var e = AddEvent("Próxima", Today.AddDays(1));
         var service = Service(new FakeSource("required", required: true));
 
-        (await service.DismissAsync(SignedIn(me), new(EventResponsePendingActionSource.Kind, Key(e)))).Status.Should().Be(EventResultStatus.Forbidden);
+        (await service.DismissAsync(SignedIn(me), new(EventResponsePendingActionSource.KindCode, Key(e)))).Status.Should().Be(EventResultStatus.Forbidden);
         (await service.DismissAsync(SignedIn(me), new("fake.required", "1"))).Status.Should().Be(EventResultStatus.Forbidden);
-        (await service.DismissAsync(SignedIn(me), new(EventResponsePendingActionSource.Kind, "999"))).Status.Should().Be(EventResultStatus.NotFound);
+        (await service.DismissAsync(SignedIn(me), new(EventResponsePendingActionSource.KindCode, "999"))).Status.Should().Be(EventResultStatus.NotFound);
         (await service.DismissAsync(SignedIn(me), new(null, null))).Status.Should().Be(EventResultStatus.NotFound);
         (await service.DismissAsync(SignedIn(me), new(new string('x', 65), "1"))).Status.Should().Be(EventResultStatus.NotFound);
         Dismissals().Should().BeEmpty();
@@ -206,6 +246,94 @@ public class PendingActionsServiceTests
         (await service.GetPanelAsync(SignedIn(me), "optional", null, 1)).Value!.Total.Should().Be(3);
     }
 
+    // ---------- answers (072) ----------
+
+    [Fact]
+    public async Task Answers_GoToTheDomainServices_CreateOnly_AndResolveTheRow()
+    {
+        var me = AddUser([MemberCategory.Tuno], retired: false);
+        AddInstrument(me, InstrumentType.Bandolim, primary: true);
+        AddInstrument(me, InstrumentType.Guitarra, primary: false);
+        var upcoming = AddEvent("Serenata", Today.AddDays(2));
+        var past = AddEvent("Gala", Today.AddDays(-10));
+        var rehearsal = AddRehearsal(Today.AddDays(1));
+        var lastWeek = AddRehearsal(Today.AddDays(-7));
+        var service = Service();
+
+        (await service.RespondAsync(SignedIn(me), new("event.response", Key(upcoming), "yes", "Guitarra", " até já "))).Status.Should().Be(EventResultStatus.Ok);
+        (await service.RespondAsync(SignedIn(me), new("event.response", Key(past), "yes", null, null))).Status.Should().Be(EventResultStatus.Ok);
+        (await service.RespondAsync(SignedIn(me), new("rehearsal.response", Key(rehearsal), "no", "Guitarra", "nota"))).Status.Should().Be(EventResultStatus.Ok);
+        (await service.RespondAsync(SignedIn(me), new("rehearsal.response", Key(lastWeek), "yes", null, null))).Status.Should().Be(EventResultStatus.Ok);
+
+        _enrollments.Verify(s => s.CreateEnrollmentAsync(me, upcoming, InstrumentType.Guitarra, "até já", true, "Bandolim", false, It.IsAny<CancellationToken>()));
+        _enrollments.Verify(s => s.CreateEnrollmentAsync(me, past, null, null, true, null, true, It.IsAny<CancellationToken>()),
+            "no instrument named = not playing, as on the event page; no push for a past event");
+        _attendance.Verify(s => s.AddFirstAttendanceAsync(rehearsal, me, false, null, "nota", null, false), "a no keeps its reason, never an instrument");
+        _attendance.Verify(s => s.AddFirstAttendanceAsync(lastWeek, me, true, null, null, null, true));
+        _status.Verify(s => s.ReconcileMemberStatusAsync(me), Times.Once(), "only the past performance counts as activity now");
+        (await service.CountPendingAsync(me)).Should().Be(0);
+
+        // A retry, a double click or an answer given meanwhile on the module page: nothing is pending, nothing is written.
+        (await service.RespondAsync(SignedIn(me), new("event.response", Key(upcoming), "no", null, null))).Status.Should().Be(EventResultStatus.NotFound);
+        _enrollments.Invocations.Count.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Answers_AreRefused_ForWhatIsNotPendingForTheCaller()
+    {
+        var me = AddUser([MemberCategory.Leitao], retired: false);
+        var retired = AddUser([MemberCategory.Tuno], retired: true);
+        var cancelled = AddEvent("Cancelada", Today.AddDays(3), cancelled: true);
+        var lastYear = AddEvent("Ano passado", new DateTime(2026, 8, 30));
+        var open = AddEvent("Aberta", Today.AddDays(3));
+        var service = Service();
+
+        (await service.RespondAsync(SignedIn(me), new("event.response", Key(cancelled), "yes", null, null))).Status.Should().Be(EventResultStatus.NotFound);
+        (await service.RespondAsync(SignedIn(me), new("event.response", Key(lastYear), "yes", null, null))).Status.Should().Be(EventResultStatus.NotFound);
+        (await service.RespondAsync(SignedIn(me), new("event.response", "999", "yes", null, null))).Status.Should().Be(EventResultStatus.NotFound);
+        (await service.RespondAsync(SignedIn(me), new("rehearsal.response", Key(open), "yes", null, null))).Status.Should().Be(EventResultStatus.NotFound,
+            "an event id is not a rehearsal");
+        (await service.RespondAsync(SignedIn(retired), new("event.response", Key(open), "yes", null, null))).Status.Should().Be(EventResultStatus.NotFound,
+            "a Reformado has no participation panel");
+        (await service.RespondAsync(SignedIn(me), new("event.response", Key(open), "talvez", null, null))).Status.Should().Be(EventResultStatus.Invalid);
+        (await service.RespondAsync(SignedIn(me), new("event.response", Key(open), "yes", "Trompete", null))).Status.Should().Be(EventResultStatus.Invalid,
+            "not an instrument");
+        (await service.RespondAsync(SignedIn(me), new("event.response", Key(open), "yes", null, new string('n', 1001)))).Status.Should().Be(EventResultStatus.Invalid);
+        (await service.RespondAsync(new ClaimsPrincipal(new ClaimsIdentity()), new("event.response", Key(open), "yes", null, null))).Status
+            .Should().Be(EventResultStatus.SignInRequired);
+        _enrollments.Invocations.Should().BeEmpty();
+
+        // A Leitão with no instrument may name any, as on the event page.
+        (await service.RespondAsync(SignedIn(me), new("event.response", Key(open), "yes", "Pandeireta", null))).Status.Should().Be(EventResultStatus.Ok);
+    }
+
+    [Fact]
+    public async Task AnInstrumentTheMemberDoesNotPlay_IsNotOffered()
+    {
+        var me = AddUser([MemberCategory.Tuno], retired: false);
+        AddInstrument(me, InstrumentType.Bandolim, primary: true);
+        var e = AddEvent("Serenata", Today.AddDays(2));
+
+        var page = (await Service().GetPageAsync(SignedIn(me))).Value!;
+
+        page.Instruments.Select(i => i.Value).Should().Equal("Bandolim");
+        page.DefaultInstrument.Should().Be("Bandolim");
+        (await Service().RespondAsync(SignedIn(me), new("event.response", Key(e), "yes", "Guitarra", null))).Status.Should().Be(EventResultStatus.Invalid);
+    }
+
+    [Fact]
+    public async Task PastPrompts_StartAtTheAdmissionMonth_WhenItIsInThisFiscalYear()
+    {
+        var newcomer = AddUser([MemberCategory.Leitao], retired: false, leitao: (2026, 10));
+        var veteran = AddUser([MemberCategory.Tuno], retired: false, leitao: (2019, 10));
+        var september = AddEvent("Setembro", new DateTime(2026, 9, 20));
+        var october = AddEvent("Outubro", new DateTime(2026, 10, 2));
+
+        (await Service().GetPanelAsync(SignedIn(newcomer), "events", "past", 1)).Value!.Rows.Select(r => r.SourceKey).Should().Equal(Key(october));
+        (await Service().GetPanelAsync(SignedIn(veteran), "events", "past", 1)).Value!.Rows.Select(r => r.SourceKey).Should().Equal(Key(october), Key(september));
+        (await Service().RespondAsync(SignedIn(newcomer), new("event.response", Key(september), "yes", null, null))).Status.Should().Be(EventResultStatus.NotFound);
+    }
+
     // ---------- live permissions ----------
 
     [Fact]
@@ -229,7 +357,14 @@ public class PendingActionsServiceTests
     private static ClaimsPrincipal SignedIn(string userId) =>
         new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, userId)], "test"));
 
-    private string AddUser(List<MemberCategory> categories, bool retired, bool expelled = false)
+    private void AddInstrument(string userId, InstrumentType type, bool primary)
+    {
+        using var db = _db.CreateContext();
+        db.MemberInstruments.Add(MemberInstrument.Create(userId, type, primary));
+        db.SaveChanges();
+    }
+
+    private string AddUser(List<MemberCategory> categories, bool retired, bool expelled = false, (int Year, int Month)? leitao = null)
     {
         using var db = _db.CreateContext();
         var id = Guid.NewGuid().ToString();
@@ -237,6 +372,7 @@ public class PendingActionsServiceTests
         {
             Id = id, UserName = id, Email = $"{id}@test.pt", FirstName = "Ana", LastName = "Silva", Nickname = "Ana",
             Categories = categories, IsRetired = retired, IsExpelled = expelled,
+            YearLeitao = leitao?.Year, MonthLeitao = leitao?.Month,
         });
         db.SaveChanges();
         return id;

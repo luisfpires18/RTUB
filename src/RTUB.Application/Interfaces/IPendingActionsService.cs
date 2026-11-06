@@ -25,6 +25,14 @@ public interface IPendingActionsService
     Task<EventResult<bool>> DismissAsync(ClaimsPrincipal user, PendingActionDismissInput input);
 
     /// <summary>
+    /// The member's own in-page answer to an activity pending for them now (task 072): Vou / Não vou, Fui / Não fui.
+    /// Written through the module's domain service, create-only: an activity already answered (here, in the module, or
+    /// by an Admin), cancelled, out of the window or not the member's to answer → NotFound; a concurrent first answer →
+    /// Conflict; an instrument the page did not offer or a long note → Invalid.
+    /// </summary>
+    Task<EventResult<bool>> RespondAsync(ClaimsPrincipal user, PendingActionResponseInput input);
+
+    /// <summary>
     /// How many actions are pending for the member across every panel and filter (dismissed ones excluded); 0 for an
     /// unknown account. The shared query for the scheduled reminder (#259): counts only, no rows.
     /// </summary>
@@ -39,12 +47,20 @@ public sealed record PendingActionMember(
     bool IsSubjectToActivityRule,
     bool IsRetired,
     DateTime Today,
-    int FiscalYearStart)
+    int FiscalYearStart,
+    DateTime? JoinedOn = null)
 {
     /// <summary>The canonical active member: someone the activity rule covers who is not Reformado (docs/member-activity-status.md).</summary>
     public bool IsActive => IsSubjectToActivityRule && !IsRetired;
 
     public DateTime FiscalYearStartDate => new(FiscalYearStart, 9, 1);
+
+    /// <summary>
+    /// Where past prompts start (task 072): 1 September of the current fiscal year, or the first day of the member's
+    /// admission month (earliest of Leitão / Caloiro / Tuno) when that is later - activities before someone joined are not
+    /// their missing answers.
+    /// </summary>
+    public DateTime PastFrom => JoinedOn is { } joined && joined > FiscalYearStartDate ? joined : FiscalYearStartDate;
 
     public string FiscalYear => $"{FiscalYearStart}-{FiscalYearStart + 1}";
 }
@@ -71,4 +87,19 @@ public interface IPendingActionSource
 
     /// <summary>The action as it is pending for the member now, or null; with the period a dismissal of it is kept for.</summary>
     Task<(PendingActionRowDto Row, string Period)?> FindAsync(ApplicationDbContext db, PendingActionMember member, string kind, string sourceKey);
+}
+
+/// <summary>
+/// A source whose rows are answered in the page (task 072: Atuações, Ensaios). The service has already checked the
+/// member, the answer and the instrument; the responder checks the activity is still pending for the member and writes
+/// through the module's own domain service, create-only.
+/// </summary>
+public interface IPendingActionResponder
+{
+    string Kind { get; }
+
+    int NotesMax { get; }
+
+    Task<EventResult<bool>> RespondAsync(ApplicationDbContext db, PendingActionMember member, string sourceKey, bool yes,
+        InstrumentType? instrument, string? otherInstruments, string? notes);
 }

@@ -4,13 +4,14 @@ namespace RTUB.Application.DTOs;
 // PendingActionsService.PageSize rows and the counts; nothing else of the source module travels.
 
 /// <summary>
-/// One button of a row. <c>Href</c> opens the module's own page, where the action is done with that module's rules (the
-/// only kind delivered in 071). Later phases add in-page answers (#253) as other kinds.
+/// One button of a row: a link (<c>Href</c>) to the module's own page, where the action is done with that module's rules,
+/// or an in-page answer (<c>Answer</c> "yes" / "no", task 072) sent to <c>POST /api/pending-actions/responses</c>.
 /// </summary>
-public sealed record PendingActionButtonDto(string Label, string Href, bool Primary);
+public sealed record PendingActionButtonDto(string Label, string? Href, bool Primary, string? Answer = null);
 
 /// <summary>
-/// One action. <c>Kind</c> + <c>SourceKey</c> identify it (for a dismissal). <c>Required</c>: shows "Obrigatório" and
+/// One action. <c>Kind</c> + <c>SourceKey</c> identify it (for a dismissal or an answer); <c>Href</c>, when set, is the
+/// item's own page (the row title links there). <c>Required</c>: shows "Obrigatório" and
 /// can never be dismissed. <c>Dismissible</c>: an optional prompt the member may turn down for its period. Both false: a
 /// response the member gives in the module (an answer is not a dismissal). Decided by the server, never by the page.
 /// </summary>
@@ -23,7 +24,8 @@ public sealed record PendingActionRowDto(
     string? Context,
     bool Required,
     bool Dismissible,
-    IReadOnlyList<PendingActionButtonDto> Actions);
+    IReadOnlyList<PendingActionButtonDto> Actions,
+    string? Href = null);
 
 /// <summary>A sub-filter of a panel (e.g. Próximas / Passadas) with its own count.</summary>
 public sealed record PendingActionFilterDto(string Key, string Label, int Count);
@@ -46,9 +48,24 @@ public sealed record PendingActionPanelDto(
 
 /// <summary>
 /// The page: Portugal's date, the current fiscal year, the member's activity status ("active", "retired", or "none"
-/// for an account with no membership category) and the first page of every panel that applies to the member.
+/// for an account with no membership category), the first page of every panel that applies to the member, and the
+/// instruments a "Vou" / "Fui" may name (the module's rule: the member's own, primary first; a Leitão with none may pick
+/// any; <c>DefaultInstrument</c> = the primary).
 /// </summary>
-public sealed record PendingActionsPageDto(string Today, string FiscalYear, string Status, IReadOnlyList<PendingActionPanelDto> Panels);
+public sealed record PendingActionsPageDto(
+    string Today,
+    string FiscalYear,
+    string Status,
+    IReadOnlyList<PendingActionPanelDto> Panels,
+    IReadOnlyList<EventInstrumentOptionDto> Instruments,
+    string? DefaultInstrument);
 
 /// <summary>"Não" / "Agora não" on an optional action: its kind and source as the row gave them.</summary>
 public sealed record PendingActionDismissInput(string? Kind, string? SourceKey);
+
+/// <summary>
+/// An in-page answer (task 072): Vou / Não vou on an upcoming activity, Fui / Não fui on a past one of the current fiscal
+/// year. <c>Answer</c> "yes" or "no"; <c>Instrument</c> only with "yes" (an option the page offered; none = not playing,
+/// as on the module pages; the page sends the primary when there is nothing to choose); <c>Notes</c> either way.
+/// </summary>
+public sealed record PendingActionResponseInput(string? Kind, string? SourceKey, string? Answer, string? Instrument, string? Notes);
