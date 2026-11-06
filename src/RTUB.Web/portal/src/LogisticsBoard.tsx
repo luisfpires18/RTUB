@@ -19,9 +19,27 @@ const VIEWS: { key: View; label: string; icon: 'kanban' | 'listOl' | 'calendar' 
 
 /**
  * Task 070: what the address keeps - the view, the filters, the list order, the calendar month and the open card - so
- * refresh and back restore the board as it was. Only the member's own choices: a person filter is kept only as "mine" /
- * "none" (never a name), and nothing from a card but its id.
+ * refresh and back restore the board as it was. Only the member's own choices, and nothing from a card but its id. A
+ * person filter is "mine" / "none", or "person" for a named member: the name itself never goes in the address (a link
+ * may be shared) - it stays in this tab's sessionStorage, per board, and is restored only when the address says
+ * "person" (a shared link without it, or a fresh visit, gets no person filter).
  */
+const personKey = () => `rtub:logistics:who:${location.pathname}`;
+const storedPerson = () => {
+  try {
+    return sessionStorage.getItem(personKey()) ?? '';
+  } catch {
+    return '';
+  }
+};
+const storePerson = (name: string) => {
+  try {
+    if (name) sessionStorage.setItem(personKey(), name);
+    else sessionStorage.removeItem(personKey());
+  } catch {
+    // Storage blocked (private mode): the filter lasts until the page is left, as before.
+  }
+};
 type UrlState = { view: View; q: string; status: Status | ''; label: string; who: string; prio: Priority | ''; due: Due; sort: Sort; month: string; card?: number };
 const readUrl = (): UrlState => {
   const p = new URLSearchParams(location.search);
@@ -32,7 +50,7 @@ const readUrl = (): UrlState => {
     q: p.get('q') ?? '',
     status: pick<Status | ''>('status', ['', ...STATUSES], ''),
     label: p.get('label') ?? '',
-    who: pick('who', ['', 'mine', 'none'], ''),
+    who: ((w) => (w === 'person' ? storedPerson() : w))(pick('who', ['', 'mine', 'none', 'person'], '')),
     prio: pick<Priority | ''>('prio', ['', ...PRIORITIES], ''),
     due: pick<Due>('due', ['', 'late', 'soon', 'none'], ''),
     sort: pick<Sort>('sort', ['due', 'priority', 'status', 'title'], 'due'),
@@ -46,7 +64,8 @@ const writeUrl = (u: UrlState, push: boolean) => {
   if (u.q) p.set('q', u.q);
   if (u.status) p.set('status', u.status);
   if (u.label) p.set('label', u.label);
-  if (u.who === 'mine' || u.who === 'none') p.set('who', u.who);
+  if (u.who) p.set('who', u.who === 'mine' || u.who === 'none' ? u.who : 'person');
+  storePerson(u.who === 'mine' || u.who === 'none' ? '' : u.who);
   if (u.prio) p.set('prio', u.prio);
   if (u.due) p.set('due', u.due);
   if (u.view === 'list' && u.sort !== 'due') p.set('sort', u.sort);
@@ -288,7 +307,9 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
     d.setUTCDate(d.getUTCDate() + 7);
     return d.toISOString().slice(0, 10);
   })();
-  const people = [...new Set(data.lists.flatMap((l) => l.cards.flatMap((c) => (c.assignedTo ? [c.assignedTo.displayName] : [])))).values()].sort((a, b) =>
+  // A restored person filter stays selectable even when that member has no card left, so the select shows what filters.
+  const named = who !== '' && who !== 'mine' && who !== 'none' ? [who] : [];
+  const people = [...new Set([...named, ...data.lists.flatMap((l) => l.cards.flatMap((c) => (c.assignedTo ? [c.assignedTo.displayName] : [])))]).values()].sort((a, b) =>
     a.localeCompare(b, 'pt-PT'),
   );
   // One filter for every view (task 070): state, label, responsible member, priority, deadline, title / details.
