@@ -5,6 +5,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -73,6 +74,10 @@ public class MeetingService : IMeetingService
         if (meeting == null)
             return null;
 
+        // Task 075: Owner sees every type (the ata matrix gives Owner every body's atas, so the meetings must be reachable).
+        if (await IsOwnerAsync(ctx, userId))
+            return meeting;
+
         // Load user once and cache for visibility checks
         ApplicationUser? user = null;
 
@@ -89,7 +94,8 @@ public class MeetingService : IMeetingService
 
             // Use CurrentRole property instead of Categories to avoid JSON deserialization issues
             var role = user.CurrentRole;
-            var hasMagisterPosition = user.Positions != null && user.Positions.Contains(Position.Magister);
+            var hasMagisterPosition = user.Positions != null &&
+                (user.Positions.Contains(Position.Magister) || user.Positions.Contains(Position.PresidenteConselhoVeteranos)); // 075: the CV president too
 
             // Allow CV meetings for Veterans, Tunossauros, and Magister position holders
             if (role != "VETERANO" && role != "TUNOSSAURO" && !hasMagisterPosition)
@@ -162,6 +168,12 @@ public class MeetingService : IMeetingService
     public async Task<Meeting> CreateMeetingAsync(Meeting meeting)
     {
         var createdMeeting = await _meetingRepository.AddAsync(meeting);
+
+        // Task 075: a meeting registered after it happened (a president catching up) is never announced as a new one.
+        if (createdMeeting.Date.Date < PortugalTime.Today(TimeProvider.System))
+        {
+            return createdMeeting;
+        }
 
         // Send push notification to appropriate users based on meeting type
         try
@@ -236,12 +248,22 @@ public class MeetingService : IMeetingService
     /// Applies visibility filtering to the meeting query based on user role/positions.
     /// Filters out CV, Direção, and AG meetings based on user permissions.
     /// </summary>
+    private static Task<bool> IsOwnerAsync(ApplicationDbContext ctx, string userId) =>
+        ctx.UserRoles.Join(ctx.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+            .AnyAsync(x => x.UserId == userId && x.Name == "Owner");
+
     private async Task<IQueryable<Meeting>> ApplyVeteranoFilterAsync(ApplicationDbContext ctx, IQueryable<Meeting> query, string userId)
     {
         // Use FirstOrDefaultAsync to ensure we get a fully materialized user object
         var user = await ctx.Users
             .Where(u => u.Id == userId)
             .FirstOrDefaultAsync();
+
+        // Task 075: Owner sees every type (the ata matrix gives Owner every body's atas).
+        if (user != null && await IsOwnerAsync(ctx, userId))
+        {
+            return query;
+        }
 
         // If user is not found, filter out restricted meetings
         if (user == null)
@@ -251,7 +273,8 @@ public class MeetingService : IMeetingService
         else
         {
             var role = user.CurrentRole;
-            var hasMagisterPosition = user.Positions != null && user.Positions.Contains(Position.Magister);
+            var hasMagisterPosition = user.Positions != null &&
+                (user.Positions.Contains(Position.Magister) || user.Positions.Contains(Position.PresidenteConselhoVeteranos)); // 075: the CV president too
 
             // Allow CV meetings for Veterans, Tunossauros, Magister position holders,
             // AND users who are designated as TunoRepresentative for a specific meeting

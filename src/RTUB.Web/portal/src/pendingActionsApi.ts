@@ -28,6 +28,8 @@ export type ActionRow = {
   actions: ActionButton[];
   /** The item's own page (the title links there). */
   href: string | null;
+  /** The dismiss button's text when "Agora não" does not fit (075: "Não é necessário"). */
+  dismissLabel: string | null;
 };
 export type PanelFilter = { key: string; label: string; count: number };
 export type Category = 'participation' | 'tasks' | 'responsibilities';

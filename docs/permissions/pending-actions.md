@@ -17,6 +17,8 @@ mandate or status change shows on the next load. A panel that does not apply to 
 | Account with no membership category (e.g. only Tuno Honorário, a bare Owner account) | yes | Logística, Questões |
 | 1.º / 2.º Tesoureiro (current mandate) | yes | + Tesouraria (074) |
 | Secretário (current mandate) | yes | + Secretaria (074) |
+| Presidente da Mesa / Magister / Presidente do CV (current mandate) | yes | + Reuniões (075) |
+| Ensaiador / Magister (current mandate) | yes | + Presenças por aprovar, Repertório (075) |
 | Mod / Admin / Owner | as their member type | as their member type: **a role adds no panel** (Tesouraria / Secretaria follow the position, not the role); on Logística a manager still sees only their own cards (not unowned ones) |
 
 "Active" is the canonical rule of `docs/member-activity-status.md` (`ApplicationUser.IsRetired`, written only by the
@@ -35,6 +37,16 @@ The page cannot approve anything: a past rehearsal "Fui" is pending (`Attended =
 the rehearsal page, exactly as a module "vou". No new permission was added to `EventsAuthorization` or
 `RehearsalsAuthorization`; the retrospective answer is the page's own narrow rule (own, current year from PastFrom,
 not cancelled, unanswered).
+
+### Reuniões, presenças, repertório (075)
+
+| Request | Answer |
+| --- | --- |
+| Panels `meetings`, `approvals`, `repertoire` without the position (Admin / Owner included) | `404` |
+| Dismissing a "Criar ata" row | `403` (required) |
+| Agora não on "Registar reunião", Não é necessário on a repertoire row | `204`, own, for the month / that event |
+| Aprovar / Recusar a pending presença at an approvable rehearsal | `204` (the rehearsal module's rule: Admin / Owner / current Ensaiador / Magister) |
+| A future, already decided or unknown presença | `404` |
 
 ### Tesouraria and Secretaria commands (074)
 

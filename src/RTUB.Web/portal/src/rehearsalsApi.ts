@@ -105,6 +105,8 @@ export const rehearsalsApi = {
   sendNotice: (id: number, message: string, onlyLeitoesAndCaloiros: boolean) =>
     call<{ sent: number; failed: number }>('POST', `${base}/${id}/notice`, { message, onlyLeitoesAndCaloiros }),
   approve: (id: number, attendanceId: number) => call<void>('POST', `${base}/${id}/attendances/${attendanceId}/approve`),
+  /** Task 075: "Recusar" - recorded as not attended, the member notified (not a deletion). */
+  refuse: (id: number, attendanceId: number) => call<void>('POST', `${base}/${id}/attendances/${attendanceId}/refuse`),
   removeAttendee: (id: number, attendanceId: number) => call<void>('DELETE', `${base}/${id}/attendances/${attendanceId}`),
   members: (id: number, q: string) => call<MemberOption[]>('GET', `${base}/${id}/attendances/members?q=${encodeURIComponent(q)}`),
   addAttendee: (id: number, userId: string) => call<void>('POST', `${base}/${id}/attendances`, { userId }),

@@ -420,3 +420,9 @@ image (012A) and videos (012C), through the existing storage services.
 past event of the current fiscal year (Fui / Não fui; the event page still only lets someone who went withdraw). A
 "Fui" is the same Enrollment an Admin adds in "Quem foi": it counts as a performance and in XP at once, and the member's
 activity status is reconciled. Answers already given are never changed from there.
+
+## Repertoire by the Ensaiador / Magister (075)
+
+`EventDetailDto.CanManageRepertoire`: Admin / Owner for any event, the current Ensaiador / Magister for an upcoming, not
+cancelled one; the event page's repertoire button follows it. `/events/{id}?repertoire=1` opens the editor once (from
+"As minhas ações pendentes" → Repertório).

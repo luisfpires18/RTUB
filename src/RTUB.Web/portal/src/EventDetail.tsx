@@ -22,6 +22,9 @@ import { MemberBadge, badgeKind } from './MemberBadge';
  */
 const wantsToRespond = () => new URLSearchParams(location.search).get('respond') === '1';
 
+/** Task 075: ?repertoire=1 (from "As minhas ações pendentes") opens the repertoire editor once, if the member may use it. */
+const wantsRepertoire = () => new URLSearchParams(location.search).get('repertoire') === '1';
+
 function dropRespondFlag() {
   const url = new URL(location.href);
   url.searchParams.delete('respond');
@@ -42,6 +45,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
   const [managingRepertoire, setManagingRepertoire] = useState(false);
   const [managingParticipants, setManagingParticipants] = useState(false);
   const respond = useRef(wantsToRespond());
+  const repertoire = useRef(wantsRepertoire());
 
   const load = (quiet = false) => {
     if (!quiet) setDetail(undefined);
@@ -55,6 +59,13 @@ export default function EventDetail({ eventId }: { eventId: number }) {
       respond.current = false;
       dropRespondFlag();
       setAnswering(true);
+    }
+    if (detail && detail !== 'missing' && repertoire.current) {
+      repertoire.current = false;
+      const url = new URL(location.href);
+      url.searchParams.delete('repertoire');
+      history.replaceState(null, '', url.pathname + url.search);
+      if (detail.canManageRepertoire) setManagingRepertoire(true);
     }
   }, [detail]);
 
@@ -117,7 +128,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
           // Admin/Owner (012C): uploads go to past events, as before; existing videos stay manageable anywhere.
           onManageVideos={detail.canManage && (detail.event.past || detail.videos.length > 0) ? () => setManagingVideos(true) : undefined}
           // Admin/Owner (012D): the repertoire of any event, as the old modal allowed.
-          onManageRepertoire={detail.canManage ? () => setManagingRepertoire(true) : undefined}
+          onManageRepertoire={detail.canManageRepertoire ? () => setManagingRepertoire(true) : undefined}
           // Admin/Owner (012E): add a member who has not answered, remove any answer.
           onManageParticipants={detail.canManage ? () => setManagingParticipants(true) : undefined}
         />

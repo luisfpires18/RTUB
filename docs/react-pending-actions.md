@@ -1,13 +1,14 @@
 # React: As minhas ações pendentes (`/pending-actions`)
 
 Roadmap #251; foundation = task 071 (issue #252); in-page answers = task 072 (issue #253); Logística and Questões =
-task 073 (issue #254); Tesouraria and Secretaria = task 074 (issue #255). Permissions: [permissions/pending-actions](permissions/pending-actions.md).
+task 073 (issue #254); Tesouraria and Secretaria = task 074 (issue #255);
+Reuniões, Presenças por aprovar and Repertório = task 075 (issue #256). Permissions: [permissions/pending-actions](permissions/pending-actions.md).
 
 A page of **grouped actions** with the buttons on each row. Not an inbox, notifications feed, chat or one-at-a-time
 wizard, and not a statistics page. Nothing is copied into a generic "actions" table: every panel is a query over its
 module's own data, run on every load; the only thing stored is a member's own dismissal of an optional action.
 
-## Delivered (071-074) and still to come
+## Delivered (071-075) and still to come
 
 | Panel | Category | State | Rows / buttons |
 | --- | --- | --- | --- |
@@ -17,7 +18,9 @@ module's own data, run on every load; the only thing stored is a member's own di
 | Questões | tasks | **delivered (073)** | the member's own open questions (the ones they may close): **Fechar questão** (asks first) and **Abrir** (`/questions?question={id}` opens the conversation) |
 | Tesouraria | responsibilities | **delivered (074)** | current 1.º / 2.º Tesoureiro: **Criar relatório** (Obrigatório while the year's report is missing), then each begun event of the year: **Sim** (opens the report's "Nova atividade" for that event) / **Não** (shared "Sem movimentos", confirmed); "Sem movimentos" filter with **Reabrir** |
 | Secretaria | responsibilities | **delivered (074)** | current Secretário: **Criar pastas** (last year's top-level folders missing this year, confirmed) / **Agora não** (own, this fiscal year) |
-| Reuniões / atas, presenças por aprovar, repertório | responsibilities | #256 | - |
+| Reuniões | responsibilities | **delivered (075)** | current Presidente da Mesa / Magister / Presidente do CV: **Criar ata** (Obrigatório) for each past meeting of their bodies this fiscal year with no ata saved; optional monthly **Registar reunião** per body (Agora não = this month) |
+| Presenças por aprovar | responsibilities | **delivered (075)** | current Ensaiador / Magister: **Aprovar** / **Recusar** (confirmed) each pending presença at an approvable rehearsal of the fiscal year |
+| Repertório | responsibilities | **delivered (075)** | current Ensaiador / Magister: upcoming, not cancelled events with no repertoire: **Preparar repertório** / **Não é necessário** (own dismissal per event) |
 | Membros (campos em falta) | responsibilities | #257 | - |
 | Galeria e novidades | participation | #258 | - |
 | Push summary | - | #259 (uses `IPendingActionsService.CountPendingAsync`) | - |
@@ -168,6 +171,23 @@ hand the module refuses (`403`) and the page says so. **No permission was added.
   refuses a name that exists, so nothing is overwritten and a repeat is harmless. Folders are only created, never deleted.
 - **Agora não**: the Secretário's own dismissal, period = the fiscal year (back next September, or for a new Secretário).
 - When storage cannot be listed the module shows no folders, so nothing is suggested ("Nada por criar…").
+
+## Reuniões, Presenças por aprovar, Repertório (075)
+
+All three follow the **current position** (a role adds nothing); the writes are the modules', which check the same
+positions. Matrix and module changes: [permissions/meetings](permissions/meetings.md), rehearsals, events.
+
+| Panel | Row | Pending when | Buttons | Resolves |
+| --- | --- | --- | --- | --- |
+| Reuniões | Criar ata — **Obrigatório** | a meeting of a body the member presides over, not cancelled, before today, in the current fiscal year (older gaps belong to earlier mandates), with no `MeetingAtas` row | **Criar ata** → `/meetings?meeting={id}&ata=1` (the module's ata editor) | a saved ata, draft included (opening the editor is not completion; publishing is separate). Not dismissible (`403`) |
+| Reuniões | Registar reunião · {body} | always, per body presided (the app cannot know a missing meeting; nothing is inferred) | **Registar reunião** → `/meetings?new={Type}`; **Agora não** | the member's own dismissal for the month (`yyyy-MM`): back next month |
+| Presenças por aprovar | {member} · ensaio | `WillAttend && !Attended` at a not cancelled rehearsal of the fiscal year that can be approved (past, or today starting ≥ 21:00), never the member's own | **Aprovar** → `IRehearsalAdminService.ApproveAsync`; **Recusar** (confirmed) → `RefuseAsync` | approved / refused (here or on the rehearsal page). A future presença is never listed nor approvable early |
+| Repertório | {event} | upcoming (last day today or later), not cancelled, no `EventRepertoires` row | **Preparar repertório** → `/events/{id}?repertoire=1`; **Não é necessário** | a repertoire saved by anyone (for everyone); "Não é necessário" is the member's own, for that event |
+
+- Approval keeps every side effect (member push, activity status reconcile, XP). Refusal is durable: kept as not
+  attended (audited), member notified, so the member's "Fui / Não fui" never comes back for it.
+- Approvable "today from 21:00" is decided in memory for today's rehearsals (SQLite cannot compare `TimeSpan`); the rest
+  is SQL.
 
 ## Dismissal (`PendingActionDismissals`, migration `AddPendingActionDismissals`)
 

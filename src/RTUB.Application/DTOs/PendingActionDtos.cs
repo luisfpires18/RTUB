@@ -15,7 +15,8 @@ public sealed record PendingActionButtonDto(string Label, string? Href, bool Pri
 
 /// <summary>
 /// One action. <c>Kind</c> + <c>SourceKey</c> identify it (for a dismissal or an answer); <c>Href</c>, when set, is the
-/// item's own page (the row title links there). <c>Required</c>: shows "Obrigatório" and
+/// item's own page (the row title links there). <c>DismissLabel</c>: the dismiss button's text when "Agora não" does
+/// not fit (075: "Não é necessário"). <c>Required</c>: shows "Obrigatório" and
 /// can never be dismissed. <c>Dismissible</c>: an optional prompt the member may turn down for its period. Both false: a
 /// response the member gives in the module (an answer is not a dismissal). Decided by the server, never by the page.
 /// </summary>
@@ -29,7 +30,8 @@ public sealed record PendingActionRowDto(
     bool Required,
     bool Dismissible,
     IReadOnlyList<PendingActionButtonDto> Actions,
-    string? Href = null);
+    string? Href = null,
+    string? DismissLabel = null);
 
 /// <summary>A sub-filter of a panel (e.g. Próximas / Passadas) with its own count.</summary>
 public sealed record PendingActionFilterDto(string Key, string Label, int Count);

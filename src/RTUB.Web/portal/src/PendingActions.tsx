@@ -28,6 +28,9 @@ const EMPTY_PANEL: Record<string, string> = {
   logistics: 'Não tens cartões por concluir.',
   questions: 'Não tens questões abertas.',
   secretary: 'Nada por criar nas pastas deste ano.',
+  meetings: 'Todas as reuniões passadas têm ata.',
+  approvals: 'Nenhuma presença por aprovar.',
+  repertoire: 'As próximas atuações têm repertório.',
 };
 
 /** What a saved command says (072 answers: the default). */
@@ -37,6 +40,8 @@ const DONE: Record<string, string> = {
   create: 'Criado.',
   none: 'Marcado sem movimentos.',
   reopen: 'Reaberto: volta a «Por classificar».',
+  approve: 'Presença aprovada.',
+  refuse: 'Presença recusada.',
 };
 
 const EMPTY: Record<string, string> = {
@@ -521,7 +526,7 @@ function Row({
         )}
         {row.dismissible && !row.required && (
           <button type="button" className="btn btn--sm btn--ghost" disabled={busy} onClick={() => onDismiss(row)}>
-            Agora não
+            {row.dismissLabel ?? 'Agora não'}
           </button>
         )}
       </div>

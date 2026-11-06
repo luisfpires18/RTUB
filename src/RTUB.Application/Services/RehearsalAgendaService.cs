@@ -81,6 +81,9 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
         }
 
         var manage = RehearsalsAuthorization.CanManage(user);
+        // Task 075: the current Ensaiador / Magister approve and refuse too (nothing else of management).
+        var approver = RehearsalsAuthorization.CanApprove(user,
+            await db.Users.AsNoTracking().Where(u => u.Id == me).Select(u => u.Positions).FirstOrDefaultAsync());
         var rows = await db.RehearsalAttendances.AsNoTracking()
             .Where(a => a.RehearsalId == id && a.User != null)
             .Include(a => a.User)
@@ -97,7 +100,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
             a.WillAttend ? Blank(a.OtherInstruments) : null,
             Blank(a.Notes),
             a.UserId == me,
-            manage && approvable && a.WillAttend && !a.Attended,
+            approver && approvable && a.WillAttend && !a.Attended && (manage || a.UserId != me),
             (manage && approvable) || a.UserId == me);
 
         var going = rows.Where(a => a.WillAttend).ToList();

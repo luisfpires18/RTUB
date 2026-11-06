@@ -6,7 +6,14 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
-**Task 074 = As minhas ações pendentes 4/8** (issue #255; `feat/074/pending-actions-treasury-secretary`, not merged).
+**Task 075 = As minhas ações pendentes 5/8** (issue #256; `feat/075/pending-actions-meetings-rehearsals`, not merged).
+Meetings: each body's current president (Mesa: AG/AGE; Magister: Direção; CV president: CV) creates/manages its meetings
+and writes its atas, Owner every type and sees every type, union for several, Admin alone none; a backdated meeting is
+not pushed. Rehearsals: current Ensaiador/Magister approve and refuse (durable "não foi" + push, not delete) without
+Admin. Events: they edit upcoming repertoires. Panels Reuniões (required "Criar ata" this FY; monthly "Registar"),
+Presenças por aprovar (this FY), Repertório ("Não é necessário" own). No schema change.
+
+**Task 074 = As minhas ações pendentes 4/8** (issue #255; PR #275 merged into `dev`, not released).
 Tesouraria (current 1.º/2.º Tesoureiro): required "Criar relatório" (one report per year under a lock in
 `CreateReportAsync`), then each begun event of the year: Sim = report page "Nova atividade" linked to the event
 (`Activity.EventId`), Não = shared `Event.HasNoFinances` (reopen under "Sem movimentos"). Secretaria (current Secretário):
