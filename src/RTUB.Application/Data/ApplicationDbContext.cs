@@ -142,6 +142,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Event Contact DbSet
     public DbSet<EventContact> EventContacts { get; set; }
 
+    // As minhas ações pendentes (task 071): a member's own dismissals of optional actions
+    public DbSet<PendingActionDismissal> PendingActionDismissals { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

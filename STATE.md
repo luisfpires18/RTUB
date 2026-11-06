@@ -3,9 +3,17 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-11-02 (2.3.0 released to PROD; `dev` on 2.3.1)_
+_Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
+**Task 071 = As minhas ações pendentes 1/8** (issue #252 under roadmap #251; `feat/071/pending-actions-foundation`, not
+committed). `/pending-actions`: grouped panels paged on their own (3 rows, previous / next, clamped last page), sources
+per module (`IPendingActionSource`), Atuações + Ensaios for active members (unanswered; every upcoming, past = current
+fiscal year; rows open the module), menu link in Membro, active-member login landing (a local `returnUrl` wins),
+server-side optional dismissals (`PendingActionDismissals`, migration `AddPendingActionDismissals`, additive). In-page
+answers are #253. Docs: `docs/react-pending-actions.md`, `docs/permissions/pending-actions.md`. Real-device PWA open.
+(070 = Logística 5/5, PR #271 merged into `dev`.)
+
 **Task 070 = Logística 5/5** (issue #250; `feat/070/logistics-list-calendar`, PR open, not merged; closes roadmap #245
 once merged). Board views Quadro / Lista / Calendário over the same authorised cards and filters (no new endpoint),
 board summary (board-wide numbers, filtered count), filters / view / order / month / card in the address, phone

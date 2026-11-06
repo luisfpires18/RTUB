@@ -15931,3 +15931,329 @@ html.app-screen .footer {
   display: block;
   font-weight: 500;
 }
+
+/* ---- As minhas ações pendentes (/pending-actions, task 071, docs/react-pending-actions.md) ----
+   Grouped panels, two columns on wide screens, stacked on phones. Each panel keeps a three-row footprint (rows still
+   grow for wrapped text: a minimum, never a fixed height) and its pager at the bottom, aligned across a row. */
+.pa-page {
+  gap: clamp(20px, 3vw, 32px);
+}
+
+.pa-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px 24px;
+}
+
+.pa-head__text {
+  display: grid;
+  gap: 10px;
+  max-width: 44rem;
+  min-width: 0;
+}
+
+.pa-head__title {
+  font-size: clamp(2rem, 3vw + 1rem, 3.25rem);
+  overflow-wrap: anywhere;
+}
+
+.pa-head__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.pa-status {
+  color: #b7e4c7;
+  border-color: color-mix(in srgb, #b7e4c7 45%, transparent);
+}
+
+.pa-status--retired {
+  color: var(--muted);
+  border-color: var(--line-strong);
+}
+
+.pa-today {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.pa-today::first-letter {
+  text-transform: uppercase;
+}
+
+.pa-today svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pa-categories {
+  margin: 0;
+}
+
+.pa-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(16px, 2vw, 24px);
+}
+
+@media (min-width: 900px) {
+  .pa-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pa-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: clamp(16px, 2vw, 22px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.pa-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pa-panel__title {
+  font-size: clamp(1.375rem, 1vw + 1rem, 1.75rem);
+}
+
+.pa-panel__title:focus {
+  outline: none;
+}
+
+.pa-panel__title:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.pa-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--purple) 40%, transparent);
+  color: var(--ink);
+  font-weight: 650;
+  font-size: 0.875rem;
+}
+
+.pa-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pa-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft);
+  font: 600 0.875rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.pa-tabs button[aria-pressed="true"] {
+  border-color: var(--purple-ink);
+  background: color-mix(in srgb, var(--purple) 35%, transparent);
+  color: var(--ink);
+}
+
+.pa-tabs button:disabled {
+  cursor: default;
+}
+
+.pa-tabs small {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Three rows: 3 x 64px + 2 gaps. A minimum, so a wrapped row on a phone simply makes the panel taller. */
+.pa-rows {
+  flex: 1 0 auto;
+  min-height: calc(3 * 64px + 2 * 8px);
+  transition: opacity 160ms ease;
+}
+
+.pa-rows.is-busy {
+  opacity: 0.55;
+}
+
+.pa-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pa-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  min-height: 64px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.pa-row__text {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.pa-row__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  color: var(--ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pa-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.pa-row__meta > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pa-row__meta time::first-letter {
+  text-transform: uppercase;
+}
+
+.pa-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pa-row__actions .btn--sm {
+  min-height: 44px;
+}
+
+.pa-required {
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, #f5c46b 55%, transparent);
+  border-radius: 999px;
+  color: #f5c46b;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pa-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  min-height: 100%;
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.pa-empty svg {
+  width: 22px;
+  height: 22px;
+  color: var(--purple-ink);
+}
+
+.pa-rows:has(.pa-empty) {
+  display: grid;
+}
+
+.pa-alert,
+.pa-notice {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.pa-alert {
+  color: #f5c46b;
+}
+
+.pa-notice {
+  color: var(--muted);
+}
+
+.pa-pager {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.pa-pager__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pa-pager__range {
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.pa-none {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 34rem;
+  margin-inline: auto;
+  padding: 32px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  text-align: center;
+}
+
+.pa-none > svg {
+  width: 32px;
+  height: 32px;
+  color: var(--purple-ink);
+}
+
+.pa-none p {
+  margin: 0;
+}

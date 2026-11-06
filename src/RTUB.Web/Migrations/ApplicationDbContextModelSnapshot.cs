@@ -2877,6 +2877,43 @@ namespace RTUB.Migrations
                     b.ToTable("NewsPosts");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.PendingActionDismissal", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ActionKind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DismissedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Period")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ActionKind", "SourceKey", "Period")
+                        .IsUnique();
+
+                    b.ToTable("PendingActionDismissals");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
                 {
                     b.Property<int>("Id")
@@ -4801,6 +4838,15 @@ namespace RTUB.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.PendingActionDismissal", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>

@@ -96,6 +96,7 @@ public class MemberShellTests
     }
 
     [Theory]
+    [InlineData("portal.pendingActions")]
     [InlineData("portal.events")]
     [InlineData("portal.rehearsals")]
     [InlineData("portal.music")]

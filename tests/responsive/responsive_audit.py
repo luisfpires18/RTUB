@@ -189,6 +189,14 @@ def press(name: str) -> Callable[[Page], None]:
     return run
 
 
+def pending_past(page: Page) -> None:
+    """/pending-actions (task 071): every panel's "Passadas" sub-filter, each in place, footprint kept."""
+    tabs = page.locator(".pa-tabs button:nth-child(2)")
+    for i in range(tabs.count()):
+        tabs.nth(i).click(timeout=8000)
+    page.wait_for_timeout(500)
+
+
 def board_view(view: Optional[str] = None, card: bool = False) -> Callable[[Page], None]:
     """Task 070: the first Logística board, in one of its views (Quadro / Lista / Calendário), optionally with a card open."""
 
@@ -352,6 +360,8 @@ SCENARIOS: list[Scenario] = [
     Scenario("logistics-card", "/logistics", auth=True, action=board_view(card=True), dialog=True),
     Scenario("logistics-list-card", "/logistics", auth=True, action=board_view("Lista", card=True), dialog=True),
     Scenario("logistics-tasks", "/logistics/tasks", auth=True),
+    Scenario("pending-actions", "/pending-actions", auth=True),
+    Scenario("pending-actions-past", "/pending-actions", auth=True, action=pending_past),
     Scenario("treasury", "/treasury", auth=True),
     Scenario("treasury-calotes", "/treasury/calotes", auth=True),
     Scenario("treasury-calotes-add", "/treasury/calotes", auth=True, action=click("Adicionar calote"), dialog=True),
