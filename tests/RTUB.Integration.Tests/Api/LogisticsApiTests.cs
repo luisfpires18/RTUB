@@ -917,22 +917,49 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         (await Errors(await mod.PostAsJsonAsync("/api/logistics/boards/compose", compose with { lists = Array.Empty<object>() }))).Keys.Should().Equal("lists");
     }
 
-    /// <summary>067: a private board's pre-067 folder is hidden in Documentação from members off its access list.</summary>
+    /// <summary>
+    /// 067: a private board's pre-067 folder is hidden in Documentação from members off its access list - fail closed
+    /// (security review): also for a board whose folder is unresolved (null) or shared with another board (""), by its
+    /// sanitised name, whatever the case. Managers still see every folder.
+    /// </summary>
     [Fact]
     public async Task Documentation_HidesAPrivateBoardsOldFolder()
     {
+        var year = FiscalYearHelper.GetCurrentFiscalYearString();
         var (boardId, _, _) = await SeedBoardAsync();
         var folder = $"{Tag()}legacy";
         await UpdateBoardAsync(boardId, b => b.LegacyFolder = folder);
-        _factory.Storage.Put($"docs/Test/{FiscalYearHelper.GetCurrentFiscalYearString()}/Logistics/{folder}/plano.pdf", 10);
+        _factory.Storage.Put($"docs/Test/{year}/Logistics/{folder}/plano.pdf", 10);
+        var shared = new List<string>();
+        foreach (var unresolved in new string?[] { null, "" })
+        {
+            var (other, _, _) = await SeedBoardAsync();
+            var name = $"{Tag()}Partilhado";
+            shared.Add(name);
+            _factory.Storage.Put($"docs/Test/{year}/Logistics/{name}/plano.pdf", 10);
+            await UpdateBoardAsync(other, b =>
+            {
+                b.Name = name.ToUpperInvariant();
+                b.LegacyFolder = unresolved;
+                b.Visibility = BoardVisibility.Private;
+            });
+        }
+
         var (member, _) = await SignInAsync();
-        (await member.GetStringAsync("/api/documentation")).Should().Contain(folder, "members-visible board: as before");
+        var (mod, _) = await SignInAsync("Mod");
+        var managed = await mod.GetStringAsync("/api/documentation");
+        managed.Should().Contain(folder).And.Contain(shared[0]).And.Contain(shared[1], "the folders are listed: managers see every one");
+        var listed = await member.GetStringAsync("/api/documentation");
+        listed.Should().Contain(folder, "members-visible board: as before");
+        foreach (var name in shared)
+        {
+            listed.Should().NotContain(name, "a private board hides its folder even when LegacyFolder is null or shared");
+            (await member.GetAsync($"/api/documentation/file?folder=Logistics/{name}&name=plano.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
 
         await UpdateBoardAsync(boardId, b => b.Visibility = BoardVisibility.Private);
         (await member.GetStringAsync("/api/documentation")).Should().NotContain(folder);
         (await member.GetAsync($"/api/documentation/file?folder=Logistics/{folder}&name=plano.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        var (mod, _) = await SignInAsync("Mod");
-        (await mod.GetStringAsync("/api/documentation")).Should().Contain(folder);
     }
 
     /// <summary>
