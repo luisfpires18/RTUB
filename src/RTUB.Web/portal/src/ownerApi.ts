@@ -151,6 +151,8 @@ export const ENTITY_LABELS: Record<string, string> = {
   LogisticsCard: 'Cartão',
   LogisticsCardAssignment: 'Atribuição de cartão',
   LogisticsCardReminder: 'Lembrete',
+  LogisticsCardComment: 'Comentário de cartão',
+  LogisticsCardAttachment: 'Anexo de cartão',
   Post: 'Publicação',
   Comment: 'Comentário',
   Discussion: 'Discussão',

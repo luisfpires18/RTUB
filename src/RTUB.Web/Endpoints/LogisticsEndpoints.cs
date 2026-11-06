@@ -57,8 +57,13 @@ public static class LogisticsEndpoints
             ToResult(await s.MoveCardAsync(id, input, http.User), _ => Results.NoContent())).WithMetadata(small);
         writes.MapPut("/cards/{id:int}/labels", async (int id, LogisticsLabelsInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.SetLabelsAsync(id, input, http.User))).WithMetadata(small);
-        writes.MapPut("/cards/{id:int}/checklist", async (int id, LogisticsChecklistInput input, HttpContext http, ILogisticsKanbanService s) =>
-            ToResult(await s.SetChecklistAsync(id, input, http.User))).WithMetadata(small);
+        // Task 066: the checklist one item at a time (add, rename, remove, tick); the text identifies the item.
+        writes.MapPost("/cards/{id:int}/checklist", async (int id, LogisticsChecklistItemInput input, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.AddChecklistItemAsync(id, input, http.User))).WithMetadata(small);
+        writes.MapPut("/cards/{id:int}/checklist/{index:int}", async (int id, int index, LogisticsChecklistItemInput input, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.RenameChecklistItemAsync(id, index, input, http.User))).WithMetadata(small);
+        writes.MapDelete("/cards/{id:int}/checklist/{index:int}", async (int id, int index, string? task, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.RemoveChecklistItemAsync(id, index, task, http.User)));
         writes.MapPost("/cards/{id:int}/checklist/{index:int}", async (int id, int index, LogisticsChecklistToggleInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.ToggleChecklistItemAsync(id, index, input, http.User))).WithMetadata(small);
         writes.MapPut("/cards/{id:int}/links", async (int id, LogisticsLinksInput input, HttpContext http, ILogisticsKanbanService s) =>
@@ -69,6 +74,32 @@ public static class LogisticsEndpoints
             ToResult(await s.RemoveAssignmentAsync(id, userId, http.User)));
         writes.MapDelete("/cards/{id:int}", async (int id, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.DeleteCardAsync(id, http.User), _ => Results.NoContent()));
+
+        // Task 066: the card's discussion and its own files and links
+        writes.MapPost("/cards/{id:int}/comments", async (int id, LogisticsCommentInput input, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.AddCommentAsync(id, input, http.User))).WithMetadata(small);
+        writes.MapPut("/comments/{id:int}", async (int id, LogisticsCommentInput input, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.EditCommentAsync(id, input, http.User))).WithMetadata(small);
+        writes.MapDelete("/comments/{id:int}", async (int id, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.DeleteCommentAsync(id, http.User)));
+        writes.MapPost("/cards/{id:int}/attachments", async (int id, IFormCollection form, HttpContext http, ILogisticsKanbanService s) =>
+            {
+                if (form.Files.GetFile("file") is not { } file)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["file"] = new[] { "Escolha um ficheiro." } },
+                        title: "Há campos por corrigir.");
+                }
+
+                await using var content = file.OpenReadStream();
+                return ToResult(await s.UploadAttachmentAsync(id, new LogisticsFileUpload(content, file.FileName, file.ContentType ?? string.Empty, file.Length), http.User));
+            })
+            .WithMetadata(new RequestSizeLimitAttribute(LogisticsKanbanService.MaxFileBytes + 64 * 1024));
+        writes.MapPost("/cards/{id:int}/links", async (int id, LogisticsLinkInput input, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.AddLinkAsync(id, input, http.User))).WithMetadata(small);
+        api.MapGet("/cards/{id:int}/attachments/{attachmentId:int}", async (int id, int attachmentId, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.GetAttachmentAsync(id, attachmentId, http.User)));
+        writes.MapDelete("/cards/{id:int}/attachments/{attachmentId:int}", async (int id, int attachmentId, HttpContext http, ILogisticsKanbanService s) =>
+            ToResult(await s.DeleteAttachmentAsync(id, attachmentId, http.User)));
 
         // Reminders (any member who sees the board) and board files
         writes.MapPost("/boards/{id:int}/reminders", async (int id, LogisticsReminderInput input, HttpContext http, ILogisticsKanbanService s) =>
@@ -99,6 +130,7 @@ public static class LogisticsEndpoints
         EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
             statusCode: StatusCodes.Status401Unauthorized),
         EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
+        EventResultStatus.Conflict => Results.Problem(title: "O cartão mudou entretanto.", statusCode: StatusCodes.Status409Conflict, type: "logistics:conflict"),
         _ => Results.Problem(title: "Não encontrado.", statusCode: StatusCodes.Status404NotFound),
     };
 }

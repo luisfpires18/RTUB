@@ -3,7 +3,7 @@
 `/logistics` (boards) and `/logistics/{id}` (one board, a Kanban) are React (`portal/src/Logistics.tsx`,
 `LogisticsBoard.tsx`, `LogisticsDialogs.tsx`) over `/api/logistics` (`Endpoints/LogisticsEndpoints.cs` →
 `ILogisticsKanbanService`), replacing the Blazor `Pages/Management/Logistics.razor` and `LogisticsBoard.razor` (and
-`wwwroot/js/kanban.js`). DEV only; **no schema change** (065 none either).
+`wwwroot/js/kanban.js`). DEV only. No schema change until task 066, which adds one migration (`AddLogisticsCardWorkspace`, below).
 
 | Route | Owner after 023 |
 | --- | --- |
@@ -43,17 +43,49 @@ Gestão shows Logística only), and the React `/profile` actions.
 Everything moved: boards (CRUD, finish / reopen, search), lists (CRUD, now reorderable), cards (CRUD, status, labels,
 dates, checklist, links, members, "Atribuir a"), drag and drop, label filter, board files, reminders. No bridge.
 
-## Rules now (`LogisticsAuthorization`, server-side; task 065, issue #246)
+## Rules now (server-side; tasks 065 / 066, issues #246 / #247)
 
-| Who | Boards, cards, card details (read), file download | Reminders | Tick checklist, change status | Any other change, files upload / delete |
-| --- | --- | --- | --- | --- |
-| Visitor | `401` (page: 302) | `401` | `401` | `401` |
-| Member, Leitão included | yes | yes | only on cards assigned to them | `403` |
-| Mod, Admin, Owner | yes | yes | yes | yes (Owner inherits Admin) |
+Every member (Leitões included) reads every board and card, its discussion and history, and downloads its files. The
+card's **owner** and **collaborators** work on it (fields, checklist, status, comments, attachments); Mod, Admin and
+Owner manage everything, including owner / collaborators and comment moderation. Full action matrix:
+[permissions/logistics](permissions/logistics.md). Private boards / board access are phase 3 (#248): not implemented.
 
-"Assigned" = the card's "Atribuir a" member or one of its "Membros atribuídos", read from the database on every write
-(removing the assignment refuses the next write). Private boards / board access are phase 3 (#248): not implemented,
-every board is visible to every member. Detail: [permissions/logistics](permissions/logistics.md).
+## The card workspace (task 066, issue #247)
+
+**Schema** (`AddLogisticsCardWorkspace`, additive only, N-1 safe: 2.3.x ignores the new columns and tables):
+`LogisticsCards.Priority` (Low 0 / Normal 1 / High 2 / Urgent 3; existing rows **Normal** via the column default, the
+model has no default so an explicit Low is kept) and `LogisticsCards.Version` (0); new tables `LogisticsCardComments`
+(body ≤ 2000, `MentionsJson` = mentioned ids, `EditedAt`), `LogisticsCardActivities` (history, not a `BaseEntity`: not
+copied into the global audit log) and `LogisticsCardAttachments` (file or link). All cascade with the card; a deleted
+account sets their author to null. Rollback: plain app rollback (the old app ignores them); the pre-migration snapshot
+is taken as usual.
+
+**People, no data rewritten**: the old "Atribuir a" member is the **owner** ("Responsável", optional; a card without one
+shows "Sem responsável"); the `LogisticsCardAssignments` rows are the **collaborators** (an owner who also has a row
+counts once, as owner). Only managers change either.
+
+**Saving**: the card's own fields (title, details, priority, start, deadline, and the owner for managers) are a draft
+saved together by "Guardar alterações" in the dialog footer; the footer says "Alterações por guardar" / "A guardar…" /
+"Guardado.", closing with unsaved changes asks first. The save carries `version`: a stale one answers `409`
+(`logistics:conflict`) and the page shows "Outra pessoa guardou este cartão…" with "Ver a versão atual (descartar as
+minhas)" or "Guardar as minhas por cima" - nothing is lost silently. Status, checklist items, comments and attachments
+save at once, item by item (a checklist edit names the item's text, so two people never overwrite each other; a
+changed item answers "A lista de tarefas mudou entretanto"), and show only what the server answered.
+
+**Discussion**: plain text (never HTML; line breaks kept), @mentions picked from members (names shown under the
+comment; notifications in phase 4). **History**: one pt-PT line per meaningful change (status, title, details,
+priority, start, deadline, owner, collaborators, checklist items, attachments, list moves, moderation), with actor and
+Portugal time, newest first, the last 100, folded by default. **Attachments**: files (board file types, ≤ 10 MB, upload
+progress, error + retry) under a stable key `logistics/{env}/cards/{id}/{random}/{name}` - outside the fiscal-year
+Documentação tree, so they never move or show there - and http(s) links; both distinct from the board's files (shown
+folded as "Ficheiros do quadro") and from links to other cards ("Cartões ligados"). An attachment is deleted by a manager or
+by its uploader while still owner or collaborator (re-checked in the locked change; PR #266 review). Deleting an
+attachment, a card, a list or a board deletes the stored files (best-effort, after the rows).
+
+**Layout**: desktop, a two-column dialog (work on the left; status, priority, dates, people, labels, linked cards and
+history on the right); phones, full screen, the quick facts first. The deadline shows as "Faltam N dias" / "Falta 1 dia"
+/ "Termina hoje" / "Atrasado N dias" by the Portuguese calendar day; priority only when not normal (Urgente in red).
+Board cards show priority, deadline, owner or "Sem responsável", and comment / attachment counts.
 
 Validation as the entities: names / titles required and capped, description ≤ 2000, event and members must exist,
 links only to other cards of the same board, at most 20 labels (≤ 50, `#rrggbb`), 100 checklist items (≤ 200).
@@ -89,10 +121,12 @@ send `userId: null` to non-managers).
 | `GET /events?q=`, `GET /members?q=` | event picker (managers), member picker (≤ 20, not expelled) |
 | `GET /boards/{id}` | lists, card faces, label texts, board files, `canManage` |
 | `POST /boards/{id}/lists`, `PUT /lists/{id}`, `POST /lists/{id}/move`, `DELETE /lists/{id}` | lists |
-| `POST /lists/{id}/cards`, `GET`/`PUT`/`DELETE /cards/{id}` | cards (`GET` details: every member, with `canManage`, `canWork`) |
-| `POST /cards/{id}/status`, `POST /cards/{id}/move` | `{ status }` (managers, assignees), `{ listId, position }` |
-| `POST /cards/{id}/checklist/{index}` | `{ task, done }`: one item's tick (managers, assignees); `task` must match, else `400 items` |
-| `PUT /cards/{id}/labels`, `/checklist`, `/links` | replace the set (managers) |
+| `POST /lists/{id}/cards`, `GET`/`PUT`/`DELETE /cards/{id}` | cards (`GET`: the workspace, every member, with `canManage`, `canWork`, `version`, comments, attachments, activity; `PUT`: workers, `{ …, priority, version }`, stale → `409`) |
+| `POST /cards/{id}/status`, `POST /cards/{id}/move` | `{ status }` (workers), `{ listId, position }` (managers) |
+| `POST /cards/{id}/checklist`, `PUT`/`DELETE /cards/{id}/checklist/{index}`, `POST /cards/{id}/checklist/{index}` | add `{ task }`, rename `{ expected, task }`, remove `?task=`, tick `{ task, done }` (workers; the text must match) |
+| `POST /cards/{id}/comments`, `PUT`/`DELETE /comments/{id}` | `{ body, mentionUserIds }`; edit (author), delete (author or manager) |
+| `POST /cards/{id}/attachments` (multipart `file`), `POST /cards/{id}/links`, `GET`/`DELETE /cards/{id}/attachments/{attachmentId}` | the card's files and links; `GET` → `{ url }` |
+| `PUT /cards/{id}/labels`, `/links` | replace the set (managers) |
 | `POST /cards/{id}/assignments`, `DELETE /cards/{id}/assignments/{userId}` | members |
 | `POST /boards/{id}/reminders` | `{ cardId, frequency, nextReminderDate, userIds }` |
 | `GET`/`POST`/`DELETE /boards/{id}/files` | `?name=` → `{ url }`; multipart `file`; `?name=` |
@@ -118,7 +152,9 @@ Reminders are stored exactly as before and still never sent (unchanged). No emai
 - Reminder delivery (a job reading `LogisticsCardReminders`) never existed; decide whether to build or drop it.
 - (042, resolved) `ILogistics{Board,List,Card}Service` and their repositories (no page caller) are removed; the board
   folder sanitizer moved unchanged into `LogisticsKanbanService`. `BoardCard` and `kanban.css` went with 037.
-- (065, resolved) Members open card details read-only; assignees tick the checklist and change the status. Comments,
-  ownership and history are phase 2 (#247); private boards and board access phase 3 (#248); reminder delivery and
-  "As minhas tarefas" phase 4 (#249).
+- (065, resolved) Members open card details read-only; assignees tick the checklist and change the status.
+- (066, resolved) Ownership, discussion, history and card attachments. Next: private boards, workflow columns, stable
+  board files and templates (#248); reminder delivery, mention / assignment notifications and "As minhas tarefas"
+  (#249); list / calendar views (#250).
+- The whole-checklist replace (`PUT /cards/{id}/checklist`) is gone (066): it could overwrite another person's ticks.
 - Board files follow the current fiscal year: after 1 September a board shows an empty folder (unchanged).

@@ -168,6 +168,34 @@ public class MigrationChainTests : IDisposable
             .Should().Contain("IX_MessageReaction_MessageId_UserId");
     }
 
+    /// <summary>
+    /// Task 066: a card written before AddLogisticsCardWorkspace comes out Normal (1), version 0, with its owner,
+    /// assignment rows, checklist and dates untouched; the new tables cascade with the card and set the author null when
+    /// an account is deleted. The migration only adds.
+    /// </summary>
+    [Fact]
+    public async Task Task066_LegacyCards_BecomeNormalPriority_AndKeepTheirData()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync("20261101211252_AddUserPasskeys");
+        // ExecuteSqlRaw formats its text: the JSON's braces are doubled.
+        await context.Database.ExecuteSqlRawAsync("""
+            INSERT INTO LogisticsBoards (Name, Description, IsCompleted, CreatedAt) VALUES ('FITAB', '', 0, '2026-01-01');
+            INSERT INTO LogisticsLists (Name, BoardId, Position, CreatedAt) VALUES ('Logística', 1, 0, '2026-01-01');
+            INSERT INTO LogisticsCards (Title, Description, ListId, Position, Status, ChecklistJson, DueDate, CreatedAt)
+                VALUES ('Antigo', 'Texto', 1, 0, 1, '[{{"Id":0,"Task":"Lavar","Done":true}}]', '2026-10-09', '2026-01-01');
+            """);
+        await context.Database.MigrateAsync();
+
+        (await ScalarsAsync(context, "SELECT Priority || ':' || Version || ':' || Status || ':' || Title || ':' || ChecklistJson || ':' || DueDate FROM LogisticsCards;"))
+            .Should().Equal("1:0:1:Antigo:[{\"Id\":0,\"Task\":\"Lavar\",\"Done\":true}]:2026-10-09");
+        foreach (var (table, author) in new[] { ("LogisticsCardComments", "AuthorId"), ("LogisticsCardActivities", "ActorId"), ("LogisticsCardAttachments", "UploadedById") })
+        {
+            (await ScalarsAsync(context, $"SELECT \"table\" || ':' || \"from\" || ':' || on_delete FROM pragma_foreign_key_list('{table}') ORDER BY \"from\";"))
+                .Should().BeEquivalentTo($"AspNetUsers:{author}:SET NULL", "LogisticsCards:CardId:CASCADE");
+        }
+    }
+
     /// <summary>Task 043: the retired Games / Bets / MyTuno, Labels and Slideshows tables (docs/db-cleanup-inventory.md).</summary>
     private static readonly string[] RetiredTables =
     [

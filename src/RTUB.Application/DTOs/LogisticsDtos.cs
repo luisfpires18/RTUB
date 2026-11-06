@@ -22,8 +22,9 @@ public sealed record LogisticsPersonDto(string DisplayName, string? FullName, st
 
 /// <summary>
 /// A card face. <c>Checklist</c> = (done, total); <c>Links</c> = linked cards; <c>AssignedTo</c> = the single
-/// "Atribuir a" member of the creation form; <c>Assignments</c> = how many "Membros atribuídos"; <c>Mine</c> = the
-/// caller is that member or one of them (task 065: "Atribuído a si").
+/// "Atribuir a" member - the card's owner ("Responsável", task 066); <c>Assignments</c> = how many collaborators
+/// ("Membros atribuídos"); <c>Mine</c> = the caller is the owner or a collaborator (task 065: "Atribuído a si");
+/// <c>Priority</c> Low / Normal / High / Urgent; <c>Comments</c>, <c>Attachments</c> = counts (task 066).
 /// </summary>
 public sealed record LogisticsCardDto(
     int Id,
@@ -39,7 +40,10 @@ public sealed record LogisticsCardDto(
     int ChecklistDone,
     int ChecklistTotal,
     int Links,
-    bool Mine);
+    bool Mine,
+    string Priority,
+    int Comments,
+    int Attachments);
 
 public sealed record LogisticsListDto(int Id, string Name, IReadOnlyList<LogisticsCardDto> Cards);
 
@@ -66,9 +70,11 @@ public sealed record LogisticsLinkDto(int? CardId, string Name);
 public sealed record LogisticsAssigneeDto(string? UserId, string DisplayName, string? FullName, string? AvatarUrl);
 
 /// <summary>
-/// The card details: everything the old "Detalhes do Cartão" modal edited. Every member who sees the board reads them
-/// (task 065); <c>CanManage</c> = may edit everything, <c>CanWork</c> = may tick the checklist and change the status
-/// (a manager, or a member the card is assigned to).
+/// The card details (task 066: the card workspace). Every member who sees the board reads them. <c>AssignedTo</c> is the
+/// owner, <c>Assignments</c> the collaborators (the owner left out). <c>CanManage</c> = may change everything (owner,
+/// collaborators, labels, card links, delete); <c>CanWork</c> = owner, collaborator or manager: edits the card's own
+/// fields and checklist, changes the status, comments and attaches. <c>Version</c> goes back with a field edit; a stale
+/// one is refused (409).
 /// </summary>
 public sealed record LogisticsCardDetailDto(
     LogisticsCardDto Card,
@@ -78,7 +84,22 @@ public sealed record LogisticsCardDetailDto(
     IReadOnlyList<LogisticsLinkDto> Links,
     IReadOnlyList<LogisticsAssigneeDto> Assignments,
     bool CanManage,
-    bool CanWork);
+    bool CanWork,
+    int Version,
+    IReadOnlyList<LogisticsCommentDto> Comments,
+    IReadOnlyList<LogisticsAttachmentDto> Attachments,
+    IReadOnlyList<LogisticsActivityDto> Activity);
+
+/// <summary>A comment. <c>Mentions</c> = the mentioned members' names; <c>CanEdit</c> (author) and <c>CanDelete</c> (author or manager) for the caller.</summary>
+public sealed record LogisticsCommentDto(int Id, LogisticsPersonDto? Author, string Body, IReadOnlyList<string> Mentions, DateTime CreatedAt,
+    DateTime? EditedAt, bool CanEdit, bool CanDelete);
+
+/// <summary>A card attachment: <c>Kind</c> "File" or "Link"; <c>Host</c> = a link's site; <c>CanDelete</c> (uploader or manager) for the caller.</summary>
+public sealed record LogisticsAttachmentDto(int Id, string Kind, string Name, string? Host, long SizeBytes, string? Extension,
+    LogisticsPersonDto? AddedBy, DateTime CreatedAt, bool CanDelete);
+
+/// <summary>One history line: who, when, and what (already in pt-PT).</summary>
+public sealed record LogisticsActivityDto(LogisticsPersonDto? Actor, string Action, string Detail, DateTime At);
 
 public sealed record LogisticsListInput(string? Name);
 
@@ -87,7 +108,12 @@ public sealed record LogisticsPositionInput(int Position);
 public sealed record LogisticsCardCreateInput(string? Title, string? Description, string? AssignedToUserId);
 
 /// <summary>The core fields; dates are calendar days (yyyy-MM-dd), as the old date inputs.</summary>
-public sealed record LogisticsCardInput(string? Title, string? Description, string? StartDate, string? DueDate, string? AssignedToUserId);
+/// <summary>
+/// The card's own fields. <c>Version</c> = the version the edit started from (stale: 409). <c>AssignedToUserId</c> is the
+/// owner: only a manager changes or clears it (anyone else sends none - kept - or the current one; another id is 403). <c>Priority</c> null keeps it.
+/// </summary>
+public sealed record LogisticsCardInput(string? Title, string? Description, string? StartDate, string? DueDate, string? AssignedToUserId,
+    string? Priority = null, int? Version = null);
 
 public sealed record LogisticsStatusInput(string? Status);
 
@@ -95,10 +121,21 @@ public sealed record LogisticsMoveInput(int ListId, int Position);
 
 public sealed record LogisticsLabelsInput(IReadOnlyList<LogisticsLabelDto>? Labels);
 
-public sealed record LogisticsChecklistInput(IReadOnlyList<LogisticsChecklistItemDto>? Items);
 
 /// <summary>Tick or untick one checklist item (task 065). <c>Task</c> must still be the item's text, so a list a manager just changed is not ticked blind.</summary>
 public sealed record LogisticsChecklistToggleInput(string? Task, bool Done);
+
+/// <summary>
+/// Task 066: one checklist item at a time, so two people editing the list never overwrite each other. Add: <c>Task</c>.
+/// Rename: <c>Expected</c> (the item's current text) and <c>Task</c>. Remove: <c>Expected</c>.
+/// </summary>
+public sealed record LogisticsChecklistItemInput(string? Task, string? Expected = null);
+
+/// <summary>A comment (task 066): plain text ≤ 2000 and the ids of the members it mentions (≤ 20, board viewers). An edit keeps the mentions.</summary>
+public sealed record LogisticsCommentInput(string? Body, IReadOnlyList<string>? MentionUserIds = null);
+
+/// <summary>An external link attached to a card (task 066): http(s) only; <c>Name</c> defaults to the site.</summary>
+public sealed record LogisticsLinkInput(string? Url, string? Name);
 
 public sealed record LogisticsLinksInput(IReadOnlyList<int>? CardIds);
 

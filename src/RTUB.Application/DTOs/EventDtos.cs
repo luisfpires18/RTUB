@@ -182,6 +182,8 @@ public enum EventResultStatus
     Invalid,
     Forbidden,
     InUse,
+    /// <summary>The caller edited an older copy (Logística card version, task 066): 409.</summary>
+    Conflict,
 }
 
 /// <summary>Outcome of an Events call that a member makes; the endpoint maps it to HTTP.</summary>

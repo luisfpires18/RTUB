@@ -15,7 +15,7 @@ namespace RTUB.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -1481,6 +1481,9 @@ namespace RTUB.Migrations
                     b.Property<int>("Position")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("Priority")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("ReminderDate")
                         .HasColumnType("TEXT");
 
@@ -1501,6 +1504,9 @@ namespace RTUB.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedToUserId");
@@ -1510,6 +1516,41 @@ namespace RTUB.Migrations
                     b.HasIndex("ListId");
 
                     b.ToTable("LogisticsCards");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardActivity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ActorId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CardId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Detail")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("CardId", "CreatedAt");
+
+                    b.ToTable("LogisticsCardActivities");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardAssignment", b =>
@@ -1544,6 +1585,108 @@ namespace RTUB.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("LogisticsCardAssignments");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardAttachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CardId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("StoragePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UploadedById")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CardId");
+
+                    b.HasIndex("UploadedById");
+
+                    b.ToTable("LogisticsCardAttachments");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AuthorId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CardId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MentionsJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("CardId", "CreatedAt");
+
+                    b.ToTable("LogisticsCardComments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardReminder", b =>
@@ -4174,6 +4317,24 @@ namespace RTUB.Migrations
                     b.Navigation("List");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardActivity", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RTUB.Core.Entities.LogisticsCard", "Card")
+                        .WithMany("Activities")
+                        .HasForeignKey("CardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("Card");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardAssignment", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.LogisticsCard", "Card")
@@ -4191,6 +4352,42 @@ namespace RTUB.Migrations
                     b.Navigation("Card");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardAttachment", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.LogisticsCard", "Card")
+                        .WithMany("CardAttachments")
+                        .HasForeignKey("CardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Card");
+
+                    b.Navigation("UploadedBy");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardComment", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RTUB.Core.Entities.LogisticsCard", "Card")
+                        .WithMany("Comments")
+                        .HasForeignKey("CardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Card");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardReminder", b =>
@@ -4832,7 +5029,13 @@ namespace RTUB.Migrations
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCard", b =>
                 {
+                    b.Navigation("Activities");
+
                     b.Navigation("Assignments");
+
+                    b.Navigation("CardAttachments");
+
+                    b.Navigation("Comments");
 
                     b.Navigation("Reminders");
                 });

@@ -6,7 +6,13 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-02 (2.3.0 released to PROD; `dev` on 2.3.1)_
 
 ## Phase
-**Task 065 = Logística 1/5** (issue #246 under roadmap #245; `feat/065/logistics-leitao-access`, PR open, not merged).
+**Task 066 = Logística 2/5** (issue #247; `feat/066/logistics-card-workspace`, PR open, not merged). The card is a
+workspace: owner ("Atribuir a") + collaborators (assignment rows, no data rewritten), priority, version-checked field
+edits (409 + conflict choices), checklist edits one item at a time, comments with @mentions (author edits; author or
+manager deletes), a pt-PT history, and the card's own files (stable key `logistics/{env}/cards/…`) and links. One
+additive migration `AddLogisticsCardWorkspace` (N-1 safe). Next: #248. Mention notifications are phase 4 (#249).
+
+**Task 065 = Logística 1/5** (issue #246 under roadmap #245; PR #265 merged into `dev`, not released).
 Leitões read Logística (boards, card details, files); a Leitão's Gestão shows Logística only (new menu flag `logistics`;
 `logisticsAndTreasury` became `treasury`, values unchanged). Card assignees tick checklist items
 (`POST /api/logistics/cards/{id}/checklist/{index}`) and change status; everything else stays Mod/Admin/Owner. Read-only

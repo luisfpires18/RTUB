@@ -18,7 +18,7 @@ export function Dialog({
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'md' | 'lg';
+  size?: 'md' | 'lg' | 'xl';
   /** An extra class on the <dialog> (e.g. a full-screen view on phones). */
   className?: string;
 }) {

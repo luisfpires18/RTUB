@@ -9078,6 +9078,312 @@ video.tile__media {
   border-radius: 50%;
 }
 
+/* ---- Task 066: the card workspace ---- */
+.modal--xl {
+  width: min(1120px, calc(100% - 24px));
+}
+
+.lx-ws {
+  display: grid;
+  gap: 16px;
+}
+
+.lx-ws__strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lx-ws__strip .lx-status {
+  padding: 5px 9px;
+  font-size: 0.75rem;
+}
+
+.lx-ws__grid {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+
+.lx-ws__main,
+.lx-ws__side {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* Phones and tablets: the quick facts (status, priority, dates, people) come first. */
+.lx-ws__side {
+  order: -1;
+}
+
+@media (min-width: 900px) {
+  .lx-ws__grid {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 32px;
+  }
+
+  .lx-ws__side {
+    order: 0;
+    padding-left: 24px;
+    border-left: 1px solid var(--line);
+  }
+}
+
+/* A select sizes to its longest option (card titles): in the side column it must take the column's width instead. */
+.lx-ws__side > *,
+.lx-ws__side .control,
+.lx-ws__side .lx-inline > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.lx-ws__side select {
+  width: 100%;
+}
+
+.lx-ws__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .lx-ws__facts {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lx-ws__facts input[type="date"] {
+  width: 100%;
+  min-height: 44px;
+}
+
+.lx-ws__state {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.lx-ws__delete {
+  margin-right: auto;
+}
+
+.lx-ws__conflict {
+  display: grid;
+  gap: 10px;
+}
+
+.lx-ws__conflict p {
+  margin: 0;
+}
+
+/* Priority: only what departs from normal is shown, so an urgent card is never lost among ordinary ones. */
+.lx-prio {
+  padding: 3px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--muted);
+  font: 700 0.6875rem/1 var(--font-body);
+}
+
+.lx-prio--high {
+  border-color: color-mix(in srgb, var(--st-wip) 70%, transparent);
+  color: var(--st-wip);
+}
+
+.lx-prio--urgent {
+  border-color: var(--st-todo);
+  background: var(--st-todo);
+  color: #fff;
+}
+
+.lx-due {
+  font: 600 0.75rem/1 var(--font-body);
+  color: var(--muted);
+}
+
+.lx-due--soon {
+  color: var(--st-wip);
+}
+
+.lx-due--late {
+  color: var(--st-todo);
+}
+
+.lx-chip--warn {
+  border-color: color-mix(in srgb, var(--st-wip) 60%, transparent);
+  color: var(--st-wip);
+  font-size: 0.75rem;
+}
+
+.lx-card__unowned {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.lx-files__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lx-files__open:hover {
+  text-decoration: underline;
+}
+
+.lx-upload-row .lx-progress__bar {
+  margin-top: 6px;
+}
+
+.lx-upload-row--error small {
+  color: #ff8f8f;
+}
+
+.lx-link-form {
+  display: grid;
+  gap: 8px;
+}
+
+.lx-link-form input,
+.lx-checklist__edit,
+.lx-talk textarea,
+.lx-talk__compose textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 0.9375rem/1.4 var(--font-body);
+}
+
+.lx-checklist__edit {
+  flex: 1;
+}
+
+.lx-ws__board-files summary,
+.lx-history summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.lx-ws__board-files[open] summary,
+.lx-history[open] summary {
+  margin-bottom: 8px;
+}
+
+/* Discussion */
+.lx-talk {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lx-talk__item {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.lx-talk__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.lx-talk__body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lx-talk__who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.lx-talk__who time {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.lx-talk__text {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 4px 12px 12px 12px;
+  background: var(--bg-card);
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lx-talk__mentions {
+  margin: 0;
+  color: var(--purple-ink);
+  font-size: 0.8125rem;
+}
+
+.lx-talk__actions {
+  display: flex;
+  gap: 14px;
+  margin: 0;
+}
+
+.lx-talk__compose,
+.lx-talk__edit {
+  display: grid;
+  gap: 8px;
+}
+
+.lx-talk__send .note {
+  margin-left: auto;
+}
+
+.lx-history__list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0 0 0 14px;
+  border-left: 2px solid var(--line);
+  list-style: none;
+}
+
+.lx-history__list li {
+  display: grid;
+  gap: 2px;
+}
+
+.lx-history__what {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.lx-history__meta {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
 /* Phones: the card is a full-screen view (close in reach, safe areas kept), not a floating box. */
 @media (max-width: 599px) {
   .modal.lx-card-modal {
@@ -9095,6 +9401,15 @@ video.tile__media {
   .lx-card-modal .modal__body {
     flex: 1;
     align-content: start;
+  }
+
+  .lx-card-modal .modal__foot {
+    gap: 8px;
+  }
+
+  .lx-card-modal .lx-ws__state {
+    flex-basis: 100%;
+    order: -1;
   }
 }
 
