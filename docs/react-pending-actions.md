@@ -194,8 +194,9 @@ on `/events`. A signed-in active member opening `/login` goes to `/pending-actio
 ## Migration and rollback
 
 **074** `AddEventFinanceClassification`: additive — `Events.HasNoFinances` (INTEGER, default 0) and `Activities.EventId`
-(nullable, indexed, **no foreign key**: SQLite would rebuild `Activities`; precedent `LogisticsBoards.OwnerUserId`, 067; an
-event's deletion leaves a dangling id that joins nothing). N-1 safe: 2.3.x ignores both columns and inserts events with
+(nullable, indexed, **no foreign key**: SQLite would rebuild `Activities`; precedent `LogisticsBoards.OwnerUserId`, 067).
+Deleting an event (`EventService.DeleteEventAsync`, the only deletion path) clears its activities' `EventId` in the same
+save, so no activity points at a deleted event. N-1 safe: 2.3.x ignores both columns and inserts events with
 the default. Rolling back loses only the links' use; no data to restore.
 
 **071**:

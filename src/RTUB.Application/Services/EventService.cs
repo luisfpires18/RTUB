@@ -175,7 +175,20 @@ public class EventService : IEventService
             await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
         }
 
-        await _eventRepository.DeleteAsync(eventEntity);
+        // Task 074: activities that accounted for this event lose the link (Activity.EventId has no foreign key), in the
+        // same save as the deletion, so no activity is left pointing at a deleted event. Both changes are audited.
+        await using var db = _contextFactory.CreateDbContext();
+        foreach (var activity in await db.Activities.Where(a => a.EventId == id).ToListAsync(cancellationToken))
+        {
+            activity.EventId = null;
+        }
+
+        if (await db.Events.FindAsync([id], cancellationToken) is { } tracked)
+        {
+            db.Events.Remove(tracked);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task CancelEventAsync(int id, string reason, CancellationToken cancellationToken = default)
