@@ -114,9 +114,9 @@ move), under the card's rules - no new endpoint, so the API limits are the Kanba
   responsável", or a name), priority, deadline ("Atrasados", "Próximos 7 dias", "Sem prazo"), label; "Limpar filtros".
   On phones the extra filters fold behind "Filtros" so the sticky bar stays short.
 - **Address**: `view`, `q`, `status`, `label`, `who` (`mine`, `none`, or `person` for a named member), `prio`, `due`,
-  `sort` (list), `month` (calendar) and `card`. A name is never put in the address (a link may be shared): it stays in
-  the tab's sessionStorage, per board, and comes back only with `who=person` - a shared link or a fresh visit gets no
-  person filter. Refresh restores the board as it was; switching the view
+  `sort` (list), `month` (calendar) and `card`. A name is never put in the address (a link may be shared): it is kept in
+  that history entry's own state (`history.state`, which the browser keeps per entry across refresh, Back and Forward),
+  so each entry restores the person chosen in it; a shared link or a fresh visit has no state, so no person filter. Refresh restores the board as it was; switching the view
   adds a history entry (Back returns to the previous view), every other change replaces it.
 - **Summary** (every view): Feitos (done / all active cards), Atrasados (deadline before today in Portugal, not done),
   Bloqueados (state Bloqueado), Sem responsável (not done, no responsible member), each with its definition on hover.

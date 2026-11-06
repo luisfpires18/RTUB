@@ -20,25 +20,15 @@ const VIEWS: { key: View; label: string; icon: 'kanban' | 'listOl' | 'calendar' 
 /**
  * Task 070: what the address keeps - the view, the filters, the list order, the calendar month and the open card - so
  * refresh and back restore the board as it was. Only the member's own choices, and nothing from a card but its id. A
- * person filter is "mine" / "none", or "person" for a named member: the name itself never goes in the address (a link
- * may be shared) - it stays in this tab's sessionStorage, per board, and is restored only when the address says
- * "person" (a shared link without it, or a fresh visit, gets no person filter).
+ * person filter is "mine" / "none", or "person" for a named member: the name never goes in the address (a link may be
+ * shared). It is kept in that history entry's own state (history.state, per entry, kept by the browser across refresh
+ * and Back), so each entry restores the person chosen in it; a shared link or a fresh visit has no state, so no person
+ * filter.
  */
-const personKey = () => `rtub:logistics:who:${location.pathname}`;
-const storedPerson = () => {
-  try {
-    return sessionStorage.getItem(personKey()) ?? '';
-  } catch {
-    return '';
-  }
-};
-const storePerson = (name: string) => {
-  try {
-    if (name) sessionStorage.setItem(personKey(), name);
-    else sessionStorage.removeItem(personKey());
-  } catch {
-    // Storage blocked (private mode): the filter lasts until the page is left, as before.
-  }
+const PERSON = 'rtubLogisticsPerson';
+const entryPerson = (): string => {
+  const state = history.state as Record<string, unknown> | null;
+  return typeof state?.[PERSON] === 'string' ? (state[PERSON] as string) : '';
 };
 type UrlState = { view: View; q: string; status: Status | ''; label: string; who: string; prio: Priority | ''; due: Due; sort: Sort; month: string; card?: number };
 const readUrl = (): UrlState => {
@@ -50,7 +40,7 @@ const readUrl = (): UrlState => {
     q: p.get('q') ?? '',
     status: pick<Status | ''>('status', ['', ...STATUSES], ''),
     label: p.get('label') ?? '',
-    who: ((w) => (w === 'person' ? storedPerson() : w))(pick('who', ['', 'mine', 'none', 'person'], '')),
+    who: ((w) => (w === 'person' ? entryPerson() : w))(pick('who', ['', 'mine', 'none', 'person'], '')),
     prio: pick<Priority | ''>('prio', ['', ...PRIORITIES], ''),
     due: pick<Due>('due', ['', 'late', 'soon', 'none'], ''),
     sort: pick<Sort>('sort', ['due', 'priority', 'status', 'title'], 'due'),
@@ -64,8 +54,8 @@ const writeUrl = (u: UrlState, push: boolean) => {
   if (u.q) p.set('q', u.q);
   if (u.status) p.set('status', u.status);
   if (u.label) p.set('label', u.label);
-  if (u.who) p.set('who', u.who === 'mine' || u.who === 'none' ? u.who : 'person');
-  storePerson(u.who === 'mine' || u.who === 'none' ? '' : u.who);
+  const person = u.who && u.who !== 'mine' && u.who !== 'none' ? u.who : '';
+  if (u.who) p.set('who', person ? 'person' : u.who);
   if (u.prio) p.set('prio', u.prio);
   if (u.due) p.set('due', u.due);
   if (u.view === 'list' && u.sort !== 'due') p.set('sort', u.sort);
@@ -73,9 +63,11 @@ const writeUrl = (u: UrlState, push: boolean) => {
   if (u.card) p.set('card', String(u.card));
   const query = p.toString();
   const next = `${location.pathname}${query ? `?${query}` : ''}`;
-  if (next === `${location.pathname}${location.search}`) return;
-  if (push) history.pushState(history.state, '', next);
-  else history.replaceState(history.state, '', next);
+  if (next === `${location.pathname}${location.search}` && entryPerson() === person) return;
+  // The entry's state carries the person's name (or none); everything else in it is kept.
+  const state = { ...((history.state as Record<string, unknown> | null) ?? {}), [PERSON]: person || undefined };
+  if (push) history.pushState(state, '', next);
+  else history.replaceState(state, '', next);
 };
 const HEX = /^#[0-9a-f]{6}$/i;
 
