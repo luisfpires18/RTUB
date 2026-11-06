@@ -100,7 +100,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
             a.WillAttend ? Blank(a.OtherInstruments) : null,
             Blank(a.Notes),
             a.UserId == me,
-            approver && approvable && a.WillAttend && !a.Attended,
+            approver && approvable && a.WillAttend && !a.Attended && (manage || a.UserId != me),
             (manage && approvable) || a.UserId == me);
 
         var going = rows.Where(a => a.WillAttend).ToList();

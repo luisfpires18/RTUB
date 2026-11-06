@@ -131,7 +131,7 @@ public sealed class MeetingsPendingActionSource : IPendingActionSource
 /// <summary>
 /// Presenças por aprovar (current Ensaiador / Magister): every pending presença ("vou" / "fui" not yet confirmed) at a
 /// rehearsal of the current fiscal year that can be approved (past, or today from 21:00) and is not cancelled (older
-/// ones stay approvable on their rehearsal page). Aprovar / Recusar are the rehearsal
+/// ones stay approvable on their rehearsal page). Never the member's own presença: nobody approves themselves. Aprovar / Recusar are the rehearsal
 /// page's own (<see cref="IRehearsalAdminService"/>): approval confirms (member push, activity status, XP); refusal records
 /// "não foi" and notifies the member, so the claim never comes back as unanswered.
 /// </summary>
@@ -202,7 +202,7 @@ public sealed class RehearsalApprovalsPendingActionSource : IPendingActionSource
             .Where(r => r.StartTime >= Evening).Select(r => r.Id).ToList();
         var from = member.FiscalYearStartDate;
         return db.RehearsalAttendances.AsNoTracking()
-            .Where(a => a.WillAttend && !a.Attended && a.User != null && !a.Rehearsal!.IsCanceled && a.Rehearsal.Date >= from
+            .Where(a => a.WillAttend && !a.Attended && a.User != null && a.UserId != member.UserId && !a.Rehearsal!.IsCanceled && a.Rehearsal.Date >= from
                         && (a.Rehearsal.Date < today || tonight.Contains(a.RehearsalId)));
     }
 

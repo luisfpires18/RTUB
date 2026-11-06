@@ -467,6 +467,27 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
             .GetProperty("canApprove").GetBoolean().Should().BeFalse("not approvable yet");
     }
 
+    /// <summary>Security review of PR #276: a position holder never approves or refuses their own presença.</summary>
+    [Fact]
+    public async Task TheEnsaiador_CannotDecideTheirOwnPresenca()
+    {
+        var (ensaiador, self) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.Ensaiador]);
+        await WithTokenAsync(ensaiador);
+        var past = await AddRehearsalAsync(-40 - Interlocked.Increment(ref _approvalDay));
+        var own = await AddPendingAsync(past, self.Id);
+
+        (await AllKeysAsync(ensaiador, "approvals", null)).Should().NotContain(own.ToString());
+        (await Command(ensaiador, "rehearsal.approval", own.ToString(), "approve")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await ensaiador.PostAsync($"/api/rehearsals/{past}/attendances/{own}/approve", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await ensaiador.PostAsync($"/api/rehearsals/{past}/attendances/{own}/refuse", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var detail = await ensaiador.GetFromJsonAsync<JsonElement>($"/api/rehearsals/{past}");
+        detail.GetProperty("attendance").GetProperty("going").EnumerateArray().Single(a => a.GetProperty("id").GetInt32() == own)
+            .GetProperty("canApprove").GetBoolean().Should().BeFalse();
+        using var scope = _factory.Services.CreateScope();
+        (await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().RehearsalAttendances.AsNoTracking().SingleAsync(x => x.Id == own))
+            .Attended.Should().BeFalse("still pending for someone else to decide");
+    }
+
     [Fact]
     public async Task TheEnsaiador_PreparesUpcomingRepertoires_AndNaoENecessarioIsTheirOwn()
     {

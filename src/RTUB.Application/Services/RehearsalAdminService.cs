@@ -325,8 +325,8 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
     }
 
     /// <summary>
-    /// A presença an approver may decide: the caller is Admin / Owner or the current Ensaiador / Magister; the rehearsal can
-    /// be approved (past, or today from 21:00) and the presença is still pending ("vou" / "fui", not confirmed).
+    /// A presença an approver may decide: the caller is Admin / Owner or the current Ensaiador / Magister (never their own
+    /// presença unless Admin / Owner); the rehearsal can be approved (past, or today from 21:00) and the presença is still pending ("vou" / "fui", not confirmed).
     /// </summary>
     private async Task<(RehearsalAttendance? Attendance, EventResult<bool>? Refusal)> PendingClaimAsync(int id, int attendanceId, ClaimsPrincipal user)
     {
@@ -348,6 +348,12 @@ public sealed class RehearsalAdminService : IRehearsalAdminService
         if (a is null)
         {
             return (null, EventResult<bool>.Fail(EventResultStatus.NotFound));
+        }
+
+        // A position holder never decides their own presença (no self-granted XP / activity); Admin / Owner as before.
+        if (a.UserId == me && !RehearsalsAuthorization.CanManage(user))
+        {
+            return (null, EventResult<bool>.Fail(EventResultStatus.Forbidden));
         }
 
         return !RehearsalAgendaService.IsApprovable(r!, Today) || !a.WillAttend || a.Attended

@@ -14,7 +14,8 @@ namespace RTUB.Application.Helpers;
 /// - Admin or Owner (<see cref="CanManage"/>, was IsInRole("Admin") only): everything above plus cancel / reactivate,
 ///   delete, push notice, approve or remove anyone's presença and add a member once the rehearsal can be approved.
 /// - Task 075 (<see cref="CanApprove"/>): the current Ensaiador or Magister also approve and refuse pending presenças
-///   once a rehearsal can be approved, even without Admin - only that, no other rehearsal management.
+///   once a rehearsal can be approved, even without Admin - only that, no other rehearsal management, and never their own
+///   presença (only Admin / Owner may, as before).
 /// </summary>
 public static class RehearsalsAuthorization
 {
