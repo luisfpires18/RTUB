@@ -22,7 +22,7 @@ import {
 } from './logisticsApi';
 import { DEFAULT_AVATAR } from './membersApi';
 
-const STATUSES: Status[] = ['Todo', 'InProgress', 'Done'];
+const STATUSES: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
 const PRIORITIES: Priority[] = ['Low', 'Normal', 'High', 'Urgent'];
 const MAX_FILE = 10 * 1024 * 1024;
 const FILE_TYPES = [
@@ -134,7 +134,7 @@ export function CardWorkspace({
           <Loading label="A carregar o cartão…" />
         ) : (
           <div className="notice" role="status">
-            <p>{detail === 'missing' ? 'Este cartão já não existe.' : 'Não foi possível abrir o cartão.'}</p>
+            <p>{detail === 'missing' ? 'Este cartão já não existe ou deixou de ter acesso a ele.' : 'Não foi possível abrir o cartão.'}</p>
             {detail === null && (
               <button type="button" className="btn btn--ghost btn--sm" onClick={() => (setDetail(undefined), load())}>
                 Tentar novamente
@@ -160,6 +160,12 @@ export function CardWorkspace({
       setDetail(r.data);
       onChanged();
       return true;
+    }
+    // 404: the card is gone or no longer visible (access removed, task 067) - drop what is shown, do not keep stale data.
+    if (r.kind === 'notfound') {
+      setDetail('missing');
+      onChanged();
+      return false;
     }
     setErrors({ [key]: problem(r, what) });
     return false;
@@ -206,6 +212,20 @@ export function CardWorkspace({
 
   const set = (patch: Partial<Draft>) => (setSaved(false), setDraft({ ...draft, ...patch }));
   const listName = board.lists.find((l) => l.id === detail.listId)?.name;
+  // Task 067: a status is a column; only states the board has columns for are offered.
+  const states = STATUSES.filter((s) => board.lists.some((l) => l.state === s));
+  const archive = async (archived: boolean) => {
+    if (await apply(logisticsApi.archiveCard(card.id, archived), 'form', archived ? 'arquivar o cartão' : 'restaurar o cartão')) setDraft(draftOf(detail));
+  };
+  const duplicate = async () => {
+    setErrors({});
+    const o = await logisticsApi.duplicateCard(card.id);
+    if (o.kind !== 'ok') return setErrors({ form: problem(o, 'duplicar o cartão') });
+    onChanged();
+    setDetail(o.data);
+    setDraft(draftOf(o.data));
+    setSaved(false);
+  };
 
   return (
     <Dialog
@@ -215,11 +235,23 @@ export function CardWorkspace({
       onClose={close}
       footer={
         <>
-          {detail.canManage && (
-            <button type="button" className="btn btn--danger lx-ws__delete" onClick={() => onDelete(card)}>
-              <Icon name="trash" />
-              Eliminar
-            </button>
+          {detail.canManage && !board.archivedAt && (
+            <span className="lx-ws__manage">
+              <button type="button" className="btn btn--danger lx-ws__delete" onClick={() => onDelete(card)}>
+                <Icon name="trash" />
+                Eliminar
+              </button>
+              <button type="button" className="btn btn--ghost" onClick={() => archive(!detail.archivedAt)}>
+                <Icon name={detail.archivedAt ? 'restore' : 'folder'} />
+                {detail.archivedAt ? 'Restaurar' : 'Arquivar'}
+              </button>
+              {!detail.archivedAt && (
+                <button type="button" className="btn btn--ghost" onClick={duplicate} title="Título, detalhes, etiquetas, prioridade, datas e checklist por fazer. Sem pessoas, comentários, histórico nem anexos.">
+                  <Icon name="kanban" />
+                  Duplicar
+                </button>
+              )}
+            </span>
           )}
           <span className="lx-ws__state" role="status">
             {saving ? 'A guardar…' : dirty ? 'Alterações por guardar' : saved ? 'Guardado.' : ''}
@@ -245,10 +277,16 @@ export function CardWorkspace({
           {card.mine && <span className="lx-chip lx-chip--mine">Atribuído a si</span>}
           {!detail.assignedTo && <span className="lx-chip lx-chip--warn">Sem responsável</span>}
         </div>
-        {!detail.canWork && (
+        {detail.readOnly && (
+          <p className="lx-archived-banner" role="status">
+            <Icon name="folder" />
+            {detail.archivedAt ? `Cartão arquivado a ${day(detail.archivedAt)}` : 'O quadro está arquivado'}: só leitura.
+          </p>
+        )}
+        {!detail.canWork && !detail.readOnly && (
           <p className="lx-view__role">
             <Icon name="eye" />
-            Só leitura: este cartão é trabalhado pelo responsável, pelos colaboradores e por Mod, Admin ou Owner.
+            Só leitura: este cartão é trabalhado pelo responsável e pelos colaboradores.
           </p>
         )}
         {conflict && (
@@ -292,19 +330,20 @@ export function CardWorkspace({
 
             <Checklist detail={detail} busy={busy} errors={errors} apply={apply} />
             <Attachments detail={detail} board={board} apply={apply} errors={errors} onUploaded={(d) => (setDetail(d), onChanged())} />
-            <Discussion detail={detail} apply={apply} busy={busy} errors={errors} />
+            <Discussion boardId={board.id} detail={detail} apply={apply} busy={busy} errors={errors} />
           </div>
 
           <aside className="lx-ws__side" aria-label="Estado e pessoas">
             <Section id={`${fid}-status`} title="Estado">
               {detail.canWork ? (
-                <div className="lx-segment" role="group" aria-labelledby={`${fid}-status`}>
-                  {STATUSES.map((s) => (
+                <div className="lx-segment lx-segment--four" role="group" aria-labelledby={`${fid}-status`}>
+                  {states.map((s) => (
                     <button
                       key={s}
                       type="button"
                       className={`lx-segment--${s.toLowerCase()}`}
                       aria-pressed={card.status === s}
+                      title={`Move o cartão para a coluna ${board.lists.find((l) => l.state === s)?.name ?? ''}`}
                       disabled={!!busy}
                       onClick={() => card.status !== s && apply(logisticsApi.setStatus(card.id, s), 'status', 'mudar o estado')}
                     >
@@ -365,7 +404,7 @@ export function CardWorkspace({
               </div>
             </div>
 
-            <People detail={detail} draft={draft} set={set} apply={apply} errors={errors} />
+            <People boardId={board.id} detail={detail} draft={draft} set={set} apply={apply} errors={errors} />
             <Labels detail={detail} apply={apply} errors={errors} />
             <LinkedCards detail={detail} board={board} apply={apply} errors={errors} />
             {card.eventName && <p className="note">Atuação: {card.eventName}</p>}
@@ -699,7 +738,7 @@ function Attachments({
 }
 
 /** The discussion: plain text (never HTML), @mentions picked from members, Ctrl/⌘+Enter sends. */
-function Discussion({ detail, apply, busy, errors }: { detail: CardDetail; apply: Apply; busy?: string; errors: Record<string, string> }) {
+function Discussion({ boardId, detail, apply, busy, errors }: { boardId: number; detail: CardDetail; apply: Apply; busy?: string; errors: Record<string, string> }) {
   const [body, setBody] = useState('');
   const [mentions, setMentions] = useState<{ id: string; name: string }[]>([]);
   const [picking, setPicking] = useState(false);
@@ -811,6 +850,7 @@ function Discussion({ detail, apply, busy, errors }: { detail: CardDetail; apply
           {picking && (
             <MemberPicker
               label="Mencionar membro"
+              boardId={boardId}
               exclude={mentions.map((m) => m.id)}
               onPick={(m) => (setMentions([...mentions, { id: m.id, name: m.displayName }]), setPicking(false))}
             />
@@ -834,12 +874,14 @@ function Discussion({ detail, apply, busy, errors }: { detail: CardDetail; apply
 
 /** Owner (manager picks; saved with the card's fields) and collaborators (managers add / remove, saved at once). */
 function People({
+  boardId,
   detail,
   draft,
   set,
   apply,
   errors,
 }: {
+  boardId: number;
   detail: CardDetail;
   draft: Draft;
   set: (patch: Partial<Draft>) => void;
@@ -864,7 +906,7 @@ function People({
           draft.owner ? (
             <PersonChip name={draft.owner.name} avatar={draft.owner.avatar} onRemove={() => set({ owner: null })} removeLabel="Remover o responsável" />
           ) : (
-            <MemberPicker label="Responsável" onPick={(m) => set({ owner: { id: m.id, name: m.displayName, avatar: m.avatarUrl } })} />
+            <MemberPicker label="Responsável" boardId={boardId} onPick={(m) => set({ owner: { id: m.id, name: m.displayName, avatar: m.avatarUrl } })} />
           )
         ) : detail.assignedTo ? (
           person(detail.assignedTo.displayName, detail.assignedTo.avatarUrl)
@@ -897,6 +939,7 @@ function People({
         {detail.canManage && (
           <MemberPicker
             label="Adicionar colaborador"
+            boardId={boardId}
             exclude={[...detail.assignments.flatMap((a) => (a.userId ? [a.userId] : [])), ...(draft.owner ? [draft.owner.id] : [])]}
             onPick={(m) => apply(logisticsApi.assign(cardId, m.id), 'userId', 'adicionar o colaborador')}
           />

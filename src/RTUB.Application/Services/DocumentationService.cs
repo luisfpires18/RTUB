@@ -7,6 +7,7 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
@@ -270,8 +271,28 @@ public sealed class DocumentationService : IDocumentationService
             }
         }
 
+        // Logística 3/5 (067): a private board's pre-067 file folder is only for those who see the board (its access list,
+        // Mod, Admin, Owner), here as on the board - listing, download and delete all go through the visible folders.
+        // Fail closed: a folder is hidden if any private board the caller may not see could own it - by its resolved
+        // LegacyFolder or by its current sanitised name (unresolved boards, and boards that share a folder name with
+        // another board, whose LegacyFolder is ""), compared case-insensitively.
+        var hidden = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!LogisticsAuthorization.CanManage(user))
+        {
+            var boards = await db.LogisticsBoards.AsNoTracking()
+                .Where(b => b.Visibility == BoardVisibility.Private && !b.Members.Any(m => m.UserId == id))
+                .Select(b => new { b.Name, b.LegacyFolder }).ToListAsync();
+            foreach (var b in boards)
+            {
+                foreach (var folder in new[] { b.LegacyFolder, LogisticsKanbanService.SanitizePathComponent(b.Name) }.Where(f => !string.IsNullOrEmpty(f)))
+                {
+                    hidden.Add($"{Logistics}/{folder}");
+                }
+            }
+        }
+
         return (null, new Viewer(isOwner, DocumentationAuthorization.CanManage(user), years, selected,
-            folders.Where(f => DocumentationAuthorization.CanSeeFolder(member, isOwner, f.Name)).ToList(), tree));
+            folders.Where(f => DocumentationAuthorization.CanSeeFolder(member, isOwner, f.Name) && !hidden.Contains(f.Name)).ToList(), tree));
     }
 
     private static string? Folder(Viewer viewer, string? folder) =>

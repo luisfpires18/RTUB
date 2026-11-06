@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using RTUB.Application.Data;
 using RTUB.Application.Helpers;
+using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using Xunit;
@@ -102,6 +103,8 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
     public async Task Assignees_TickTheChecklistAndChangeTheStatus_OnlyWhileAssigned()
     {
         var (boardId, listId, cardId) = await SeedBoardAsync(cards: 2);
+        await AddListAsync(boardId, "Em curso", 1, CardStatus.InProgress);
+        await AddListAsync(boardId, "Feito", 2, CardStatus.Done);
         var other = (await CardIdsAsync(listId)).Single(id => id != cardId);
         var (_, _, foreign) = await SeedBoardAsync();
         var checklist = "[{\"Id\":0,\"Task\":\"Lavar\",\"Done\":false},{\"Id\":0,\"Task\":\"Contar\",\"Done\":false}]";
@@ -145,8 +148,8 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
             ("PUT", $"/api/logistics/cards/{cardId}/links", new { cardIds = Array.Empty<int>() }),
             ("POST", $"/api/logistics/cards/{cardId}/assignments", new { userId = me.Id }),
             ("DELETE", $"/api/logistics/cards/{cardId}/assignments/{me.Id}", null),
-            ("POST", $"/api/logistics/cards/{cardId}/move", new { listId, position = 0 }),
             ("DELETE", $"/api/logistics/cards/{cardId}", null),
+            ("POST", $"/api/logistics/lists/{listId}/move", new { position = 0 }),
             // Not this member's cards: the other card of the board and a card on another board.
             ("POST", $"/api/logistics/cards/{other}/checklist/0", new { task = "Lavar", done = true }),
             ("POST", $"/api/logistics/cards/{other}/status", new { status = "Done" }),
@@ -318,7 +321,11 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         updated.GetProperty("assignedTo").ValueKind.Should().Be(JsonValueKind.Null, "an empty assignee clears it, as the old form");
 
         (await Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/status", new { status = "7" }))).Keys.Should().Equal("status");
+        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/status", new { status = "InProgress" }))).Keys.Should().Equal(new[] { "status" },
+            "067: no WIP column on this board, so the status cannot disagree with a column");
+        var wip = (await Json(await mod.PostAsJsonAsync($"/api/logistics/boards/{boardId}/lists", new { name = "Em curso", state = "InProgress" }))).GetProperty("id").GetInt32();
         (await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/status", new { status = "InProgress" }))).GetProperty("card").GetProperty("status").GetString().Should().Be("InProgress");
+        (await CardAsync(id))!.ListId.Should().Be(wip, "a status change is a move to the column with that state");
 
         (await Errors(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}/labels", new { labels = new[] { new { text = "x", color = "red" } } }))).Keys.Should().Equal("labels");
         await Json(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}/labels", new { labels = new[] { new { text = " Urgente ", color = "#FF0000" } } }));
@@ -347,8 +354,12 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         (await Json(await mod.DeleteAsync($"/api/logistics/cards/{id}/assignments/{other.Id}"))).GetProperty("assignments").GetArrayLength().Should().Be(0);
 
         (await mod.DeleteAsync($"/api/logistics/cards/{sibling}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await mod.DeleteAsync($"/api/logistics/lists/{b}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await CardAsync(id)).Should().BeNull("a list takes its cards with it, as before");
+        (await Errors(await mod.DeleteAsync($"/api/logistics/lists/{wip}"))).Keys.Should().Equal(new[] { "moveTo" }, "067: a column never takes its cards with it");
+        (await mod.DeleteAsync($"/api/logistics/lists/{wip}?moveTo={b}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var moved = (await CardAsync(id))!;
+        (moved.ListId, moved.Status).Should().Be((b, CardStatus.Todo), "the cards go to the chosen column and take its state");
+        (await mod.DeleteAsync($"/api/logistics/cards/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await mod.DeleteAsync($"/api/logistics/lists/{b}")).StatusCode.Should().Be(HttpStatusCode.NoContent, "an empty column goes at once");
     }
 
     [Fact]
@@ -398,38 +409,50 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
             "stored only: nothing in the app sends logistics reminders");
     }
 
+    /// <summary>
+    /// 067: new board files go to the board's own folder (by id, not in Documentação), so a rename or the 1 September
+    /// rollover changes nothing; the pre-067 folder stays listed for every year. Files are addressed by id; ?name= still
+    /// works. Members download, managers upload and delete.
+    /// </summary>
     [Fact]
-    public async Task BoardFiles_LiveInTheBoardFolder_MembersDownload_ManagersUploadAndDelete()
+    public async Task BoardFiles_LiveInTheBoardsOwnFolder_AndOldYearsStayListed()
     {
         var (boardId, _, _) = await SeedBoardAsync(name: "Arraial: 2026/../x");
-        var folder = $"docs/Test/{FiscalYearHelper.GetCurrentFiscalYearString()}/Logistics/Arraial 2026x/";
+        var legacy = "Arraial 2026x";
+        await UpdateBoardAsync(boardId, b => b.LegacyFolder = legacy);
+        var current = FiscalYearHelper.GetCurrentFiscalYearString();
+        var previous = $"{int.Parse(current[..4]) - 1}-{int.Parse(current[..4])}";
+        _factory.Storage.Put($"docs/Test/{previous}/Logistics/{legacy}/antigo.pdf", 10);
+        _factory.Storage.Put($"docs/Test/{current}/Logistics/{legacy}/recente.pdf", 20);
         var (mod, _) = await SignInAsync("Mod");
         await WithTokenAsync(mod);
 
         (await Errors(await mod.PostAsync($"/api/logistics/boards/{boardId}/files", File("x.exe", "application/x-msdownload")))).Keys.Should().Equal("file");
-        (await Json(await mod.PostAsync($"/api/logistics/boards/{boardId}/files", File(@"..\..\orcamento.pdf")))).GetProperty("name").GetString().Should().Be("orcamento.pdf");
-        _factory.Storage.Objects.Keys.Should().Contain(folder + "orcamento.pdf", "the old folder, the board name sanitised as before");
+        var uploaded = await Json(await mod.PostAsync($"/api/logistics/boards/{boardId}/files", File(@"..\..\orcamento.pdf")));
+        uploaded.GetProperty("name").GetString().Should().Be("orcamento.pdf");
+        var key = $"logistics/Test/boards/{boardId}/files/orcamento.pdf";
+        _factory.Storage.Objects.Keys.Should().Contain(key, "the board's own folder, by id, outside Documentação");
 
+        // A rename (and any later fiscal year) keeps every file on the board.
+        await UpdateBoardAsync(boardId, b => b.Name = "Outro nome");
         var (member, _) = await SignInAsync();
-        var board = await Json(member, $"/api/logistics/boards/{boardId}");
-        board.GetProperty("files").EnumerateArray().Single().GetProperty("name").GetString().Should().Be("orcamento.pdf");
+        var files = (await Json(member, $"/api/logistics/boards/{boardId}/file-list")).EnumerateArray()
+            .Select(f => (f.GetProperty("id").GetString(), f.GetProperty("name").GetString(), f.GetProperty("year").GetString())).ToList();
+        files.Should().Equal(("f:orcamento.pdf", "orcamento.pdf", null), ($"l:{current}/recente.pdf", "recente.pdf", current),
+            ($"l:{previous}/antigo.pdf", "antigo.pdf", previous));
+        (await member.GetStringAsync($"/api/logistics/boards/{boardId}?files=false")).Should().NotContain("docs/").And.NotContain("logistics/Test");
 
-        // The board page does not wait for the storage: ?files=false asks the storage nothing, file-list is the one listing.
-        var listings = _factory.Storage.ListCalls;
-        var lean = await Json(member, $"/api/logistics/boards/{boardId}?files=false");
-        lean.GetProperty("files").GetArrayLength().Should().Be(0);
-        lean.GetProperty("lists").GetArrayLength().Should().Be(board.GetProperty("lists").GetArrayLength());
-        _factory.Storage.ListCalls.Should().Be(listings, "the lean board makes no storage listing");
-        (await Json(member, $"/api/logistics/boards/{boardId}/file-list")).EnumerateArray().Single().GetProperty("name").GetString().Should().Be("orcamento.pdf");
-        _factory.Storage.ListCalls.Should().Be(listings + 1, "the file list is one listing");
-        (await member.GetAsync("/api/logistics/boards/999999/file-list")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await Json(member, $"/api/logistics/boards/{boardId}/files?name=orcamento.pdf")).GetProperty("url").GetString()
-            .Should().Be($"https://r2.test/{folder}orcamento.pdf?download=True");
-        (await member.GetAsync($"/api/logistics/boards/{boardId}/files?name=..%2Forcamento.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await Json(member, $"/api/logistics/boards/{boardId}/files?file={Uri.EscapeDataString($"l:{previous}/antigo.pdf")}")).GetProperty("url").GetString()
+            .Should().Be($"https://r2.test/docs/Test/{previous}/Logistics/{legacy}/antigo.pdf?download=True");
+        (await Json(member, $"/api/logistics/boards/{boardId}/files?name=orcamento.pdf")).GetProperty("url").GetString().Should().Contain(key, "?name= still works");
+        (await member.GetAsync($"/api/logistics/boards/{boardId}/files?file=l:{previous}/..%2F..%2Fsegredo.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await member.GetAsync($"/api/logistics/boards/{boardId}/files?file=f:nada.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await WithTokenAsync(member);
+        (await member.DeleteAsync($"/api/logistics/boards/{boardId}/files?file=f:orcamento.pdf")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
-        (await mod.DeleteAsync($"/api/logistics/boards/{boardId}/files?name=nope.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await mod.DeleteAsync($"/api/logistics/boards/{boardId}/files?name=orcamento.pdf")).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        _factory.Storage.Objects.Keys.Should().NotContain(folder + "orcamento.pdf");
+        (await mod.DeleteAsync($"/api/logistics/boards/{boardId}/files?file=f:orcamento.pdf")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        _factory.Storage.Objects.Keys.Should().NotContain(key);
+        _factory.Storage.Objects.Keys.Should().Contain($"docs/Test/{previous}/Logistics/{legacy}/antigo.pdf", "nothing is moved or deleted incidentally");
     }
 
     [Fact]
@@ -672,6 +695,335 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         return await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().LogisticsCardAssignments.CountAsync(a => a.CardId == cardId);
     }
 
+    // ---------- task 067: board access, workflow columns, archive, copies and templates ----------
+
+    /// <summary>
+    /// 067: a private board and everything under it is invisible (404) to members not on its access list - by id, link,
+    /// list, counts, member picker, files, card, comments and attachments - while an invited Leitão and the managers see
+    /// it. Assignment never grants access; access removal applies to the next request; the responsible member gets no
+    /// manager rights.
+    /// </summary>
+    [Fact]
+    public async Task PrivateBoards_AreInvisibleToTheUninvited_AndAssignmentNeverGrantsAccess()
+    {
+        var (boardId, listId, cardId) = await SeedBoardAsync();
+        var (outsider, outsiderUser) = await SignInAsync();
+        var (leitao, leitaoUser) = await SignInAsync();
+        await UpdateUserAsync(leitaoUser.Id, u => u.Categories = new List<MemberCategory> { MemberCategory.Leitao });
+        var (mod, modUser) = await SignInAsync("Mod");
+        foreach (var c in new[] { outsider, leitao, mod })
+        {
+            await WithTokenAsync(c);
+        }
+
+        await Json(await mod.PostAsync($"/api/logistics/boards/{boardId}/files", File("plano.pdf")));
+        var link = (await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/links", new { url = "https://exemplo.pt/x" })))
+            .GetProperty("attachments").EnumerateArray().Single().GetProperty("id").GetInt32();
+        var name = (await Json(mod, $"/api/logistics/boards/{boardId}")).GetProperty("name").GetString()!;
+
+        // The responsible member must see the board: on a private board that means the access list.
+        var form = new { name, description = "", eventId = (int?)null, ownerUserId = outsiderUser.Id, visibility = "Private", memberIds = new[] { leitaoUser.Id } };
+        (await Errors(await mod.PutAsJsonAsync($"/api/logistics/boards/{boardId}", form))).Keys.Should().Equal("ownerUserId");
+        var saved = await Json(await mod.PutAsJsonAsync($"/api/logistics/boards/{boardId}", form with { ownerUserId = leitaoUser.Id }));
+        (saved.GetProperty("visibility").GetString(), saved.GetProperty("owner").GetProperty("userId").GetString()).Should().Be(("Private", leitaoUser.Id));
+
+        // The outsider: nothing, by any path, and no 403 that would confirm the board exists.
+        (await Json(outsider, "/api/logistics")).GetProperty("active").EnumerateArray().Select(b => b.GetProperty("id").GetInt32()).Should().NotContain(boardId);
+        foreach (var path in new[]
+        {
+            $"/api/logistics/boards/{boardId}", $"/api/logistics/boards/{boardId}/file-list", $"/api/logistics/boards/{boardId}/files?file=f:plano.pdf",
+            $"/api/logistics/cards/{cardId}", $"/api/logistics/cards/{cardId}/attachments/{link}", $"/api/logistics/members?q=a&boardId={boardId}",
+        })
+        {
+            (await outsider.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.NotFound, path);
+        }
+
+        (await outsider.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = "x" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await outsider.PostAsJsonAsync($"/api/logistics/boards/{boardId}/reminders", Reminder(cardId, outsiderUser.Id))).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        // Assignment never grants access: an assigned outsider still sees nothing, and cannot be added as collaborator.
+        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/assignments", new { userId = outsiderUser.Id }))).Keys.Should().Equal("userId");
+        await UpdateCardAsync(cardId, c => c.AssignToUser(outsiderUser.Id));
+        (await outsider.GetAsync($"/api/logistics/cards/{cardId}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await outsider.PostAsJsonAsync($"/api/logistics/cards/{cardId}/status", new { status = "Todo" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await UpdateCardAsync(cardId, c => c.AssignToUser(null));
+
+        // Mentions and the member picker stay inside the board.
+        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = "olá", mentionUserIds = new[] { outsiderUser.Id } })))
+            .Keys.Should().Equal("mentionUserIds");
+        var picked = (await Json(mod, $"/api/logistics/members?q={Uri.EscapeDataString(outsiderUser.Nickname!)}&boardId={boardId}")).EnumerateArray()
+            .Select(m => m.GetProperty("id").GetString());
+        picked.Should().NotContain(outsiderUser.Id);
+
+        // The invited Leitão (also the responsible member) reads everything and manages nothing.
+        (await Json(leitao, "/api/logistics")).GetProperty("active").EnumerateArray().Select(b => b.GetProperty("id").GetInt32()).Should().Contain(boardId);
+        (await leitao.GetAsync($"/api/logistics/cards/{cardId}/attachments/{link}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await leitao.GetAsync($"/api/logistics/boards/{boardId}/files?file=f:plano.pdf")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await leitao.PostAsJsonAsync($"/api/logistics/boards/{boardId}/lists", new { name = "x" })).StatusCode.Should().Be(HttpStatusCode.Forbidden,
+            "being responsible grants no staff rights");
+        (await leitao.PutAsJsonAsync($"/api/logistics/boards/{boardId}", form with { ownerUserId = leitaoUser.Id })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await mod.GetAsync($"/api/logistics/cards/{cardId}")).StatusCode.Should().Be(HttpStatusCode.OK, "Mod, Admin and Owner see every board");
+
+        // Access removed: the next request sees nothing (the stale card included), even with the assignment kept.
+        await UpdateCardAsync(cardId, c => c.AssignToUser(leitaoUser.Id));
+        await Json(await mod.PutAsJsonAsync($"/api/logistics/boards/{boardId}", form with { ownerUserId = (string)null!, memberIds = Array.Empty<string>() }));
+        (await leitao.GetAsync($"/api/logistics/cards/{cardId}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist", new { task = "x" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        _ = listId;
+        _ = modUser;
+    }
+
+    /// <summary>067: the column decides the status - moves, status changes, remaps and deletions keep them in step; workers move only their own cards.</summary>
+    [Fact]
+    public async Task Columns_DecideTheStatus_AndWorkersMoveOnlyTheirOwnCards()
+    {
+        var (boardId, todo, mine) = await SeedBoardAsync(cards: 2);
+        var other = (await CardIdsAsync(todo)).Single(id => id != mine);
+        var wip = await AddListAsync(boardId, "Em curso", 1, CardStatus.InProgress);
+        var blocked = await AddListAsync(boardId, "Bloqueado", 2, CardStatus.Blocked);
+        var (worker, me) = await SignInAsync();
+        await UpdateCardAsync(mine, c => c.AssignToUser(me.Id));
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(worker);
+        await WithTokenAsync(mod);
+
+        (await worker.PostAsJsonAsync($"/api/logistics/cards/{mine}/move", new { listId = wip, position = 0 })).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        ((await CardAsync(mine))!.ListId, (await CardAsync(mine))!.Status).Should().Be((wip, CardStatus.InProgress));
+        (await worker.PostAsJsonAsync($"/api/logistics/cards/{other}/move", new { listId = wip, position = 0 })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await worker.PostAsJsonAsync($"/api/logistics/lists/{wip}/move", new { position = 0 })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await Json(await worker.PostAsJsonAsync($"/api/logistics/cards/{mine}/status", new { status = "Blocked" }))).GetProperty("card").GetProperty("status").GetString()
+            .Should().Be("Blocked");
+        (await CardAsync(mine))!.ListId.Should().Be(blocked);
+        (await Errors(await worker.PostAsJsonAsync($"/api/logistics/cards/{mine}/status", new { status = "Done" }))).Keys.Should().Equal("status");
+
+        // Remapping a column changes its cards' status in the same save; the board shows each column's state.
+        (await Json(await mod.PutAsJsonAsync($"/api/logistics/lists/{blocked}", new { name = "Feito", state = "Done" }))).GetProperty("state").GetString().Should().Be("Done");
+        (await CardAsync(mine))!.Status.Should().Be(CardStatus.Done);
+        (await Json(mod, $"/api/logistics/boards/{boardId}")).GetProperty("lists").EnumerateArray().Select(l => l.GetProperty("state").GetString())
+            .Should().Equal("Todo", "InProgress", "Done");
+        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/boards/{boardId}/lists", new { name = "x", state = "7" }))).Keys.Should().Equal("state");
+    }
+
+    /// <summary>067: archived boards and cards are read-only and out of the active views; managers restore them with their content.</summary>
+    [Fact]
+    public async Task Archive_IsReadOnly_AndRestoreKeepsTheContent()
+    {
+        var (boardId, listId, cardId) = await SeedBoardAsync(cards: 2);
+        var other = (await CardIdsAsync(listId)).Single(id => id != cardId);
+        var (worker, me) = await SignInAsync();
+        await UpdateCardAsync(cardId, c => c.AssignToUser(me.Id));
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(worker);
+        await WithTokenAsync(mod);
+
+        (await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/archive", new { archived = true })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var archived = await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/archive", new { archived = true }));
+        (archived.GetProperty("readOnly").GetBoolean(), archived.GetProperty("canWork").GetBoolean()).Should().Be((true, false));
+        var board = await Json(worker, $"/api/logistics/boards/{boardId}");
+        board.GetProperty("lists").EnumerateArray().Single().GetProperty("cards").EnumerateArray().Select(c => c.GetProperty("id").GetInt32()).Should().Equal(other);
+        board.GetProperty("archivedCards").EnumerateArray().Single().GetProperty("id").GetInt32().Should().Be(cardId);
+        (await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = "x" })).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/archive", new { archived = false }));
+        (await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = "voltou" })).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        (await Json(await mod.PostAsJsonAsync($"/api/logistics/boards/{boardId}/archive", new { archived = true }))).GetProperty("archivedAt").ValueKind
+            .Should().NotBe(JsonValueKind.Null);
+        var lists = await Json(mod, "/api/logistics");
+        lists.GetProperty("active").EnumerateArray().Select(b => b.GetProperty("id").GetInt32()).Should().NotContain(boardId);
+        lists.GetProperty("archived").EnumerateArray().Select(b => b.GetProperty("id").GetInt32()).Should().Contain(boardId);
+        foreach (var (method, path, body) in new (string, string, object?)[]
+        {
+            ("POST", $"/api/logistics/cards/{cardId}/comments", new { body = "x" }),
+            ("POST", $"/api/logistics/boards/{boardId}/lists", new { name = "x" }),
+            ("POST", $"/api/logistics/lists/{listId}/cards", new { title = "x" }),
+            ("POST", $"/api/logistics/boards/{boardId}/state", new { completed = true }),
+        })
+        {
+            var client = path.Contains("comments") ? worker : mod;
+            (await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), path) { Content = JsonContent.Create(body) })).StatusCode
+                .Should().Be(HttpStatusCode.Conflict, $"{method} {path}: archived is read-only");
+        }
+
+        await Json(await mod.PostAsJsonAsync($"/api/logistics/boards/{boardId}/archive", new { archived = false }));
+        (await Json(mod, $"/api/logistics/cards/{cardId}")).GetProperty("comments").GetArrayLength().Should().Be(1, "restored with its content");
+    }
+
+    /// <summary>
+    /// 067: copies start clean - new ids, unticked checklists, no owner, collaborators, comments, history, attachments or
+    /// reminders - and a board copy is never wider than its source. Templates are previewed and created only as sent.
+    /// </summary>
+    [Fact]
+    public async Task CopiesAndTemplates_StartClean_AndNeverWidenAccess()
+    {
+        var (boardId, listId, cardId) = await SeedBoardAsync();
+        var (_, helper) = await SignInAsync();
+        var (member, _) = await SignInAsync();
+        var (mod, _) = await SignInAsync("Mod");
+        await WithTokenAsync(mod);
+        await WithTokenAsync(member);
+        await UpdateCardAsync(cardId, c =>
+        {
+            c.AssignToUser(helper.Id);
+            c.SetChecklist("[{\"Id\":0,\"Task\":\"Lavar\",\"Done\":true}]");
+            c.Priority = CardPriority.High;
+        });
+        await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = "privado" }));
+        await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/links", new { url = "https://exemplo.pt" }));
+        var name = (await Json(mod, $"/api/logistics/boards/{boardId}")).GetProperty("name").GetString()!;
+        await Json(await mod.PutAsJsonAsync($"/api/logistics/boards/{boardId}",
+            new { name, description = "", eventId = (int?)null, ownerUserId = (string?)null, visibility = "Private", memberIds = new[] { helper.Id } }));
+
+        (await member.PostAsync($"/api/logistics/cards/{cardId}/duplicate", null)).StatusCode.Should().Be(HttpStatusCode.NotFound, "a private board stays hidden");
+        var copy = await Json(await mod.PostAsync($"/api/logistics/cards/{cardId}/duplicate", null));
+        copy.GetProperty("card").GetProperty("id").GetInt32().Should().NotBe(cardId);
+        copy.GetProperty("card").GetProperty("title").GetString().Should().EndWith("(cópia)");
+        copy.GetProperty("card").GetProperty("priority").GetString().Should().Be("High");
+        copy.GetProperty("checklist").EnumerateArray().Single().GetProperty("done").GetBoolean().Should().BeFalse();
+        (copy.GetProperty("assignedTo").ValueKind, copy.GetProperty("comments").GetArrayLength(), copy.GetProperty("attachments").GetArrayLength())
+            .Should().Be((JsonValueKind.Null, 0, 0));
+        (await CardIdsAsync(listId)).Should().HaveCount(2);
+
+        var duplicated = await mod.PostAsJsonAsync($"/api/logistics/boards/{boardId}/duplicate", new { name = "Cópia do quadro" });
+        duplicated.StatusCode.Should().Be(HttpStatusCode.Created);
+        var board = await duplicated.Content.ReadFromJsonAsync<JsonElement>();
+        board.GetProperty("visibility").GetString().Should().Be("Private", "a copy is never wider than its source");
+        var copied = await Json(mod, $"/api/logistics/boards/{board.GetProperty("id").GetInt32()}");
+        copied.GetProperty("members").EnumerateArray().Select(m => m.GetProperty("userId").GetString()).Should().Equal(helper.Id);
+        copied.GetProperty("lists").EnumerateArray().Single().GetProperty("cards").GetArrayLength().Should().Be(2);
+        copied.GetProperty("files").GetArrayLength().Should().Be(0);
+        (await member.GetAsync($"/api/logistics/boards/{board.GetProperty("id").GetInt32()}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        // Templates: managers only; the board is created as previewed and edited.
+        (await member.GetAsync("/api/logistics/templates")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var templates = await Json(mod, "/api/logistics/templates");
+        templates.EnumerateArray().Select(t => t.GetProperty("name").GetString()).Should().Equal("Organizar FITAB", "Preparar deslocação/atuação");
+        var compose = new
+        {
+            board = new { name = $"{Tag()} FITAB 2027", description = "", eventId = (int?)null, ownerUserId = (string?)null, visibility = "Members", memberIds = Array.Empty<string>() },
+            lists = new object[]
+            {
+                new { name = "Por fazer", state = "Todo", cards = new[] { new { title = "Credenciais", description = "", priority = "Urgent", dueDate = "2027-10-01", checklist = new[] { "Imprimir", "Plastificar" } } } },
+                new { name = "Feito", state = "Done", cards = Array.Empty<object>() },
+            },
+        };
+        (await member.PostAsJsonAsync("/api/logistics/boards/compose", compose)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var composed = await mod.PostAsJsonAsync("/api/logistics/boards/compose", compose);
+        composed.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await Json(mod, $"/api/logistics/boards/{(await composed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32()}");
+        var card = created.GetProperty("lists").EnumerateArray().First().GetProperty("cards").EnumerateArray().Single();
+        (card.GetProperty("title").GetString(), card.GetProperty("priority").GetString(), card.GetProperty("checklistTotal").GetInt32(), card.GetProperty("checklistDone").GetInt32())
+            .Should().Be(("Credenciais", "Urgent", 2, 0));
+        card.GetProperty("dueDate").GetString().Should().StartWith("2027-10-01");
+        (await Errors(await mod.PostAsJsonAsync("/api/logistics/boards/compose", compose with { lists = Array.Empty<object>() }))).Keys.Should().Equal("lists");
+    }
+
+    /// <summary>
+    /// 067: a private board's pre-067 folder is hidden in Documentação from members off its access list - fail closed
+    /// (security review): also for a board whose folder is unresolved (null) or shared with another board (""), by its
+    /// sanitised name, whatever the case. Managers still see every folder.
+    /// </summary>
+    [Fact]
+    public async Task Documentation_HidesAPrivateBoardsOldFolder()
+    {
+        var year = FiscalYearHelper.GetCurrentFiscalYearString();
+        var (boardId, _, _) = await SeedBoardAsync();
+        var folder = $"{Tag()}legacy";
+        await UpdateBoardAsync(boardId, b => b.LegacyFolder = folder);
+        _factory.Storage.Put($"docs/Test/{year}/Logistics/{folder}/plano.pdf", 10);
+        var shared = new List<string>();
+        foreach (var unresolved in new string?[] { null, "" })
+        {
+            var (other, _, _) = await SeedBoardAsync();
+            var name = $"{Tag()}Partilhado";
+            shared.Add(name);
+            _factory.Storage.Put($"docs/Test/{year}/Logistics/{name}/plano.pdf", 10);
+            await UpdateBoardAsync(other, b =>
+            {
+                b.Name = name.ToUpperInvariant();
+                b.LegacyFolder = unresolved;
+                b.Visibility = BoardVisibility.Private;
+            });
+        }
+
+        var (member, _) = await SignInAsync();
+        var (mod, _) = await SignInAsync("Mod");
+        var managed = await mod.GetStringAsync("/api/documentation");
+        managed.Should().Contain(folder).And.Contain(shared[0]).And.Contain(shared[1], "the folders are listed: managers see every one");
+        var listed = await member.GetStringAsync("/api/documentation");
+        listed.Should().Contain(folder, "members-visible board: as before");
+        foreach (var name in shared)
+        {
+            listed.Should().NotContain(name, "a private board hides its folder even when LegacyFolder is null or shared");
+            (await member.GetAsync($"/api/documentation/file?folder=Logistics/{name}&name=plano.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
+
+        await UpdateBoardAsync(boardId, b => b.Visibility = BoardVisibility.Private);
+        (await member.GetStringAsync("/api/documentation")).Should().NotContain(folder);
+        (await member.GetAsync($"/api/documentation/file?folder=Logistics/{folder}&name=plano.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    /// <summary>
+    /// 067 migration rule on real SQLite: a pre-067 column takes its majority status and the others split into
+    /// "Name (STATE)" columns right after it, in order; no card changes status; an empty "Feito" column is DONE. Board file
+    /// folders: the sanitised name, or none when two boards share it.
+    /// </summary>
+    [Fact]
+    public async Task LegacyColumns_AreMappedWithoutChangingAnyCardsStatus()
+    {
+        int boardId, mixed, done, twinA, twinB, single;
+        var twin = $"{Tag()} Gémeo";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var board = LogisticsBoard.Create($"{Tag()} Antigo");
+            var a = LogisticsBoard.Create(twin);
+            var b = LogisticsBoard.Create(twin + "?");
+            db.LogisticsBoards.AddRange(board, a, b);
+            await db.SaveChangesAsync();
+            (boardId, twinA, twinB, single) = (board.Id, a.Id, b.Id, board.Id);
+            var m = LogisticsList.Create("Material", board.Id, 0);
+            var f = LogisticsList.Create("Feito", board.Id, 1);
+            db.LogisticsLists.AddRange(m, f);
+            await db.SaveChangesAsync();
+            (mixed, done) = (m.Id, f.Id);
+            var statuses = new[] { CardStatus.Todo, CardStatus.Done, CardStatus.Todo, CardStatus.InProgress, CardStatus.Done, CardStatus.Todo };
+            for (var i = 0; i < statuses.Length; i++)
+            {
+                var card = LogisticsCard.Create($"c{i}", m.Id, i);
+                card.SetStatus(statuses[i]);
+                db.LogisticsCards.Add(card);
+            }
+
+            await db.SaveChangesAsync();
+            await LogisticsWorkflow.MapLegacyAsync(db);
+            await LogisticsWorkflow.MapLegacyAsync(db); // idempotent
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var lists = await db.LogisticsLists.AsNoTracking().Where(l => l.BoardId == boardId).OrderBy(l => l.Position).ToListAsync();
+            lists.Select(l => (l.Name, l.State)).Should().Equal(("Material", CardStatus.Todo), ("Material (WIP)", CardStatus.InProgress),
+                ("Material (DONE)", CardStatus.Done), ("Feito", CardStatus.Done));
+            var cards = await db.LogisticsCards.AsNoTracking().Where(c => lists.Select(l => l.Id).Contains(c.ListId)).ToListAsync();
+            cards.Should().HaveCount(6).And.OnlyContain(c => lists.Single(l => l.Id == c.ListId).State == c.Status, "no card changes status");
+            cards.Where(c => c.ListId == mixed).OrderBy(c => c.Position).Select(c => c.Title).Should().Equal("c0", "c2", "c5");
+            cards.Where(c => c.Status == CardStatus.Done).OrderBy(c => c.Position).Select(c => c.Title).Should().Equal("c1", "c4");
+            (await db.LogisticsBoards.AsNoTracking().SingleAsync(x => x.Id == single)).LegacyFolder.Should().NotBeNullOrEmpty();
+            (await db.LogisticsBoards.AsNoTracking().Where(x => x.Id == twinA || x.Id == twinB).Select(x => x.LegacyFolder).ToListAsync())
+                .Should().Equal(new[] { "", "" }, "two boards with one folder name cannot be told apart");
+            _ = done;
+        }
+    }
+
+    private async Task UpdateBoardAsync(int id, Action<LogisticsBoard> change)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        change(await db.LogisticsBoards.SingleAsync(b => b.Id == id));
+        await db.SaveChangesAsync();
+    }
+
     // ---------- helpers ----------
 
     private static string Tag() => "lgx" + Guid.NewGuid().ToString("N")[..8];
@@ -699,7 +1051,9 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         var board = LogisticsBoard.Create(name ?? $"{Tag()} Quadro");
         db.LogisticsBoards.Add(board);
         await db.SaveChangesAsync();
+        board.LegacyFolder = "";
         var list = LogisticsList.Create("Material", board.Id, 0);
+        list.State = CardStatus.Todo;
         db.LogisticsLists.Add(list);
         await db.SaveChangesAsync();
         var first = 0;
@@ -717,11 +1071,12 @@ public class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         return (board.Id, list.Id, first);
     }
 
-    private async Task<int> AddListAsync(int boardId, string name, int position)
+    private async Task<int> AddListAsync(int boardId, string name, int position, CardStatus state = CardStatus.Todo)
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var list = LogisticsList.Create(name, boardId, position);
+        list.State = state;
         db.LogisticsLists.Add(list);
         await db.SaveChangesAsync();
         return list.Id;

@@ -53,10 +53,12 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
     private readonly IHostEnvironment _environment;
     private readonly AuditContext _audit;
     private readonly ILogger<LogisticsKanbanService> _logger;
+    private readonly TimeProvider _time;
 
     public LogisticsKanbanService(IDbContextFactory<ApplicationDbContext> contexts, IDocumentStorageService storage, IHostEnvironment environment,
-        AuditContext audit, ILogger<LogisticsKanbanService> logger, DocumentTreeCache trees)
+        AuditContext audit, ILogger<LogisticsKanbanService> logger, DocumentTreeCache trees, TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _trees = trees;
         _contexts = contexts;
         _storage = storage;
@@ -71,118 +73,6 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
     private sealed record StoredLink(int Id, string Name, int? CardId);
 
     // ---------------------------------------------------------------- boards
-
-    public async Task<EventResult<LogisticsBoardsDto>> GetBoardsAsync(string? search, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<LogisticsBoardsDto>(user, manage: false) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        var q = search?.Trim() ?? "";
-        var boards = await db.LogisticsBoards.AsNoTracking().Include(b => b.Event)
-            .Where(b => q == "" || b.Name.Contains(q) || b.Description.Contains(q))
-            .OrderByDescending(b => b.CreatedAt)
-            .ToListAsync();
-
-        return EventResult<LogisticsBoardsDto>.Ok(new LogisticsBoardsDto(
-            boards.Where(b => !b.IsCompleted).Select(Summary).ToList(),
-            boards.Where(b => b.IsCompleted).Select(Summary).ToList(),
-            LogisticsAuthorization.CanManage(user)));
-    }
-
-    public async Task<EventResult<LogisticsBoardSummaryDto>> CreateBoardAsync(LogisticsBoardInput input, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<LogisticsBoardSummaryDto>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await BoardErrorsAsync(db, input) is { } invalid)
-        {
-            return invalid;
-        }
-
-        var board = LogisticsBoard.Create(input.Name!.Trim(), input.Description?.Trim() ?? "");
-        board.AssociateWithEvent(input.EventId);
-        db.LogisticsBoards.Add(board);
-        await db.SaveChangesAsync();
-        return EventResult<LogisticsBoardSummaryDto>.Ok(await BoardSummaryAsync(db, board.Id));
-    }
-
-    public async Task<EventResult<LogisticsBoardSummaryDto>> UpdateBoardAsync(int id, LogisticsBoardInput input, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<LogisticsBoardSummaryDto>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsBoards.FindAsync(id) is not { } board)
-        {
-            return EventResult<LogisticsBoardSummaryDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        if (await BoardErrorsAsync(db, input) is { } invalid)
-        {
-            return invalid;
-        }
-
-        board.UpdateDetails(input.Name!.Trim(), input.Description?.Trim() ?? "");
-        board.AssociateWithEvent(input.EventId);
-        await db.SaveChangesAsync();
-        return EventResult<LogisticsBoardSummaryDto>.Ok(await BoardSummaryAsync(db, id));
-    }
-
-    public async Task<EventResult<LogisticsBoardSummaryDto>> SetBoardStateAsync(int id, LogisticsBoardStateInput input, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<LogisticsBoardSummaryDto>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsBoards.FindAsync(id) is not { } board)
-        {
-            return EventResult<LogisticsBoardSummaryDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        if (input.Completed)
-        {
-            board.MarkAsCompleted();
-        }
-        else
-        {
-            board.MarkAsNotCompleted();
-        }
-
-        await db.SaveChangesAsync();
-        return EventResult<LogisticsBoardSummaryDto>.Ok(await BoardSummaryAsync(db, id));
-    }
-
-    public async Task<EventResult<bool>> DeleteBoardAsync(int id, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<bool>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsBoards.Include(b => b.Lists).ThenInclude(l => l.Cards).FirstOrDefaultAsync(b => b.Id == id) is not { } board)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.NotFound);
-        }
-
-        // Its lists and cards go with it, as before (their assignments and reminders by cascade). Board files stay in
-        // storage, as before; the cards' own attachments (task 066) are deleted after the save.
-        var files = await AttachmentPathsAsync(db, c => c.List.BoardId == id);
-        db.LogisticsBoards.Remove(board);
-        await db.SaveChangesAsync();
-        await DeleteStoredAsync(files);
-        return EventResult<bool>.Ok(true);
-    }
 
     public async Task<EventResult<IReadOnlyList<LogisticsEventDto>>> GetEventsAsync(string? search, ClaimsPrincipal user)
     {
@@ -203,230 +93,21 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
         return EventResult<IReadOnlyList<LogisticsEventDto>>.Ok(events.Where(e => EventParticipantsAdminService.Fold(e.Name).Contains(q)).Take(10).ToList());
     }
 
-    public async Task<EventResult<IReadOnlyList<LogisticsMemberOptionDto>>> SearchMembersAsync(string? search, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<IReadOnlyList<LogisticsMemberOptionDto>>(user, manage: false) is { } refused)
-        {
-            return refused;
-        }
-
-        var words = EventParticipantsAdminService.Fold(search).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (words.Length == 0)
-        {
-            return EventResult<IReadOnlyList<LogisticsMemberOptionDto>>.Ok(Array.Empty<LogisticsMemberOptionDto>());
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        // ponytail: every member in memory (~100), as the old pages loaded every user; page it if it grows.
-        var members = await db.Users.AsNoTracking().Where(u => !u.IsExpelled).ToListAsync();
-        return EventResult<IReadOnlyList<LogisticsMemberOptionDto>>.Ok(members
-            .Select(u => (u, who: GovernanceService.ToMember(u.Nickname, u.FirstName, u.LastName, u.ImageUrl),
-                text: EventParticipantsAdminService.Fold($"{u.UserName} {u.Nickname} {u.FirstName} {u.LastName}")))
-            .Where(x => words.All(w => x.text.Contains(w)))
-            .OrderBy(x => x.who.DisplayName, StringComparer.Create(CultureInfo.GetCultureInfo("pt-PT"), true))
-            .Take(SearchLimit)
-            .Select(x => new LogisticsMemberOptionDto(x.u.Id, x.who.DisplayName, x.who.FullName, x.who.AvatarUrl))
-            .ToList());
-    }
-
-    // ---------------------------------------------------------------- one board
-
-    public async Task<EventResult<LogisticsBoardDto>> GetBoardAsync(int id, ClaimsPrincipal user, bool includeFiles = true)
-    {
-        if (await RefusalAsync<LogisticsBoardDto>(user, manage: false) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsBoards.AsNoTracking().Include(b => b.Event).FirstOrDefaultAsync(b => b.Id == id) is not { } board)
-        {
-            return EventResult<LogisticsBoardDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        var lists = await db.LogisticsLists.AsNoTracking().Where(l => l.BoardId == id).OrderBy(l => l.Position).ThenBy(l => l.Id).ToListAsync();
-        var listIds = lists.Select(l => l.Id).ToList();
-        var cards = await db.LogisticsCards.AsNoTracking().Include(c => c.Event).Include(c => c.AssignedToUser)
-            .Where(c => listIds.Contains(c.ListId)).ToListAsync();
-        var cardIds = cards.Select(c => c.Id).ToList();
-        var assignments = await AssignmentCountsAsync(db, cardIds);
-        var me = LogisticsAuthorization.UserId(user);
-        var mine = (await db.LogisticsCardAssignments.AsNoTracking().Where(a => a.UserId == me && cardIds.Contains(a.CardId))
-            .Select(a => a.CardId).ToListAsync()).ToHashSet();
-        var comments = await db.LogisticsCardComments.AsNoTracking().Where(c => cardIds.Contains(c.CardId))
-            .GroupBy(c => c.CardId).Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Key, g => g.Count);
-        var attachments = await db.LogisticsCardAttachments.AsNoTracking().Where(a => cardIds.Contains(a.CardId))
-            .GroupBy(a => a.CardId).Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Key, g => g.Count);
-        var faces = cards.ToDictionary(c => c.Id, c => Face(c, assignments.GetValueOrDefault(c.Id), c.AssignedToUserId == me || mine.Contains(c.Id),
-            comments.GetValueOrDefault(c.Id), attachments.GetValueOrDefault(c.Id)));
-
-        return EventResult<LogisticsBoardDto>.Ok(new LogisticsBoardDto(
-            board.Id, board.Name, board.Description, Event(board.Event), board.IsCompleted,
-            lists.Select(l => new LogisticsListDto(l.Id, l.Name, cards.Where(c => c.ListId == l.Id).OrderBy(c => c.Position).ThenBy(c => c.Id)
-                .Select(c => faces[c.Id]).ToList())).ToList(),
-            faces.Values.SelectMany(c => c.Labels).Select(l => l.Text).Distinct().OrderBy(t => t, StringComparer.Ordinal).ToList(),
-            includeFiles ? await FileDtosAsync(board.Name) : new List<LogisticsFileDto>(),
-            LogisticsAuthorization.CanManage(user)));
-    }
-
-    public async Task<EventResult<IReadOnlyList<LogisticsFileDto>>> GetFilesAsync(int boardId, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<IReadOnlyList<LogisticsFileDto>>(user, manage: false) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsBoards.AsNoTracking().FirstOrDefaultAsync(b => b.Id == boardId) is not { } board)
-        {
-            return EventResult<IReadOnlyList<LogisticsFileDto>>.Fail(EventResultStatus.NotFound);
-        }
-
-        return EventResult<IReadOnlyList<LogisticsFileDto>>.Ok(await FileDtosAsync(board.Name));
-    }
-
-    public async Task<EventResult<LogisticsListDto>> CreateListAsync(int boardId, LogisticsListInput input, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<LogisticsListDto>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (!await db.LogisticsBoards.AnyAsync(b => b.Id == boardId))
-        {
-            return EventResult<LogisticsListDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        if (ListName(input) is not { } name)
-        {
-            return EventResult<LogisticsListDto>.Invalid("name", "O nome da lista é obrigatório (máx. 100 caracteres).");
-        }
-
-        // Last, as before.
-        var last = await db.LogisticsLists.Where(l => l.BoardId == boardId).Select(l => (int?)l.Position).MaxAsync() ?? -1;
-        var list = LogisticsList.Create(name, boardId, last + 1);
-        db.LogisticsLists.Add(list);
-        await db.SaveChangesAsync();
-        return EventResult<LogisticsListDto>.Ok(new LogisticsListDto(list.Id, list.Name, Array.Empty<LogisticsCardDto>()));
-    }
-
-    public async Task<EventResult<LogisticsListDto>> RenameListAsync(int id, LogisticsListInput input, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<LogisticsListDto>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsLists.FindAsync(id) is not { } list)
-        {
-            return EventResult<LogisticsListDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        if (ListName(input) is not { } name)
-        {
-            return EventResult<LogisticsListDto>.Invalid("name", "O nome da lista é obrigatório (máx. 100 caracteres).");
-        }
-
-        list.UpdateName(name);
-        await db.SaveChangesAsync();
-        return EventResult<LogisticsListDto>.Ok(new LogisticsListDto(list.Id, list.Name, Array.Empty<LogisticsCardDto>()));
-    }
-
-    public async Task<EventResult<bool>> MoveListAsync(int id, LogisticsPositionInput input, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<bool>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsLists.FindAsync(id) is not { } list)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.NotFound);
-        }
-
-        var others = await db.LogisticsLists.Where(l => l.BoardId == list.BoardId && l.Id != id).OrderBy(l => l.Position).ThenBy(l => l.Id).ToListAsync();
-        others.Insert(Math.Clamp(input.Position, 0, others.Count), list);
-        for (var i = 0; i < others.Count; i++)
-        {
-            others[i].UpdatePosition(i);
-        }
-
-        await db.SaveChangesAsync();
-        return EventResult<bool>.Ok(true);
-    }
-
-    public async Task<EventResult<bool>> DeleteListAsync(int id, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<bool>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsLists.Include(l => l.Cards).FirstOrDefaultAsync(l => l.Id == id) is not { } list)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.NotFound);
-        }
-
-        var files = await AttachmentPathsAsync(db, c => c.ListId == id);
-        db.LogisticsLists.Remove(list);
-        await db.SaveChangesAsync();
-        await DeleteStoredAsync(files);
-        return EventResult<bool>.Ok(true);
-    }
-
     // ---------------------------------------------------------------- cards
 
-    public async Task<EventResult<LogisticsCardDetailDto>> CreateCardAsync(int listId, LogisticsCardCreateInput input, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<LogisticsCardDetailDto>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (!await db.LogisticsLists.AnyAsync(l => l.Id == listId))
-        {
-            return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        var errors = CardErrors(input.Title, input.Description);
-        if (!string.IsNullOrEmpty(input.AssignedToUserId) && !await db.Users.AnyAsync(u => u.Id == input.AssignedToUserId))
-        {
-            errors["assignedToUserId"] = new[] { "Membro não encontrado." };
-        }
-
-        if (errors.Count > 0)
-        {
-            return new EventResult<LogisticsCardDetailDto>(EventResultStatus.Invalid, Errors: errors);
-        }
-
-        // Last in its list, as before.
-        var last = await db.LogisticsCards.Where(c => c.ListId == listId).Select(c => (int?)c.Position).MaxAsync() ?? -1;
-        var card = LogisticsCard.Create(input.Title!.Trim(), listId, last + 1, input.Description?.Trim() ?? "");
-        card.AssignToUser(string.IsNullOrEmpty(input.AssignedToUserId) ? null : input.AssignedToUserId);
-        db.LogisticsCards.Add(card);
-        await db.SaveChangesAsync();
-        db.LogisticsCardActivities.Add(new LogisticsCardActivity { CardId = card.Id, ActorId = LogisticsAuthorization.UserId(user), Action = "created", Detail = "Cartão criado" });
-        await db.SaveChangesAsync();
-        return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, card.Id, user));
-    }
-
+    /// <summary>Every member who sees the board reads the details (task 065); a private board's card is 404 to others (067).</summary>
     public async Task<EventResult<LogisticsCardDetailDto>> GetCardAsync(int id, ClaimsPrincipal user)
     {
-        // Every member who sees the board reads the details (task 065; they were managers only).
-        if (await RefusalAsync<LogisticsCardDetailDto>(user, manage: false) is { } refused)
+        var (refused, db, _, _) = await OpenCardAsync<LogisticsCardDetailDto>(id, user);
+        if (refused is not null)
         {
             return refused;
         }
 
-        await using var db = await _contexts.CreateDbContextAsync();
-        return await db.LogisticsCards.AnyAsync(c => c.Id == id)
-            ? EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id, user))
-            : EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.NotFound);
+        await using (db)
+        {
+            return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db!, id, user));
+        }
     }
 
     /// <summary>
@@ -463,9 +144,9 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
                 errors["dueDate"] = new[] { "O prazo não pode ser antes do início." };
             }
 
-            if (owner is not null && owner != card.AssignedToUserId && !await db.Users.AnyAsync(u => u.Id == owner && !u.IsExpelled))
+            if (owner is not null && owner != card.AssignedToUserId && !(await BoardViewersAsync(db, access.Board, new[] { owner })).Contains(owner))
             {
-                errors["assignedToUserId"] = new[] { "Membro não encontrado." };
+                errors["assignedToUserId"] = new[] { NoAccess };
             }
 
             if (errors.Count > 0)
@@ -521,60 +202,6 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
             card.Version++;
             return null;
         });
-
-    // Managers, owner or collaborators (task 065).
-    public Task<EventResult<LogisticsCardDetailDto>> SetStatusAsync(int id, LogisticsStatusInput input, ClaimsPrincipal user) =>
-        ChangeCardAsync(id, user, assignedMayChange: true, (db, card, access) =>
-        {
-            if (!Enum.TryParse<CardStatus>(input.Status, out var status) || !Enum.IsDefined(status) || int.TryParse(input.Status, out _))
-            {
-                return Bad("status", "Estado inválido.");
-            }
-
-            if (status != card.Status)
-            {
-                Log(db, card.Id, access, "status", $"Estado: {StatusName(card.Status)} → {StatusName(status)}");
-                card.SetStatus(status);
-            }
-
-            return Fine();
-        });
-
-    public async Task<EventResult<bool>> MoveCardAsync(int id, LogisticsMoveInput input, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<bool>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsCards.Include(c => c.List).FirstOrDefaultAsync(c => c.Id == id) is not { } card)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.NotFound);
-        }
-
-        if (await db.LogisticsLists.FindAsync(input.ListId) is not { } target || target.BoardId != card.List.BoardId)
-        {
-            return EventResult<bool>.Invalid("listId", "Escolha uma lista deste quadro.");
-        }
-
-        var from = card.ListId;
-        var entering = await db.LogisticsCards.Where(c => c.ListId == target.Id && c.Id != id).OrderBy(c => c.Position).ThenBy(c => c.Id).ToListAsync();
-        entering.Insert(Math.Clamp(input.Position, 0, entering.Count), card);
-        card.MoveToList(target.Id, 0);
-        Renumber(entering);
-        if (from != target.Id)
-        {
-            Renumber(await db.LogisticsCards.Where(c => c.ListId == from && c.Id != id).OrderBy(c => c.Position).ThenBy(c => c.Id).ToListAsync());
-            db.LogisticsCardActivities.Add(new LogisticsCardActivity
-            {
-                CardId = id, ActorId = LogisticsAuthorization.UserId(user), Action = "list", Detail = $"Movido para «{Cut(target.Name)}»",
-            });
-        }
-
-        await db.SaveChangesAsync();
-        return EventResult<bool>.Ok(true);
-    }
 
     public Task<EventResult<LogisticsCardDetailDto>> SetLabelsAsync(int id, LogisticsLabelsInput input, ClaimsPrincipal user) =>
         ChangeCardAsync(id, user, assignedMayChange: false, (db, card, access) =>
@@ -633,9 +260,10 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
     public Task<EventResult<LogisticsCardDetailDto>> AddAssignmentAsync(int id, LogisticsAssignmentInput input, ClaimsPrincipal user) =>
         ChangeCardAsync(id, user, assignedMayChange: false, async (db, card, access) =>
         {
-            if (string.IsNullOrEmpty(input.UserId) || !await db.Users.AnyAsync(u => u.Id == input.UserId && !u.IsExpelled))
+            // Assignment never grants access (067): the member must already see the board.
+            if (string.IsNullOrEmpty(input.UserId) || !(await BoardViewersAsync(db, access.Board, new[] { input.UserId })).Contains(input.UserId))
             {
-                return EventResult<LogisticsCardDetailDto>.Invalid("userId", "Membro não encontrado.");
+                return EventResult<LogisticsCardDetailDto>.Invalid("userId", NoAccess);
             }
 
             if (await db.LogisticsCardAssignments.AnyAsync(a => a.CardId == id && a.UserId == input.UserId))
@@ -663,139 +291,22 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
 
     public async Task<EventResult<bool>> DeleteCardAsync(int id, ClaimsPrincipal user)
     {
-        if (await RefusalAsync<bool>(user, manage: true) is { } refused)
+        await using var db = await _contexts.CreateDbContextAsync();
+        var boardId = await db.LogisticsCards.Where(c => c.Id == id).Select(c => (int?)c.List.BoardId).FirstOrDefaultAsync();
+        var (refused, _) = boardId is { } b
+            ? await SeeBoardAsync<bool>(db, b, user, manage: true, writable: true)
+            : (await RefusalAsync<bool>(user, manage: false) ?? EventResult<bool>.Fail(EventResultStatus.NotFound), null);
+        if (refused is not null)
         {
             return refused;
         }
 
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsCards.FindAsync(id) is not { } card)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.NotFound);
-        }
+        var card = (await db.LogisticsCards.FindAsync(id))!;
 
         var files = await AttachmentPathsAsync(db, c => c.Id == id);
         db.LogisticsCards.Remove(card);
         await db.SaveChangesAsync();
         await DeleteStoredAsync(files);
-        return EventResult<bool>.Ok(true);
-    }
-
-    // ---------------------------------------------------------------- reminders
-
-    public async Task<EventResult<LogisticsReminderDto>> CreateReminderAsync(int boardId, LogisticsReminderInput input, ClaimsPrincipal user)
-    {
-        // Every member who sees the board, as before (not only managers).
-        if (await RefusalAsync<LogisticsReminderDto>(user, manage: false) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (!await db.LogisticsBoards.AnyAsync(b => b.Id == boardId))
-        {
-            return EventResult<LogisticsReminderDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        var errors = new Dictionary<string, string[]>();
-        if (!await db.LogisticsCards.AnyAsync(c => c.Id == input.CardId && c.List.BoardId == boardId))
-        {
-            errors["cardId"] = new[] { "Selecione um cartão deste quadro." };
-        }
-
-        if (!Enum.TryParse<ReminderFrequency>(input.Frequency, out var frequency) || !Enum.IsDefined(frequency) || int.TryParse(input.Frequency, out _))
-        {
-            errors["frequency"] = new[] { "Frequência inválida." };
-        }
-
-        if (input.NextReminderDate is not { } next)
-        {
-            errors["nextReminderDate"] = new[] { "Indique a primeira data do lembrete." };
-        }
-
-        var userIds = (input.UserIds ?? Array.Empty<string>()).Where(u => !string.IsNullOrWhiteSpace(u)).Distinct().ToList();
-        if (userIds.Count == 0 || userIds.Count > 100 || await db.Users.CountAsync(u => userIds.Contains(u.Id)) != userIds.Count)
-        {
-            errors["userIds"] = new[] { "Pelo menos um utilizador deve ser selecionado" };
-        }
-
-        if (errors.Count > 0)
-        {
-            return new EventResult<LogisticsReminderDto>(EventResultStatus.Invalid, Errors: errors);
-        }
-
-        var reminder = LogisticsCardReminder.Create(input.CardId, frequency, string.Join(",", userIds), input.NextReminderDate!.Value);
-        db.LogisticsCardReminders.Add(reminder);
-        await db.SaveChangesAsync();
-        return EventResult<LogisticsReminderDto>.Ok(new LogisticsReminderDto(reminder.Id, reminder.CardId, reminder.Frequency.ToString(),
-            reminder.NextReminderDate, userIds.Count));
-    }
-
-    // ---------------------------------------------------------------- board files
-
-    public async Task<EventResult<LogisticsFileDto>> UploadFileAsync(int boardId, LogisticsFileUpload upload, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<LogisticsFileDto>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsBoards.AsNoTracking().FirstOrDefaultAsync(b => b.Id == boardId) is not { } board)
-        {
-            return EventResult<LogisticsFileDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        // The browser's name without any path: a file never lands outside the board's folder.
-        var name = upload.FileName.Split('/', '\\')[^1].Trim();
-        if (upload.Length <= 0 || upload.Length > MaxFileBytes)
-        {
-            return EventResult<LogisticsFileDto>.Invalid("file", "O ficheiro é demasiado grande. Tamanho máximo: 10MB");
-        }
-
-        if (name == "" || name.StartsWith('.') || !FileTypes.Contains(upload.ContentType))
-        {
-            return EventResult<LogisticsFileDto>.Invalid("file", "Tipo de ficheiro não suportado. Formatos permitidos: PDF, Word, Excel, TXT, PNG, JPG");
-        }
-
-        _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
-        await _storage.UploadDocumentAsync(Folder(board.Name), name, upload.Content, upload.ContentType);
-        _trees.Forget(Folder(board.Name)); // the board's folder is shown in Documentation too (#226 F01)
-        return EventResult<LogisticsFileDto>.Ok(new LogisticsFileDto(name, Path.GetExtension(name), upload.Length));
-    }
-
-    public async Task<EventResult<DocumentLinkDto>> GetFileAsync(int boardId, string? name, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<DocumentLinkDto>(user, manage: false) is { } refused)
-        {
-            return refused;
-        }
-
-        if (await FilePathAsync(boardId, name) is not { } path)
-        {
-            return EventResult<DocumentLinkDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        return await _storage.GetDocumentUrlAsync(path, forceDownload: true) is { } url
-            ? EventResult<DocumentLinkDto>.Ok(new DocumentLinkDto(url))
-            : EventResult<DocumentLinkDto>.Fail(EventResultStatus.NotFound);
-    }
-
-    public async Task<EventResult<bool>> DeleteFileAsync(int boardId, string? name, ClaimsPrincipal user)
-    {
-        if (await RefusalAsync<bool>(user, manage: true) is { } refused)
-        {
-            return refused;
-        }
-
-        if (await FilePathAsync(boardId, name) is not { } path)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.NotFound);
-        }
-
-        _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
-        await _storage.DeleteDocumentAsync(path);
-        _trees.Forget(path);
         return EventResult<bool>.Ok(true);
     }
 
@@ -834,7 +345,7 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
     private async Task<EventResult<LogisticsCardDetailDto>> ChangeCardAsync(int id, ClaimsPrincipal user, bool assignedMayChange,
         Func<ApplicationDbContext, LogisticsCard, CardAccess, Task<EventResult<LogisticsCardDetailDto>?>> change)
     {
-        if (await RefusalAsync<LogisticsCardDetailDto>(user, manage: !assignedMayChange) is { } refused)
+        if (await RefusalAsync<LogisticsCardDetailDto>(user, manage: false) is { } refused)
         {
             return refused;
         }
@@ -846,10 +357,21 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
             return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.NotFound);
         }
 
+        // 067: a card of a board the caller may not see is not disclosed; archived work is read-only.
         var access = await AccessAsync(db, card, user);
-        if (!access.CanWork)
+        if (!access.Viewer)
+        {
+            return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.NotFound);
+        }
+
+        if (!access.CanWork || (!assignedMayChange && !access.Manager))
         {
             return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.Forbidden);
+        }
+
+        if (access.ReadOnly)
+        {
+            return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.Closed);
         }
 
         if (await change(db, card, access) is { } failed)
@@ -860,28 +382,6 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id, user));
-    }
-
-    private static async Task<EventResult<LogisticsBoardSummaryDto>?> BoardErrorsAsync(ApplicationDbContext db, LogisticsBoardInput input)
-    {
-        var errors = new Dictionary<string, string[]>();
-        var name = input.Name?.Trim() ?? "";
-        if (name == "" || name.Length > 200)
-        {
-            errors["name"] = new[] { "O nome do quadro é obrigatório (máx. 200 caracteres)." };
-        }
-
-        if ((input.Description?.Trim().Length ?? 0) > 2000)
-        {
-            errors["description"] = new[] { "A descrição não pode exceder 2000 caracteres" };
-        }
-
-        if (input.EventId is { } eventId && !await db.Events.AnyAsync(e => e.Id == eventId))
-        {
-            errors["eventId"] = new[] { "Evento não encontrado." };
-        }
-
-        return errors.Count > 0 ? new EventResult<LogisticsBoardSummaryDto>(EventResultStatus.Invalid, Errors: errors) : null;
     }
 
     private static Dictionary<string, string[]> CardErrors(string? title, string? description)
@@ -931,12 +431,6 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
     }
 
     private static LogisticsEventDto? Event(Event? e) => e is null ? null : new LogisticsEventDto(e.Id, e.Name, e.Date);
-
-    private static LogisticsBoardSummaryDto Summary(LogisticsBoard b) =>
-        new(b.Id, b.Name, b.Description, Event(b.Event), b.IsCompleted, b.CompletedAt);
-
-    private static async Task<LogisticsBoardSummaryDto> BoardSummaryAsync(ApplicationDbContext db, int id) =>
-        Summary(await db.LogisticsBoards.AsNoTracking().Include(b => b.Event).SingleAsync(b => b.Id == id));
 
     // Collaborators: the owner left out (an owner who also has an assignment row counts once, as the owner).
     private static async Task<Dictionary<int, int>> AssignmentCountsAsync(ApplicationDbContext db, List<int> cardIds) =>
@@ -1009,8 +503,6 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
         }
     }
 
-    private string Folder(string boardName) =>
-        $"docs/{_environment.EnvironmentName}/{FiscalYearHelper.GetCurrentFiscalYearString()}/Logistics/{SanitizePathComponent(boardName)}/";
 
     /// <summary>Allowed board-folder characters: letters, digits, hyphen, underscore, space and accented Latin-1 letters.</summary>
     private static readonly Regex SafePathRegex = new(@"[^a-zA-Z0-9\-_\sÀ-ÿ]", RegexOptions.Compiled);
@@ -1028,31 +520,4 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
         return string.IsNullOrEmpty(sanitized) ? "unnamed" : sanitized;
     }
 
-    private async Task<List<LogisticsFileDto>> FileDtosAsync(string boardName) =>
-        (await FilesAsync(boardName)).Select(d => new LogisticsFileDto(d.FileName, d.Extension, d.SizeBytes)).ToList();
-
-    private async Task<List<DocumentMetadata>> FilesAsync(string boardName)
-    {
-        try
-        {
-            return await _storage.ListDocumentsInFolderAsync(Folder(boardName));
-        }
-        catch (Exception ex)
-        {
-            // The old page treated the files as "not critical" too: the board still opens.
-            _logger.LogWarning(ex, "Could not list the files of logistics board {Board}", boardName);
-            return new();
-        }
-    }
-
-    private async Task<string?> FilePathAsync(int boardId, string? name)
-    {
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.LogisticsBoards.AsNoTracking().FirstOrDefaultAsync(b => b.Id == boardId) is not { } board)
-        {
-            return null;
-        }
-
-        return (await FilesAsync(board.Name)).FirstOrDefault(d => d.FileName == name)?.FilePath;
-    }
 }

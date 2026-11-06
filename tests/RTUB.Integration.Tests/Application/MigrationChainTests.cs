@@ -196,6 +196,32 @@ public class MigrationChainTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// Task 067: AddLogisticsBoardAccess only adds. A board written before it is members-visible, not archived, its file
+    /// folder unresolved (null) and its columns unmapped (State null) until the startup mapping (LogisticsWorkflow); the
+    /// access list goes with the board or the account. No table is rebuilt.
+    /// </summary>
+    [Fact]
+    public async Task Task067_LegacyBoards_StayMembersVisible_AndAwaitTheWorkflowMapping()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync("20261106105508_AddLogisticsCardWorkspace");
+        await context.Database.ExecuteSqlRawAsync("""
+            INSERT INTO LogisticsBoards (Name, Description, IsCompleted, CreatedAt) VALUES ('FITAB', '', 0, '2026-01-01');
+            INSERT INTO LogisticsLists (Name, BoardId, Position, CreatedAt) VALUES ('Logística', 1, 0, '2026-01-01');
+            INSERT INTO LogisticsCards (Title, Description, ListId, Position, Status, Priority, Version, CreatedAt)
+                VALUES ('Antigo', 'Texto', 1, 0, 2, 1, 0, '2026-01-01');
+            """);
+        await context.Database.MigrateAsync();
+
+        (await ScalarsAsync(context, "SELECT Visibility || ':' || IFNULL(ArchivedAt, '-') || ':' || IFNULL(LegacyFolder, 'null') || ':' || IFNULL(OwnerUserId, '-') FROM LogisticsBoards;"))
+            .Should().Equal("0:-:null:-");
+        (await ScalarsAsync(context, "SELECT IFNULL(State, 'null') FROM LogisticsLists;")).Should().Equal("null");
+        (await ScalarsAsync(context, "SELECT Status || ':' || IFNULL(ArchivedAt, '-') FROM LogisticsCards;")).Should().Equal("2:-");
+        (await ScalarsAsync(context, "SELECT \"table\" || ':' || \"from\" || ':' || on_delete FROM pragma_foreign_key_list('LogisticsBoardMembers') ORDER BY \"from\";"))
+            .Should().Equal("LogisticsBoards:BoardId:CASCADE", "AspNetUsers:UserId:CASCADE");
+    }
+
     /// <summary>Task 043: the retired Games / Bets / MyTuno, Labels and Slideshows tables (docs/db-cleanup-inventory.md).</summary>
     private static readonly string[] RetiredTables =
     [

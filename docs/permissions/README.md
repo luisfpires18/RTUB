@@ -28,7 +28,7 @@ type first (a Leitão is blocked from several pages whatever the role).
 | `/documentation` | - | R + upload | blocked | R + upload + manage | R + upload + manage | all | [documentation](documentation.md) |
 | `/meetings` | - | by meeting type | blocked | as Member | as Member (+ add participants) | all | [meetings](meetings.md) |
 | `/treasury` | - | R (not Caloiro) | own calotes | R + records | R + records + reports | all | [treasury](treasury.md) |
-| `/logistics` | - | R + reminders; own cards (owner / collaborator): edit, checklist, status, comment, attach | as Member | W D + moderation | W D + moderation | W D + moderation | [logistics](logistics.md) |
+| `/logistics` | - | R (members-visible boards + private ones they are invited to) + reminders; own cards: edit, checklist, move, comment, attach | as Member | W D + moderation, all boards | W D + moderation, all boards | W D + moderation, all boards | [logistics](logistics.md) |
 | `/requests` | - | R | blocked | R | R + approve, reject, delete | same as Admin | [requests-questions](requests-questions.md) |
 | `/questions` | - | ask + own threads | yes | as Member | as Member | as Member | [requests-questions](requests-questions.md) |
 | `/members` | - | R | R | R | W D (Leitões) | W D (anyone) | [members](members.md) |
@@ -48,7 +48,8 @@ type first (a Leitão is blocked from several pages whatever the role).
 Leitões also manage `/inventory` (checked by category, not role): keeping the instruments up to date is their job.
 
 Logística also has a third axis besides role and type: the card **assignment** - owner and collaborators (tasks
-065 / 066, see [logistics](logistics.md)); board visibility will be a fourth (phase 3).
+065 / 066, see [logistics](logistics.md)) - and a fourth, **board visibility** (067): private boards are seen only by
+their access list and Mod, Admin, Owner; elsewhere a private board is `404`.
 
 The menu flags (`management`, `logistics`, `treasury`, `admin`, `owner` in `MemberMenuAccess`) only decide which
 *links* show; every page and API still enforces its own rule. Since 065 `logistics` is its own flag (true for every

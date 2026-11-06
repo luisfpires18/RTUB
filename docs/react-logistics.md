@@ -3,7 +3,7 @@
 `/logistics` (boards) and `/logistics/{id}` (one board, a Kanban) are React (`portal/src/Logistics.tsx`,
 `LogisticsBoard.tsx`, `LogisticsDialogs.tsx`) over `/api/logistics` (`Endpoints/LogisticsEndpoints.cs` →
 `ILogisticsKanbanService`), replacing the Blazor `Pages/Management/Logistics.razor` and `LogisticsBoard.razor` (and
-`wwwroot/js/kanban.js`). DEV only. No schema change until task 066, which adds one migration (`AddLogisticsCardWorkspace`, below).
+`wwwroot/js/kanban.js`). DEV only. Migrations: `AddLogisticsCardWorkspace` (066) and `AddLogisticsBoardAccess` (067), both additive (below).
 
 | Route | Owner after 023 |
 | --- | --- |
@@ -49,6 +49,55 @@ Every member (Leitões included) reads every board and card, its discussion and 
 card's **owner** and **collaborators** work on it (fields, checklist, status, comments, attachments); Mod, Admin and
 Owner manage everything, including owner / collaborators and comment moderation. Full action matrix:
 [permissions/logistics](permissions/logistics.md). Private boards / board access are phase 3 (#248): not implemented.
+
+## Boards, access, workflow, files, archive, copies (task 067, issue #248)
+
+**Schema** (`AddLogisticsBoardAccess`, additive only, no table rebuilt): `LogisticsBoards.OwnerUserId` (responsible
+member; a plain indexed id - adding a foreign key to an existing SQLite table rebuilds it - so a deleted account reads as
+none), `Visibility` (0 Members / 1 Private; existing boards 0), `ArchivedAt`, `LegacyFolder`; `LogisticsLists.State`
+(null until mapped); `LogisticsCards.ArchivedAt`; new table `LogisticsBoardMembers` (board, member; unique; cascades with
+either). `CardStatus` gains `Blocked` (3).
+
+**Access**: see [permissions/logistics](permissions/logistics.md). One board rule (`CanSeeBoardAsync`) and one card rule
+(`AccessAsync`) cover lists, cards, details, comments, mentions, pickers, counts, files and reminders; inaccessible is
+`404`. Board responsibility grants nothing.
+
+**Workflow**: each column has a state (TODO / WIP / BLOQUEADO / DONE) and is authoritative - a card's status is its
+column's state. Moving a card (managers; owner and collaborators their own cards) sets the status; a status change moves
+the card to the end of the first column with that state (none: `400`, the page only offers states the board has).
+Changing a column's state changes its cards' status in the same save (history line per card). Deleting a column with
+cards needs a destination column (`?moveTo=`); its cards move there and take its state - a column never takes cards
+with it. New boards start with Por fazer / Em curso / Bloqueado / Feito.
+
+**Legacy mapping** (`LogisticsWorkflow.MapLegacyAsync`, once at startup, idempotent, logged): a pre-067 column takes the
+status most of its cards have (ties: TODO, WIP, BLOQUEADO, DONE); cards with other statuses move, in order, to new
+columns "Name (STATE)" right after it; an empty column is DONE / WIP by its name ("feito", "done", "concluído" /
+"curso", "wip", "progress"), else TODO. No card changes status or is lost; positions are renumbered. On the local copy
+of the real data: 11 columns mapped, 7 split (FITAB's mixed columns), 0 cards in disagreement. Managers can merge the
+split columns back by deleting them into another column (the cards take that column's state - a deliberate change).
+
+**Board files**: new files go to `logistics/{env}/boards/{id}/files/` - by id, so a rename or the 1 September rollover
+changes nothing, and outside the fiscal-year Documentação tree. Pre-067 files stay where they are
+(`docs/{env}/{year}/Logistics/{LegacyFolder}/`) and are listed on the board for **every** year (newest first, with
+the year); `LegacyFolder` is the board's sanitised name at mapping time, or none when two boards share it (their old
+files stay in Documentação only, as before). Files are addressed by an opaque id (`f:name`, `l:year/name`); `?name=`
+still works. Documentação still lists the old per-board folders, except a private board's to members off its access list.
+Nothing is moved or deleted in storage.
+
+**Archive**: boards Ativos / Concluídos (still editable, as before) / Arquivados (read-only, every write `409`
+"closed"); cards can be archived too (out of the columns, in "Cartões arquivados", read-only). Managers archive and
+restore; content is untouched.
+
+**Copies and templates**: duplicate a card or a board (managers; what copies and what never does:
+[permissions/logistics](permissions/logistics.md)). Templates **Organizar FITAB** and **Preparar
+deslocação/atuação** (`LogisticsTemplates`): pick one, anchor it to an event's date or any date, edit every task
+(include, title, deadline, priority, checklist), set visibility and access, then "Criar quadro"
+(`POST /boards/compose`). Nothing is assigned or notified.
+
+**Boards page**: tabs Ativos / Concluídos / Arquivados with counts, search, "Com tarefas minhas"; each board shows
+Privado, its event, responsible member (or "Sem responsável"), progress (done / total) and overdue, without-owner and
+own-task counts; managers' ⋯ menu (edit and access, duplicate, finish / reopen, archive / restore, delete); empty states
+offer a template or a blank board.
 
 ## The card workspace (task 066, issue #247)
 
@@ -116,9 +165,11 @@ send `userId: null` to non-managers).
 
 | Endpoint | Does |
 | --- | --- |
-| `GET /api/logistics?q=` | `{ active, completed, canManage }` |
+| `GET /api/logistics?q=` | `{ active, completed, archived, canManage }`, each board with owner, visibility and counts (only boards the caller sees) |
+| `POST /boards/{id}/archive`, `POST /boards/{id}/duplicate`, `GET /templates`, `POST /boards/compose` | `{ archived }`, `{ name }`, the templates, a reviewed template (managers) |
+| `POST /cards/{id}/archive`, `POST /cards/{id}/duplicate` | `{ archived }`, a clean copy (managers) |
 | `POST /boards`, `PUT /boards/{id}`, `POST /boards/{id}/state`, `DELETE /boards/{id}` | board CRUD, `{ completed }` |
-| `GET /events?q=`, `GET /members?q=` | event picker (managers), member picker (≤ 20, not expelled) |
+| `GET /events?q=`, `GET /members?q=&boardId=` | event picker (managers), member picker (≤ 20, not expelled) |
 | `GET /boards/{id}` | lists, card faces, label texts, board files, `canManage` |
 | `POST /boards/{id}/lists`, `PUT /lists/{id}`, `POST /lists/{id}/move`, `DELETE /lists/{id}` | lists |
 | `POST /lists/{id}/cards`, `GET`/`PUT`/`DELETE /cards/{id}` | cards (`GET`: the workspace, every member, with `canManage`, `canWork`, `version`, comments, attachments, activity; `PUT`: workers, `{ …, priority, version }`, stale → `409`) |
@@ -129,7 +180,7 @@ send `userId: null` to non-managers).
 | `PUT /cards/{id}/labels`, `/links` | replace the set (managers) |
 | `POST /cards/{id}/assignments`, `DELETE /cards/{id}/assignments/{userId}` | members |
 | `POST /boards/{id}/reminders` | `{ cardId, frequency, nextReminderDate, userIds }` |
-| `GET`/`POST`/`DELETE /boards/{id}/files` | `?name=` → `{ url }`; multipart `file`; `?name=` |
+| `GET`/`POST`/`DELETE /boards/{id}/files` | `?file=` (id; `?name=` still works) → `{ url }`; multipart `file`; `?file=` |
 
 (all under `/api/logistics`). File names lose any path; downloads and deletes accept only names listed in the folder.
 
@@ -153,8 +204,11 @@ Reminders are stored exactly as before and still never sent (unchanged). No emai
 - (042, resolved) `ILogistics{Board,List,Card}Service` and their repositories (no page caller) are removed; the board
   folder sanitizer moved unchanged into `LogisticsKanbanService`. `BoardCard` and `kanban.css` went with 037.
 - (065, resolved) Members open card details read-only; assignees tick the checklist and change the status.
-- (066, resolved) Ownership, discussion, history and card attachments. Next: private boards, workflow columns, stable
-  board files and templates (#248); reminder delivery, mention / assignment notifications and "As minhas tarefas"
-  (#249); list / calendar views (#250).
+- (066, resolved) Ownership, discussion, history and card attachments.
+- (067, resolved) Private boards and access lists, workflow columns, stable board files, archive, copies and templates.
+  Next: reminder delivery, mention / assignment notifications and "As minhas tarefas" (#249) - they must use the board
+  rule too; list / calendar views (#250).
+- Rollback across 067: the 2.3.x app ignores visibility (a private board is visible to every member again), columns'
+  states and archive. Roll back only with that in mind, or restore the pre-migration snapshot.
 - The whole-checklist replace (`PUT /cards/{id}/checklist`) is gone (066): it could overwrite another person's ticks.
 - Board files follow the current fiscal year: after 1 September a board shows an empty folder (unchanged).

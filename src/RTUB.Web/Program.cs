@@ -182,6 +182,22 @@ public class Program
                         logger.LogError(ex, "Failed to sync the premade message groups on startup");
                     }
 
+                    // Logística 3/5 (067): pre-067 columns get their workflow state (mixed ones split, no card changes
+                    // status) and pre-067 boards their file folder name, once. Idempotent; never fails startup.
+                    try
+                    {
+                        var mapped = await LogisticsWorkflow.MapLegacyAsync(db);
+                        if (mapped != (0, 0, 0))
+                        {
+                            logger.LogInformation("Logistics workflow mapped: {Columns} column(s), {Split} split column(s), {Boards} board folder(s)",
+                                mapped.Columns, mapped.Split, mapped.Boards);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to map the legacy logistics columns on startup");
+                    }
+
                     // Initialize MemberStatus table if the migration just ran
                     // This ensures "Gestao de membros ativos" has data immediately after deployment
                     // instead of waiting for the scheduled daily update

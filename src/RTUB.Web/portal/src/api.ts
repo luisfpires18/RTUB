@@ -314,7 +314,7 @@ export type Outcome<T> =
   | { kind: 'notfound' }
   | { kind: 'forbidden' }
   | { kind: 'inuse' }
-  /** 409 from a Logística card saved from an older copy (task 066). */
+  /** 409 from a Logística card saved from an older copy (task 066); an archived board or card is 'closed' (067). */
   | { kind: 'conflict' }
   | { kind: 'failed' };
 

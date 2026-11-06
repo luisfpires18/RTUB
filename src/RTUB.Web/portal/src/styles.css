@@ -8163,6 +8163,8 @@ video.tile__media {
   --st-todo: #e5484d;
   --st-wip: #f5c542;
   --st-done: #30a46c;
+  /* Task 067: "Bloqueado" - waiting on something outside the card. */
+  --st-blocked: #a78bfa;
 }
 
 .lx-section {
@@ -9382,6 +9384,350 @@ video.tile__media {
 .lx-history__meta {
   color: var(--muted);
   font-size: 0.75rem;
+}
+
+
+/* ---- Task 067: blocked state, boards page, access, archive, templates ---- */
+.lx-card--blocked,
+.lx-view__status--blocked,
+.lx-segment button.lx-segment--blocked {
+  --st: var(--st-blocked);
+}
+
+.lx-dot--blocked {
+  background: var(--st-blocked);
+}
+
+.lx-status-filter .lx-status-filter--blocked[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--st-blocked) 35%, transparent);
+}
+
+.lx-segment--four {
+  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+}
+
+.lx-col__head .lx-status {
+  flex: none;
+}
+
+.lx-boards-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.lx-boards-tools > .control {
+  flex: 1 1 240px;
+  max-width: 420px;
+}
+
+.lx-tabs {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+}
+
+.lx-tabs button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: 600 0.875rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.lx-tabs button + button {
+  border-left: 1px solid var(--line);
+}
+
+.lx-tabs button[aria-selected="true"] {
+  background: var(--royal);
+  color: var(--ink);
+}
+
+.lx-tabs small {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.lx-empty {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 28px 20px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
+  color: var(--muted);
+}
+
+.lx-empty p {
+  margin: 0;
+}
+
+.lx-board__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-right: 44px;
+}
+
+.lx-board__meta,
+.lx-board__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.lx-board__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lx-board__meta .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.lx-board__mine {
+  color: var(--purple-ink);
+  font-weight: 600;
+}
+
+.lx-board--archived {
+  border-style: dashed;
+  opacity: 0.8;
+}
+
+.lx-chip--private {
+  border-color: color-mix(in srgb, var(--purple-ink) 60%, transparent);
+  color: var(--purple-ink);
+  font-size: 0.75rem;
+}
+
+.lx-chip--private .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.lx-archived-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  color: var(--ink-soft);
+}
+
+.lx-archived-banner p {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.lx-archived summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.lx-archived__list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lx-archived__list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-raise);
+}
+
+.lx-ws__manage {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-right: auto;
+}
+
+.lx-ws__manage .lx-ws__delete {
+  margin-right: 0;
+}
+
+.lx-visibility,
+.lx-template fieldset,
+.lx-card-modal fieldset {
+  display: grid;
+  gap: 8px;
+  /* A fieldset defaults to min-width: min-content and would not shrink on a phone. */
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.lx-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.lx-choice input[type="radio"] {
+  /* Not the form's full-width text input. */
+  flex: none;
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 2px 0 0;
+  padding: 0;
+  accent-color: var(--purple);
+}
+
+.lx-choice span {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lx-choice strong,
+.lx-choice small {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.lx-choice small {
+  color: var(--muted);
+}
+
+.lx-choice:has(input:checked),
+.lx-choice--on {
+  border-color: var(--purple-ink);
+  background: color-mix(in srgb, var(--purple) 16%, transparent);
+}
+
+.lx-template__choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 10px;
+}
+
+.lx-template__cards {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lx-template__card {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+}
+
+.lx-template__card--off {
+  opacity: 0.55;
+}
+
+.lx-template__include {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 44px;
+}
+
+.lx-template__include input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--st-done);
+}
+
+.lx-template__fields {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lx-template__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+
+.lx-template__row label,
+.lx-template__check {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.lx-template__fields input[type="text"],
+.lx-template__fields input[type="date"],
+.lx-template__fields select,
+.lx-template__fields textarea {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 0.9375rem/1.3 var(--font-body);
+}
+
+.lx-template__fields input[type="text"] {
+  width: 100%;
+  font-weight: 600;
+}
+
+.lx-copy-preview {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.lx-copy-preview p {
+  margin: 0;
 }
 
 /* Phones: the card is a full-screen view (close in reach, safe areas kept), not a floating box. */

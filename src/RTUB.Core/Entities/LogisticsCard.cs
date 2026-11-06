@@ -41,6 +41,9 @@ public class LogisticsCard : BaseEntity
     /// </summary>
     public int Version { get; set; }
 
+    /// <summary>Task 067: archived cards leave the board's columns and are read-only until a manager restores them.</summary>
+    public DateTime? ArchivedAt { get; set; }
+
     // Labels for organization (stored as comma-separated string)
     public string? Labels { get; set; }
 

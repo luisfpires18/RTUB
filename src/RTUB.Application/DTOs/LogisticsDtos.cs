@@ -7,12 +7,49 @@ namespace RTUB.Application.DTOs;
 public sealed record LogisticsEventDto(int Id, string Name, DateTime Date);
 
 /// <summary>A board card on /logistics: name, description, event, completion.</summary>
-public sealed record LogisticsBoardSummaryDto(int Id, string Name, string Description, LogisticsEventDto? Event, bool IsCompleted, DateTime? CompletedAt);
+/// <summary>
+/// A board in the list (task 067 adds): its responsible member (<c>Owner</c>, id for managers only), <c>Visibility</c>
+/// ("Members" / "Private"), <c>ArchivedAt</c>, and its active cards: total, done, overdue (deadline before today in
+/// Portugal, not done), without owner (not done), and the caller's own open ones.
+/// </summary>
+public sealed record LogisticsBoardSummaryDto(int Id, string Name, string Description, LogisticsEventDto? Event, bool IsCompleted, DateTime? CompletedAt,
+    LogisticsAssigneeDto? Owner = null, string Visibility = "Members", DateTime? ArchivedAt = null, int Cards = 0, int Done = 0, int Overdue = 0,
+    int Unowned = 0, int Mine = 0);
 
 /// <summary>Active and completed boards, newest first (as before). <c>CanManage</c>: Mod, Admin, Owner.</summary>
-public sealed record LogisticsBoardsDto(IReadOnlyList<LogisticsBoardSummaryDto> Active, IReadOnlyList<LogisticsBoardSummaryDto> Completed, bool CanManage);
+public sealed record LogisticsBoardsDto(IReadOnlyList<LogisticsBoardSummaryDto> Active, IReadOnlyList<LogisticsBoardSummaryDto> Completed, bool CanManage,
+    IReadOnlyList<LogisticsBoardSummaryDto>? Archived = null);
 
-public sealed record LogisticsBoardInput(string? Name, string? Description, int? EventId);
+/// <summary>
+/// The board form (managers). Task 067: <c>OwnerUserId</c> = the responsible member (must see the board),
+/// <c>Visibility</c> "Members" / "Private" (null keeps it; Members on a new board), <c>MemberIds</c> = the access list,
+/// replaced as sent (null keeps it).
+/// </summary>
+public sealed record LogisticsBoardInput(string? Name, string? Description, int? EventId, string? OwnerUserId = null, string? Visibility = null,
+    IReadOnlyList<string>? MemberIds = null);
+
+/// <summary>Archive (true) or restore (false) a board or a card (task 067).</summary>
+public sealed record LogisticsArchiveInput(bool Archived);
+
+/// <summary>A board copy's name (task 067).</summary>
+public sealed record LogisticsDuplicateInput(string? Name);
+
+/// <summary>
+/// A new board from a reviewed template (task 067): the board form plus its columns and cards, as the page previewed and
+/// edited them. <c>DueDate</c> "yyyy-MM-dd"; <c>Priority</c> Low / Normal / High / Urgent.
+/// </summary>
+public sealed record LogisticsComposeInput(LogisticsBoardInput Board, IReadOnlyList<LogisticsComposeListInput>? Lists);
+
+public sealed record LogisticsComposeListInput(string? Name, string? State, IReadOnlyList<LogisticsComposeCardInput>? Cards);
+
+public sealed record LogisticsComposeCardInput(string? Title, string? Description, string? Priority, string? DueDate, IReadOnlyList<string>? Checklist);
+
+/// <summary>A template (task 067): columns and suggested cards, each with a deadline <c>OffsetDays</c> from the event date (negative = before).</summary>
+public sealed record LogisticsTemplateDto(string Key, string Name, string Description, IReadOnlyList<LogisticsTemplateListDto> Lists);
+
+public sealed record LogisticsTemplateListDto(string Name, string State, IReadOnlyList<LogisticsTemplateCardDto> Cards);
+
+public sealed record LogisticsTemplateCardDto(string Title, string Description, string Priority, int? OffsetDays, IReadOnlyList<string> Checklist);
 
 public sealed record LogisticsBoardStateInput(bool Completed);
 
@@ -45,7 +82,8 @@ public sealed record LogisticsCardDto(
     int Comments,
     int Attachments);
 
-public sealed record LogisticsListDto(int Id, string Name, IReadOnlyList<LogisticsCardDto> Cards);
+/// <summary>A column; <c>State</c> (task 067) = the status of every card in it: Todo / InProgress / Blocked / Done.</summary>
+public sealed record LogisticsListDto(int Id, string Name, IReadOnlyList<LogisticsCardDto> Cards, string State = "Todo");
 
 /// <summary>
 /// One board: lists by position, cards by position (ties by creation). <c>Labels</c>: every label text on the board,
@@ -60,7 +98,12 @@ public sealed record LogisticsBoardDto(
     IReadOnlyList<LogisticsListDto> Lists,
     IReadOnlyList<string> Labels,
     IReadOnlyList<LogisticsFileDto> Files,
-    bool CanManage);
+    bool CanManage,
+    LogisticsAssigneeDto? Owner = null,
+    string Visibility = "Members",
+    IReadOnlyList<LogisticsAssigneeDto>? Members = null,
+    DateTime? ArchivedAt = null,
+    IReadOnlyList<LogisticsCardDto>? ArchivedCards = null);
 
 public sealed record LogisticsChecklistItemDto(string Task, bool Done);
 
@@ -88,7 +131,9 @@ public sealed record LogisticsCardDetailDto(
     int Version,
     IReadOnlyList<LogisticsCommentDto> Comments,
     IReadOnlyList<LogisticsAttachmentDto> Attachments,
-    IReadOnlyList<LogisticsActivityDto> Activity);
+    IReadOnlyList<LogisticsActivityDto> Activity,
+    DateTime? ArchivedAt = null,
+    bool ReadOnly = false);
 
 /// <summary>A comment. <c>Mentions</c> = the mentioned members' names; <c>CanEdit</c> (author) and <c>CanDelete</c> (author or manager) for the caller.</summary>
 public sealed record LogisticsCommentDto(int Id, LogisticsPersonDto? Author, string Body, IReadOnlyList<string> Mentions, DateTime CreatedAt,
@@ -101,7 +146,8 @@ public sealed record LogisticsAttachmentDto(int Id, string Kind, string Name, st
 /// <summary>One history line: who, when, and what (already in pt-PT).</summary>
 public sealed record LogisticsActivityDto(LogisticsPersonDto? Actor, string Action, string Detail, DateTime At);
 
-public sealed record LogisticsListInput(string? Name);
+/// <summary>A column's name and (task 067) state; a null state keeps it (new column: Todo).</summary>
+public sealed record LogisticsListInput(string? Name, string? State = null);
 
 public sealed record LogisticsPositionInput(int Position);
 
@@ -148,6 +194,7 @@ public sealed record LogisticsReminderInput(int CardId, string? Frequency, DateT
 
 public sealed record LogisticsReminderDto(int Id, int CardId, string Frequency, DateTime NextReminderDate, int Members);
 
-public sealed record LogisticsFileDto(string Name, string Extension, long SizeBytes);
+/// <summary>A board file. <c>Id</c> (task 067) addresses it ("f:name" in the board's own folder, "l:year/name" in its pre-067 folder of that fiscal <c>Year</c>).</summary>
+public sealed record LogisticsFileDto(string Name, string Extension, long SizeBytes, string Id = "", string? Year = null);
 
 public sealed record LogisticsFileUpload(Stream Content, string FileName, string ContentType, long Length);

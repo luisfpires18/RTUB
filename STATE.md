@@ -6,7 +6,14 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-02 (2.3.0 released to PROD; `dev` on 2.3.1)_
 
 ## Phase
-**Task 066 = Logística 2/5** (issue #247; `feat/066/logistics-card-workspace`, PR open, not merged). The card is a
+**Task 067 = Logística 3/5** (issue #248; `feat/067/logistics-board-access`, PR open, not merged; completes the first
+delivery #246-#248). Private boards (access list; inaccessible = 404 everywhere, Documentação too), responsible member
+(no rights), workflow columns (column = status; legacy columns mapped once at startup, mixed ones split), stable board
+files (`logistics/{env}/boards/{id}/files/`, old per-year folders still listed), archive (read-only), duplicate
+card / board, templates (FITAB, deslocação). Migration `AddLogisticsBoardAccess` (additive). Rollback caveat: the old app
+shows private boards to everyone. Next after review: #249.
+
+**Task 066 = Logística 2/5** (issue #247; PR #266 merged into `dev`, not released). The card is a
 workspace: owner ("Atribuir a") + collaborators (assignment rows, no data rewritten), priority, version-checked field
 edits (409 + conflict choices), checklist edits one item at a time, comments with @mentions (author edits; author or
 manager deletes), a pt-PT history, and the card's own files (stable key `logistics/{env}/cards/…`) and links. One

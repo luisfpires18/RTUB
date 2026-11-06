@@ -33,8 +33,11 @@ public sealed partial class LogisticsKanbanService
     /// access). <c>CanWork</c>: owner, collaborator or manager - edits its fields and checklist, status, comments,
     /// attaches. <c>Manager</c>: everything else.
     /// </summary>
-    private sealed record CardAccess(int BoardId, string? UserId, bool Viewer, bool Manager, bool Owner, bool Collaborator)
+    private sealed record CardAccess(LogisticsBoard Board, string? UserId, bool Viewer, bool Manager, bool Owner, bool Collaborator, bool ReadOnly)
     {
+        public int BoardId => Board.Id;
+
+        /// <summary>Owner, collaborator or manager - and still able to see the board: assignment never grants access (067).</summary>
         public bool CanWork => Viewer && (Manager || Owner || Collaborator);
     }
 
@@ -42,10 +45,11 @@ public sealed partial class LogisticsKanbanService
     {
         var me = LogisticsAuthorization.UserId(user);
         var boardId = await db.LogisticsLists.Where(l => l.Id == card.ListId).Select(l => l.BoardId).SingleAsync();
+        var board = (await db.LogisticsBoards.FindAsync(boardId))!;
         var collaborator = me is not null && await db.LogisticsCardAssignments.AnyAsync(a => a.CardId == card.Id && a.UserId == me);
-        // Viewer: RefusalAsync already refused visitors and expelled accounts; phase 3 adds the board's access list here.
-        return new CardAccess(boardId, me, Viewer: me is not null, LogisticsAuthorization.CanManage(user),
-            Owner: me is not null && card.AssignedToUserId == me, collaborator);
+        // RefusalAsync already refused visitors and expelled accounts; the board rule (067) decides the rest.
+        return new CardAccess(board, me, Viewer: me is not null && await CanSeeBoardAsync(db, board, user), LogisticsAuthorization.CanManage(user),
+            Owner: me is not null && card.AssignedToUserId == me, collaborator, ReadOnly: card.ArchivedAt is not null || board.ArchivedAt is not null);
     }
 
     /// <summary>The caller's view of one card: 401 / 403 / 404, or the card and the access.</summary>
@@ -67,8 +71,9 @@ public sealed partial class LogisticsKanbanService
         var access = await AccessAsync(db, card, user);
         if (!access.Viewer)
         {
+            // A private board's card is not disclosed (067).
             await db.DisposeAsync();
-            return (EventResult<T>.Fail(EventResultStatus.Forbidden), null, null, null);
+            return (EventResult<T>.Fail(EventResultStatus.NotFound), null, null, null);
         }
 
         return (null, db, card, access);
@@ -147,7 +152,7 @@ public sealed partial class LogisticsKanbanService
             }
 
             var mentions = (input.MentionUserIds ?? Array.Empty<string>()).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct().ToList();
-            if (mentions.Count > MaxMentions || await db.Users.CountAsync(u => mentions.Contains(u.Id) && !u.IsExpelled) != mentions.Count)
+            if (mentions.Count > MaxMentions || (await BoardViewersAsync(db, access.Board, mentions)).Count != mentions.Count)
             {
                 return EventResult<LogisticsCardDetailDto>.Invalid("mentionUserIds", "Só pode mencionar membros com acesso a este quadro (máx. 20).");
             }
@@ -208,6 +213,11 @@ public sealed partial class LogisticsKanbanService
 
         await using (db)
         {
+            if (access!.ReadOnly)
+            {
+                return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.Closed);
+            }
+
             await using var transaction = await db!.Database.BeginTransactionAsync();
             if (await db.LogisticsCardComments.Include(c => c.Author).FirstOrDefaultAsync(c => c.Id == commentId && c.CardId == card!.Id) is not { } comment)
             {
@@ -266,6 +276,11 @@ public sealed partial class LogisticsKanbanService
         if (!access!.CanWork)
         {
             return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.Forbidden);
+        }
+
+        if (access.ReadOnly)
+        {
+            return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.Closed);
         }
 
         _audit.SetUser(user.Identity?.Name, access.UserId);
@@ -442,17 +457,19 @@ public sealed partial class LogisticsKanbanService
             Links(card.AttachmentsJson).Select(l => new LogisticsLinkDto(l.CardId, l.Name)).ToList(),
             collaborators.Select(a => Assignee(a, access.Manager)).ToList(),
             access.Manager,
-            access.CanWork,
+            access.CanWork && !access.ReadOnly,
             card.Version,
             comments.Select(c => new LogisticsCommentDto(c.Id, Person(c.Author), c.Body,
                 Read<string>(c.MentionsJson).Where(names.ContainsKey).Select(m => names[m]).ToList(), Utc(c.CreatedAt), c.EditedAt is { } e ? Utc(e) : null,
-                CanEdit: c.AuthorId is not null && c.AuthorId == access.UserId && access.CanWork,
-                CanDelete: access.Manager || (c.AuthorId is not null && c.AuthorId == access.UserId))).ToList(),
+                CanEdit: c.AuthorId is not null && c.AuthorId == access.UserId && access.CanWork && !access.ReadOnly,
+                CanDelete: !access.ReadOnly && (access.Manager || (c.AuthorId is not null && c.AuthorId == access.UserId)))).ToList(),
             attachments.Select(a => new LogisticsAttachmentDto(a.Id, a.Kind.ToString(), a.Name,
                 a.Kind == CardAttachmentKind.Link && Uri.TryCreate(a.Url, UriKind.Absolute, out var u) ? u.Host : null,
                 a.SizeBytes, a.Kind == CardAttachmentKind.File ? Path.GetExtension(a.Name) : null, Person(a.UploadedBy), Utc(a.CreatedAt),
-                CanDelete: access.Manager || (access.CanWork && a.UploadedById is not null && a.UploadedById == access.UserId))).ToList(),
-            activity.Select(a => new LogisticsActivityDto(Person(a.Actor), a.Action, a.Detail, Utc(a.CreatedAt))).ToList());
+                CanDelete: !access.ReadOnly && (access.Manager || (access.CanWork && a.UploadedById is not null && a.UploadedById == access.UserId)))).ToList(),
+            activity.Select(a => new LogisticsActivityDto(Person(a.Actor), a.Action, a.Detail, Utc(a.CreatedAt))).ToList(),
+            card.ArchivedAt is null ? null : Utc(card.ArchivedAt.Value),
+            access.ReadOnly);
     }
 
     // ---------------------------------------------------------------- small helpers

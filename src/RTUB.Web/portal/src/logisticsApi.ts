@@ -6,11 +6,28 @@ import { call, type Outcome } from './eventsApi';
 // (LogisticsKanbanService).
 
 export type LogisticsEvent = { id: number; name: string; date: string };
-export type BoardSummary = { id: number; name: string; description: string; event: LogisticsEvent | null; isCompleted: boolean; completedAt: string | null };
-export type Boards = { active: BoardSummary[]; completed: BoardSummary[]; canManage: boolean };
+export type Visibility = 'Members' | 'Private';
+/** A board in the list (task 067): responsible member, visibility, archive, and its active cards' counts. */
+export type BoardSummary = {
+  id: number;
+  name: string;
+  description: string;
+  event: LogisticsEvent | null;
+  isCompleted: boolean;
+  completedAt: string | null;
+  owner: Assignee | null;
+  visibility: Visibility;
+  archivedAt: string | null;
+  cards: number;
+  done: number;
+  overdue: number;
+  unowned: number;
+  mine: number;
+};
+export type Boards = { active: BoardSummary[]; completed: BoardSummary[]; archived: BoardSummary[]; canManage: boolean };
 export type Label = { text: string; color: string };
 export type Person = { displayName: string; fullName: string | null; avatarUrl: string | null };
-export type Status = 'Todo' | 'InProgress' | 'Done';
+export type Status = 'Todo' | 'InProgress' | 'Blocked' | 'Done';
 export type Priority = 'Low' | 'Normal' | 'High' | 'Urgent';
 export type Card = {
   id: number;
@@ -32,8 +49,10 @@ export type Card = {
   comments: number;
   attachments: number;
 };
-export type List = { id: number; name: string; cards: Card[] };
-export type BoardFile = { name: string; extension: string; sizeBytes: number };
+/** A column; `state` (task 067) is the status of every card in it. */
+export type List = { id: number; name: string; cards: Card[]; state: Status };
+/** `id` addresses the file ("f:…" the board's own folder, "l:year/…" its pre-067 folder of that fiscal `year`). */
+export type BoardFile = { name: string; extension: string; sizeBytes: number; id: string; year: string | null };
 export type Board = {
   id: number;
   name: string;
@@ -44,6 +63,11 @@ export type Board = {
   labels: string[];
   files: BoardFile[];
   canManage: boolean;
+  owner: Assignee | null;
+  visibility: Visibility;
+  members: Assignee[];
+  archivedAt: string | null;
+  archivedCards: Card[];
 };
 /** `userId` only for managers (they change assignments); null for everyone else. */
 export type Assignee = { userId: string | null; displayName: string; fullName: string | null; avatarUrl: string | null };
@@ -64,6 +88,9 @@ export type CardDetail = {
   comments: CardComment[];
   attachments: CardAttachment[];
   activity: CardActivity[];
+  archivedAt: string | null;
+  /** The card or its board is archived: read-only until a manager restores it. */
+  readOnly: boolean;
 };
 export type CardComment = {
   id: number;
@@ -106,22 +133,41 @@ const q = (params: Record<string, string>) => {
   return s ? `?${s}` : '';
 };
 
+export type BoardInput = {
+  name: string;
+  description: string;
+  eventId: number | null;
+  ownerUserId: string | null;
+  visibility: Visibility;
+  memberIds: string[];
+};
+export type TemplateCard = { title: string; description: string; priority: Priority; offsetDays: number | null; checklist: string[] };
+export type Template = { key: string; name: string; description: string; lists: { name: string; state: Status; cards: TemplateCard[] }[] };
+export type ComposeCard = { title: string; description: string; priority: Priority; dueDate: string | null; checklist: string[] };
+export type ComposeInput = { board: BoardInput; lists: { name: string; state: Status; cards: ComposeCard[] }[] };
+
 export const logisticsApi = {
   boards: (search: string) => call<Boards>('GET', `/api/logistics${q({ q: search })}`),
   events: (search: string) => call<LogisticsEvent[]>('GET', `/api/logistics/events${q({ q: search })}`),
-  members: (search: string) => call<MemberOption[]>('GET', `/api/logistics/members${q({ q: search })}`),
-  createBoard: (input: { name: string; description: string; eventId: number | null }) => call<BoardSummary>('POST', '/api/logistics/boards', input),
-  updateBoard: (id: number, input: { name: string; description: string; eventId: number | null }) => call<BoardSummary>('PUT', `/api/logistics/boards/${id}`, input),
+  /** With `boardId`: only members who may see that board (task 067). */
+  members: (search: string, boardId?: number) => call<MemberOption[]>('GET', `/api/logistics/members${q({ q: search, boardId: boardId ? String(boardId) : '' })}`),
+  createBoard: (input: BoardInput) => call<BoardSummary>('POST', '/api/logistics/boards', input),
+  updateBoard: (id: number, input: BoardInput) => call<BoardSummary>('PUT', `/api/logistics/boards/${id}`, input),
   setBoardState: (id: number, completed: boolean) => call<BoardSummary>('POST', `/api/logistics/boards/${id}/state`, { completed }),
+  archiveBoard: (id: number, archived: boolean) => call<BoardSummary>('POST', `/api/logistics/boards/${id}/archive`, { archived }),
+  duplicateBoard: (id: number, name: string) => call<BoardSummary>('POST', `/api/logistics/boards/${id}/duplicate`, { name }),
+  templates: () => call<Template[]>('GET', '/api/logistics/templates'),
+  compose: (input: ComposeInput) => call<BoardSummary>('POST', '/api/logistics/boards/compose', input),
   removeBoard: (id: number) => call<void>('DELETE', `/api/logistics/boards/${id}`),
 
   // Without the files (a storage round trip): fileList brings them on a second request.
   board: (id: number) => call<Board>('GET', `/api/logistics/boards/${id}?files=false`),
   fileList: (id: number) => call<BoardFile[]>('GET', `/api/logistics/boards/${id}/file-list`),
-  createList: (boardId: number, name: string) => call<List>('POST', `/api/logistics/boards/${boardId}/lists`, { name }),
-  renameList: (id: number, name: string) => call<List>('PUT', `/api/logistics/lists/${id}`, { name }),
+  createList: (boardId: number, name: string, state: Status) => call<List>('POST', `/api/logistics/boards/${boardId}/lists`, { name, state }),
+  renameList: (id: number, name: string, state: Status) => call<List>('PUT', `/api/logistics/lists/${id}`, { name, state }),
   moveList: (id: number, position: number) => call<void>('POST', `/api/logistics/lists/${id}/move`, { position }),
-  removeList: (id: number) => call<void>('DELETE', `/api/logistics/lists/${id}`),
+  /** A column with cards needs `moveTo` (another column of the board); its cards take that column's state. */
+  removeList: (id: number, moveTo?: number) => call<void>('DELETE', `/api/logistics/lists/${id}${q({ moveTo: moveTo ? String(moveTo) : '' })}`),
 
   createCard: (listId: number, input: { title: string; description: string; assignedToUserId: string | null }) =>
     call<CardDetail>('POST', `/api/logistics/lists/${listId}/cards`, input),
@@ -143,6 +189,8 @@ export const logisticsApi = {
   assign: (id: number, userId: string) => call<CardDetail>('POST', `/api/logistics/cards/${id}/assignments`, { userId }),
   unassign: (id: number, userId: string) => call<CardDetail>('DELETE', `/api/logistics/cards/${id}/assignments/${encodeURIComponent(userId)}`),
   removeCard: (id: number) => call<void>('DELETE', `/api/logistics/cards/${id}`),
+  archiveCard: (id: number, archived: boolean) => call<CardDetail>('POST', `/api/logistics/cards/${id}/archive`, { archived }),
+  duplicateCard: (id: number) => call<CardDetail>('POST', `/api/logistics/cards/${id}/duplicate`),
 
   comment: (id: number, body: string, mentionUserIds: string[]) => call<CardDetail>('POST', `/api/logistics/cards/${id}/comments`, { body, mentionUserIds }),
   editComment: (commentId: number, body: string) => call<CardDetail>('PUT', `/api/logistics/comments/${commentId}`, { body }),
@@ -153,18 +201,19 @@ export const logisticsApi = {
 
   createReminder: (boardId: number, input: { cardId: number; frequency: string; nextReminderDate: string; userIds: string[] }) =>
     call<unknown>('POST', `/api/logistics/boards/${boardId}/reminders`, input),
-  file: (boardId: number, name: string) => call<{ url: string }>('GET', `/api/logistics/boards/${boardId}/files${q({ name })}`),
+  file: (boardId: number, id: string) => call<{ url: string }>('GET', `/api/logistics/boards/${boardId}/files${q({ file: id })}`),
   upload: (boardId: number, file: File) => {
     const form = new FormData();
     form.append('file', file, file.name);
     return call<BoardFile>('POST', `/api/logistics/boards/${boardId}/files`, form);
   },
-  removeFile: (boardId: number, name: string) => call<void>('DELETE', `/api/logistics/boards/${boardId}/files${q({ name })}`),
+  removeFile: (boardId: number, id: string) => call<void>('DELETE', `/api/logistics/boards/${boardId}/files${q({ file: id })}`),
 };
 
 export const STATUS: Record<Status, { label: string; name: string }> = {
   Todo: { label: 'TODO', name: 'Por fazer' },
   InProgress: { label: 'WIP', name: 'Em curso' },
+  Blocked: { label: 'BLOQ', name: 'Bloqueado' },
   Done: { label: 'DONE', name: 'Feito' },
 };
 
@@ -173,10 +222,12 @@ export const PRIORITY: Record<Priority, string> = { Low: 'Baixa', Normal: 'Norma
 export const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'conflict'
     ? 'O cartão foi alterado por outra pessoa entretanto.'
+    : o.kind === 'closed'
+      ? 'Está arquivado: só leitura.'
     : o.kind === 'invalid'
     ? Object.values(o.errors)[0]
     : o.kind === 'forbidden'
-      ? 'Sem permissão: só o responsável, os colaboradores, Mod, Admin ou Owner.'
+      ? 'Não tem permissão para fazer isto.'
       : o.kind === 'notfound'
         ? 'Isto já não existe. Recarrega a página.'
         : o.kind === 'signin'
