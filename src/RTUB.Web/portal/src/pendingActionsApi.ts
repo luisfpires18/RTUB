@@ -3,8 +3,11 @@ import { call, type Outcome } from './api';
 // /api/pending-actions (Endpoints/PendingActionsEndpoints.cs, task 071, docs/react-pending-actions.md). The server decides
 // every panel, row, count and whether a row is required or may be dismissed (PendingActionsService); the page only shows.
 
-/** A link to the module's page, or (task 072) an in-page answer sent to /responses. */
-export type ActionButton = { label: string; href: string | null; primary: boolean; answer: 'yes' | 'no' | null };
+/**
+ * A link to the module's page, or an in-page answer sent to /responses: 'yes' / 'no' (072), 'done' / 'close' (073).
+ * `confirm`: the server's question to ask first (a change the member cannot undo here).
+ */
+export type ActionButton = { label: string; href: string | null; primary: boolean; answer: string | null; confirm: string | null };
 export type ActionRow = {
   kind: string;
   sourceKey: string;
@@ -42,7 +45,7 @@ export type PendingActions = {
   instruments: InstrumentOption[];
   defaultInstrument: string | null;
 };
-export type Answer = { answer: 'yes' | 'no'; instrument?: string | null; notes?: string | null };
+export type Answer = { answer: string; instrument?: string | null; notes?: string | null };
 
 export const pendingActionsApi = {
   page: (): Promise<Outcome<PendingActions>> => call('GET', '/api/pending-actions'),

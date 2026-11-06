@@ -14,3 +14,9 @@ Source: `RequestsAuthorization, QuestionsAuthorization`. Page doc: [react-reques
 | /questions: the author only | close, delete (soft), remind while it is the recipient's turn |
 
 No role (Admin, Owner) overrides the questions rules. The menu shows "Pedidos" to the Admin role only.
+
+## As minhas ações pendentes (073)
+
+`/pending-actions` → Questões lists the caller's own open questions and **Fechar questão** calls
+`QuestionBoardService.CloseAsync` as the caller: still the author only, no role override. Detail:
+[pending-actions](pending-actions.md).

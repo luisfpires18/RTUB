@@ -63,6 +63,14 @@ public sealed record PendingActionMember(
     public DateTime PastFrom => JoinedOn is { } joined && joined > FiscalYearStartDate ? joined : FiscalYearStartDate;
 
     public string FiscalYear => $"{FiscalYearStart}-{FiscalYearStart + 1}";
+
+    /// <summary>
+    /// The member as a signed-in principal carrying the roles read from the database for this call (task 073), so a module
+    /// service called from the page applies its own rules (LogisticsAuthorization, QuestionsAuthorization) to the
+    /// member's current roles, not to the cookie's.
+    /// </summary>
+    public ClaimsPrincipal ToPrincipal() => new(new ClaimsIdentity(
+        Roles.Select(r => new Claim(ClaimTypes.Role, r)).Prepend(new Claim(ClaimTypes.NameIdentifier, UserId)), "pending-actions"));
 }
 
 /// <summary>
@@ -102,4 +110,18 @@ public interface IPendingActionResponder
 
     Task<EventResult<bool>> RespondAsync(ApplicationDbContext db, PendingActionMember member, string sourceKey, bool yes,
         InstrumentType? instrument, string? otherInstruments, string? notes);
+}
+
+/// <summary>
+/// A source whose rows carry one-word commands run in place (task 073: Logística "done", Questões "close"). The service
+/// has checked the member and that the answer is one of <see cref="Answers"/>; the command re-checks the row is pending for
+/// the member and runs the module's own service, whose rules decide (and may refuse).
+/// </summary>
+public interface IPendingActionCommand
+{
+    string Kind { get; }
+
+    IReadOnlySet<string> Answers { get; }
+
+    Task<EventResult<bool>> RunAsync(ApplicationDbContext db, PendingActionMember member, string sourceKey, string answer);
 }

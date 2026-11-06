@@ -5,9 +5,11 @@ namespace RTUB.Application.DTOs;
 
 /// <summary>
 /// One button of a row: a link (<c>Href</c>) to the module's own page, where the action is done with that module's rules,
-/// or an in-page answer (<c>Answer</c> "yes" / "no", task 072) sent to <c>POST /api/pending-actions/responses</c>.
+/// or an in-page answer (<c>Answer</c>: "yes" / "no", task 072; "done", "close", task 073) sent to
+/// <c>POST /api/pending-actions/responses</c>. <c>Confirm</c>: a question the page asks before sending (a change the
+/// member cannot undo from here, e.g. closing a question).
 /// </summary>
-public sealed record PendingActionButtonDto(string Label, string? Href, bool Primary, string? Answer = null);
+public sealed record PendingActionButtonDto(string Label, string? Href, bool Primary, string? Answer = null, string? Confirm = null);
 
 /// <summary>
 /// One action. <c>Kind</c> + <c>SourceKey</c> identify it (for a dismissal or an answer); <c>Href</c>, when set, is the

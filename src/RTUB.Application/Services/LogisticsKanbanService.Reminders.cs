@@ -175,6 +175,24 @@ public sealed partial class LogisticsKanbanService
     // ---------------------------------------------------------------- As minhas tarefas
 
     /// <summary>
+    /// Cards that are work for <paramref name="user"/>'s lists: not archived, on a board they see (members-visible, or
+    /// private with them on the access list, or any for Mod / Admin / Owner) that is not archived. The one visibility rule
+    /// of "As minhas tarefas" and of "As minhas ações pendentes" → Logística (task 073); callers add the assignment filter.
+    /// </summary>
+    internal static IQueryable<LogisticsCard> WorkableCards(ApplicationDbContext db, ClaimsPrincipal user)
+    {
+        var boards = VisibleBoards(db, user).Where(b => b.ArchivedAt == null).Select(b => b.Id);
+        return db.LogisticsCards.AsNoTracking().Where(c => c.ArchivedAt == null && boards.Contains(c.List.BoardId));
+    }
+
+    /// <summary>Ticked and total checklist items of a card's stored checklist (as "As minhas tarefas" counts them).</summary>
+    internal static (int Done, int Total) ChecklistProgress(string? checklistJson)
+    {
+        var tasks = Tasks(checklistJson);
+        return (tasks.Count(t => t.Done), tasks.Count);
+    }
+
+    /// <summary>
     /// The caller's cards (owner or collaborator) on the boards they see, archived work left out; managers also get the
     /// open cards without a responsible member. Counts and filters are the page's, over this list.
     /// </summary>
@@ -188,9 +206,7 @@ public sealed partial class LogisticsKanbanService
         var me = LogisticsAuthorization.UserId(user)!;
         var manage = LogisticsAuthorization.CanManage(user);
         await using var db = await _contexts.CreateDbContextAsync();
-        var boards = VisibleBoards(db, user).Where(b => b.ArchivedAt == null).Select(b => b.Id);
-        var rows = await db.LogisticsCards.AsNoTracking()
-            .Where(c => c.ArchivedAt == null && boards.Contains(c.List.BoardId))
+        var rows = await WorkableCards(db, user)
             .Where(c => c.AssignedToUserId == me || c.Assignments.Any(a => a.UserId == me) || (manage && c.AssignedToUserId == null && c.Status != CardStatus.Done))
             .Select(c => new { c.Id, c.List.BoardId, Board = c.List.Board.Name, c.Title, c.Status, c.Priority, c.DueDate, c.AssignedToUserId, c.ChecklistJson })
             .ToListAsync();
