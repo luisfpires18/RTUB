@@ -15431,3 +15431,503 @@ html.app-screen .footer {
   width: 100%;
   min-width: 0;
 }
+
+/* ---- Logística: views, summary, list and calendar (task 070) ---- */
+.lx-views {
+  display: inline-flex;
+  max-width: 100%;
+  overflow: hidden;
+  margin-block: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+}
+
+.lx-views button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: 600 0.875rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.lx-views button + button {
+  border-left: 1px solid var(--line);
+}
+
+.lx-views button[aria-pressed="true"] {
+  background: var(--royal);
+  color: var(--ink);
+}
+
+.lx-summary {
+  display: grid;
+  gap: 8px;
+  margin-block: 14px;
+}
+
+.lx-summary__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.lx-summary__metric {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+}
+
+.lx-summary__metric dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.lx-summary__metric dd {
+  margin: 2px 0 0;
+  font: 700 1.25rem/1.2 var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.lx-summary__metric--late dd { color: var(--st-todo); }
+.lx-summary__metric--blocked dd { color: var(--st-blocked); }
+.lx-summary__metric--warn dd { color: var(--st-wip); }
+
+.lx-summary__bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.lx-summary__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--st-done);
+}
+
+.lx-summary__note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.lx-muted {
+  color: var(--muted);
+}
+
+.lx-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--purple-ink);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* List: a table on wide screens, stacked cards on phones. */
+.lx-table-wrap {
+  min-width: 0;
+}
+
+.lx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.lx-table th,
+.lx-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.lx-table thead th {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lx-table__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.lx-table__sort[aria-pressed="true"] {
+  color: var(--ink);
+}
+
+.lx-row__title {
+  min-width: 200px;
+  font-weight: 400;
+}
+
+.lx-row__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 600 0.9375rem/1.35 var(--font-body);
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.lx-row__open:hover,
+.lx-row__open:focus-visible {
+  color: var(--purple-ink);
+  text-decoration: underline;
+}
+
+.lx-row__labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.lx-row--done .lx-row__open {
+  color: var(--ink-soft);
+}
+
+.lx-table td .lx-chip {
+  margin-left: 4px;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 767px) {
+  .lx-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .lx-table,
+  .lx-table tbody,
+  .lx-table tr,
+  .lx-table th,
+  .lx-table td {
+    display: block;
+  }
+
+  .lx-table tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .lx-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-raise);
+  }
+
+  .lx-table th,
+  .lx-table td {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .lx-row__title {
+    grid-column: 1 / -1;
+  }
+
+  .lx-row__open {
+    min-height: 44px;
+  }
+
+  .lx-table td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+  }
+
+  .lx-summary__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Calendar: a month grid from 768px, an agenda below. */
+.lx-cal {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lx-cal__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lx-cal__title {
+  min-width: 10ch;
+  margin: 0;
+  font: 700 1.125rem/1.2 var(--font-body);
+  text-align: center;
+}
+
+.lx-cal__title::first-letter {
+  text-transform: uppercase;
+}
+
+.lx-cal__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.lx-cal__late {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--st-todo) 50%, transparent);
+  border-radius: 10px;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.lx-cal__late > svg {
+  color: var(--st-todo);
+}
+
+.lx-cal__grid {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.lx-cal__grid th {
+  padding: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.lx-cal__day {
+  height: 104px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.lx-cal__day--other {
+  background: color-mix(in srgb, var(--bg-raise) 40%, transparent);
+}
+
+.lx-cal__day--other .lx-cal__num {
+  color: var(--muted);
+}
+
+.lx-cal__day--today {
+  outline: 2px solid var(--purple-ink);
+  outline-offset: -2px;
+}
+
+.lx-cal__num {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.lx-cal__chip {
+  display: block;
+  width: 100%;
+  min-height: 24px;
+  margin-top: 3px;
+  padding: 3px 6px;
+  overflow: hidden;
+  border: 0;
+  border-left: 3px solid var(--st, var(--line-strong));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--st, var(--line)) 18%, transparent);
+  color: var(--ink);
+  font: 600 0.75rem/1.25 var(--font-body);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lx-cal__chip--todo { --st: var(--st-todo); }
+.lx-cal__chip--inprogress { --st: var(--st-wip); }
+.lx-cal__chip--blocked { --st: var(--st-blocked); }
+.lx-cal__chip--done { --st: var(--st-done); color: var(--ink-soft); text-decoration: line-through; }
+
+.lx-cal__chip--late {
+  box-shadow: inset 0 0 0 1px var(--st-todo);
+}
+
+.lx-cal__chip:focus-visible {
+  outline: 2px solid var(--purple-ink);
+  outline-offset: 1px;
+}
+
+.lx-agenda {
+  display: none;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lx-agenda__day h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font: 700 0.875rem/1.3 var(--font-body);
+}
+
+.lx-agenda .lx-cal__chip {
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.lx-cal__undated summary {
+  min-height: 44px;
+  padding: 10px 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lx-cal__undated-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+}
+
+.lx-cal__undated-list .lx-cal__chip {
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  white-space: normal;
+}
+
+@media (max-width: 767px) {
+  .lx-cal__grid {
+    display: none;
+  }
+
+  .lx-agenda {
+    display: grid;
+  }
+
+  .lx-cal__done {
+    margin-left: 0;
+  }
+}
+
+/* Task 070: the view switcher hugs its buttons; the extra filters fold on phones. */
+.lx-views {
+  justify-self: start;
+  width: fit-content;
+}
+
+.lx-toolbar__more {
+  display: contents;
+}
+
+.lx-more-toggle {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .lx-more-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: none;
+    color: var(--ink-soft);
+    font: 600 0.875rem/1 var(--font-body);
+    cursor: pointer;
+  }
+
+  .lx-more-toggle[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+
+  .lx-toolbar__more {
+    display: none;
+  }
+
+  .lx-toolbar__more--open {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+
+  .lx-toolbar__more .control {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.lx-warn-text {
+  color: var(--st-wip);
+}
+
+@media (min-width: 768px) {
+  .lx-table td[data-label="Responsável"],
+  .lx-table td[data-label="Prioridade"],
+  .lx-table td[data-label="Prazo"],
+  .lx-table td[data-label="Estado"] {
+    white-space: nowrap;
+  }
+
+  .lx-table .lx-due small {
+    display: block;
+  }
+}
+
+.lx-due__note {
+  display: block;
+  font-weight: 500;
+}

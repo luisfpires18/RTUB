@@ -189,6 +189,23 @@ def press(name: str) -> Callable[[Page], None]:
     return run
 
 
+def board_view(view: Optional[str] = None, card: bool = False) -> Callable[[Page], None]:
+    """Task 070: the first Logística board, in one of its views (Quadro / Lista / Calendário), optionally with a card open."""
+
+    def run(page: Page) -> None:
+        page.locator("a.lx-board__open").first.click()
+        page.wait_for_selector(".lx-views", timeout=10000)
+        if view:
+            page.get_by_role("button", name=view, exact=True).first.click()
+            page.wait_for_timeout(300)
+        if card:
+            page.locator("[data-card], .lx-row__open, .lx-cal__chip").first.click()
+            page.wait_for_selector("dialog[open] .lx-ws", timeout=10000)
+        page.wait_for_timeout(400)
+
+    return run
+
+
 def _selected_in_view(page: Page) -> None:
     """The selected member is a focused treeitem (or loose-member link) inside the viewport, and the path bar shows."""
     ok = page.evaluate(
@@ -327,6 +344,14 @@ SCENARIOS: list[Scenario] = [
     Scenario("documentation", "/documentation", auth=True),
     Scenario("logistics", "/logistics", auth=True),
     Scenario("logistics-add", "/logistics", auth=True, action=click("Criar quadro"), dialog=True),
+    # Task 070: every Logística view, the card workspace, the template dialog and "As minhas tarefas".
+    Scenario("logistics-template", "/logistics", auth=True, action=click("A partir de modelo"), dialog=True),
+    Scenario("logistics-board", "/logistics", auth=True, action=board_view()),
+    Scenario("logistics-list", "/logistics", auth=True, action=board_view("Lista")),
+    Scenario("logistics-calendar", "/logistics", auth=True, action=board_view("Calendário")),
+    Scenario("logistics-card", "/logistics", auth=True, action=board_view(card=True), dialog=True),
+    Scenario("logistics-list-card", "/logistics", auth=True, action=board_view("Lista", card=True), dialog=True),
+    Scenario("logistics-tasks", "/logistics/tasks", auth=True),
     Scenario("treasury", "/treasury", auth=True),
     Scenario("treasury-calotes", "/treasury/calotes", auth=True),
     Scenario("treasury-calotes-add", "/treasury/calotes", auth=True, action=click("Adicionar calote"), dialog=True),

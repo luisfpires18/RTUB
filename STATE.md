@@ -6,7 +6,13 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-02 (2.3.0 released to PROD; `dev` on 2.3.1)_
 
 ## Phase
-**Task 069 = Logística 4/5** (issue #249; `feat/069/logistics-reminders-my-tasks`, PR open, not merged). Card
+**Task 070 = Logística 5/5** (issue #250; `feat/070/logistics-list-calendar`, PR open, not merged; closes roadmap #245
+once merged). Board views Quadro / Lista / Calendário over the same authorised cards and filters (no new endpoint),
+board summary (board-wide numbers, filtered count), filters / view / order / month / card in the address, phone
+agenda, folding filters on phones, responsive audit extended (63/63), end-to-end journey on a synthetic board. No
+schema change. Real-device PWA checks still outstanding.
+
+**Task 069 = Logística 4/5** (issue #249; PR #269 merged into `dev`, not released). Card
 reminders delivered (worker every minute; Portugal time, DST-safe; claimed per occurrence; 6 h catch-up; bounded retry;
 at-least-once), pre-069 reminders activated without replay, reminders on the card (members for themselves, managers for
 board viewers), assignment / mention pushes (never the actor), "As minhas tarefas" (`/logistics/tasks`), card deep
