@@ -18,7 +18,7 @@ const CATEGORIES = [
 ];
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const MIN_YEAR = 1990;
-const LOCKED_HINT = 'Data fechada: só o Owner ou o Magister deste ano a corrigem.';
+const LOCKED_HINT = 'Data fechada: só o Magister deste ano a corrige.';
 
 const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'invalid'

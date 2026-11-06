@@ -154,7 +154,7 @@ export default function EventContacts({ eventId }: { eventId: number }) {
         </div>
       ) : list === 'forbidden' ? (
         <div className="notice" role="status">
-          <p>Os contactos de uma atuação são geridos por Mod e acima.</p>
+          <p>Não tem acesso aos contactos desta atuação.</p>
           <a className="btn btn--ghost btn--sm" href={portal.event(eventId)}>
             Voltar à atuação
           </a>

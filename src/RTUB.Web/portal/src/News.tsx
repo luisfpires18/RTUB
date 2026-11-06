@@ -34,7 +34,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'invalid'
     ? Object.values(o.errors)[0]
     : o.kind === 'forbidden'
-      ? 'Só Admin ou Owner gerem as Novidades.'
+      ? 'Não tem permissão para gerir as Novidades.'
       : o.kind === 'notfound'
         ? 'Esta publicação já não existe.'
         : o.kind === 'signin'
@@ -150,7 +150,7 @@ export default function News() {
           {feed.drafts.length > 0 && (
             <section className="news-drafts" aria-labelledby={draftsTitle}>
               <h2 id={draftsTitle} className="news-drafts__title">
-                Rascunhos <span className="note">· só Mod, Admin e Owner os veem</span>
+                Rascunhos <span className="note">· ainda não publicados</span>
               </h2>
               <ol className="talk__feed">{feed.drafts.map(post)}</ol>
             </section>
@@ -357,7 +357,7 @@ function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClose: () =
           <input id={`${fid}-private`} type="checkbox" checked={membersOnly} onChange={(e) => setMembersOnly(e.target.checked)} />
           Privado (só membros): quem não tem sessão iniciada não vê esta publicação
         </label>
-        {!post && <p className="note">Um rascunho só é visto por Admin e Owner até ser publicado.</p>}
+        {!post && <p className="note">Um rascunho não é visível para os membros até ser publicado.</p>}
       </form>
     </Dialog>
   );

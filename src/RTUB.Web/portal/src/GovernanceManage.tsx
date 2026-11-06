@@ -29,7 +29,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'invalid'
     ? Object.values(o.errors)[0]
     : o.kind === 'forbidden'
-      ? 'Só Mod, Admin ou Owner podem gerir os órgãos sociais.'
+      ? 'Não tem permissão para gerir os órgãos sociais.'
       : o.kind === 'notfound'
         ? 'Este cargo já não está atribuído.'
         : o.kind === 'signin'

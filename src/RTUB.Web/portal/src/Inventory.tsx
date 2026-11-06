@@ -83,7 +83,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'invalid'
     ? Object.values(o.errors)[0]
     : o.kind === 'forbidden'
-      ? 'Só Mod, Admin ou Owner gerem os instrumentos.'
+      ? 'Não tem permissão para gerir os instrumentos.'
       : o.kind === 'notfound'
         ? 'Este instrumento já não existe.'
         : o.kind === 'signin'

@@ -21,7 +21,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'invalid'
     ? Object.values(o.errors)[0]
     : o.kind === 'forbidden'
-      ? 'Só quem adicionou este conteúdo, um Admin ou o Owner o pode alterar.'
+      ? 'Só quem adicionou este conteúdo o pode alterar.'
       : o.kind === 'notfound'
         ? 'Este conteúdo já não existe.'
         : o.kind === 'signin'
@@ -135,7 +135,7 @@ export default function Naipes() {
       ) : (
         <>
           {board.instruments.length === 0 ? (
-            <p className="notice">Ainda não há instrumentos visíveis. Um Admin ou o Owner escolhe-os em Configurar.</p>
+            <p className="notice">Ainda não há instrumentos visíveis.</p>
           ) : (
             <ul className="naipe-picker" aria-label="Instrumentos">
               {board.instruments.map((i) => (
