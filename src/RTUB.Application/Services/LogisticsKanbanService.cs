@@ -757,6 +757,12 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
     /// <summary>
     /// One card change. <paramref name="assignedMayChange"/>: a viewer the card is assigned to may make it too (status,
     /// checklist ticks); the assignment is read from the database on this request, so a removed assignee is refused.
+    ///
+    /// The check, the change and the save are one transaction, and Microsoft.Data.Sqlite begins it as BEGIN IMMEDIATE:
+    /// it takes SQLite's write lock before it reads anything, so the reads see the newest committed rows and no other
+    /// write can land between the check and the save: an assignment removal (or a manager's checklist edit) either
+    /// committed first - and is seen - or waits until this change commits (LogisticsAssignmentRaceTests pins it). Without it, a removal committed after the check still let the former
+    /// assignee's write through, and two assignees ticking at once could lose a tick.
     /// </summary>
     private async Task<EventResult<LogisticsCardDetailDto>> ChangeCardAsync(int id, ClaimsPrincipal user, bool assignedMayChange,
         Func<ApplicationDbContext, LogisticsCard, Task<Dictionary<string, string[]>?>> change)
@@ -767,6 +773,7 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
         }
 
         await using var db = await _contexts.CreateDbContextAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
         if (await db.LogisticsCards.FindAsync(id) is not { } card)
         {
             return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.NotFound);
@@ -783,6 +790,7 @@ public sealed class LogisticsKanbanService : ILogisticsKanbanService
         }
 
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
         return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id, user));
     }
 
