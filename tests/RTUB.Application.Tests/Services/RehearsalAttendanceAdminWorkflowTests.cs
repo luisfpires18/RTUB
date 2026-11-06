@@ -54,6 +54,33 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
 
     #region Admin Add Member Workflow Tests
 
+    /// <summary>
+    /// Task 072 ("As minhas ações pendentes"): a member's first answer is created pending, with its category snapshot, and
+    /// an existing presença - pending, approved or "não vou" - is never touched.
+    /// </summary>
+    [Fact]
+    public async Task AddFirstAttendance_CreatesAPendingRow_AndNeverOverwritesAnExistingOne()
+    {
+        var past = Rehearsal.Create(DateTime.Now.AddDays(-3), "Test Location");
+        var approved = Rehearsal.Create(DateTime.Now.AddDays(-4), "Test Location");
+        _context.Rehearsals.AddRange(past, approved);
+        await _context.SaveChangesAsync();
+
+        var created = await _attendanceService.AddFirstAttendanceAsync(past.Id, "self-report", true, InstrumentType.Bandolim, "fui", null, skipNotification: true);
+        var confirmed = await _attendanceService.MarkAttendanceAsync(approved.Id, "self-report", true, InstrumentType.Guitarra);
+        await _attendanceService.UpdateAttendanceAsync(confirmed.Id, true, InstrumentType.Guitarra);
+
+        created.Attended.Should().BeFalse("a self-report waits for approval");
+        created.WillAttend.Should().BeTrue();
+        await FluentActions.Invoking(() => _attendanceService.AddFirstAttendanceAsync(past.Id, "self-report", false))
+            .Should().ThrowAsync<InvalidOperationException>();
+        await FluentActions.Invoking(() => _attendanceService.AddFirstAttendanceAsync(approved.Id, "self-report", false))
+            .Should().ThrowAsync<InvalidOperationException>();
+        (await _attendanceService.GetAttendanceByIdAsync(created.Id))!.WillAttend.Should().BeTrue("the first answer stays");
+        (await _attendanceService.GetAttendanceByIdAsync(confirmed.Id))!.Attended.Should().BeTrue("approved history stays");
+        _mockRetirementStatusService.Verify(s => s.ReconcileMemberStatusAsync(It.IsAny<string>()), Times.Once(), "only the approval reconciles");
+    }
+
     [Fact]
     public async Task AdminAddMember_ShouldCreateAttendanceAndMarkAsAttended()
     {

@@ -15,8 +15,9 @@ using Xunit;
 namespace RTUB.Integration.Tests.Api;
 
 /// <summary>
-/// /api/pending-actions and /pending-actions (task 071) through the real host: real login, antiforgery and SQLite (so
-/// the panel queries are proven to translate). Other tests share this database, so these assert on their own rows,
+/// /api/pending-actions and /pending-actions (tasks 071 / 072) through the real host: real login, antiforgery and SQLite
+/// (so the panel queries are proven to translate), and the answers through the real EnrollmentService /
+/// RehearsalAttendanceService and the real unique indexes. Other tests share this database, so these assert on their own rows,
 /// never on totals that other tests could change.
 /// </summary>
 public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
@@ -118,7 +119,112 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
         again.Headers.Location!.ToString().Should().Be("/pending-actions", "a signed-in active member opening /login goes to the same place");
     }
 
+    // ---------- answers (072) ----------
+
+    [Fact]
+    public async Task Answers_WriteTheModulesOwnRows_AndTheModulePagesAgree()
+    {
+        // Past prompts need a past day of this fiscal year: none exists on 1-3 September.
+        var today = PortugalTime.Today(TimeProvider.System);
+        Assert.SkipWhen((today - new DateTime(today.Month >= 9 ? today.Year : today.Year - 1, 9, 1)).Days < 3,
+            "the first days of a fiscal year have no past day to answer yet");
+        var (member, me) = await SignInAsync([MemberCategory.Leitao], retired: false);
+        await WithTokenAsync(member);
+        var upcoming = await AddEventAsync(NextDay());
+        var pastEvent = await AddEventAsync(-1);
+        var rehearsal = await AddRehearsalAsync(NextDay());
+        var pastRehearsal = await AddRehearsalAsync(-2);
+        var missed = await AddRehearsalAsync(-3);
+
+        (await Answer(member, "event.response", upcoming, "yes", "Guitarra", "Levo o estojo")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await Answer(member, "event.response", pastEvent, "no")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await Answer(member, "rehearsal.response", rehearsal, "no")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await Answer(member, "rehearsal.response", pastRehearsal, "yes")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var going = await db.Enrollments.AsNoTracking().SingleAsync(x => x.EventId == upcoming && x.UserId == me.Id);
+            going.WillAttend.Should().BeTrue();
+            going.Instrument.Should().Be(InstrumentType.Guitarra);
+            going.Notes.Should().Be("Levo o estojo");
+            going.CategoryAtEvent.Should().Be(MemberCategory.Leitao, "the service's category snapshot");
+            (await db.Enrollments.AsNoTracking().SingleAsync(x => x.EventId == pastEvent && x.UserId == me.Id)).WillAttend.Should().BeFalse(
+                "a Não fui is kept as an answer, not just a hidden row");
+            (await db.RehearsalAttendances.AsNoTracking().SingleAsync(a => a.RehearsalId == rehearsal && a.UserId == me.Id)).WillAttend.Should().BeFalse();
+            var selfReport = await db.RehearsalAttendances.AsNoTracking().SingleAsync(a => a.RehearsalId == pastRehearsal && a.UserId == me.Id);
+            (selfReport.WillAttend, selfReport.Attended).Should().Be((true, false), "a Fui waits for approval");
+            (await db.Rehearsals.CountAsync(r => r.Id == pastRehearsal)).Should().Be(1, "no rehearsal is created");
+        }
+
+        // The module pages show the same answers; the page no longer lists them, the unanswered one still is.
+        (await member.GetFromJsonAsync<JsonElement>($"/api/events/{upcoming}/enrollment")).GetProperty("status").GetString().Should().Be("going");
+        (await member.GetFromJsonAsync<JsonElement>($"/api/rehearsals/{pastRehearsal}")).GetProperty("rehearsal").GetProperty("mine")
+            .GetProperty("status").GetString().Should().Be("pending");
+        (await AllKeysAsync(member, "events", "upcoming")).Should().NotContain(upcoming.ToString());
+        (await AllKeysAsync(member, "events", "past")).Should().NotContain(pastEvent.ToString());
+        (await AllKeysAsync(member, "rehearsals", "past")).Should().Contain(missed.ToString()).And.NotContain(pastRehearsal.ToString());
+    }
+
+    [Fact]
+    public async Task Answers_NeedTheToken_AndRetriesOrRacesNeverWriteTwice()
+    {
+        var (member, me) = await SignInAsync([MemberCategory.Tuno], retired: false);
+        var id = await AddEventAsync(NextDay());
+
+        (await Answer(member, "event.response", id, "yes")).StatusCode.Should().Be(HttpStatusCode.BadRequest, "no X-CSRF-TOKEN");
+        await WithTokenAsync(member);
+        var answers = await Task.WhenAll(Enumerable.Range(0, 4).Select(i => Answer(member, "event.response", id, i % 2 == 0 ? "yes" : "no")));
+
+        answers.Count(r => r.StatusCode == HttpStatusCode.NoContent).Should().Be(1);
+        answers.Where(r => r.StatusCode != HttpStatusCode.NoContent).Select(r => r.StatusCode).Should()
+            .OnlyContain(c => c == HttpStatusCode.NotFound || c == HttpStatusCode.Conflict);
+        using var scope = _factory.Services.CreateScope();
+        (await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Enrollments.CountAsync(x => x.EventId == id && x.UserId == me.Id)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task AnActivityChangedSinceTheRead_IsRefusedHonestly()
+    {
+        var (member, me) = await SignInAsync([MemberCategory.Tuno], retired: false);
+        await WithTokenAsync(member);
+        var cancelled = await AddEventAsync(NextDay());
+        var answeredElsewhere = await AddRehearsalAsync(NextDay());
+        await CancelEventAsync(cancelled);
+        await AttendAsync(answeredElsewhere, me.Id, approved: true);
+
+        (await Answer(member, "event.response", cancelled, "yes")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await Answer(member, "rehearsal.response", answeredElsewhere, "no")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.Enrollments.AnyAsync(x => x.EventId == cancelled)).Should().BeFalse();
+        (await db.RehearsalAttendances.AsNoTracking().SingleAsync(a => a.RehearsalId == answeredElsewhere && a.UserId == me.Id))
+            .Should().Match<RehearsalAttendance>(a => a.WillAttend && a.Attended, "a confirmed presença is never overwritten");
+    }
+
     // ---------- helpers ----------
+
+    private static Task<HttpResponseMessage> Answer(HttpClient client, string kind, int id, string answer, string? instrument = null, string? notes = null) =>
+        client.PostAsJsonAsync("/api/pending-actions/responses", new { kind, sourceKey = id.ToString(), answer, instrument, notes });
+
+    private async Task CancelEventAsync(int id)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.Events.SingleAsync(e => e.Id == id)).IsCancelled = true;
+        await db.SaveChangesAsync();
+    }
+
+    private async Task AttendAsync(int rehearsalId, string userId, bool approved)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var a = RehearsalAttendance.Create(rehearsalId, userId);
+        a.MarkAttendance(approved);
+        db.RehearsalAttendances.Add(a);
+        await db.SaveChangesAsync();
+    }
 
     private static int NextDay() => Interlocked.Increment(ref _day);
 

@@ -12,13 +12,27 @@ mandate or status change shows on the next load. A panel that does not apply to 
 | --- | --- | --- |
 | Visitor | `/pending-actions` → sign in (`returnUrl` kept); API `401` | - |
 | Expelled / unknown account | API `401` (cannot sign in anyway) | - |
-| Active member (`IsSubjectToRule && !IsRetired`: Leitão, Caloiro, Tuno, Veterano, Tunossauro not Reformado) | yes | Atuações, Ensaios |
+| Active member (`IsSubjectToRule && !IsRetired`: Leitão, Caloiro, Tuno, Veterano, Tunossauro not Reformado) | yes | Atuações, Ensaios (answer in place, 072) |
 | Reformado | yes | none yet (participation is for active members; their own responsibilities come with #254-#257) |
 | Account with no membership category (e.g. only Tuno Honorário, a bare Owner account) | yes | none yet |
 | Mod, Admin, Owner | as their member type | as their member type: **a role adds no panel in 071** |
 
 "Active" is the canonical rule of `docs/member-activity-status.md` (`ApplicationUser.IsRetired`, written only by the
 reconciliation); the page never computes its own activity status, and being active grants no module permission.
+
+## Answers (`POST /api/pending-actions/responses`, antiforgery required, task 072)
+
+| Request | Answer |
+| --- | --- |
+| Vou / Não vou, Fui / Não fui on an activity pending for the caller now (active member, own unanswered, not cancelled, in the window) | `204`; the member's own Enrollment / RehearsalAttendance through the module's service |
+| Anything else (already answered, cancelled, before PastFrom, previous fiscal year, unknown id, wrong kind, Reformado / no category) | `404`, nothing written |
+| A concurrent first answer (other tab, module page) | `409`, the first one stays |
+| Instrument not offered to the caller, note too long, answer not yes / no | `400` |
+
+The page cannot approve anything: a past rehearsal "Fui" is pending (`Attended = false`) until Admin / Owner confirm it on
+the rehearsal page, exactly as a module "vou". No new permission was added to `EventsAuthorization` or
+`RehearsalsAuthorization`; the retrospective answer is the page's own narrow rule (own, current year from PastFrom,
+not cancelled, unanswered).
 
 ## Dismissal (`POST /api/pending-actions/dismissals`, antiforgery required)
 

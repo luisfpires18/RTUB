@@ -6,15 +6,18 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
-**Task 071 = As minhas ações pendentes 1/8** (issue #252 under roadmap #251; `feat/071/pending-actions-foundation`, PR #272 open,
-not merged). `/pending-actions`: grouped panels paged on their own (3 rows, previous / next, clamped last page), sources
-per module (`IPendingActionSource`), Atuações + Ensaios for active members (unanswered; every upcoming, past = current
-fiscal year; rows open the module), menu link in Membro, active-member login landing (a local `returnUrl` wins),
-server-side optional dismissals (`PendingActionDismissals`, migration `AddPendingActionDismissals`, additive). In-page
-answers are #253. Docs: `docs/react-pending-actions.md`, `docs/permissions/pending-actions.md`. Real-device PWA open.
-(070 = Logística 5/5, PR #271 merged into `dev`.)
+**Task 072 = As minhas ações pendentes 2/8** (issue #253; `feat/072/pending-actions-attendance`, not merged). Vou /
+Não vou and Fui / Não fui answered in place on Atuações and Ensaios, through `IEnrollmentService` and the new create-only
+`IRehearsalAttendanceService.AddFirstAttendanceAsync` (unique indexes guard races; existing answers never changed).
+Past = current fiscal year from the member's admission month (PastFrom). A past event "Fui" counts at once (same row as
+"Quem foi", status reconciled); a past rehearsal "Fui" stays pending until approved. Instrument dialog only with 2+
+instruments. No schema change. Real-device PWA open.
 
-**Task 070 = Logística 5/5** (issue #250; `feat/070/logistics-list-calendar`, PR open, not merged; closes roadmap #245
+**Task 071 = As minhas ações pendentes 1/8** (issue #252; PR #272 merged into `dev`, not released). `/pending-actions`
+foundation: panels paged on their own, `IPendingActionSource`, dismissals (migration `AddPendingActionDismissals`,
+additive), active-member login landing. Docs: `docs/react-pending-actions.md`, `docs/permissions/pending-actions.md`.
+
+**Task 070 = Logística 5/5** (issue #250; PR #271 merged into `dev`, not released; closes roadmap #245
 once merged). Board views Quadro / Lista / Calendário over the same authorised cards and filters (no new endpoint),
 board summary (board-wide numbers, filtered count), filters / view / order / month / card in the address, phone
 agenda, folding filters on phones, responsive audit extended (63/63), end-to-end journey on a synthetic board. No

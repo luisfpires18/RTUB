@@ -20,6 +20,13 @@ public interface IRehearsalAttendanceService
     Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, bool willAttend = true, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null, bool skipNotification = false);
 
     /// <summary>
+    /// Creates the member's own first answer, pending (Attended = false) like <see cref="MarkAttendanceAsync"/>, but never
+    /// touches an existing row: <see cref="InvalidOperationException"/> when one exists (a concurrent insert fails on the
+    /// unique (RehearsalId, UserId) index instead). Used by "As minhas ações pendentes" (task 072).
+    /// </summary>
+    Task<RehearsalAttendance> AddFirstAttendanceAsync(int rehearsalId, string userId, bool willAttend, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null, bool skipNotification = false);
+
+    /// <summary>
     /// Creates attendance with immediate approval (Attended = true). Used by admin for past/approvable rehearsals.
     /// Avoids creating separate "Created" + "Modified" audit entries.
     /// </summary>

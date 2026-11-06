@@ -86,3 +86,11 @@ reminder, member status, rankings) are unchanged.
 
 - Bulk "confirmar todas" does not exist (it did not before either); pending today: 0.
 - The 302 sign-in redirects stay as they are at the PROD cutover (they are not legacy redirects).
+
+## As minhas ações pendentes (072)
+
+`/pending-actions` answers a member's own **unanswered** rehearsals in place (docs/react-pending-actions.md → Answers),
+through the new create-only `IRehearsalAttendanceService.AddFirstAttendanceAsync` (same row, category snapshot and push as
+`MarkAttendanceAsync`; an existing presença is never touched). New on purpose: a member may report a past rehearsal of the
+current fiscal year (Fui / Não fui); a "Fui" is `Attended = false`, pending in the Admin's approval like any "vou", and
+earns nothing until confirmed.
