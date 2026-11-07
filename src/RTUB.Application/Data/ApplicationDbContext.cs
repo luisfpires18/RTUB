@@ -145,6 +145,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // As minhas ações pendentes (task 071): a member's own dismissals of optional actions
     public DbSet<PendingActionDismissal> PendingActionDismissals { get; set; } = null!;
 
+    // Push preferences (task 082): the push kinds a member turned off, per account
+    public DbSet<PushPreference> PushPreferences { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

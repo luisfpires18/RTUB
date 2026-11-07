@@ -34,7 +34,31 @@ public static class PushEndpoints
                 ? Results.Ok(new { reformed = state.Reformed, acknowledged = state.Acknowledged })
                 : Results.Unauthorized());
 
+        // Task 082 (#263): the member's own account-wide push preferences; the catalogue (keys, labels, the mandatory
+        // key) is the server's. Independent of the device subscription above: saving here never touches it.
+        push.MapGet("/preferences", async (HttpContext http, PushPreferenceService preferences) =>
+            await preferences.GetAsync(UserId(http.User)) is { } items ? Results.Ok(new { items }) : Results.Unauthorized());
+
         var writes = push.MapGroup(string.Empty).AddEndpointFilter(EventEndpoints.RequireAntiforgery);
+
+        writes.MapPut("/preferences", async (PushPreferencesInput input, HttpContext http, PushPreferenceService preferences, ILoggerFactory logs) =>
+                {
+                    var result = await preferences.SaveAsync(UserId(http.User), input.Disabled);
+                    if (result.Errors is { } errors)
+                    {
+                        return Results.ValidationProblem(errors, title: "Há campos por corrigir.");
+                    }
+
+                    if (result.Items is null)
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    logs.CreateLogger(typeof(PushEndpoints)).LogInformation("User {UserName} saved push preferences ({Off} off)",
+                        http.User.Identity?.Name, result.Items.Count(i => !i.Enabled));
+                    return Results.Ok(new { items = result.Items });
+                })
+            .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
 
         writes.MapPost("/reminder/ack", async (HttpContext http, PushReminderService reminder) =>
             await reminder.AcknowledgeAsync(UserId(http.User)) ? Results.NoContent() : Results.Unauthorized());
@@ -194,3 +218,6 @@ public static class PushEndpoints
             ? Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.", statusCode: StatusCodes.Status401Unauthorized)
             : await next(context);
 }
+
+/// <summary>PUT /api/push/preferences: the full list of keys the member wants off (task 082).</summary>
+public sealed record PushPreferencesInput(string[]? Disabled);

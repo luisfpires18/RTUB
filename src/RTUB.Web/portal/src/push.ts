@@ -30,6 +30,19 @@ export const pushApi = {
   reminder: () => call<{ reformed: boolean; acknowledged: boolean }>('GET', '/api/push/reminder'),
   acknowledgeReminder: () => call<void>('POST', '/api/push/reminder/ack'),
   test: (endpoint: string) => call<{ outcome: string; status: number | null }>('POST', '/api/push/test', { endpoint }),
+  /** Task 082 (#263): the member's account-wide preferences; the catalogue (keys, labels, the locked key) is the server's. */
+  preferences: () => call<{ items: PushPreference[] }>('GET', '/api/push/preferences'),
+  savePreferences: (disabled: string[]) => call<{ items: PushPreference[] }>('PUT', '/api/push/preferences', { disabled }),
+};
+
+/** One push kind on /profile → "Escolher o que receber". mandatory: shown checked and locked (enabled is always true). */
+export type PushPreference = {
+  key: string;
+  group: string;
+  label: string;
+  help: string | null;
+  mandatory: boolean;
+  enabled: boolean;
 };
 
 /**

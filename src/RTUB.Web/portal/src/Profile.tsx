@@ -12,6 +12,7 @@ import { memberAreaApi, type MyProfile, type PersonalInput, type TunaInput } fro
 import { DEFAULT_AVATAR, shortDate, type MemberInstrument, type MemberState } from './membersApi';
 import { SignOutButton } from './MemberShell';
 import { passkeyApi, passkeysSupported, type MyPasskey } from './passkey';
+import { PushPreferencesDialog } from './PushPreferences';
 import { readPush, sendTest, turnOff, turnOn, type PushResult, type PushState } from './push';
 
 /**
@@ -898,6 +899,7 @@ function PushSection() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [message, setMessage] = useState<string>();
+  const [choosing, setChoosing] = useState(false);
 
   const load = () => {
     setState(undefined);
@@ -1027,6 +1029,15 @@ function PushSection() {
           {error}
         </p>
       )}
+      {/* Task 082 (#263): account-wide content preferences, apart from this device's switch above. */}
+      <div className="push-prefs__open">
+        <p className="note">O que receber vale para a tua conta, em todos os dispositivos.</p>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => setChoosing(true)}>
+          <Icon name="bell" />
+          Escolher o que receber
+        </button>
+      </div>
+      {choosing && <PushPreferencesDialog onClose={() => setChoosing(false)} />}
     </Section>
   );
 }

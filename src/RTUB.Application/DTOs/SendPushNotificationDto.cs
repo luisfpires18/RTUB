@@ -16,4 +16,10 @@ public class SendPushNotificationDto
     /// False only where the push is already a copy of something in /messages (a chat message).
     /// </summary>
     public bool KeepInInbox { get; set; } = true;
+
+    /// <summary>
+    /// The catalogue key this push is filtered by (task 082, <see cref="Services.PushPreferenceCatalog"/>): a member who
+    /// turned it off gets no device push, the inbox copy still. Null = not a preference (only the /profile test push).
+    /// </summary>
+    public string? PreferenceKey { get; set; }
 }
