@@ -57,13 +57,12 @@ jobs:
           bash scripts/release.sh bump-check "$previous" "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      # Task 083 (#264): the notes members see after this deploy are releases/<VERSION>.json, packaged
-      # inside the zip by the build (RTUB.csproj). Checked again here, before the build, so a release
-      # without valid notes never reaches the archive.
-      - name: Release notes for ${{ steps.check.outputs.version }} exist and are valid
+      # Task 083 (#264) / 090: releases/<VERSION>.json is optional; when present it is packaged inside the
+      # zip (RTUB.csproj) and must be valid, or nothing reaches the archive.
+      - name: Release notes for ${{ steps.check.outputs.version }} are valid when present
         env:
           VERSION: ${{ steps.check.outputs.version }}
-        run: bash scripts/release.sh notes-check "$VERSION" releases
+        run: bash scripts/release.sh notes-check "$VERSION" releases --optional
 
   ci:
     name: CI • Build & Test
