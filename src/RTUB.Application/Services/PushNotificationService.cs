@@ -26,6 +26,7 @@ public class PushNotificationService : IPushNotificationService
     private readonly ILogger<PushNotificationService> _logger;
     private readonly WebPushClient _webPushClient;
     private readonly NotificationInbox? _inbox;
+    private readonly IPushPreferenceStore? _preferences;
 
     /// <summary>The named <see cref="HttpClient"/> every send goes through; the host registers it (task 054).</summary>
     public const string HttpClientName = "WebPush";
@@ -46,8 +47,9 @@ public class PushNotificationService : IPushNotificationService
         IOptions<WebPushOptions> options,
         ILogger<PushNotificationService> logger,
         IHttpClientFactory httpClientFactory,
-        NotificationInbox inbox)
-        : this(subscriptionRepository, userProfileRepository, options, logger, httpClientFactory.CreateClient(HttpClientName), inbox)
+        NotificationInbox inbox,
+        IPushPreferenceStore preferences)
+        : this(subscriptionRepository, userProfileRepository, options, logger, httpClientFactory.CreateClient(HttpClientName), inbox, preferences)
     {
     }
 
@@ -58,9 +60,11 @@ public class PushNotificationService : IPushNotificationService
         IOptions<WebPushOptions> options,
         ILogger<PushNotificationService> logger,
         HttpClient? httpClient,
-        NotificationInbox? inbox = null)
+        NotificationInbox? inbox = null,
+        IPushPreferenceStore? preferences = null)
     {
         _inbox = inbox;
+        _preferences = preferences;
         _subscriptionRepository = subscriptionRepository;
         _userProfileRepository = userProfileRepository;
         _options = options.Value;
@@ -160,6 +164,13 @@ public class PushNotificationService : IPushNotificationService
             return;
         }
 
+        var muted = await MutedAsync(notification);
+        if (muted.Contains(userId))
+        {
+            _logger.LogDebug("Push '{Tag}' not sent: the member turned {Key} off", notification.Tag ?? "none", notification.PreferenceKey);
+            return;
+        }
+
         var results = new List<PushSendResult>();
         foreach (var subscription in await _subscriptionRepository.GetByUserIdAsync(userId))
         {
@@ -177,7 +188,8 @@ public class PushNotificationService : IPushNotificationService
             return;
         }
 
-        var subscriptions = await _subscriptionRepository.GetAllActiveAsync();
+        var muted = await MutedAsync(notification);
+        var subscriptions = (await _subscriptionRepository.GetAllActiveAsync()).Where(s => !muted.Contains(s.UserId));
 
         var results = await Task.WhenAll(subscriptions.Select(subscription => SendNotificationWithResultAsync(subscription, notification)));
         LogSummary(notification, results);
@@ -216,9 +228,10 @@ public class PushNotificationService : IPushNotificationService
             return (0, 0);
         }
 
+        var muted = await MutedAsync(notification);
         var userIdSet = userIds.ToHashSet();
         var allSubscriptions = await _subscriptionRepository.GetAllActiveAsync();
-        var selectedSubscriptions = allSubscriptions.Where(s => userIdSet.Contains(s.UserId)).ToList();
+        var selectedSubscriptions = allSubscriptions.Where(s => userIdSet.Contains(s.UserId) && !muted.Contains(s.UserId)).ToList();
 
         // Build a userId -> userName lookup from subscriptions' UserAgent field
         // Note: UserAgent stores browser info, not username. We'll use User navigation property if loaded,
@@ -250,6 +263,17 @@ public class PushNotificationService : IPushNotificationService
     /// </summary>
     private Task KeepAsync(IEnumerable<string>? userIds, SendPushNotificationDto notification) =>
         _inbox?.KeepAsync(userIds, notification) ?? Task.CompletedTask;
+
+    /// <summary>
+    /// Task 082: the accounts that turned this push's key off on /profile, applied here so every send path (one member,
+    /// selected members, broadcast, background jobs, the Owner's text) honours it and a stale client cannot bypass it.
+    /// Decided after the inbox copy, which a preference never stops. A push without a key (the test push) and the
+    /// mandatory key mute nobody.
+    /// </summary>
+    private async Task<IReadOnlySet<string>> MutedAsync(SendPushNotificationDto notification) =>
+        _preferences is null || string.IsNullOrEmpty(notification.PreferenceKey)
+            ? new HashSet<string>()
+            : await _preferences.MutedUserIdsAsync(notification.PreferenceKey);
 
     public string GetVapidPublicKey()
     {

@@ -508,6 +508,8 @@ public static class ServiceCollectionExtensions
         // and connection pool) per request scope and nothing ever disposes it (task 054).
         services.AddHttpClient(PushNotificationService.HttpClientName);
         services.AddScoped<NotificationInbox>();
+        services.AddScoped<PushPreferenceService>();
+        services.AddScoped<IPushPreferenceStore>(sp => sp.GetRequiredService<PushPreferenceService>());
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IPushNotificationFactory, RTUB.Application.Factories.PushNotificationFactory>();
 

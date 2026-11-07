@@ -3,9 +3,16 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
+_Last updated: 2026-11-07 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
+**Task 082 = Push preferences on /profile** (issue #263; `feat/082/push-preferences`). Account-wide "Escolher o que
+receber" dialog in `/profile` → Notificações push: one checkbox per `PushPreferenceCatalog` key (server is the source of
+keys, pt-PT labels, groups), `pending-actions.daily` checked + locked (Obrigatório; `PUT` refuses it), every other key
+on by default. `GET/PUT /api/push/preferences`; rows `PushPreferences` = keys **off** (migration `AddPushPreferences`,
+additive). Every factory push carries `PreferenceKey`; `PushNotificationService` drops the device push for muted
+members on every send path, after the inbox copy. Device subscription untouched. Not checked: real iPhone / Android.
+
 **Task 081 = Push preference audit** (issue #262; `docs/081/push-preference-audit`, docs only). Proposed
 per-account keys + owner decisions in `docs/push-notifications.md` → *Preference keys for #263*. Decided 2026-11-07:
 only pending-actions mandatory, optional keys on by default, mute = push only, keys separate. No code, no schema.

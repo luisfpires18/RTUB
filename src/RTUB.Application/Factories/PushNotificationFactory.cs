@@ -2,6 +2,7 @@ using System.Globalization;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
@@ -54,7 +55,8 @@ public class PushNotificationFactory : IPushNotificationFactory
                 Body = $"{reminderPhrase} ({eventDateStr}) no {@event.Location}. Não te esqueças de confirmar a tua presença!",
                 Icon = "/icons/rtub-logo-192.png",
                 Url = eventUrl,
-                Tag = $"event-reminder-{@event.Id}-{DateTime.UtcNow:yyyyMMdd}"
+                Tag = $"event-reminder-{@event.Id}-{DateTime.UtcNow:yyyyMMdd}",
+                PreferenceKey = PushPreferenceCatalog.EventsReminder
             };
         }
         else
@@ -67,7 +69,8 @@ public class PushNotificationFactory : IPushNotificationFactory
                 Body = $"Novo evento do tipo \"{eventTypeDisplay}\" - {@event.Name}. Confirma a tua presença.",
                 Icon = "/icons/rtub-logo-192.png",
                 Url = eventUrl,
-                Tag = $"event-{@event.Id}"
+                Tag = $"event-{@event.Id}",
+                PreferenceKey = PushPreferenceCatalog.EventsNew
             };
         }
     }
@@ -96,7 +99,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = customBody,
             Icon = "/icons/rtub-logo-192.png",
             Url = rehearsalUrl,
-            Tag = $"rehearsal-{rehearsal.Id}"
+            Tag = $"rehearsal-{rehearsal.Id}",
+            PreferenceKey = PushPreferenceCatalog.RehearsalsManagerNotice
         };
     }
 
@@ -126,7 +130,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"O ensaio {whenText}{locationText}. Não te esqueças de confirmar a tua presença!",
             Icon = "/icons/rtub-logo-192.png",
             Url = rehearsalUrl,
-            Tag = $"rehearsal-reminder-{rehearsal.Id}"
+            Tag = $"rehearsal-reminder-{rehearsal.Id}",
+            PreferenceKey = PushPreferenceCatalog.RehearsalsReminder
         };
     }
 
@@ -150,7 +155,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = customBody,
             Icon = "/icons/rtub-logo-192.png",
             Url = eventUrl,
-            Tag = $"event-custom-{@event.Id}"
+            Tag = $"event-custom-{@event.Id}",
+            PreferenceKey = PushPreferenceCatalog.EventsManagerNotice
         };
     }
 
@@ -175,6 +181,12 @@ public class PushNotificationFactory : IPushNotificationFactory
             Icon = "/icons/rtub-logo-192.png",
             Url = $"/logistics/{boardId}?card={cardId}",
             Tag = $"logistics-card-{cardId}",
+            PreferenceKey = kind switch
+            {
+                LogisticsNotice.Mention => PushPreferenceCatalog.Mentions,
+                LogisticsNotice.Reminder => PushPreferenceCatalog.LogisticsReminder,
+                _ => PushPreferenceCatalog.LogisticsAssigned,
+            },
         };
     }
 
@@ -256,7 +268,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{postTitle} - {@event.Name}",
             Icon = "/icons/rtub-logo-192.png",
             Url = eventUrl,
-            Tag = $"event-discussion-{@event.Id}"
+            Tag = $"event-discussion-{@event.Id}",
+            PreferenceKey = PushPreferenceCatalog.DiscussionActivity
         };
     }
 
@@ -277,7 +290,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{postTitle} - {@event.Name}",
             Icon = "/icons/rtub-logo-192.png",
             Url = eventUrl,
-            Tag = $"event-discussion-{@event.Id}"
+            Tag = $"event-discussion-{@event.Id}",
+            PreferenceKey = PushPreferenceCatalog.DiscussionActivity
         };
     }
 
@@ -298,7 +312,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{userDisplayName} vai a {eventTypeDisplay} - {@event.Name}",
             Icon = "/icons/rtub-logo-192.png",
             Url = eventUrl,
-            Tag = $"event-enrollment-{@event.Id}"
+            Tag = $"event-enrollment-{@event.Id}",
+            PreferenceKey = PushPreferenceCatalog.EventsMemberAnswers
         };
     }
 
@@ -319,7 +334,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{userDisplayName} já não vai a {eventTypeDisplay} - {@event.Name}",
             Icon = "/icons/rtub-logo-192.png",
             Url = eventUrl,
-            Tag = $"event-cancellation-{@event.Id}"
+            Tag = $"event-cancellation-{@event.Id}",
+            PreferenceKey = PushPreferenceCatalog.EventsMemberAnswers
         };
     }
 
@@ -340,7 +356,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{userDisplayName} não vai a {eventTypeDisplay} - {@event.Name}",
             Icon = "/icons/rtub-logo-192.png",
             Url = eventUrl,
-            Tag = $"event-non-enrollment-{@event.Id}"
+            Tag = $"event-non-enrollment-{@event.Id}",
+            PreferenceKey = PushPreferenceCatalog.EventsMemberAnswers
         };
     }
 
@@ -359,7 +376,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{userNickname} - Nível {level}",
             Icon = "/icons/rtub-logo-192.png",
             Url = leaderboardUrl,
-            Tag = "leaderboard-first-place"
+            Tag = "leaderboard-first-place",
+            PreferenceKey = PushPreferenceCatalog.LeaderboardFirstPlace
         };
     }
 
@@ -389,7 +407,8 @@ public class PushNotificationFactory : IPushNotificationFactory
                 Body = $"{reminderPhrase} ({dateStr}). Não te esqueças de confirmar a tua presença!",
                 Icon = "/icons/rtub-logo-192.png",
                 Url = meetingUrl,
-                Tag = $"meeting-reminder-{meeting.Id}"
+                Tag = $"meeting-reminder-{meeting.Id}",
+                PreferenceKey = PushPreferenceCatalog.MeetingsReminder
             };
         }
         else
@@ -401,7 +420,9 @@ public class PushNotificationFactory : IPushNotificationFactory
                 Body = $"{meeting.Title} - {dateStr}",
                 Icon = "/icons/rtub-logo-192.png",
                 Url = meetingUrl,
-                Tag = $"meeting-{meeting.Id}"
+                Tag = $"meeting-{meeting.Id}",
+                // A proposed request has no meeting yet (MeetingRequestService sends a temporary meeting with Id 0).
+                PreferenceKey = meeting.Id > 0 ? PushPreferenceCatalog.MeetingsNew : PushPreferenceCatalog.MeetingsRequests
             };
         }
     }
@@ -423,7 +444,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = customBody,
             Icon = "/icons/rtub-logo-192.png",
             Url = meetingUrl,
-            Tag = $"meeting-custom-{meeting.Id}"
+            Tag = $"meeting-custom-{meeting.Id}",
+            PreferenceKey = PushPreferenceCatalog.MeetingsManagerNotice
         };
     }
 
@@ -460,7 +482,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{request.Name} - {request.EventType} em {dateStr}",
             Icon = "/icons/rtub-logo-192.png",
             Url = requestUrl,
-            Tag = $"request-{request.Id}"
+            Tag = $"request-{request.Id}",
+            PreferenceKey = PushPreferenceCatalog.RequestsPublic
         };
     }
 
@@ -501,7 +524,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = body,
             Icon = "/icons/rtub-logo-192.png",
             Url = meetingsUrl,
-            Tag = $"meeting-request-rejected-{meetingRequest.Id}"
+            Tag = $"meeting-request-rejected-{meetingRequest.Id}",
+            PreferenceKey = PushPreferenceCatalog.MeetingsRequests
         };
     }
 
@@ -522,7 +546,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{userDisplayName} vai ao {title}",
             Icon = "/icons/rtub-logo-192.png",
             Url = rehearsalUrl,
-            Tag = $"rehearsal-attendance-{rehearsal.Id}"
+            Tag = $"rehearsal-attendance-{rehearsal.Id}",
+            PreferenceKey = PushPreferenceCatalog.RehearsalsMemberAnswers
         };
     }
 
@@ -543,7 +568,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{userDisplayName} já não vai ao {title}",
             Icon = "/icons/rtub-logo-192.png",
             Url = rehearsalUrl,
-            Tag = $"rehearsal-cancellation-{rehearsal.Id}"
+            Tag = $"rehearsal-cancellation-{rehearsal.Id}",
+            PreferenceKey = PushPreferenceCatalog.RehearsalsMemberAnswers
         };
     }
 
@@ -564,7 +590,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{userDisplayName} não vai ao {title}",
             Icon = "/icons/rtub-logo-192.png",
             Url = rehearsalUrl,
-            Tag = $"rehearsal-non-attendance-{rehearsal.Id}"
+            Tag = $"rehearsal-non-attendance-{rehearsal.Id}",
+            PreferenceKey = PushPreferenceCatalog.RehearsalsMemberAnswers
         };
     }
 
@@ -585,7 +612,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{approverName} aprovou a tua presença",
             Icon = "/icons/rtub-logo-192.png",
             Url = rehearsalUrl,
-            Tag = $"rehearsal-attendance-approval-{rehearsal.Id}"
+            Tag = $"rehearsal-attendance-approval-{rehearsal.Id}",
+            PreferenceKey = PushPreferenceCatalog.RehearsalsMyAttendance
         };
     }
 
@@ -606,7 +634,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{rejectorName} recusou a tua presença",
             Icon = "/icons/rtub-logo-192.png",
             Url = rehearsalUrl,
-            Tag = $"rehearsal-attendance-rejection-{rehearsal.Id}"
+            Tag = $"rehearsal-attendance-rejection-{rehearsal.Id}",
+            PreferenceKey = PushPreferenceCatalog.RehearsalsMyAttendance
         };
     }
 
@@ -626,7 +655,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{authorName} comentou no teu perfil",
             Icon = "/icons/rtub-logo-192.png",
             Url = leaderboardUrl,
-            Tag = "leaderboard-comment"
+            Tag = "leaderboard-comment",
+            PreferenceKey = PushPreferenceCatalog.LeaderboardComments
         };
     }
 
@@ -645,7 +675,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{likerName} gostou do teu comentário",
             Icon = "/icons/rtub-logo-192.png",
             Url = leaderboardUrl,
-            Tag = "leaderboard-comment-like"
+            Tag = "leaderboard-comment-like",
+            PreferenceKey = PushPreferenceCatalog.LeaderboardComments
         };
     }
 
@@ -665,7 +696,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{uploaderName} adicionou um vídeo a {@event.Name}",
             Icon = "/icons/rtub-logo-192.png",
             Url = eventUrl,
-            Tag = $"event-video-{@event.Id}"
+            Tag = $"event-video-{@event.Id}",
+            PreferenceKey = PushPreferenceCatalog.EventsVideo
         };
     }
 
@@ -685,7 +717,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{uploaderName} adicionou um vídeo a \"{song.Title}\"",
             Icon = "/icons/rtub-logo-192.png",
             Url = musicUrl,
-            Tag = $"song-video-{song.Id}"
+            Tag = $"song-video-{song.Id}",
+            PreferenceKey = PushPreferenceCatalog.MediaNew
         };
     }
 
@@ -706,7 +739,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = bodyText,
             Icon = "/icons/rtub-logo-192.png",
             Url = requestUrl,
-            Tag = "pending-requests-reminder"
+            Tag = "pending-requests-reminder",
+            PreferenceKey = PushPreferenceCatalog.RequestsPublic
         };
     }
 
@@ -716,7 +750,8 @@ public class PushNotificationFactory : IPushNotificationFactory
         Body = "Tens ações pendentes para tratar. Abre a página para as consultar.",
         Icon = "/icons/rtub-logo-192.png",
         Url = "/pending-actions",
-        Tag = "pending-actions-reminder"
+        Tag = "pending-actions-reminder",
+        PreferenceKey = PushPreferenceCatalog.PendingActions
     };
 
     /// <summary>
@@ -735,7 +770,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"O pedido \"{meetingRequest.Title}\" está pendente de aprovação.",
             Icon = "/icons/rtub-logo-192.png",
             Url = meetingsUrl,
-            Tag = $"pending-meeting-request-{meetingRequest.Id}"
+            Tag = $"pending-meeting-request-{meetingRequest.Id}",
+            PreferenceKey = PushPreferenceCatalog.MeetingsRequests
         };
     }
 
@@ -756,7 +792,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = bodyText,
             Icon = "/icons/rtub-logo-192.png",
             Url = rehearsalsUrl,
-            Tag = "pending-rehearsal-approvals-reminder"
+            Tag = "pending-rehearsal-approvals-reminder",
+            PreferenceKey = PushPreferenceCatalog.RehearsalsApprovalsPending
         };
     }
 
@@ -776,7 +813,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{authorName} fez uma pergunta para si: {TruncateContent(questionTitle, 100)}",
             Icon = "/icons/rtub-logo-192.png",
             Url = questionsUrl,
-            Tag = $"question-{questionId}"
+            Tag = $"question-{questionId}",
+            PreferenceKey = PushPreferenceCatalog.Questions
         };
     }
 
@@ -795,7 +833,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = TruncateContent(replyPreview, 150),
             Icon = "/icons/rtub-logo-192.png",
             Url = questionsUrl,
-            Tag = $"question-reply-{replyId}"
+            Tag = $"question-reply-{replyId}",
+            PreferenceKey = PushPreferenceCatalog.Questions
         };
     }
 
@@ -814,7 +853,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"A sua pergunta foi respondida: {TruncateContent(replyPreview, 100)}",
             Icon = "/icons/rtub-logo-192.png",
             Url = questionsUrl,
-            Tag = $"question-reply-{replyId}"
+            Tag = $"question-reply-{replyId}",
+            PreferenceKey = PushPreferenceCatalog.Questions
         };
     }
 
@@ -834,7 +874,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{authorName} enviou um lembrete para a sua pergunta: {TruncateContent(questionTitle, 100)}",
             Icon = "/icons/rtub-logo-192.png",
             Url = questionsUrl,
-            Tag = $"question-reminder-{questionId}"
+            Tag = $"question-reminder-{questionId}",
+            PreferenceKey = PushPreferenceCatalog.Questions
         };
     }
 
@@ -854,7 +895,8 @@ public class PushNotificationFactory : IPushNotificationFactory
                 : $"Tem {questionCount} perguntas à espera da sua resposta",
             Icon = "/icons/rtub-logo-192.png",
             Url = questionsUrl,
-            Tag = "question-reminder"
+            Tag = "question-reminder",
+            PreferenceKey = PushPreferenceCatalog.Questions
         };
     }
 
@@ -887,7 +929,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"\"{TruncateContent(contentTitle, 60)}\" foi adicionado aos Naipes",
             Icon = "/icons/rtub-logo-192.png",
             Url = naipesUrl,
-            Tag = $"naipe-content-{instrumentTypeName.ToLower().Replace(" ", "-")}"
+            Tag = $"naipe-content-{instrumentTypeName.ToLower().Replace(" ", "-")}",
+            PreferenceKey = PushPreferenceCatalog.MediaNew
         };
     }
 
@@ -943,7 +986,8 @@ public class PushNotificationFactory : IPushNotificationFactory
                 : $"Esta semana tens: {activitySummary}",
             Icon = "/icons/rtub-logo-192.png",
             Url = url,
-            Tag = "weekly-summary"
+            Tag = "weekly-summary",
+            PreferenceKey = PushPreferenceCatalog.SummaryWeekly
         };
     }
 
@@ -961,7 +1005,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"Deves {amountOwed:N2}€ à tuna",
             Icon = "/icons/rtub-logo-192.png",
             Url = calotesUrl,
-            Tag = "calotes-reminder"
+            Tag = "calotes-reminder",
+            PreferenceKey = PushPreferenceCatalog.TreasuryCalotes
         };
     }
 
@@ -981,7 +1026,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"Participa numa atividade este mês para voltares ao ativo, {userDisplayName}!",
             Icon = "/icons/rtub-logo-192.png",
             Url = eventsUrl,
-            Tag = $"member-reminder-{userId}-{DateTime.UtcNow.Ticks}"
+            Tag = $"member-reminder-{userId}-{DateTime.UtcNow.Ticks}",
+            PreferenceKey = PushPreferenceCatalog.MembersStatus
         };
     }
 
@@ -1000,7 +1046,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{userNickname} está de volta!",
             Icon = "/icons/rtub-logo-192.png",
             Url = leaderboardUrl,
-            Tag = $"member-reactivated-{userNickname}"
+            Tag = $"member-reactivated-{userNickname}",
+            PreferenceKey = PushPreferenceCatalog.MembersReactivated
         };
     }
 
@@ -1019,7 +1066,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"A tua reforma está a chegar, {userNickname}!",
             Icon = "/icons/rtub-logo-192.png",
             Url = leaderboardUrl,
-            Tag = $"member-retirement-{userNickname}"
+            Tag = $"member-retirement-{userNickname}",
+            PreferenceKey = PushPreferenceCatalog.MembersStatus
         };
     }
 
@@ -1041,6 +1089,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             Icon = "/icons/rtub-logo-192.png",
             Url = $"/messages?c={conversationId}",
             Tag = $"message-{conversationId}",
+            PreferenceKey = PushPreferenceCatalog.Messages,
             // The message itself is in that conversation; no second copy in Notificações RTUB.
             KeepInInbox = false
         };
@@ -1060,7 +1109,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = "Foste marcado numa nova foto ou vídeo.",
             Icon = "/icons/rtub-logo-192.png",
             Url = galleryUrl,
-            Tag = "gallery-tag"
+            Tag = "gallery-tag",
+            PreferenceKey = PushPreferenceCatalog.GalleryTag
         };
     }
 
@@ -1082,7 +1132,8 @@ public class PushNotificationFactory : IPushNotificationFactory
             Body = $"{@event.Name} - {context}",
             Icon = "/icons/rtub-logo-192.png",
             Url = discussionUrl,
-            Tag = $"mention-{@event.Id}"
+            Tag = $"mention-{@event.Id}",
+            PreferenceKey = PushPreferenceCatalog.Mentions
         };
     }
 

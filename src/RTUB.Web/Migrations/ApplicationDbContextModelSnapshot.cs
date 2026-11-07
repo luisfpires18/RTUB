@@ -3163,6 +3163,35 @@ namespace RTUB.Migrations
                     b.ToTable("ProductReservations");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.PushPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("MutedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key");
+
+                    b.HasIndex("UserId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("PushPreferences");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.PushSubscription", b =>
                 {
                     b.Property<int>("Id")
@@ -4909,6 +4938,15 @@ namespace RTUB.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.PushPreference", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.PushSubscription", b =>

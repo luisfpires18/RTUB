@@ -179,6 +179,26 @@ public class PushV2SourceTests
         push.Should().Contain("return self.registration.showNotification('RTUB'", "a failed icon or option still shows a minimal notification");
     }
 
+    /// <summary>
+    /// Task 082 (#263): the account-wide preferences open from the push section in a dialog, apart from this device's
+    /// switch; the list and the locked key come from the server, and saving never calls the subscription routes.
+    /// </summary>
+    [Fact]
+    public void Profile_OpensThePreferencesDialog_ApartFromTheDeviceSwitch()
+    {
+        var prefs = Read(Portal, "PushPreferences.tsx");
+
+        Profile.Should().Contain("Escolher o que receber").And.Contain("<PushPreferencesDialog");
+        Profile.IndexOf("Escolher o que receber", StringComparison.Ordinal).Should()
+            .BeGreaterThan(Profile.IndexOf("Desativar neste dispositivo", StringComparison.Ordinal), "the device switch comes first");
+
+        Push.Should().Contain("'/api/push/preferences'").And.Contain("savePreferences").And.Contain("mandatory: boolean");
+        prefs.Should().Contain("<Dialog ").And.Contain("Obrigatório").And.Contain("i.mandatory || !disabled.has(i.key)")
+            .And.Contain("disabled={busy || i.mandatory}").And.Contain("Notificações RTUB");
+        prefs.Should().NotContain("subscribe").And.NotContain("pushManager").And.NotContain("requestPermission");
+        prefs.Should().NotContain("'Novas atuações'", "labels come from the server, never from the client");
+    }
+
     private static string Section(string content, string start, string end)
     {
         var a = content.IndexOf(start, StringComparison.Ordinal);

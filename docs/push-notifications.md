@@ -22,8 +22,10 @@ Every Web Push RTUB sends, grouped by area, with the page a tap opens. Delivery,
 5. **Every push is kept in /messages** (task 061): `NotificationInbox` saves title + body + link in each recipient's
    "Notificações RTUB" conversation, as read, push on or off. Not kept: chat-message pushes (`KeepInInbox = false`,
    the message is already in its chat) and the `/profile` test push.
-6. **Every push belongs to a category** (table headings below). Today the category is documentation only; the
-   preference keys below (#262, undecided) will make it data.
+6. **Every push carries a preference key** (`SendPushNotificationDto.PreferenceKey`, task 082): the factory sets it,
+   `PushNotificationService` drops the device push for every member who turned that key off on `/profile`, after the
+   inbox copy (rule 5) is saved. The keys and their policy are the section *Preference keys* below;
+   `PushPreferenceFilterTests` fails when a factory method forgets one.
 
 Deep links the React pages accept: `/events/{id}`, `/events/{id}/discussion`, `/rehearsals/{id}`,
 `/meetings?meeting={id}` (opens the meeting's details, 058), `/messages?c={id}`, `/gallery?item={id}`,
@@ -206,21 +208,29 @@ Not checked here: Azure App Settings that may override an `Enabled` flag (run
    to the item, a tag.
 2. Call it from the service; send with the narrowest method (`SendToUserAsync` / `SendToSelectedUsersAsync`;
    `BroadcastAsync` only for news meant for everyone).
-3. Add the row to the catalogue above under its category, and assert the URL in `PushNotificationFactoryTests`.
-4. A page that should open one item needs a deep link (a route or a query parameter it reads on load).
+3. Set `PreferenceKey` to a `PushPreferenceCatalog` key (an existing one, or a new `Item` with its pt-PT label, group
+   and `Mandatory: false`; a new key starts on for everyone because no row means on). `PushPreferenceFilterTests`
+   refuses a factory method without one.
+4. Add the row to the catalogue above under its category and to the *Preference keys* table, and assert the URL in
+   `PushNotificationFactoryTests`.
+5. A page that should open one item needs a deep link (a route or a query parameter it reads on load).
 
-## Preference keys for #263 (audit #262, decided 2026-11-07)
+## Preference keys (audit #262, decided 2026-11-07; built in task 082, #263)
 
 Re-verified against source on 2026-11-07: the catalogue and "Does it send?" table above still hold (079 and 080 added
 no push). The only pushes built outside the factory are the Owner's `/notifications` text
 (`OwnerOperationsService.SendPushAsync`) and the `/profile` test (factory, sent by `PushEndpoints`). No dead factory method: "Presença recusada" is sent by the refuse
 route (`RehearsalAdminService.RefuseAsync`); the earlier audit missed it.
 
-Nothing below is built yet: #263 implements it. Owner decisions are recorded in the last two columns and below.
-Keys are stable, fine-grained, and per account (not per device). New events, member answers and reminders are separate
-keys on purpose. Abbreviations: Mand. = mandatory (shown checked and locked); Opt. = optional.
+Built in task 082: the keys are `PushPreferenceCatalog` (`src/RTUB.Application/Services/PushPreferenceCatalog.cs`,
+the one source of keys, pt-PT labels, groups and the mandatory flag), the member's choices are `PushPreferences` rows
+(one row = one key **off**; no row = on), read and saved through `GET` / `PUT /api/push/preferences` from the
+`/profile` → "Escolher o que receber" dialog (`docs/react-push-v2.md` → *Preferences*). Owner decisions are recorded
+in the last two columns and below. Keys are stable, fine-grained, and per account (not per device). New events, member
+answers and reminders are separate keys on purpose. Abbreviations: Mand. = mandatory (shown checked and locked); Opt. =
+optional.
 
-| Key (proposed) | pt-PT label | Factory method / branch | Recipients, frequency | Status | Mand./Opt. | Default for existing accounts |
+| Key | pt-PT label | Factory method / branch | Recipients, frequency | Status | Mand./Opt. | Default for existing accounts |
 |---|---|---|---|---|---|---|
 | `pending-actions.daily` | Lembrete: As minhas ações pendentes | `CreatePendingActionsReminderNotification` | one, daily 18:00 if page not empty | sends (078) | **Mand. (owner)** | on, locked |
 | `events.new` | Novas atuações | `CreateEventNotification(isReminder: false)` | all, on create | sends | Opt. | on |
@@ -238,7 +248,7 @@ keys on purpose. Abbreviations: Mand. = mandatory (shown checked and locked); Op
 | `meetings.new` | Reuniões convocadas | `CreateMeetingNotification(isReminder: false)` | meeting type audience | sends | Opt. | on |
 | `meetings.reminder` | Lembretes de reuniões | `CreateMeetingNotification(isReminder: true)` | non-Reformados who see it | sends | Opt. | on |
 | `meetings.manager-notice` | Avisos sobre a reunião | `CreateMeetingCustomNotification` | chosen | sends | Opt. | on |
-| `meetings.requests` | Pedidos de reunião | `CreateMeetingNotification` (proposal branch), `CreatePendingMeetingRequestReminderNotification`, `CreateMeetingRequestRejectedNotification` | approvers / author | sends | Opt. | on |
+| `meetings.requests` | Pedidos de reunião | `CreateMeetingNotification` (proposal branch: meeting `Id` 0), `CreatePendingMeetingRequestReminderNotification`, `CreateMeetingRequestRejectedNotification` | approvers / author | sends | Opt. | on |
 | `requests.public` | Pedidos de atuação | `CreateRequestNotification`, `CreatePendingPublicRequestsReminderNotification` | Admin + Owner, on request + 10:00 | sends | Opt. | on |
 | `questions` | Perguntas | `CreateNewQuestionNotification`, `…Answered…`, `…Reply…`, `…Reminder…`, `CreatePendingQuestionsNotification` | asked member / author, + 09:00 job | sends | Opt. | on |
 | `messages` | Mensagens | `CreateConversationMessageNotification` (not kept in inbox; per-chat mute stays) | participants | sends | Opt. | on |
@@ -267,5 +277,13 @@ Owner decisions (#262, 2026-11-07):
 
 Also fixed: a preference never overrides a browser / OS permission or a missing device
 subscription; the device switch in `/profile` stays separate; the server enforces the preference before sending
-(`PushNotificationService`, subscriptions already loaded with `.Include(s => s.User)`), so a stale client cannot bypass it.
-Storage shape (per-key rows vs a bit field) is decided in #263 once the keys are final.
+(`PushNotificationService.MutedAsync`, every send path: one member, selected members, broadcast, background jobs, the
+Owner's text), so a stale client cannot bypass it.
+
+Storage (082): per-key rows, not a bit field, so a key can be added or split without a migration. `PushPreferences`
+(`UserId`, `Key` ≤ 64, `MutedAt`; unique `UserId + Key`, index on `Key`, FK to `AspNetUsers` with cascade), migration
+`AddPushPreferences` (additive, N-1 safe: the previous release never reads the table). The mandatory key never has a
+row: `PUT` refuses it with a field error (never silently normalised), and `MutedUserIdsAsync` answers nobody for it.
+An unknown key is refused too, so a future key needs a catalogue entry first and starts on. Retention: the inbox copy
+is written before the preference is applied and is never affected by it (decision 3); the test push has no key and is
+never kept. Chat per-conversation mute is unchanged and applies on top of `messages` (both must be on for a push).
