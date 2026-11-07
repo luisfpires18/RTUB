@@ -20,11 +20,13 @@ public class AccountController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly string? _publicOrigin;
+    private readonly RTUB.Application.Services.PageViewCounter _pageViews;
 
-    public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration)
+    public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration, RTUB.Application.Services.PageViewCounter pageViews)
     {
         _userManager = userManager;
         _publicOrigin = TrustedOrigin(configuration["Calendar:PublicOrigin"]);
+        _pageViews = pageViews;
     }
 
     [HttpGet("me")]
@@ -33,6 +35,7 @@ public class AccountController : ControllerBase
     {
         // Session state must never be served from a cache: not after sign-out, not to another user.
         Response.Headers.CacheControl = "no-store";
+
 
         // The build, as /api/version reports it: the footer reads it from here, one request fewer per page load (task 054).
         var version = RTUB.Web.Services.BuildInfo.Current.Version;
@@ -45,6 +48,10 @@ public class AccountController : ControllerBase
             return Ok(new { authenticated = false, version });
         }
 
+        // Task 089: every React page asks here once per load; the Referer is the page. Members only (a visitor cannot
+        // grow the buffer), counted in memory, path only.
+        _pageViews.Record(Request.Headers.Referer.ToString(), Request.Host.Value);
+
         var fullName = $"{user.FirstName} {user.LastName}".Trim();
 
         return Ok(new
@@ -56,6 +63,8 @@ public class AccountController : ControllerBase
             avatarUrl = user.ProfilePictureSrc,
             categories = user.Categories.Select(StatusHelper.GetCategoryDisplay).ToArray(),
             menu = MemberMenuAccess.For(User, user),
+            // Task 087: a Reformado has no "As minhas ações pendentes" (no menu entry, no page, no reminder push).
+            retired = user.IsRetired,
             // Task 079: the configured public origin for links that leave RTUB (Google Calendar). Never the request's host.
             publicOrigin = _publicOrigin
         });

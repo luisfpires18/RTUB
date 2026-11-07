@@ -2890,6 +2890,31 @@ namespace RTUB.Migrations
                     b.ToTable("NewsPosts");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.PageView", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Day")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Day", "Path")
+                        .IsUnique();
+
+                    b.ToTable("PageViews");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.PendingActionDismissal", b =>
                 {
                     b.Property<int>("Id")

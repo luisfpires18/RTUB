@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { portal } from './content';
 import { Icon, type IconName } from './icons';
-import { entityLabel, ownerApi, type Dashboard, type DashboardRank, type DashboardSeries } from './ownerApi';
+import { ownerApi, type Dashboard, type DashboardRank, type DashboardSeries } from './ownerApi';
 import { OwnerPage, useOwnerLoad } from './OwnerUi';
 
 const RANGES = [
@@ -19,15 +19,49 @@ const ICONS: Record<string, IconName> = {
   songPlays: 'music',
   naipePlays: 'naipes',
   enrollments: 'calendarCheck',
+  pageViews: 'eye',
 };
 
-const ACTION_LABELS: Record<string, string> = {
-  Created: 'Criado',
-  Modified: 'Alterado',
-  Deleted: 'Apagado',
-  Reformed: 'Reformado',
-  PushNotificationSent: 'Notificação enviada',
+/** Routes as the server stores them (ids → {id}); anything else (Mensagens included) shows its path. */
+const PAGE_LABELS: Record<string, string> = {
+  '/': 'Início',
+  '/events': 'Atuações',
+  '/events/{id}': 'Atuação',
+  '/events/{id}/discussion': 'Discussão de atuação',
+  '/rehearsals': 'Ensaios',
+  '/rehearsals/{id}': 'Ensaio',
+  '/music': 'Música',
+  '/music/albums/{id}': 'Álbum',
+  '/gallery': 'Galeria',
+  '/news': 'Novidades',
+  '/shop': 'Loja',
+  '/members': 'Membros',
+  '/members/hierarchy': 'Hierarquia',
+  '/members/map': 'Mapa de membros',
+  '/leaderboard': 'Classificação',
+  '/inventory': 'Inventário',
+  '/documentation': 'Documentação',
+  '/logistics': 'Logística',
+  '/logistics/{id}': 'Quadro de Logística',
+  '/treasury': 'Tesouraria',
+  '/treasury/reports': 'Relatórios',
+  '/treasury/reports/{id}': 'Relatório',
+  '/treasury/calotes': 'Calotes',
+  '/treasury/mbway': 'MBWay',
+  '/treasury/nerba': 'Nerba',
+  '/requests': 'Pedidos de atuação',
+  '/questions': 'Perguntas',
+  '/hall-of-fame': 'Hall of Fame',
+  '/naipes': 'Naipes',
+  '/meetings': 'Reuniões',
+  '/profile': 'Perfil',
+  '/pending-actions': 'As minhas ações pendentes',
+  '/roles': 'Órgãos Sociais',
+  '/login': 'Entrar',
+  '/request': 'Pedir atuação',
+  '/privacy': 'Privacidade',
 };
+
 const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
 /** Today on Portugal's calendar, yyyy-MM-dd (the server buckets by Portugal day too). */
@@ -49,7 +83,8 @@ const number = (n: number) => new Intl.NumberFormat('pt-PT').format(n);
 
 /**
  * /owner/dashboard (task 050): sign-ins, active members, movements, uploads, plays and enrollments per day for the
- * chosen range, each against the period before; the busiest hours; and the top songs, naipes, members and areas.
+ * chosen range, each against the period before; the busiest hours; and the top members and areas (088 dropped the song,
+ * naipe and action-type rankings).
  * Owner only (the server refuses everyone else). Sign-in history only exists since 050.
  */
 export default function OwnerDashboard() {
@@ -149,11 +184,9 @@ function DashboardBody({ data, metric, onMetric }: { data: Dashboard; metric: st
       <Heatmap hours={data.hours} />
 
       <div className="owner-dash__ranks">
-        <Ranking title="Músicas mais tocadas" icon="music" rows={data.topSongs} />
-        <Ranking title="Naipes mais vistos" icon="naipes" rows={data.topNaipes} />
         <Ranking title="Membros mais ativos" icon="people" rows={data.topMembers} />
-        <Ranking title="Áreas com mais movimentos" icon="diagram" rows={data.areas} label={entityLabel} />
-        <Ranking title="Tipos de movimento" icon="listOl" rows={data.actions} label={(a) => ACTION_LABELS[a] ?? a} />
+        <Ranking title="Áreas com mais movimentos" icon="diagram" rows={data.areas} />
+        <Ranking title="Páginas mais vistas" icon="eye" rows={data.topPages} label={(p) => PAGE_LABELS[p] ?? p} />
       </div>
     </div>
   );

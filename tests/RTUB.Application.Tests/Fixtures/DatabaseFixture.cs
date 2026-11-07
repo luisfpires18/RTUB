@@ -100,6 +100,7 @@ public class DatabaseFixture : IDisposable
         context.NewsPosts.RemoveRange(context.NewsPosts);
         context.PendingActionDismissals.RemoveRange(context.PendingActionDismissals);
         context.PushPreferences.RemoveRange(context.PushPreferences);
+        context.PageViews.RemoveRange(context.PageViews);
 
         await context.SaveChangesAsync();
     }

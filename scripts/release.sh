@@ -17,11 +17,13 @@
 #   release.sh schema-gate <live.json> <target.json>
 #                                               exit 3 and list them if the live release has
 #                                               migrations the target does not know
-#   release.sh notes-check <version> <notes-dir>
+#   release.sh notes-check <version> <notes-dir> [--optional]
 #                                               the member-facing release notes of <version>
-#                                               (task 083, #264): releases/<version>.json exists,
-#                                               is valid, names that version, and holds short
-#                                               plain-text pt-PT items; exit 5 when it fails
+#                                               (task 083, #264): releases/<version>.json is
+#                                               valid, names that version, and holds short
+#                                               plain-text pt-PT items; exit 5 when it fails.
+#                                               --optional (090): a missing file is fine (no
+#                                               notes = no dialog); a present file must pass
 #   release.sh --self-test
 #
 # The version is SemVer MAJOR.MINOR.PATCH from the root VERSION file - the number you say out
@@ -270,17 +272,21 @@ PY
 # before anything is packaged: a release without its notes, or with a stale or malformed file, is not
 # a release. Plain text only - the client renders the strings as text, never as HTML - and short.
 cmd_notes_check() {
-    [ $# -eq 2 ] || die "usage: release.sh notes-check <version> <notes-dir>"
+    [ $# -eq 2 ] || { [ $# -eq 3 ] && [ "$3" = "--optional" ]; } || die "usage: release.sh notes-check <version> <notes-dir> [--optional]"
     need_python
     "$PY" - "$@" <<'PY'
 import json, os, re, sys
 
 version, notes_dir = sys.argv[1:3]
+optional = len(sys.argv) > 3 and sys.argv[3] == "--optional"
 SEMVER = r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
 if not re.fullmatch(SEMVER, version):
     sys.exit(f"ERROR: version {version!r} is not MAJOR.MINOR.PATCH")
 path = os.path.join(notes_dir, f"{version}.json")
 if not os.path.isfile(path):
+    if optional:
+        print(f"  no release notes for {version} ({path} absent): members see no dialog for this release")
+        sys.exit(0)
     print(f"ERROR: no release notes for {version}: write {path} (see docs/release-and-rollback.md)", file=sys.stderr)
     sys.exit(5)
 
@@ -559,6 +565,8 @@ w("1.2.1.json", {"version": "1.2.1", "title": "T", "items": ["x" * 241]})
 PY
     expect "notes present and valid"            0 bash "$0" notes-check 1.1.2 "$tmp/notes"
     expect "notes missing refused"              5 bash "$0" notes-check 1.1.1 "$tmp/notes"
+    expect "notes missing fine with --optional" 0 bash "$0" notes-check 1.1.1 "$tmp/notes" --optional
+    expect "broken json refused even if optional" 5 bash "$0" notes-check 1.1.9 "$tmp/notes" --optional
     expect "notes for another version refused"  5 bash "$0" notes-check 1.1.3 "$tmp/notes"
     expect "empty items refused"                5 bash "$0" notes-check 1.1.4 "$tmp/notes"
     expect "empty title refused"                5 bash "$0" notes-check 1.1.5 "$tmp/notes"
@@ -569,7 +577,7 @@ PY
     expect "unknown field refused"              5 bash "$0" notes-check 1.2.0 "$tmp/notes"
     expect "long item refused"                  5 bash "$0" notes-check 1.2.1 "$tmp/notes"
     expect "bad version argument refused"       1 bash "$0" notes-check 1.1 "$tmp/notes"
-    expect "the repository's own notes for VERSION" 0 bash "$0" notes-check "$(bash "$0" version)" "$ROOT/releases"
+    expect "the repository's own notes for VERSION (optional)" 0 bash "$0" notes-check "$(bash "$0" version)" "$ROOT/releases" --optional
 
     echo "previous-version + bump-check, as both workflows run them (fake gh)"
     mkdir -p "$tmp/bin"

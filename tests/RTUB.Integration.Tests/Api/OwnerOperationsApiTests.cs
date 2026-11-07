@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using RTUB.Application.Data;
+using RTUB.Application.Services;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -590,7 +591,7 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         body.GetProperty("days").GetArrayLength().Should().Be(30);
 
         var series = body.GetProperty("series").EnumerateArray().ToDictionary(s => s.GetProperty("key").GetString()!);
-        series.Keys.Should().Equal("signIns", "activeMembers", "movements", "uploads", "songPlays", "naipePlays", "enrollments");
+        series.Keys.Should().Equal("signIns", "activeMembers", "movements", "uploads", "songPlays", "naipePlays", "enrollments", "pageViews");
         series.Values.Should().OnlyContain(s => s.GetProperty("values").GetArrayLength() == 30);
         series["signIns"].GetProperty("previousTotal").GetInt32().Should().BeGreaterThanOrEqualTo(1);
         series["activeMembers"].GetProperty("total").GetInt32().Should().BeGreaterThanOrEqualTo(1);
@@ -598,14 +599,52 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         var top = body.GetProperty("topMembers").EnumerateArray()
             .ToDictionary(r => r.GetProperty("label").GetString()!, r => r.GetProperty("count").GetInt32());
         top.Should().Contain(member, 1, "a play is a song play and a status update is a system action, not a movement");
-        body.GetProperty("areas").EnumerateArray().Select(r => r.GetProperty("label").GetString())
-            .Should().NotContain(["MemberStatus", "MemberActivityStatus"]);
+        var areas = body.GetProperty("areas").EnumerateArray().Select(r => r.GetProperty("label").GetString()!).ToList();
+        areas.Should().NotContain(["MemberStatus", "MemberActivityStatus"]);
+        areas.Should().OnlyContain(a => !a.Contains("Enrollment") && !a.Contains("LogisticsCard"), "088: areas of the app, not entity types");
+        body.TryGetProperty("topSongs", out _).Should().BeFalse("088 dropped the song, naipe and action-type rankings");
+        body.TryGetProperty("actions", out _).Should().BeFalse();
 
         var hours = body.GetProperty("hours");
         hours.GetArrayLength().Should().Be(7);
         hours.EnumerateArray().Should().OnlyContain(h => h.GetArrayLength() == 24);
         hours.EnumerateArray().SelectMany(h => h.EnumerateArray()).Sum(c => c.GetInt32()).Should().BeGreaterThanOrEqualTo(1);
         body.GetProperty("now").GetProperty("online").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    /// <summary>
+    /// Task 089: /api/account/me counts the page that asked (its Referer, same origin only, ids normalised), the flush
+    /// stores it per Portugal day, and the dashboard shows the tile and "Páginas mais vistas".
+    /// </summary>
+    [Fact]
+    public async Task Dashboard_CountsPageViews_FromTheReferer_PerRoute()
+    {
+        var n = Interlocked.Increment(ref _ip);
+        var (owner, _) = await CookieTestSession.SignInAsync(_factory, $"pvw{Guid.NewGuid():N}"[..20], $"10.72.{n / 250}.{n % 250 + 1}", "Owner");
+        var counter = _factory.Services.GetRequiredService<PageViewCounter>();
+        await counter.FlushAsync(_factory.Services.GetRequiredService<IDbContextFactory<ApplicationDbContext>>()); // whatever earlier tests left
+
+        async Task Open(string referer)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/api/account/me");
+            request.Headers.Referrer = new Uri(referer);
+            (await owner.SendAsync(request)).EnsureSuccessStatusCode();
+        }
+
+        await Open("http://localhost/events/11?x=1");
+        await Open("http://localhost/events/12");
+        await Open("http://localhost/music");
+        await Open("https://evil.example/music");
+        (await counter.FlushAsync(_factory.Services.GetRequiredService<IDbContextFactory<ApplicationDbContext>>())).Should().Be(2);
+
+        var body = await owner.GetFromJsonAsync<JsonElement>("/api/owner/dashboard");
+        var pages = body.GetProperty("series").EnumerateArray().Single(x => x.GetProperty("key").GetString() == "pageViews");
+        pages.GetProperty("total").GetInt32().Should().BeGreaterThanOrEqualTo(3);
+        var top = body.GetProperty("topPages").EnumerateArray()
+            .ToDictionary(r => r.GetProperty("label").GetString()!, r => r.GetProperty("count").GetInt32());
+        top["/events/{id}"].Should().BeGreaterThanOrEqualTo(2, "ids are one route");
+        top["/music"].Should().BeGreaterThanOrEqualTo(1);
+        top.Keys.Should().NotContain(k => k.Contains("evil") || k.Contains("?"), "other origins and query strings are never stored");
     }
 
     [Fact]

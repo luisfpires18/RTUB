@@ -85,7 +85,8 @@ public sealed class NewsPendingActionSource : IPendingActionSource
     public string Category => "participation";
     public IReadOnlyList<(string Key, string Label)> Filters => [];
 
-    public bool AppliesTo(PendingActionMember member) => NewsAuthorization.CanWrite(member.ToPrincipal());
+    /// <summary>Task 087: the Direção in office (owner decision) who may also write news (the module's own rule).</summary>
+    public bool AppliesTo(PendingActionMember member) => member.HoldsDirecao && NewsAuthorization.CanWrite(member.ToPrincipal());
 
     public async Task<int> CountAsync(ApplicationDbContext db, PendingActionMember member, string? filter) =>
         await PendingAsync(db, member) ? 1 : 0;
