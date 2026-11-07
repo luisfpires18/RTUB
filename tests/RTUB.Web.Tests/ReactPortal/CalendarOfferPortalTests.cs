@@ -21,6 +21,7 @@ public class CalendarOfferPortalTests
         var offer = Read("CalendarOffer.tsx");
         var builder = Read("calendar.ts");
 
+        offer.Should().NotContain("location.origin", "the link back uses the configured Calendar:PublicOrigin, not the host the page came from");
         offer.Should().NotContain("window.open").And.NotContain("location.assign").And.NotContain("location.href =");
         offer.Should().Contain("target=\"_blank\" rel=\"noopener noreferrer\"").And.Contain("(abre noutra janela)");
         offer.Should().Contain("Alterações ou cancelamentos na RTUB não atualizam esta cópia automaticamente.");

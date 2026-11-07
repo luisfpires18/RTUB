@@ -26,4 +26,7 @@ assert.equal(url.searchParams.get('ctz'), 'Europe/Lisbon');
 assert.equal(url.searchParams.get('location'), 'Sé de Bragança');
 assert.match(url.searchParams.get('details'), /^RTUB: https:\/\/rtub\.pt\/events\/12\n/);
 assert.equal(url.searchParams.getAll('text').length, 1);
+// no configured origin: no RTUB link at all
+const bare = new URL(googleCalendarUrl({ ...base, date: '2026-12-12', start: '21:30' }, 120, null));
+assert.doesNotMatch(bare.searchParams.get('details'), /RTUB:|https?:/);
 console.log('calendar link builder: ok');

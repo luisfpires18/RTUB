@@ -1,4 +1,5 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { getCurrentUser } from './api';
 import { calendarDates, googleCalendarUrl, type CalendarActivity } from './calendar';
 import { Dialog } from './Dialog';
 import type { EventSummary } from './eventsApi';
@@ -30,8 +31,18 @@ export function CalendarOffer({ activity, headline, onClose }: { activity: Calen
   const [duration, setDuration] = useState(120);
   const [copied, setCopied] = useState<'yes' | 'no'>();
   const id = useId();
+  const [origin, setOrigin] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    getCurrentUser()
+      .then((u) => live && setOrigin(u.authenticated ? u.publicOrigin : null))
+      .catch(() => undefined); // no origin: the copy simply has no RTUB link
+    return () => {
+      live = false;
+    };
+  }, []);
   const { allDay, suggested } = calendarDates(activity, duration);
-  const url = googleCalendarUrl(activity, duration, location.origin);
+  const url = googleCalendarUrl(activity, duration, origin);
   const end = (() => {
     if (!activity.start) return null;
     const [h, m] = activity.start.split(':').map(Number);

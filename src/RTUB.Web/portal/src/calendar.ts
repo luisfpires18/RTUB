@@ -19,7 +19,7 @@ export type CalendarActivity = {
   end: string | null;
   /** yyyy-MM-dd, the last day of a multi-day activity, or null. */
   endDate: string | null;
-  /** The item's RTUB path, e.g. /events/12 (made absolute with the app's own origin). */
+  /** The item's RTUB path, e.g. /events/12 (made absolute with the configured public origin, never the browser's). */
   path: string;
 };
 
@@ -57,11 +57,16 @@ export function calendarDates(a: CalendarActivity, suggestedMinutes: number): { 
   return { dates: `${stamp(a.date, from)}/${stamp(a.date, to)}`, allDay: false, suggested: !a.end };
 }
 
-/** The Google link. URLSearchParams encodes Portuguese characters, &, # and newlines; the destination is fixed. */
-export function googleCalendarUrl(a: CalendarActivity, suggestedMinutes: number, origin: string): string {
+/**
+ * The Google link. URLSearchParams encodes Portuguese characters, &, # and newlines; the destination is fixed.
+ * `origin`: the server's Calendar:PublicOrigin (never location.origin, which may be an alternate host); null leaves the
+ * RTUB link out of the copy.
+ */
+export function googleCalendarUrl(a: CalendarActivity, suggestedMinutes: number, origin: string | null): string {
   const { dates } = calendarDates(a, suggestedMinutes);
   const params = new URLSearchParams({ action: 'TEMPLATE', text: a.title, dates, ctz: ZONE });
   if (a.location?.trim()) params.set('location', a.location.trim());
-  params.set('details', `RTUB: ${origin}${a.path}\nCópia independente: alterações na RTUB não a atualizam.`);
+  const note = 'Cópia independente: alterações na RTUB não a atualizam.';
+  params.set('details', origin ? `RTUB: ${origin}${a.path}\n${note}` : note);
   return `${GOOGLE_TEMPLATE}?${params.toString()}`;
 }

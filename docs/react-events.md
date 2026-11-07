@@ -441,7 +441,9 @@ Shared by events, rehearsals and `/pending-actions` (`portal/src/calendar.ts` bu
 - **Later**: an upcoming detail page shows "Adicionar ao calendário" to whoever is going (so "Agora não" is reversible).
 - **Link**: Google's documented template `https://calendar.google.com/calendar/render?action=TEMPLATE` (fixed
   destination) with `text`, `dates`, `ctz=Europe/Lisbon`, `location`, `details` = the item's RTUB page
-  (`location.origin` of the app itself, no server Host) and the independent-copy note. Times are RTUB's Portugal wall
+  (built from the configured `Calendar:PublicOrigin`, sent to signed-in members by `/api/account/me`; never
+  `location.origin` or the request Host, so an alternate or untrusted host never ends up in the copy; not configured or
+  not an absolute https origin = no RTUB link) and the independent-copy note. Times are RTUB's Portugal wall
   clock; Google applies the zone, so summer / winter and a device in another zone are right. No notes, participants,
   descriptions, tokens or user data. No OAuth, no Calendar API, nothing written by RTUB.
 - **Dates**: rehearsal `start`–`end`, an end not after the start ends the next day (21:00–00:00); an event with a time and
