@@ -102,3 +102,9 @@ The current Ensaiador and Magister approve and refuse pending presenças without
 Presenças por aprovar (current fiscal year). Refusal keeps the presença as not attended and notifies the member (the
 existing, until now unused, `CancelAttendanceAsync` + "Presença recusada" push); approval is unchanged (push, activity
 status, XP).
+
+## Calendário (task 079)
+
+A new "vou" to an upcoming rehearsal offers "Adicionar ao Google Calendar" ("Presença registada, pendente de aprovação."); the
+detail page keeps "Adicionar ao calendário" while the member is going. The presença stays pending: the calendar approves
+nothing. Rules, link and dates: [react-events → Calendário](react-events.md).

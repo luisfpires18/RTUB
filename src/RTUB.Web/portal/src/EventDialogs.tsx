@@ -1,3 +1,4 @@
+import { CalendarOffer, eventActivity } from './CalendarOffer';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Loading } from './App';
 import { Dialog } from './Dialog';
@@ -107,6 +108,7 @@ function AnswerForm({
   const [choice, setChoice] = useState<Choice>(() => choiceFrom(enrollment));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [offer, setOffer] = useState<EventEnrollment>();
   const ids = { instrument: useId(), notes: useId() };
   const options = enrollment.instruments;
 
@@ -133,12 +135,17 @@ function AnswerForm({
     setBusy(false);
     if (outcome.kind === 'ok') {
       onSaved(outcome.data);
-      onClose();
+      // Task 079: a new "vou" to an upcoming event offers the calendar; a no, an unchanged yes or a past event closes.
+      const saved = outcome.data;
+      if (choice.willAttend && enrollment.status !== 'going' && saved.state === 'open' && !saved.event.past && !saved.event.cancelled) setOffer(saved);
+      else onClose();
     } else if (outcome.kind === 'invalid') setError(Object.values(outcome.errors)[0]);
     else if (outcome.kind === 'closed') setError('Esta atuação já não aceita respostas.');
     else if (outcome.kind === 'signin') setError('A sessão terminou. Entra de novo para responder.');
     else setError('Não foi possível guardar. Tenta outra vez daqui a pouco.');
   };
+
+  if (offer) return <CalendarOffer activity={eventActivity(offer.event)} headline="Inscrição guardada." onClose={onClose} />;
 
   return (
     <form className="answer" onSubmit={submit}>

@@ -1,3 +1,4 @@
+import { CalendarOfferDialog, rehearsalActivity } from './CalendarOffer';
 import { useEffect, useId, useState } from 'react';
 import { Loading } from './App';
 import { dateLabel, weekday, type MemberOption, type Outcome } from './eventsApi';
@@ -14,7 +15,7 @@ import { MemberBadge, badgeKind } from './MemberBadge';
  */
 export default function RehearsalDetail({ rehearsalId }: { rehearsalId: number }) {
   const [detail, setDetail] = useState<Detail | 'missing' | 'signin' | null>();
-  const [dialog, setDialog] = useState<'presence' | 'edit' | 'notice' | 'cancel'>();
+  const [dialog, setDialog] = useState<'presence' | 'edit' | 'notice' | 'cancel' | 'calendar'>();
   const [confirm, setConfirm] = useState<'delete' | 'reactivate'>();
   const [error, setError] = useState<string>();
 
@@ -238,6 +239,12 @@ export default function RehearsalDetail({ rehearsalId }: { rehearsalId: number }
               {open ? (r.mine ? 'Alterar presença' : 'Marcar presença') : 'Ver a minha presença'}
             </button>
           )}
+          {open && r.mine && r.mine.status !== 'notGoing' && (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setDialog('calendar')}>
+              <Icon name="calendar" />
+              Adicionar ao calendário
+            </button>
+          )}
           <dl className="member-panel__counts">
             <div>
               <dt>{r.past ? 'Foram' : 'Vão'}</dt>
@@ -257,6 +264,7 @@ export default function RehearsalDetail({ rehearsalId }: { rehearsalId: number }
         </aside>
       </div>
 
+      {dialog === 'calendar' && <CalendarOfferDialog activity={rehearsalActivity(r)} headline={null} onClose={() => setDialog(undefined)} />}
       {dialog === 'presence' && <PresenceDialog rehearsalId={r.id} onClose={() => setDialog(undefined)} onSaved={() => load(true)} />}
       {dialog === 'edit' && <RehearsalFormDialog rehearsal={r} notes={detail.notes} onClose={() => setDialog(undefined)} onSaved={() => load(true)} />}
       {dialog === 'notice' && <NoticeDialog rehearsal={r} onClose={() => setDialog(undefined)} />}

@@ -1,3 +1,4 @@
+import { CalendarOffer, rehearsalActivity } from './CalendarOffer';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Loading } from './App';
 import { Dialog } from './Dialog';
@@ -91,6 +92,7 @@ function PresenceForm({ data, onClose, onSaved }: { data: MyAttendance; onClose:
   const [notes, setNotes] = useState(data.notes ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [offer, setOffer] = useState(false);
   const ids = { instrument: useId(), notes: useId() };
 
   // Changing the answer starts a fresh note: a reason for missing it is not a note for going.
@@ -109,8 +111,14 @@ function PresenceForm({ data, onClose, onSaved }: { data: MyAttendance; onClose:
     setBusy(false);
     if (o.kind !== 'ok') return setError(problem(o, 'guardar'));
     onSaved();
-    onClose();
+    // Task 079: a new "vou" to an upcoming rehearsal offers the calendar (the presença stays pending until approved).
+    if (willAttend && !going && data.state === 'open' && !data.rehearsal.past && !data.rehearsal.cancelled) setOffer(true);
+    else onClose();
   };
+
+  if (offer) {
+    return <CalendarOffer activity={rehearsalActivity(data.rehearsal)} headline="Presença registada, pendente de aprovação." onClose={onClose} />;
+  }
 
   return (
     <form className="answer" onSubmit={submit}>
