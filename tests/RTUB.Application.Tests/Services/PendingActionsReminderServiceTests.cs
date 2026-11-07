@@ -56,12 +56,15 @@ public class PendingActionsReminderServiceTests
         var busy = AddUser();
         var idle = AddUser();
         var expelled = AddUser(expelled: true);
+        var retired = AddUser(retired: true);
         _counts[busy] = 7; // pending on a later page: the count covers every panel and page
         _counts[expelled] = 3;
+        _counts[retired] = 2; // 087: a Reformado is not even evaluated
 
         var summary = await Service(Evening).RunAsync(Day);
 
         summary.Should().Be(new PendingActionsReminderService.RunSummary(2, 1, 0, 0));
+        _push.Verify(p => p.SendToUserAsync(retired, It.IsAny<SendPushNotificationDto>()), Times.Never);
         _push.Verify(p => p.SendToUserAsync(busy, It.Is<SendPushNotificationDto>(n =>
             n.Title == "As minhas ações pendentes" && n.Url == "/pending-actions" && !n.Body.Contains('7'))), Times.Once);
         _push.Verify(p => p.SendToUserAsync(idle, It.IsAny<SendPushNotificationDto>()), Times.Never);
@@ -184,13 +187,13 @@ public class PendingActionsReminderServiceTests
         return db.PendingActionDismissals.Select(d => d.UserId).ToList();
     }
 
-    private string AddUser(bool expelled = false)
+    private string AddUser(bool expelled = false, bool retired = false)
     {
         using var db = _db.CreateContext();
         var id = Guid.NewGuid().ToString();
         db.Users.Add(new ApplicationUser
         {
-            Id = id, UserName = id, Email = $"{id}@test.pt", FirstName = "Ana", LastName = "Silva", Nickname = "Ana", IsExpelled = expelled,
+            Id = id, UserName = id, Email = $"{id}@test.pt", FirstName = "Ana", LastName = "Silva", Nickname = "Ana", IsExpelled = expelled, IsRetired = retired,
         });
         db.SaveChanges();
         return id;

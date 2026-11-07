@@ -54,6 +54,9 @@ public sealed record PendingActionMember(
     /// <summary>The member's current Órgãos Sociais positions (task 074): <c>ApplicationUser.Positions</c>, the mandate in office.</summary>
     public bool Holds(params Position[] positions) => Positions?.Any(positions.Contains) == true;
 
+    /// <summary>A current member of the Direção (Magister, Vice-Magister, Secretário, 1.º / 2.º Tesoureiro), task 087.</summary>
+    public bool HoldsDirecao => Holds(RTUB.Core.Helpers.OrgaoSocialHelper.GetPositionsForGroup(RTUB.Core.Enums.OrgaoSocialGroup.Direcao).ToArray());
+
     /// <summary>The canonical active member: someone the activity rule covers who is not Reformado (docs/member-activity-status.md).</summary>
     public bool IsActive => IsSubjectToActivityRule && !IsRetired;
 

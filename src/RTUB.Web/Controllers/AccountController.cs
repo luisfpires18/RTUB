@@ -56,6 +56,8 @@ public class AccountController : ControllerBase
             avatarUrl = user.ProfilePictureSrc,
             categories = user.Categories.Select(StatusHelper.GetCategoryDisplay).ToArray(),
             menu = MemberMenuAccess.For(User, user),
+            // Task 087: a Reformado has no "As minhas ações pendentes" (no menu entry, no page, no reminder push).
+            retired = user.IsRetired,
             // Task 079: the configured public origin for links that leave RTUB (Google Calendar). Never the request's host.
             publicOrigin = _publicOrigin
         });

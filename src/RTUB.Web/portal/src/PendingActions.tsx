@@ -85,7 +85,12 @@ export default function PendingActions() {
   const [resumed, setResumed] = useState(0);
 
   const load = useCallback(
-    () => pendingActionsApi.page().then((o) => setData(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null)),
+    () =>
+      pendingActionsApi.page().then((o) => {
+        // 087: the page is not for a Reformado (404, and no menu entry): the agenda is where they answer.
+        if (o.kind === 'notfound') return window.location.replace('/events');
+        setData(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null);
+      }),
     [],
   );
 
@@ -121,7 +126,6 @@ export default function PendingActions() {
         {page && (
           <div className="pa-head__meta">
             {page.status === 'active' && <span className="badge pa-status">No ativo</span>}
-            {page.status === 'retired' && <span className="badge pa-status pa-status--retired">Reformado</span>}
             <time className="pa-today" dateTime={page.today}>
               <Icon name="calendar" />
               {longDate(page.today)}
@@ -151,9 +155,6 @@ export default function PendingActions() {
         <div className="pa-none">
           <Icon name="checkCircle" />
           <p>Não tens ações pendentes.</p>
-          {page.status === 'retired' && (
-            <p className="note">As atuações e os ensaios por responder aparecem aqui enquanto estiveres no ativo. Podes sempre responder na agenda.</p>
-          )}
           <a className="btn btn--ghost btn--sm" href="/events">
             Ver a agenda
           </a>

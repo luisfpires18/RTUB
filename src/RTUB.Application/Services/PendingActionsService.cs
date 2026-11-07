@@ -45,8 +45,14 @@ public sealed class PendingActionsService : IPendingActionsService
             return EventResult<PendingActionsPageDto>.Fail(EventResultStatus.SignInRequired);
         }
 
+        if (member.IsRetired)
+        {
+            // Task 087: the page is not for a Reformado at all (no entry in the menu either); the client goes to the agenda.
+            return EventResult<PendingActionsPageDto>.Fail(EventResultStatus.NotFound);
+        }
+
         var panels = new List<PendingActionPanelDto>();
-        foreach (var source in _sources.Where(s => s.AppliesTo(member)))
+        foreach (var source in _sources.Where(s => Applies(s, member)))
         {
             panels.Add(await PanelAsync(db, source, member, null, 1));
         }
@@ -73,7 +79,7 @@ public sealed class PendingActionsService : IPendingActionsService
         }
 
         // A panel that does not apply to the member is a 404, exactly like one that does not exist.
-        var source = _sources.FirstOrDefault(s => s.Panel == panel && s.AppliesTo(member));
+        var source = _sources.FirstOrDefault(s => s.Panel == panel && Applies(s, member));
         return source is null
             ? EventResult<PendingActionPanelDto>.Fail(EventResultStatus.NotFound)
             : EventResult<PendingActionPanelDto>.Ok(await PanelAsync(db, source, member, filter, page));
@@ -101,7 +107,7 @@ public sealed class PendingActionsService : IPendingActionsService
 
         // Only an action that is pending for this member now, from a panel that applies to them: whatever the request says,
         // the row (and whether it is required or optional) is the server's.
-        foreach (var source in _sources.Where(s => s.AppliesTo(member)))
+        foreach (var source in _sources.Where(s => Applies(s, member)))
         {
             if (await source.FindAsync(db, member, kind, sourceKey) is not { } found)
             {
@@ -160,7 +166,7 @@ public sealed class PendingActionsService : IPendingActionsService
         // office) is a 404, like the panel itself.
         if (_sources.OfType<IPendingActionCommand>().FirstOrDefault(c => c.Kind == kind) is { } command)
         {
-            if (!((IPendingActionSource)command).AppliesTo(member))
+            if (!Applies((IPendingActionSource)command, member))
             {
                 return EventResult<bool>.Fail(EventResultStatus.NotFound);
             }
@@ -182,7 +188,7 @@ public sealed class PendingActionsService : IPendingActionsService
             return EventResult<bool>.Invalid("answer", "Resposta inválida.");
         }
 
-        var responder = _sources.Where(s => s.AppliesTo(member)).OfType<IPendingActionResponder>().FirstOrDefault(r => r.Kind == kind);
+        var responder = _sources.Where(s => Applies(s, member)).OfType<IPendingActionResponder>().FirstOrDefault(r => r.Kind == kind);
         if (responder is null || sourceKey.Length is 0 or > 64)
         {
             return EventResult<bool>.Fail(EventResultStatus.NotFound);
@@ -224,7 +230,7 @@ public sealed class PendingActionsService : IPendingActionsService
         }
 
         var total = 0;
-        foreach (var source in _sources.Where(s => s.AppliesTo(member)))
+        foreach (var source in _sources.Where(s => Applies(s, member)))
         {
             if (source.Filters.Count == 0)
             {
@@ -261,6 +267,12 @@ public sealed class PendingActionsService : IPendingActionsService
 
         return new PendingActionPanelDto(source.Panel, source.Title, source.Category, filters, selected?.Key, current, PageSize, total, rows);
     }
+
+    /// <summary>
+    /// Task 087 (owner decision, 2026-11-07): a Reformado has no pending action at all - no participation, no own work,
+    /// no responsibility - whatever the source would say. Everyone else is up to the source's own rule.
+    /// </summary>
+    private static bool Applies(IPendingActionSource source, PendingActionMember member) => !member.IsRetired && source.AppliesTo(member);
 
     /// <summary>The member as the database has them now (not the cookie's claims); null for an unknown or expelled account.</summary>
     private async Task<PendingActionMember?> LoadMemberAsync(ApplicationDbContext db, string userId)

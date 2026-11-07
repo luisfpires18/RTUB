@@ -299,8 +299,9 @@ public sealed class MembersInfoPendingActionSource : IPendingActionSource
     public string Category => "responsibilities";
     public IReadOnlyList<(string Key, string Label)> Filters => [];
 
+    /// <summary>Mod or Admin; the Owner is left out on purpose (087, owner decision), even when the account also holds Admin.</summary>
     public bool AppliesTo(PendingActionMember member) =>
-        member.Roles.Contains("Mod") || member.Roles.Contains("Admin") || member.Roles.Contains("Owner");
+        !member.Roles.Contains("Owner") && (member.Roles.Contains("Mod") || member.Roles.Contains("Admin"));
 
     public Task<int> CountAsync(ApplicationDbContext db, PendingActionMember member, string? filter) => Query(db).CountAsync();
 
