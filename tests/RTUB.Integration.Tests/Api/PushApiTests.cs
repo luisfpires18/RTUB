@@ -39,7 +39,8 @@ public class PushApiTests : IClassFixture<PushApiFactory>
 
         (await visitor.GetAsync("/api/push/status")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         await AreaHttp.WithTokenAsync(visitor);
-        foreach (var path in new[] { "/api/push/check", "/api/push/subscribe", "/api/push/unsubscribe", "/api/push/test" })
+        (await visitor.GetAsync("/api/push/reminder")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        foreach (var path in new[] { "/api/push/check", "/api/push/subscribe", "/api/push/unsubscribe", "/api/push/test", "/api/push/reminder/ack" })
         {
             (await visitor.PostAsJsonAsync(path, new { endpoint = Endpoint() })).StatusCode.Should().Be(HttpStatusCode.Unauthorized, path);
         }
@@ -276,6 +277,40 @@ public class PushApiTests : IClassFixture<PushApiFactory>
     }
 
     // ---------- helpers ----------
+
+    [Fact]
+    public async Task Reminder_IsTheCallersOwn_NeedsTheToken_FollowsTheAccount_AndIgnoresConcurrentTabs()
+    {
+        var (active, _) = await SignInAsync();
+        var (reformed, user) = await SignInAsync();
+        await WithDbAsync(async db =>
+        {
+            var u = await db.Users.SingleAsync(x => x.Id == user.Id);
+            u.IsRetired = true;
+            return await db.SaveChangesAsync();
+        });
+
+        var first = await member(reformed);
+        first.GetProperty("reformed").GetBoolean().Should().BeTrue();
+        first.GetProperty("acknowledged").GetBoolean().Should().BeFalse();
+
+        (await reformed.PostAsync("/api/push/reminder/ack", null)).StatusCode.Should().Be(HttpStatusCode.BadRequest, "no antiforgery token");
+        (await member(reformed)).GetProperty("acknowledged").GetBoolean().Should().BeFalse();
+
+        await AreaHttp.WithTokenAsync(reformed);
+        var acks = await Task.WhenAll(Enumerable.Range(0, 3).Select(_ => reformed.PostAsync("/api/push/reminder/ack", null)));
+        acks.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.NoContent, "a second tab storing it too is fine");
+        (await member(reformed)).GetProperty("acknowledged").GetBoolean().Should().BeTrue();
+        (await WithDbAsync(db => db.PendingActionDismissals.CountAsync(d => d.UserId == user.Id && d.ActionKind == "startup.push")))
+            .Should().Be(1);
+
+        // Another member's state is untouched.
+        var other = await member(active);
+        other.GetProperty("reformed").GetBoolean().Should().BeFalse();
+        other.GetProperty("acknowledged").GetBoolean().Should().BeFalse();
+
+        static Task<JsonElement> member(HttpClient client) => AreaHttp.Json(client, "/api/push/reminder");
+    }
 
     private static string Endpoint() => $"https://fcm.googleapis.com/fcm/send/{Guid.NewGuid():N}";
 

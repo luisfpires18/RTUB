@@ -26,6 +26,9 @@ export const pushApi = {
       replaces,
     }),
   unsubscribe: (endpoint: string | null, all: boolean) => call<PushStatus>('POST', '/api/push/unsubscribe', { endpoint, all }),
+  /** Task 080: the startup reminder's account side (Reformado flag + once-per-account acknowledgement). */
+  reminder: () => call<{ reformed: boolean; acknowledged: boolean }>('GET', '/api/push/reminder'),
+  acknowledgeReminder: () => call<void>('POST', '/api/push/reminder/ack'),
   test: (endpoint: string) => call<{ outcome: string; status: number | null }>('POST', '/api/push/test', { endpoint }),
 };
 

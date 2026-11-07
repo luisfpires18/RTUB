@@ -177,6 +177,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPendingActionSource, GalleryPendingActionSource>();
         services.AddScoped<IPendingActionSource, NewsPendingActionSource>();
         services.AddScoped<IPendingActionsService, PendingActionsService>();
+        services.AddScoped<PushReminderService>();
         services.AddScoped<IGalleryManagementService, GalleryManagementService>();
         services.AddScoped<ISongContentService, SongContentService>();
         services.AddScoped<IRequestService, RequestService>();

@@ -140,6 +140,12 @@ Everything else adopts it through `navigator.serviceWorker.ready` / `getRegistra
 
 Detail: `docs/react-push-v2.md`.
 
+### Startup notification reminder (task 080)
+
+An "app opening" is a tab session (`sessionStorage`), so a PWA cold launch reminds and a resume does not; the browser's
+permission prompt only follows the member's "Ativar notificações" click. Rules and API: `docs/react-push-v2.md` →
+*Startup reminder*.
+
 ### Caching Strategy
 
 ✅ **Always:**

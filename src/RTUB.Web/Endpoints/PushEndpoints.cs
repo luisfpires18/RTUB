@@ -7,6 +7,7 @@ using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Services;
 
 namespace RTUB.Web.Endpoints;
 
@@ -27,7 +28,16 @@ public static class PushEndpoints
         push.MapGet("/status", async (HttpContext http, IPushNotificationService service, IOptions<WebPushOptions> options) =>
             Results.Ok(await StatusAsync(http.User, service, options.Value)));
 
+        // Task 080 (#261): the startup reminder's account side. Always the caller's own account (no id in the request).
+        push.MapGet("/reminder", async (HttpContext http, PushReminderService reminder) =>
+            await reminder.GetAsync(UserId(http.User)) is { } state
+                ? Results.Ok(new { reformed = state.Reformed, acknowledged = state.Acknowledged })
+                : Results.Unauthorized());
+
         var writes = push.MapGroup(string.Empty).AddEndpointFilter(EventEndpoints.RequireAntiforgery);
+
+        writes.MapPost("/reminder/ack", async (HttpContext http, PushReminderService reminder) =>
+            await reminder.AcknowledgeAsync(UserId(http.User)) ? Results.NoContent() : Results.Unauthorized());
 
         writes.MapPost("/check", async (PushEndpointInput input, HttpContext http, IPushNotificationService service) =>
                 string.IsNullOrWhiteSpace(input.Endpoint)
