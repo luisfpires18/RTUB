@@ -282,9 +282,9 @@ Optional rows: Secretaria (074, fiscal year), Registar reunião (075, month), Re
 ## Login landing
 
 `Program.MemberLanding`: a local `returnUrl` (deep link, `/login?returnUrl=…` from a members-only route, the PWA's
-pending push target) always wins. Without one, an **active** member lands on `/pending-actions`; everyone else still
-on `/events`. A signed-in active member opening `/login` goes to `/pending-actions` too. The manifest `start_url`
-(`/`) is unchanged.
+pending push target) always wins. Without one, every member lands on `/events` (task 085, owner request, 2026-11-07:
+the 071 landing of active members on `/pending-actions` was removed; the page is reached from the menu and the daily
+reminder push). A signed-in member opening `/login` goes to `/events` too. The manifest `start_url` (`/`) is unchanged.
 
 ## Migration and rollback
 

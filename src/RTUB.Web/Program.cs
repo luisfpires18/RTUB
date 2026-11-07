@@ -721,11 +721,11 @@ public class Program
         // A signed-in member never sees the form and goes to the members' landing page. The return
         // URL is deliberately ignored here: /login is also the cookie's AccessDeniedPath, so a member
         // bounced off a page their role cannot open would be sent straight back to it, in a loop.
-        app.MapMethods("/login", ["GET", "HEAD"], async (HttpContext context, IWebHostEnvironment env, UserManager<ApplicationUser> users) =>
+        app.MapMethods("/login", ["GET", "HEAD"], async (HttpContext context, IWebHostEnvironment env) =>
         {
             if (context.User.Identity?.IsAuthenticated == true)
             {
-                return Results.Redirect(MemberLanding(null, await users.GetUserAsync(context.User) is { } me && IsActiveMember(me)));
+                return Results.Redirect(MemberLanding(null));
             }
 
             context.Response.Headers.CacheControl = "no-cache";
@@ -739,15 +739,12 @@ public class Program
     }
 
     /// <summary>
-    /// Where a signed-in member goes: a local return URL (a deep link, a PWA target) always wins; otherwise an active member
-    /// lands on "As minhas ações pendentes" (task 071) and everyone else on the (React) events page.
+    /// Where a signed-in member goes: a local return URL (a deep link, a PWA target) always wins; otherwise the (React)
+    /// events page. Task 085 (owner request): the 071 landing on "As minhas ações pendentes" for active members is gone;
+    /// the page is reached from the menu and the daily reminder push.
     /// </summary>
-    internal static string MemberLanding(string? returnUrl, bool activeMember = false) =>
-        RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl) ? returnUrl! : activeMember ? "/pending-actions" : "/events";
-
-    /// <summary>The canonical active member (docs/member-activity-status.md): covered by the activity rule and not Reformado.</summary>
-    internal static bool IsActiveMember(ApplicationUser user) =>
-        RTUB.Application.Services.MemberActivityStatusEvaluator.IsSubjectToRule(user) && !user.IsRetired;
+    internal static string MemberLanding(string? returnUrl) =>
+        RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl) ? returnUrl! : "/events";
 
     /// <summary>
     /// Why an account may not sign in, whatever the method (password or passkey): <c>Invalid</c> for an
@@ -835,7 +832,7 @@ public class Program
 
         // A local return URL is honoured; anything else (missing, external, malformed) lands on
         // the members' landing page.
-        var target = MemberLanding(returnUrl, IsActiveMember(user));
+        var target = MemberLanding(returnUrl);
         return wantsJson ? Results.Json(new { redirect = target }) : Results.Redirect(target);
     }
 }
