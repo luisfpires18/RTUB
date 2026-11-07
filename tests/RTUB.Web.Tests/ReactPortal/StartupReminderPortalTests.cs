@@ -23,7 +23,9 @@ public class StartupReminderPortalTests
         app.Should().Contain("{member && <StartupModals />}", "visitors never see it");
         app.Should().Contain("if (user && !user.authenticated) resetStartup();", "sign-out and /login start a new launch");
         startup.Should().Contain("sessionStorage").And.NotContain("localStorage", "an opening is the tab session, not forever");
-        startup.Should().Contain("!document.querySelector('dialog[open]')", "never on top of another dialog");
+        startup.Should().Contain("const OTHER_DIALOG = 'dialog[open]:not(.startup-modal)';").And.Contain("new MutationObserver(update)")
+            .And.Contain("if (!state || hidden) return null;", "hidden while another dialog is open, even one that opens later");
+        startup.Should().Contain("'standalone' in navigator ?", "iPhone / iPad install steps only where that route exists");
         startup.Should().NotContain("requestPermission", "only turnOn, from the Ativar click, asks the browser");
         startup.Should().Contain("const result = await turnOn(state.status.vapidPublicKey);");
         startup.Should().Contain("const STEPS: Step[] = [PushReminder];");

@@ -155,7 +155,8 @@ debug otherwise). A failed delete of a gone row no longer stops the fan-out to t
   before signing in or switching account) clears the flag, so the next signed-in page starts a new launch.
 - **Who**: visitors never. The device state is `readPush()`: `off`, `stale`, `unregistered` (subscribed elsewhere only
   counts as off here) and `denied` remind; `unsupported` outside the installed app shows the iPhone / iPad install
-  steps (inside it there is nothing useful to say, so nothing shows); `on`, push disabled / not configured, no worker
+  steps only in Safari on iPhone / iPad (`navigator.standalone` exists), general "use an up-to-date browser or another
+  device" text elsewhere (inside the installed app there is nothing useful to say, so nothing shows); `on`, push disabled / not configured, no worker
   and any read error do not (unknown is never "off"). Rules in `portal/src/startupRules.ts`.
 - **Active vs Reformado** (`ApplicationUser.IsRetired`, the canonical flag; no new field): active = every opening while
   off ("Agora não" is for that opening only). Reformado = once per account across devices: closing or enabling a shown
@@ -166,9 +167,10 @@ debug otherwise). A failed delete of a gone row no longer stops the fan-out to t
   `{ reformed, acknowledged }`; `POST /api/push/reminder/ack` (antiforgery) → 204, idempotent across tabs.
 - **Browser permission** is asked only by the "Ativar notificações" click (`turnOn`, as `/profile`). Denied shows how to
   allow it in the site / app settings; the native prompt is never repeated by RTUB.
-- **Queue** (`portal/src/Startup.tsx`, `StartupModals`): one dialog at a time, after the page settles (1.5 s) and only
-  while no other `<dialog>` is open, so a dialog the page opened from a notification's deep link goes first and the URL
-  is never changed. Order: #264 release notes (to be added first in `STEPS`), then this reminder. The system
+- **Queue** (`portal/src/Startup.tsx`, `StartupModals`): one dialog at a time, after the page settles (1.5 s). A
+  `MutationObserver` watches for any other open `<dialog>` (a deep-link dialog, the system announcement, even one that
+  opens later): the reminder is hidden meanwhile (not closed, nothing stored) and comes back once it closes, so two
+  modals never stack and the URL is never changed. Order: #264 release notes (to be added first in `STEPS`), then this reminder. The system
   announcement keeps its own path.
 - Checks: `npm run check:startup`, `PushApiTests.Reminder_*`, `StartupReminderPortalTests`.
 

@@ -14,7 +14,7 @@ import { reminderDue, reminderFits } from './startupRules';
 const LAUNCH_KEY = 'rtub-startup-done';
 const SETTLE_MS = 1500;
 
-type Step = (props: { onDone: () => void }) => ReactNode;
+type Step = (props: { hidden: boolean; onDone: () => void }) => ReactNode;
 const STEPS: Step[] = [PushReminder];
 
 /** Forget this launch's steps (called by the visitor shell). */
@@ -43,17 +43,36 @@ function markLaunchDone(id: string) {
   }
 }
 
+const OTHER_DIALOG = 'dialog[open]:not(.startup-modal)';
+
 /**
- * Waits for the page to settle (a dialog the page opened itself, e.g. from a notification's deep link, goes first) and
- * for no other dialog to be open, then runs the steps in order. Never stacks on another dialog.
+ * Whether another dialog is open (the page's own, e.g. from a notification's deep link, or the system announcement,
+ * which can open at any time). Watched, not checked once: a dialog that opens later still gets the screen first.
+ */
+function useOtherDialogOpen(): boolean {
+  const [open, setOpen] = useState(() => !!document.querySelector(OTHER_DIALOG));
+  useEffect(() => {
+    const update = () => setOpen(!!document.querySelector(OTHER_DIALOG));
+    const observer = new MutationObserver(update);
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['open'] });
+    update();
+    return () => observer.disconnect();
+  }, []);
+  return open;
+}
+
+/**
+ * Waits for the page to settle, then runs the steps in order, one at a time. A step's dialog is hidden (not closed,
+ * nothing consumed) while any other dialog is open and comes back once it closes, so two modals never stack.
  */
 export function StartupModals() {
   const [step, setStep] = useState(-1);
+  const blocked = useOtherDialogOpen();
 
   useEffect(() => {
     let timer = 0;
     const wait = () => {
-      if (document.visibilityState === 'visible' && !document.querySelector('dialog[open]')) setStep(0);
+      if (document.visibilityState === 'visible') setStep(0);
       else timer = window.setTimeout(wait, 1000);
     };
     timer = window.setTimeout(wait, SETTLE_MS);
@@ -62,14 +81,14 @@ export function StartupModals() {
 
   if (step < 0 || step >= STEPS.length) return null;
   const Current = STEPS[step];
-  return <Current key={step} onDone={() => setStep((s) => s + 1)} />;
+  return <Current key={step} hidden={blocked} onDone={() => setStep((s) => s + 1)} />;
 }
 
 // ---------- notification reminder ----------
 
 const REMINDER = 'push';
 
-function PushReminder({ onDone }: { onDone: () => void }) {
+function PushReminder({ hidden, onDone }: { hidden: boolean; onDone: () => void }) {
   const [state, setState] = useState<PushState | null>(null);
   const [reformed, setReformed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -97,7 +116,7 @@ function PushReminder({ onDone }: { onDone: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!state) return null;
+  if (!state || hidden) return null;
 
   // Shown: this opening is done whatever happens next; a Reformado's acknowledgement is stored on the server.
   const close = () => {
@@ -127,12 +146,19 @@ function PushReminder({ onDone }: { onDone: () => void }) {
       </p>
     );
   } else if (state.kind === 'unsupported') {
-    body = (
-      <p>
-        Este navegador não permite notificações aqui. No iPhone e no iPad, adiciona a RTUB ao ecrã principal (Partilhar →
-        Adicionar ao ecrã principal) e ativa-as a partir da app.
-      </p>
-    );
+    // `navigator.standalone` exists only in Safari on iPhone / iPad, where push works once RTUB is on the Home Screen.
+    body =
+      'standalone' in navigator ? (
+        <p>
+          Neste iPhone ou iPad, as notificações funcionam na app: adiciona a RTUB ao ecrã principal (Partilhar → Adicionar
+          ao ecrã principal), abre-a a partir daí e ativa-as.
+        </p>
+      ) : (
+        <p>
+          Este navegador não permite notificações push. Abre a RTUB num navegador atualizado (por exemplo Chrome, Edge,
+          Firefox ou Safari) ou noutro dispositivo para as ativares.
+        </p>
+      );
   } else {
     action = (
       <button type="button" className="btn btn--primary" onClick={enable} disabled={busy}>
@@ -145,6 +171,7 @@ function PushReminder({ onDone }: { onDone: () => void }) {
   return (
     <Dialog
       title="Ativa as notificações"
+      className="startup-modal"
       onClose={close}
       footer={
         <>
