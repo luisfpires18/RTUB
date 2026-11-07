@@ -534,6 +534,9 @@ public class Program
         // --------- The member's own push subscriptions for the React /profile (task 038) ---------
         app.MapPushEndpoints();
 
+        // --------- Release notes for signed-in members (task 083, #264) ---------
+        app.MapReleaseEndpoints();
+
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
         // members-only ones that 302 visitors to sign in). /Error is a static server page; nothing else renders HTML

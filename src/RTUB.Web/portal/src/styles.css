@@ -16401,3 +16401,55 @@ html.app-screen .footer {
   padding-top: 10px;
   background: var(--bg-raise);
 }
+
+/* Release notes (task 083): "Nova atualização" from the startup queue and the footer's "Ver novidades da versão" */
+.release-notes__list {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+  display: grid;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.release-notes__list li {
+  overflow-wrap: anywhere;
+}
+
+.release-notes__older {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.release-notes__older .note {
+  margin: 0;
+}
+
+.release-notes__release {
+  display: grid;
+  gap: 8px;
+}
+
+.release-notes__version {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.version__notes {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.version__hint {
+  display: block;
+  margin-top: 4px;
+}

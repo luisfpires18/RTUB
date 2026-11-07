@@ -33,7 +33,9 @@ jobs:
       - name: Checkout scripts
         uses: actions/checkout@v7
         with:
-          sparse-checkout: scripts
+          sparse-checkout: |
+            scripts
+            releases
 
       # Fails fast - before a ten-minute build - when VERSION was not bumped. The archive
       # refuses a reused version anyway; this just says so earlier and more clearly.
@@ -54,6 +56,14 @@ jobs:
           fi
           bash scripts/release.sh bump-check "$previous" "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # Task 083 (#264): the notes members see after this deploy are releases/<VERSION>.json, packaged
+      # inside the zip by the build (RTUB.csproj). Checked again here, before the build, so a release
+      # without valid notes never reaches the archive.
+      - name: Release notes for ${{ steps.check.outputs.version }} exist and are valid
+        env:
+          VERSION: ${{ steps.check.outputs.version }}
+        run: bash scripts/release.sh notes-check "$VERSION" releases
 
   ci:
     name: CI • Build & Test

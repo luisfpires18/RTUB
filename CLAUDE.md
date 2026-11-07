@@ -86,7 +86,7 @@ Run only what the change can break.
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |
 | Settings per environment, user-secrets / App Settings audit, VAPID keys | `docs/configuration-runbook.md` |
-| Releases, versions, rollback, DB restore | `docs/release-and-rollback.md` |
+| Releases, versions, rollback, DB restore, member release notes (`releases/<VERSION>.json`, required per release) | `docs/release-and-rollback.md` |
 | Performance gate (Lighthouse baseline, budgets, deferred perf findings) | `docs/performance-gate.md` |
 | Repository routing map | `docs/architecture/system-index.md` |
 | Architecture decisions (ADRs) | `docs/architecture/adr/` |

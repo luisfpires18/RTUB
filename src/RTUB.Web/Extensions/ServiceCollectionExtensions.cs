@@ -960,6 +960,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddWebServices(this IServiceCollection services, IHostEnvironment environment)
     {
         services.AddSingleton<AnnouncementService>();
+        // Release notes (task 083): scoped for the context factory; the bundled releases/*.json are cached per process.
+        services.AddOptions<RTUB.Web.Services.ReleaseNotesOptions>().BindConfiguration("ReleaseNotes");
+        services.AddScoped<RTUB.Web.Services.ReleaseNotesService>();
         services.AddAuthorization(o =>
         {
             o.AddPolicy("RequireAdministratorRole", p => p.RequireRole("Admin"));

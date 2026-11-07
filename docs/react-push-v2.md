@@ -179,7 +179,7 @@ debug otherwise). A failed delete of a gone row no longer stops the fan-out to t
 - **Queue** (`portal/src/Startup.tsx`, `StartupModals`): one dialog at a time, after the page settles (1.5 s). A
   `MutationObserver` watches for any other open `<dialog>` (a deep-link dialog, the system announcement, even one that
   opens later): the reminder is hidden meanwhile (not closed, nothing stored) and comes back once it closes, so two
-  modals never stack and the URL is never changed. Order: #264 release notes (to be added first in `STEPS`), then this reminder. The system
+  modals never stack and the URL is never changed. Order: the release notes (task 083, `ReleaseNotes`; docs/release-and-rollback.md → *Release notes*), then this reminder. The system
   announcement keeps its own path.
 - Checks: `npm run check:startup`, `PushApiTests.Reminder_*`, `StartupReminderPortalTests`.
 
