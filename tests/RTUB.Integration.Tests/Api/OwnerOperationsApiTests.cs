@@ -598,8 +598,11 @@ public class OwnerOperationsApiTests : IClassFixture<OwnerApiFactory>
         var top = body.GetProperty("topMembers").EnumerateArray()
             .ToDictionary(r => r.GetProperty("label").GetString()!, r => r.GetProperty("count").GetInt32());
         top.Should().Contain(member, 1, "a play is a song play and a status update is a system action, not a movement");
-        body.GetProperty("areas").EnumerateArray().Select(r => r.GetProperty("label").GetString())
-            .Should().NotContain(["MemberStatus", "MemberActivityStatus"]);
+        var areas = body.GetProperty("areas").EnumerateArray().Select(r => r.GetProperty("label").GetString()!).ToList();
+        areas.Should().NotContain(["MemberStatus", "MemberActivityStatus"]);
+        areas.Should().OnlyContain(a => !a.Contains("Enrollment") && !a.Contains("LogisticsCard"), "088: areas of the app, not entity types");
+        body.TryGetProperty("topSongs", out _).Should().BeFalse("088 dropped the song, naipe and action-type rankings");
+        body.TryGetProperty("actions", out _).Should().BeFalse();
 
         var hours = body.GetProperty("hours");
         hours.GetArrayLength().Should().Be(7);
