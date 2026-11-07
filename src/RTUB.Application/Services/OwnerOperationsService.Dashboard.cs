@@ -86,6 +86,11 @@ public partial class OwnerOperationsService
             .Where(p => p.PlayedAt >= since && p.PlayedAt < until).Select(p => p.PlayedAt).ToListAsync();
         var enrollments = await db.Enrollments.AsNoTracking()
             .Where(e => e.EnrolledAt >= since && e.EnrolledAt < until).Select(e => e.EnrolledAt).ToListAsync();
+        // Task 089: already per Portugal day (PageViewCounter), so no bucketing; the previous period starts at previousFirst.
+        var pageViews = await db.PageViews.AsNoTracking()
+            .Where(v => v.Day >= previousFirst && v.Day <= last)
+            .Select(v => new { v.Day, v.Path, v.Count })
+            .ToListAsync();
 
         // Uploads: every row that stands for a stored file.
         var uploads = new List<DateTime>();
@@ -144,7 +149,22 @@ public partial class OwnerOperationsService
             Count("songPlays", "Músicas tocadas", songPlays),
             Count("naipePlays", "Naipes vistos", naipePlays),
             Count("enrollments", "Inscrições em atuações", enrollments),
+            PageViewSeries(),
         };
+
+        OwnerDashboardSeries PageViewSeries()
+        {
+            var values = new int[days];
+            var previous = 0;
+            foreach (var v in pageViews)
+            {
+                var d = (v.Day.Date - first).Days;
+                if (d >= 0) values[d] += v.Count;
+                else previous += v.Count;
+            }
+
+            return new OwnerDashboardSeries("pageViews", "Páginas abertas", values, values.Sum(), previous);
+        }
 
         var hours = new int[7][];
         for (var i = 0; i < 7; i++) hours[i] = new int[24];
@@ -181,6 +201,9 @@ public partial class OwnerOperationsService
             series,
             Rank(current.Select(a => a.UserName)),
             Rank(current.Select(a => DashboardArea(a.EntityType))),
+            pageViews.Where(v => v.Day >= first).GroupBy(v => v.Path)
+                .Select(g => new OwnerDashboardRank(g.Key, g.Sum(v => v.Count)))
+                .OrderByDescending(r => r.Count).ThenBy(r => r.Label).Take(DashboardTop).ToList(),
             hours, now));
     }
 }

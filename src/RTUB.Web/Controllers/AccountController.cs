@@ -20,11 +20,13 @@ public class AccountController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly string? _publicOrigin;
+    private readonly RTUB.Application.Services.PageViewCounter _pageViews;
 
-    public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration)
+    public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration, RTUB.Application.Services.PageViewCounter pageViews)
     {
         _userManager = userManager;
         _publicOrigin = TrustedOrigin(configuration["Calendar:PublicOrigin"]);
+        _pageViews = pageViews;
     }
 
     [HttpGet("me")]
@@ -33,6 +35,9 @@ public class AccountController : ControllerBase
     {
         // Session state must never be served from a cache: not after sign-out, not to another user.
         Response.Headers.CacheControl = "no-store";
+
+        // Task 089: every React page asks here once per load; the Referer is the page. Counted in memory, path only.
+        _pageViews.Record(Request.Headers.Referer.ToString(), Request.Host.Value);
 
         // The build, as /api/version reports it: the footer reads it from here, one request fewer per page load (task 054).
         var version = RTUB.Web.Services.BuildInfo.Current.Version;
