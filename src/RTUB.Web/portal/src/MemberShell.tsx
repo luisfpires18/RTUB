@@ -15,7 +15,7 @@ import { unreadLabel, useUnread } from './unread';
 
 export type Member = Extract<CurrentUser, { authenticated: true }>;
 
-type MenuLink = { href: string; label: string; icon: IconName; when?: keyof MemberMenu };
+type MenuLink = { href: string; label: string; icon: IconName; when?: keyof MemberMenu; notRetired?: true };
 type MenuGroup = { key: string; label: string; links: MenuLink[] };
 
 export const memberMenu: MenuGroup[] = [
@@ -23,8 +23,8 @@ export const memberMenu: MenuGroup[] = [
     key: 'member',
     label: 'Membro',
     links: [
-      // Task 071: every signed-in member (Leitões too), outside Gestão; the page decides its panels.
-      { href: portal.pendingActions, label: 'As minhas ações pendentes', icon: 'calendarCheck' },
+      // Task 071: every signed-in member (Leitões too), outside Gestão; the page decides its panels. 087: not a Reformado.
+      { href: portal.pendingActions, label: 'As minhas ações pendentes', icon: 'calendarCheck', notRetired: true },
       { href: portal.events, label: 'Atuações', icon: 'calendar' },
       { href: portal.rehearsals, label: 'Ensaios', icon: 'clock' },
       { href: portal.music, label: 'Música', icon: 'music' },
@@ -74,9 +74,9 @@ export const memberMenu: MenuGroup[] = [
 ];
 
 /** The groups and links this member sees; a group with nothing left is dropped. */
-export function visibleMenu(menu: MemberMenu): MenuGroup[] {
+export function visibleMenu(menu: MemberMenu, retired = false): MenuGroup[] {
   return memberMenu
-    .map((g) => ({ ...g, links: g.links.filter((l) => !l.when || menu[l.when]) }))
+    .map((g) => ({ ...g, links: g.links.filter((l) => (!l.when || menu[l.when]) && !(l.notRetired && retired)) }))
     .filter((g) => g.links.length > 0);
 }
 
@@ -89,7 +89,7 @@ function currentHref(groups: MenuGroup[], path: string): string | undefined {
 }
 
 function MemberNav({ member, onNavigate }: { member: Member; onNavigate?: () => void }) {
-  const groups = visibleMenu(member.menu);
+  const groups = visibleMenu(member.menu, member.retired);
   const current = currentHref(groups, location.pathname.replace(/\/+$/, '') || '/');
   const [closed, setClosed] = useState<string[]>([]);
 

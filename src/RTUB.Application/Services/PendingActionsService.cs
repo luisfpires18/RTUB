@@ -45,6 +45,12 @@ public sealed class PendingActionsService : IPendingActionsService
             return EventResult<PendingActionsPageDto>.Fail(EventResultStatus.SignInRequired);
         }
 
+        if (member.IsRetired)
+        {
+            // Task 087: the page is not for a Reformado at all (no entry in the menu either); the client goes to the agenda.
+            return EventResult<PendingActionsPageDto>.Fail(EventResultStatus.NotFound);
+        }
+
         var panels = new List<PendingActionPanelDto>();
         foreach (var source in _sources.Where(s => Applies(s, member)))
         {

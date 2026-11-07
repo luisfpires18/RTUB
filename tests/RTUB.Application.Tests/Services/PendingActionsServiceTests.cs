@@ -89,11 +89,11 @@ public class PendingActionsServiceTests
         var retired = AddUser([MemberCategory.Tuno], retired: true);
         var none = AddUser([], retired: false);
 
-        var r = (await Service().GetPageAsync(SignedIn(retired))).Value!;
+        var r = await Service().GetPageAsync(SignedIn(retired));
         var n = (await Service().GetPageAsync(SignedIn(none))).Value!;
 
-        r.Status.Should().Be("retired");
-        r.Panels.Should().BeEmpty("status alone grants nothing, and Reformados answer in the agenda");
+        r.Status.Should().Be(EventResultStatus.NotFound, "087: the page is not for a Reformado at all");
+        (await Service().CountPendingAsync(retired)).Should().Be(0, "no reminder push either");
         n.Status.Should().Be("none");
         n.Panels.Should().BeEmpty();
         (await Service().GetPanelAsync(SignedIn(retired), "events", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
@@ -404,7 +404,7 @@ public class PendingActionsServiceTests
         AddRole(me, "Mod");
         (await Service(gated).GetPageAsync(cookie)).Value!.Panels.Select(p => p.Key).Should().Contain("mods");
         SetRetired(me, true);
-        (await Service(gated).GetPageAsync(cookie)).Value!.Panels.Should().BeEmpty("087: a Reformado has no panel, whatever the role");
+        (await Service(gated).GetPageAsync(cookie)).Status.Should().Be(EventResultStatus.NotFound, "087: a Reformado has no page, whatever the role");
         SetRetired(me, false);
         (await Service(gated).GetPageAsync(cookie)).Value!.Panels.Select(p => p.Key).Should().Contain("mods");
     }

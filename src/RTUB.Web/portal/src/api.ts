@@ -20,6 +20,8 @@ export type CurrentUser =
       avatarUrl: string;
       categories: string[];
       menu: MemberMenu;
+      /** Reformado (task 087): no "As minhas ações pendentes" entry or page. */
+      retired: boolean;
       /** Calendar:PublicOrigin (task 079), the trusted origin for links that leave RTUB; null when not configured. */
       publicOrigin: string | null;
     };

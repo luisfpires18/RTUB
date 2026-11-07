@@ -82,10 +82,8 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
         var board = await SeedBoardAsync(withDone: true);
         var card = await AddCardAsync(board.Todo, "Trabalho meu", owner: me.Id);
 
-        var page = await member.GetFromJsonAsync<JsonElement>("/api/pending-actions");
-
-        page.GetProperty("status").GetString().Should().Be("retired");
-        page.GetProperty("panels").EnumerateArray().Should().BeEmpty("a Reformado sees nothing, not even own work or a position's duties");
+        (await member.GetAsync("/api/pending-actions")).StatusCode.Should().Be(HttpStatusCode.NotFound, "the page is not for a Reformado at all");
+        (await member.GetFromJsonAsync<JsonElement>("/api/account/me")).GetProperty("retired").GetBoolean().Should().BeTrue("the menu hides the entry");
         foreach (var panel in new[] { "events", "logistics", "questions", "news", "members", "treasury", "meetings" })
         {
             (await member.GetAsync($"/api/pending-actions/panels/{panel}")).StatusCode.Should().Be(HttpStatusCode.NotFound, panel);
@@ -545,6 +543,8 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
 
         (await AllKeysAsync(mod, "members", null)).Should().Contain(leitao);
         (await plain.GetAsync("/api/pending-actions/panels/members")).StatusCode.Should().Be(HttpStatusCode.NotFound, "a Member with the same category");
+        var (owner, _) = await SignInAsync([MemberCategory.Tuno], retired: false, role: "Owner");
+        (await owner.GetAsync("/api/pending-actions/panels/members")).StatusCode.Should().Be(HttpStatusCode.NotFound, "087: the Owner has no Membros panel");
         (await plain.GetAsync($"/api/members/{leitao}/info")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await plain.PostAsJsonAsync($"/api/members/{leitao}/instruments", new { instrument = "Guitarra", primary = true }))
             .StatusCode.Should().Be(HttpStatusCode.Forbidden);

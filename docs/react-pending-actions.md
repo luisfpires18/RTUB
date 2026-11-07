@@ -22,17 +22,18 @@ module's own data, run on every load; the only thing stored is a member's own di
 | Reuniões | responsibilities | **delivered (075)** | current Presidente da Mesa / Magister / Presidente do CV: **Criar ata** (Obrigatório) for each past meeting of their bodies this fiscal year with no ata saved; optional monthly **Registar reunião** per body (Agora não = this month) |
 | Presenças por aprovar | responsibilities | **delivered (075)** | current Ensaiador / Magister: **Aprovar** / **Recusar** (confirmed) each pending presença at an approvable rehearsal of the fiscal year |
 | Repertório | responsibilities | **delivered (075)** | current Ensaiador / Magister: upcoming, not cancelled events with no repertoire: **Preparar repertório** / **Não é necessário** (own dismissal per event) |
-| Membros | responsibilities | **delivered (076)** | system role Mod / Admin / Owner: each member in scope with an applicable field empty ("Em falta: Cidade, Padrinho…") → **Completar** (`/members?info={id}`, the focused edit) |
+| Membros | responsibilities | **delivered (076)**, Owner excluded since 087 | system role Mod / Admin (never the Owner): each member in scope with an applicable field empty ("Em falta: Cidade, Padrinho…") → **Completar** (`/members?info={id}`, the focused edit) |
 | Galeria | participation | **delivered (077)** | active member: each event of the fiscal year that is over, not cancelled and has no photo linked to it → **Adicionar** (`/gallery?upload=1&event={id}&date=&title=`, the gallery upload with the event named) / **Não tenho** (own, this fiscal year) |
 | Novidades | participation | **delivered (077)**, Direção only since 087 | a member of the Direção in office who may write news (Mod / Admin / Owner): one weekly **Há novidades para partilhar?** → **Criar novidade** (`/news?new=1`, the composer) / **Agora não** (own, this ISO week) |
 | Push summary | - | **delivered (078)** | one daily push per member whose page is not empty (see *Daily push*) |
 
 A panel that is not delivered is **not shown** (no empty placeholder pretending a module is done).
 
-**Reformados see no panel at all** (task 087, owner decision, 2026-11-07): `PendingActionsService.Applies` refuses
-every source for `IsRetired`, whatever roles or positions the account holds, so the page shows only the "Reformado"
-badge, and no panel, command or dismissal answers for them. Earlier phases kept Logística and Questões for them; that
-is gone.
+**Reformados have no page at all** (task 087, owner decision, 2026-11-07): `GET /api/pending-actions` answers `404`
+for `IsRetired` and the React page goes to `/events`; the member menu hides the entry (`/api/account/me` → `retired`);
+`PendingActionsService.Applies` refuses every source, so no panel, command or dismissal answers either, whatever roles
+or positions the account holds; and `PendingActionsReminderService` never evaluates them (no daily push). Earlier
+phases kept Logística and Questões for them; that is gone.
 
 ## Page
 
