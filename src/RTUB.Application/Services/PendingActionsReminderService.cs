@@ -101,7 +101,8 @@ public sealed class PendingActionsReminderService : BackgroundService
         HashSet<string> claimed;
         await using (var db = await contexts.CreateDbContextAsync(cancellationToken))
         {
-            users = (await db.Users.AsNoTracking().Where(u => !u.IsExpelled).OrderBy(u => u.Id)
+            // 087: a Reformado has no page, so no reminder either (their count would be 0 anyway; not even asked).
+            users = (await db.Users.AsNoTracking().Where(u => !u.IsExpelled && !u.IsRetired).OrderBy(u => u.Id)
                     .Select(u => new { u.Id, u.Nickname, u.UserName }).ToListAsync(cancellationToken))
                 .Select(u => (u.Id, u.Nickname ?? u.UserName ?? u.Id)).ToList();
             claimed = (await db.PendingActionDismissals.AsNoTracking()

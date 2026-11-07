@@ -12,14 +12,16 @@ mandate or status change shows on the next load. A panel that does not apply to 
 | --- | --- | --- |
 | Visitor | `/pending-actions` → sign in (`returnUrl` kept); API `401` | - |
 | Expelled / unknown account | API `401` (cannot sign in anyway) | - |
-| Active member (`IsSubjectToRule && !IsRetired`: Leitão, Caloiro, Tuno, Veterano, Tunossauro not Reformado) | yes | Atuações, Ensaios (answer in place, 072); Logística, Questões (073) |
-| Reformado | yes | Logística, Questões (their own work; no participation panels) |
-| Account with no membership category (e.g. only Tuno Honorário, a bare Owner account) | yes | Logística, Questões |
+| Active member (`IsSubjectToRule && !IsRetired`: Leitão, Caloiro, Tuno, Veterano, Tunossauro not Reformado) | yes | Atuações, Ensaios (answer in place, 072); Logística (073) |
+| Reformado | **no**: `GET /api/pending-actions` is `404`, the React page goes to `/events`, the menu has no entry (`/api/account/me` → `retired`), and the daily reminder never evaluates them (087, owner decision 2026-11-07, whatever roles or positions they hold) | - |
+| Account with no membership category (e.g. only Tuno Honorário, a bare Owner account) | yes | Logística |
+| Direção in office (Magister, Vice-Magister, Secretário, 1.º / 2.º Tesoureiro), not Reformado | yes | + Questões (own open questions; 087) |
 | 1.º / 2.º Tesoureiro (current mandate) | yes | + Tesouraria (074) |
 | Secretário (current mandate) | yes | + Secretaria (074) |
 | Presidente da Mesa / Magister / Presidente do CV (current mandate) | yes | + Reuniões (075) |
 | Ensaiador / Magister (current mandate) | yes | + Presenças por aprovar, Repertório (075) |
-| System role Mod, Admin or Owner | yes | + Membros (076), + Novidades (077, `NewsAuthorization.CanWrite`) |
+| System role Mod or Admin (not the Owner, even with Admin too: 087), not Reformado | yes | + Membros (076) |
+| Direção in office **and** Mod / Admin / Owner, not Reformado | yes | + Novidades (077; 087 narrowed it to the Direção) |
 | Active member | yes | + Galeria (077) |
 | Mod / Admin / Owner | as their member type | as their member type: **a role adds no panel** (Tesouraria / Secretaria follow the position, not the role); on Logística a manager still sees only their own cards (not unowned ones) |
 
@@ -45,7 +47,8 @@ not cancelled, unanswered).
 | Request | Answer |
 | --- | --- |
 | Panel `gallery` as a Reformado / no category | `404` |
-| Panel `news` without Mod / Admin / Owner | `404` |
+| Panel `news` without Mod / Admin / Owner, or outside the Direção in office (087) | `404` |
+| Any panel or command as a Reformado (087) | `404` |
 | Não tenho / Agora não on a pending row | `204`, own (fiscal year per event / ISO week) |
 | Dismissing an event that has a photo, is cancelled or not over | `404` |
 | Upload with `eventId` of a cancelled / unknown event, or not a number | `400` |
