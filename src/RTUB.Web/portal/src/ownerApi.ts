@@ -189,6 +189,8 @@ export type Dashboard = {
   topMembers: DashboardRank[];
   /** Areas of the app (Atuações, Logística…), decided by the server (088). */
   areas: DashboardRank[];
+  /** Routes with ids normalised to {id} (089); the label map is the client's. */
+  topPages: DashboardRank[];
   /** 7 rows (Monday first) × 24 Portugal hours. */
   hours: number[][];
   now: { accounts: number; online: number; pushMembers: number };

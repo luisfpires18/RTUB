@@ -139,6 +139,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Owner dashboard (task 050): sign-ins and hours seen
     public DbSet<LoginEvent> LoginEvents { get; set; } = null!;
 
+    // Page views per day and route for /owner/dashboard (task 089)
+    public DbSet<PageView> PageViews { get; set; } = null!;
+
     // Event Contact DbSet
     public DbSet<EventContact> EventContacts { get; set; }
 

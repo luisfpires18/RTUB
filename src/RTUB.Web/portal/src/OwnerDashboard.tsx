@@ -19,6 +19,48 @@ const ICONS: Record<string, IconName> = {
   songPlays: 'music',
   naipePlays: 'naipes',
   enrollments: 'calendarCheck',
+  pageViews: 'eye',
+};
+
+/** Routes as the server stores them (ids → {id}); anything else shows its path. */
+const PAGE_LABELS: Record<string, string> = {
+  '/': 'Início',
+  '/events': 'Atuações',
+  '/events/{id}': 'Atuação',
+  '/events/{id}/discussion': 'Discussão de atuação',
+  '/rehearsals': 'Ensaios',
+  '/rehearsals/{id}': 'Ensaio',
+  '/music': 'Música',
+  '/music/albums/{id}': 'Álbum',
+  '/gallery': 'Galeria',
+  '/news': 'Novidades',
+  '/shop': 'Loja',
+  '/members': 'Membros',
+  '/members/hierarchy': 'Hierarquia',
+  '/members/map': 'Mapa de membros',
+  '/leaderboard': 'Classificação',
+  '/inventory': 'Inventário',
+  '/documentation': 'Documentação',
+  '/logistics': 'Logística',
+  '/logistics/{id}': 'Quadro de Logística',
+  '/treasury': 'Tesouraria',
+  '/treasury/reports': 'Relatórios',
+  '/treasury/reports/{id}': 'Relatório',
+  '/treasury/calotes': 'Calotes',
+  '/treasury/mbway': 'MBWay',
+  '/treasury/nerba': 'Nerba',
+  '/requests': 'Pedidos de atuação',
+  '/questions': 'Perguntas',
+  '/hall-of-fame': 'Hall of Fame',
+  '/naipes': 'Naipes',
+  '/meetings': 'Reuniões',
+  '/messages': 'Mensagens',
+  '/profile': 'Perfil',
+  '/pending-actions': 'As minhas ações pendentes',
+  '/roles': 'Órgãos Sociais',
+  '/login': 'Entrar',
+  '/request': 'Pedir atuação',
+  '/privacy': 'Privacidade',
 };
 
 const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -145,6 +187,7 @@ function DashboardBody({ data, metric, onMetric }: { data: Dashboard; metric: st
       <div className="owner-dash__ranks">
         <Ranking title="Membros mais ativos" icon="people" rows={data.topMembers} />
         <Ranking title="Áreas com mais movimentos" icon="diagram" rows={data.areas} />
+        <Ranking title="Páginas mais vistas" icon="eye" rows={data.topPages} label={(p) => PAGE_LABELS[p] ?? p} />
       </div>
     </div>
   );

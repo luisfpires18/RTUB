@@ -131,7 +131,16 @@ sign in, other members → 403 shell; API: 401 / 403). Read only, `no-store`.
 - **Busiest hours**: `LoginEvents` by Portugal weekday × hour. **Rankings** (top 10): members by movements and areas
   of the app (`OwnerOperationsService.Dashboard.cs` → `DashboardAreas`, entity type → Atuações / Ensaios / Logística /
   Tesouraria…; an unmapped type keeps its name). Task 088 (owner request, 2026-11-07) dropped the song, naipe and
-  action-type rankings; the song / naipe play tiles stay.
+  action-type rankings; the song / naipe play tiles stay. **Páginas mais vistas** and the "Páginas abertas" tile
+  (task 089): `PageViews` rows (`Day` Portugal day, `Path`, `Count`; unique `Day + Path`; migration `AddPageViews`,
+  additive). Every React page asks `GET /api/account/me` once per load, so `AccountController.Me` hands the request's
+  Referer to `PageViewCounter` (same-origin only; ids → `{id}`, no query, lower-case, ≤ 128 chars), which counts in
+  memory; `PageViewFlushService` upserts the buffer once a minute and on shutdown (a failed flush keeps the counts).
+  Never a write per request, no member, address or user agent. Signed-in members only, and the buffer holds at most
+  300 distinct (day, path) keys: a new path beyond that counts under `/outras`, so a client cannot grow memory or the
+  table with made-up paths. Labels (`PAGE_LABELS`) are the client's; an unknown
+  route shows its path. Limits: a page restored from bfcache is not re-counted; one app instance assumed (a scaled-out
+  App Service would each count its own).
 - Every count is bucketed by **Portugal day** (`PortugalTime.FromUtc`); stored stamps stay UTC. Messaging is never
   counted. Bucketing is in memory over one narrow column per source (`ponytail:` note in the service).
 - Line chart, heatmap and bars are plain SVG / CSS (no chart dependency), one series at a time in `--purple-ink`, with a

@@ -93,7 +93,7 @@ public sealed record OwnerDashboardNow(int Accounts, int Online, int PushMembers
 /// </summary>
 public sealed record OwnerDashboard(
     string From, string To, IReadOnlyList<string> Days, IReadOnlyList<OwnerDashboardSeries> Series,
-    IReadOnlyList<OwnerDashboardRank> TopMembers, IReadOnlyList<OwnerDashboardRank> Areas,
+    IReadOnlyList<OwnerDashboardRank> TopMembers, IReadOnlyList<OwnerDashboardRank> Areas, IReadOnlyList<OwnerDashboardRank> TopPages,
     IReadOnlyList<IReadOnlyList<int>> Hours, OwnerDashboardNow Now);
 
 /// <summary>

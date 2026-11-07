@@ -944,6 +944,9 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<MemberStatusUpdateBackgroundService>();
         services.AddHostedService<PendingRequestReminderService>();
         services.AddHostedService<PendingActionsReminderService>();
+        // Page views (task 089): counted in memory on /api/account/me, stored once a minute.
+        services.AddSingleton<PageViewCounter>();
+        services.AddHostedService<PageViewFlushService>();
         services.AddHostedService<RehearsalApprovalReminderBackgroundService>();
         services.AddHostedService<QuestionNotificationBackgroundService>();
         services.AddHostedService<WeeklyNotificationBackgroundService>();
