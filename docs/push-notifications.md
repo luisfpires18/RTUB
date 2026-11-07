@@ -136,6 +136,7 @@ Card title and board name only: never the card's details or a comment's text. Ne
 | Factory method | Trigger | Recipients | Title | Opens | Tag |
 |---|---|---|---|---|---|
 | `CreateWeeklySummaryNotification` | Mondays (`WeeklyNotificationBackgroundService`) | one | "Resumo Semanal" | `/events`, else `/rehearsals`, else `/meetings`, else `/` | `weekly-summary` |
+| `CreatePendingActionsReminderNotification` (078) | daily 18:00 Portugal (`PendingActionsReminderService`) | one, only a member whose `/pending-actions` has something pending | "As minhas ações pendentes" (no count, no item details) | `/pending-actions` | `pending-actions-reminder` |
 
 ### Sistema
 | Source | Trigger | Recipients | Title | Opens | Tag |
@@ -177,6 +178,7 @@ sender's own recipient rule picks them. A Leitão starts active (`InitialIsRetir
 | Lembrete: Pedido de reunião | ✅ Sends | Yes (approvers) | manual reminder (`/meetings` requests) + `PendingRequestReminderService` (10:00) |
 | Pedido de reunião rejeitado | ✅ Sends | Yes (own request) | reject on `/meetings`, or expired by the daily job |
 | Novo Pedido de Atuação | ✅ Sends | Yes (Admin / Owner) | public `/request` (`PublicRequestEndpoints`) → Admin + Owner |
+| As minhas ações pendentes | ✅ Sends (078) | Yes (own page not empty) | `PendingActionsReminderService` (18:00) → each member with `CountPendingAsync > 0`, once per day |
 | Lembrete: Pedidos Pendentes | ✅ Sends | Yes (Admin / Owner) | `PendingRequestReminderService` (10:00) → Admin + Owner, when any pending |
 | Nova Pergunta / Respondida / Resposta / Lembrete | ✅ Sends | Yes (asked member / author) | `/questions` (`QuestionBoardService`) |
 | Perguntas Pendentes | ✅ Sends | Yes | `QuestionNotificationBackgroundService` (09:00 by default) |
@@ -208,6 +210,9 @@ Not checked here: Azure App Settings that may override an `Enabled` flag (run
 4. A page that should open one item needs a deep link (a route or a query parameter it reads on load).
 
 ## Designed, not built: per-category opt-out in `/profile`
+
+Owner policy (#259 / #262): the "As minhas ações pendentes" reminder is a **mandatory** category, shown checked and
+locked; a category opt-out must never suppress it (browser permission and a device subscription are still required).
 
 Goal: "Notificações push" in `/profile` keeps the device on / off switch and adds one switch per category (Eventos,
 Ensaios, Reuniões, Mensagens, …): "receber notificações de eventos".

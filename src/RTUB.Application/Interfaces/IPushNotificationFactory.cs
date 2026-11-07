@@ -202,6 +202,12 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreatePendingPublicRequestsReminderNotification(int pendingCount);
 
     /// <summary>
+    /// Task 078: the daily "As minhas ações pendentes" summary, only for a member whose page has something pending. No
+    /// count and no item details (lock screens); the link opens /pending-actions.
+    /// </summary>
+    SendPushNotificationDto CreatePendingActionsReminderNotification();
+
+    /// <summary>
     /// Creates a push notification for pending meeting request reminders.
     /// </summary>
     /// <param name="meetingRequest">The pending meeting request</param>

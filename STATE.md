@@ -6,7 +6,13 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
-**Task 077 = As minhas ações pendentes 7/8** (issue #258; `feat/077/pending-actions-photos-news`, not committed). Galeria
+**Task 078 = As minhas ações pendentes 8/8** (issue #259; `feat/078/pending-actions-push-reminder`). Daily push
+`PendingActionsReminderService` (18:00 Portugal, catch-up 6 h): every non-expelled account counted with the page's
+`CountPendingAsync`; pending > 0 → one summary push to `/pending-actions`, 0 → nothing. Claimed per member/day in
+`PendingActionDismissals` (kind `reminder.push`; at most once), failed counts retried 3x then logged. No migration.
+Real-device tap and DEV push not checked.
+
+**Task 077 = As minhas ações pendentes 7/8** (issue #258; PR #278 merged into `dev`, not released). Galeria
 (active members): over, not cancelled events of the fiscal year with no **photo** linked by the new `GalleryMedia.EventId`
 (migration `AddGalleryMediaEventId`, additive, no FK; legacy items never title-matched; a video does not count) →
 Adicionar (gallery upload prefilled, `eventId` validated) / Não tenho (own, fiscal year). Novidades (Mod/Admin/Owner):

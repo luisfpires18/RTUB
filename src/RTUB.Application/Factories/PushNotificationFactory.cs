@@ -710,6 +710,15 @@ public class PushNotificationFactory : IPushNotificationFactory
         };
     }
 
+    public SendPushNotificationDto CreatePendingActionsReminderNotification() => new()
+    {
+        Title = "As minhas ações pendentes",
+        Body = "Tens ações pendentes para tratar. Abre a página para as consultar.",
+        Icon = "/icons/rtub-logo-192.png",
+        Url = "/pending-actions",
+        Tag = "pending-actions-reminder"
+    };
+
     /// <summary>
     /// Creates a push notification for pending meeting request reminders.
     /// </summary>
