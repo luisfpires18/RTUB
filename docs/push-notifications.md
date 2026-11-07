@@ -218,7 +218,7 @@ route (`RehearsalAdminService.RefuseAsync`); the earlier audit missed it.
 
 Nothing below is built yet: #263 implements it. Owner decisions are recorded in the last two columns and below.
 Keys are stable, fine-grained, and per account (not per device). New events, member answers and reminders are separate
-keys on purpose. Abbreviations: Mand. = mandatory (shown checked and locked); Opt. = optional; Und. = undecided.
+keys on purpose. Abbreviations: Mand. = mandatory (shown checked and locked); Opt. = optional.
 
 | Key (proposed) | pt-PT label | Factory method / branch | Recipients, frequency | Status | Mand./Opt. | Default for existing accounts |
 |---|---|---|---|---|---|---|
