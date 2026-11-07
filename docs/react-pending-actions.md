@@ -25,7 +25,7 @@ module's own data, run on every load; the only thing stored is a member's own di
 | Membros | responsibilities | **delivered (076)** | system role Mod / Admin / Owner: each member in scope with an applicable field empty ("Em falta: Cidade, Padrinho…") → **Completar** (`/members?info={id}`, the focused edit) |
 | Galeria | participation | **delivered (077)** | active member: each event of the fiscal year that is over, not cancelled and has no photo linked to it → **Adicionar** (`/gallery?upload=1&event={id}&date=&title=`, the gallery upload with the event named) / **Não tenho** (own, this fiscal year) |
 | Novidades | participation | **delivered (077)** | whoever may write news (Mod / Admin / Owner): one weekly **Há novidades para partilhar?** → **Criar novidade** (`/news?new=1`, the composer) / **Agora não** (own, this ISO week) |
-| Push summary | - | #259 (uses `IPendingActionsService.CountPendingAsync`) | - |
+| Push summary | - | **delivered (078)** | one daily push per member whose page is not empty (see *Daily push*) |
 
 A panel that is not delivered is **not shown** (no empty placeholder pretending a module is done).
 
@@ -234,6 +234,34 @@ known).
   rule is unchanged (`MembersOnly` absent = public, edits keep the post's visibility); drafts / publish / delete keep
   their rights (Mod drafts and publishes, delete stays Admin / Owner).
 - **Agora não**: own, for the week; it comes back next Monday by itself (a new period key). Survives devices (server row).
+
+## Daily push (078, issue #259)
+
+`PendingActionsReminderService` (hosted, `PendingActionsReminder:Enabled` = true, `:ScheduledTime` = `18:00` Portugal
+time, `:CatchUpHours` = 6; Azure overrides `PendingActionsReminder__*`).
+
+- **Who**: every account not expelled (active, Reformado, Leitão, position holders, no category), counted with
+  `IPendingActionsService.CountPendingAsync`: the page's own sources with the database's categories, roles and positions,
+  every panel, every filter, every page, dismissed optional rows excluded, required rows always counted. Nothing is cached:
+  new work and a changed mandate count on the next run.
+- **What**: pending > 0 → one push "As minhas ações pendentes" / "Tens ações pendentes para tratar. Abre a página para as
+  consultar." (no count, no detail), link `/pending-actions`, tag `pending-actions-reminder`; `PushNotificationService`
+  fans it out to the member's devices and keeps the usual "Notificações RTUB" inbox copy. Pending = 0 → no push and no
+  inbox copy. Opted-out / no subscription: the push service sends to no device (the inbox copy is kept, as for every push).
+- **Once per member and day**: before sending, the run claims the member's Portugal day in `PendingActionDismissals`
+  (kind `reminder.push`, period `yyyy-MM-dd`, unique index; no source uses that kind, so it hides nothing). A restart, a
+  catch-up or a second instance finds the claim and sends nothing more. **At most once**: a push service failure after
+  the claim is logged and not retried that day (the push service may also have delivered before failing, so a retry
+  could duplicate).
+- **Failures**: a count that throws is not "empty" and not "pending": that member is retried after the others (3 attempts
+  in all), then logged as an error with no claim and no push; one member's failure never stops the run. A claim that
+  cannot be stored is the same: only an existing claim row means "already sent"; any other write error is retried, then
+  logged as a failure, and nothing is sent without a claim.
+- **Schedule**: daily at the configured Portugal time (DST-safe, `PortugalTime`). Started late (restart, cold start) it
+  still runs that day within `CatchUpHours`; later than that the day is skipped. Never a backlog of earlier days.
+- **Deep link**: `/pending-actions` is relative and same-origin (058 rule); a signed-out tap goes through `/login` with the
+  return URL kept, and the page re-checks everything on load.
+- Not verified here: real-device taps (iPhone Home Screen, Android TWA) and a live push on DEV (no VAPID there).
 
 ## Dismissal (`PendingActionDismissals`, migration `AddPendingActionDismissals`)
 

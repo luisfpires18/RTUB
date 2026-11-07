@@ -898,6 +898,36 @@
       "notes": "Daily run time (committed default)."
     },
     {
+      "name": "PendingActionsReminder__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Background job switch (committed default; task 078)."
+    },
+    {
+      "name": "PendingActionsReminder__ScheduledTime",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "18:00",
+      "notes": "Daily run time, Portugal time (committed default; task 078)."
+    },
+    {
       "name": "PendingRequestReminder__Enabled",
       "group": "scheduler",
       "secret": false,

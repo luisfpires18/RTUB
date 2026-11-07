@@ -632,6 +632,8 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(RTUB.Application.Configuration.MemberStatusUpdateOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.PendingRequestReminderOptions>(
             configuration.GetSection(RTUB.Application.Configuration.PendingRequestReminderOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.PendingActionsReminderOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.PendingActionsReminderOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.RehearsalApprovalReminderOptions>(
             configuration.GetSection(RTUB.Application.Configuration.RehearsalApprovalReminderOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.QuestionNotificationOptions>(
@@ -938,6 +940,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<BirthdayEmailSchedulerService>();
         services.AddHostedService<MemberStatusUpdateBackgroundService>();
         services.AddHostedService<PendingRequestReminderService>();
+        services.AddHostedService<PendingActionsReminderService>();
         services.AddHostedService<RehearsalApprovalReminderBackgroundService>();
         services.AddHostedService<QuestionNotificationBackgroundService>();
         services.AddHostedService<WeeklyNotificationBackgroundService>();
