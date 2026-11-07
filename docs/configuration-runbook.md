@@ -41,6 +41,7 @@ Full list and notes: the manifest. The ones that matter:
 | `Cloudflare__R2__ReferencePublicUrl`, `Cloudflare__R2__Reference__*` | — | optional: read-only view of production media after a DB refresh (all four or none) | **absent** |
 | `EmailSettings__*` (server, port, SSL, username, password, sender, sender name, recipient) | optional | optional (real mail from DEV reaches real people after a refresh) | **required** for real outgoing email |
 | `WebPush__Enabled`, `WebPush__VapidSubject`, `WebPush__VapidPublicKey`, `WebPush__VapidPrivateKey` | optional (own pair to test push) | **required**, DEV's own pair | **required**, PROD's own pair |
+| `ReleaseNotes__ShowPrerelease` | default (`false`; local builds have no suffix) | `true` (set 2026-11-07, task 083: shows the next release's notes on `-dev.N` builds) | `true` (set 2026-11-07; no-op, production builds have no prerelease suffix) |
 | `Geocoding__DisabledInTests` | default | `false` (default) | `false` (default) |
 | `DatabaseBackup__Enabled` + `Bucket` (+ optional scoped `AccountId` / `AccessKeyId` / `SecretAccessKey`) | off | **`false`**, nothing else | **`true`**, `Bucket=rtub-db` |
 | `DevelopmentDataReset__*` | opt-in, one run | off (`false` or unset) | **absent** |
@@ -174,6 +175,7 @@ $settings = @(
     'WebPush__VapidPrivateKey=<DEV_VAPID_PRIVATE_KEY>'
     'Geocoding__DisabledInTests=false'
     'DatabaseBackup__Enabled=false'
+    'ReleaseNotes__ShowPrerelease=true'
 )
 az webapp config appsettings set -g rtub_group -n rtub-dev --settings @settings --output none
 ```

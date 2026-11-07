@@ -148,7 +148,9 @@ touching the receipt. Visitors never get the notes (`/api/releases/notes` is 401
 - **Launch baseline**: the first file is `releases/2.3.4.json`; older versions have none, so no
   member is flooded with history on the first deploy.
 - **DEV**: a `-dev.N` build hides its notes unless the App Setting `ReleaseNotes__ShowPrerelease`
-  is `true` (set it on DEV to try the next release's dialog; never in production).
+  is `true`. Set to `true` on both `rtub-dev` and `rtub` on 2026-11-07 (owner request): DEV shows
+  the next release's dialog as soon as `dev` deploys; in PROD the value is a no-op, because a
+  production build never carries a prerelease suffix.
 
 ### What Deploy • PROD does
 
