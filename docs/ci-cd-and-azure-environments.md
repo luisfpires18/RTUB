@@ -131,9 +131,9 @@ with `zipfile`, whose rewrite is correct on write.
 
 `releases/<VERSION>.json` (repository root) is copied by `RTUB.csproj` into the publish output as
 `releases/`, so it is inside the one zip and the running build serves exactly its own notes
-(`GET /api/releases/notes`, members only). `scripts/release.sh notes-check` validates the file in
-the PR into master and in Deploy • PROD before the build; the package step refuses a production zip
-without it. DEV builds hide the notes unless `ReleaseNotes__ShowPrerelease=true` (App Setting, set on both since 2026-11-07; a no-op in PROD).
+(`GET /api/releases/notes`, members only). The file is optional (090); when present, `scripts/release.sh notes-check --optional` validates
+it in the PR into master and in Deploy • PROD before the build, and the package step refuses a
+production zip that does not carry it. DEV builds hide the notes unless `ReleaseNotes__ShowPrerelease=true` (App Setting, set on both since 2026-11-07; a no-op in PROD).
 Rules and content guidance: `docs/release-and-rollback.md` → *Release notes*.
 
 ## Run from package

@@ -99,9 +99,9 @@ MAJOR, in which case raise it again before the `dev → master` PR.
 1. On `dev`: `VERSION` already holds the next version from the last sync-back; raise it (PR as
    usual) if this release turned out MINOR or MAJOR. Check the release's migrations against the
    N-1 rule below.
-2. Write the release notes members will see: `releases/<VERSION>.json` (see *Release notes* below;
-   `bash scripts/release.sh notes-check "$(cat VERSION)" releases` says whether they pass). Every
-   release, patch and hotfix included.
+2. Optional (090): to announce the release to members, write `releases/<VERSION>.json` (see *Release
+   notes* below; `bash scripts/release.sh notes-check "$(cat VERSION)" releases` says whether it
+   passes). No file = no "Nova atualização" dialog for that version.
 3. Open a PR `dev → master`. **CI • Build & Test** and *VERSION is bumped* (which also checks the
    notes) must pass.
 4. Merge it with **Create a merge commit**.
@@ -109,9 +109,7 @@ MAJOR, in which case raise it again before the `dev → master` PR.
    was live before.
 6. Merge `master` back into `dev`.
 7. Bump `dev`'s `VERSION` to the next unreleased version (2.0.0 released → `2.0.1`, or `2.1.0` /
-   `3.0.0` when that is already the plan) before anything else merges into `dev`, and start its
-   `releases/<VERSION>.json` (a short draft is fine until the release; `notes-check` runs only on
-   the PR into master and on the deploy).
+   `3.0.0` when that is already the plan) before anything else merges into `dev`.
 
 ### Release notes (task 083, issue #264)
 
@@ -135,9 +133,10 @@ touching the receipt. Visitors never get the notes (`/api/releases/notes` is 401
   deploy, a stale service worker or a cached old frontend can only show the live build's own
   notes, and a rollback restores its own. Nothing is generated at runtime; nothing is read from
   GitHub.
-- **Gates**, all before the archive: the PR into master (`CI • Build & Test` → *VERSION is bumped*
-  runs `notes-check`), the `version` job of Deploy • PROD (`notes-check` again), and the package
-  step, which refuses a production zip without `releases/<VERSION>.json`.
+- **Optional, validated when present** (090, owner decision 2026-11-07): a release without a file
+  ships and shows no dialog. When the file exists, `notes-check --optional` validates it on the PR
+  into master (*VERSION is bumped*) and in the `version` job of Deploy • PROD, and the package step
+  refuses a production zip that does not carry it.
 - **What a member sees**: the bundled notes with a version ≤ the running build's and > the highest
   version that member acknowledged, newest first, at most 5 in one dialog (the running release
   first, the skipped ones under "Desde a última vez…"). SemVer comparison (`2.1.10` after `2.1.9`),
@@ -157,7 +156,7 @@ touching the receipt. Visitors never get the notes (`/api/releases/notes` is 401
 ```
 version    VERSION is valid SemVer and higher than the previous master commit's
            (none there - legacy master - is the first versioned release);
-           releases/<VERSION>.json exists and passes notes-check
+           releases/<VERSION>.json, when present, passes notes-check
 ci         CI • Build & Test, on this exact commit
 package    the ONLY build: dotnet publish -r linux-x64 --self-contained false (Node 22),
            ONE zip, guards run on that zip, release.json written. No Azure token in this job.

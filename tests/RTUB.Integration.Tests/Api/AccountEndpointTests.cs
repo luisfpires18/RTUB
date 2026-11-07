@@ -48,7 +48,7 @@ public class AccountEndpointTests : IntegrationTestBase
         var body = await response.Content.ReadAsStringAsync();
         using var json = JsonDocument.Parse(body);
         json.RootElement.EnumerateObject().Select(p => p.Name)
-            .Should().BeEquivalentTo("authenticated", "version", "displayName", "fullName", "avatarUrl", "categories", "menu", "publicOrigin");
+            .Should().BeEquivalentTo("authenticated", "version", "displayName", "fullName", "avatarUrl", "categories", "menu", "retired", "publicOrigin");
         json.RootElement.GetProperty("authenticated").GetBoolean().Should().BeTrue();
         json.RootElement.GetProperty("displayName").GetString().Should().NotBeNullOrWhiteSpace();
         body.Should().NotContain("testadmin@test.com", "no contact details leave this endpoint");
