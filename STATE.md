@@ -6,6 +6,12 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
+**Task 081 = Push preference audit** (issue #262; `docs/081/push-preference-audit`, docs only). Proposed
+per-account keys + owner decisions in `docs/push-notifications.md` → *Preference keys for #263*. Decided 2026-11-07:
+only pending-actions mandatory, optional keys on by default, mute = push only, keys separate. No code, no schema.
+
+**Task 080 (#261)**: PR #281 merged into `dev`, not released.
+
 **Task 080 = Startup notification reminder** (issue #261; `feat/080/startup-notification-modal`). Signed-in member with
 push off on this device: "Ativa as notificações" once per app opening (tab session); Reformado (`IsRetired`) once per
 account via `GET/POST /api/push/reminder[/ack]` (`PendingActionDismissals` kind `startup.push`, no migration). Shared
