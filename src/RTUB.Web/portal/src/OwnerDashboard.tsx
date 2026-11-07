@@ -22,7 +22,7 @@ const ICONS: Record<string, IconName> = {
   pageViews: 'eye',
 };
 
-/** Routes as the server stores them (ids → {id}); anything else shows its path. */
+/** Routes as the server stores them (ids → {id}); anything else (Mensagens included) shows its path. */
 const PAGE_LABELS: Record<string, string> = {
   '/': 'Início',
   '/events': 'Atuações',
@@ -54,7 +54,6 @@ const PAGE_LABELS: Record<string, string> = {
   '/hall-of-fame': 'Hall of Fame',
   '/naipes': 'Naipes',
   '/meetings': 'Reuniões',
-  '/messages': 'Mensagens',
   '/profile': 'Perfil',
   '/pending-actions': 'As minhas ações pendentes',
   '/roles': 'Órgãos Sociais',
