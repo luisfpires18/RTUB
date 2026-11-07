@@ -128,8 +128,10 @@ sign in, other members → 403 shell; API: 401 / 403). Read only, `no-store`.
   except `Played`), uploads (`GalleryMedia`, `NaipeContents`, `PostMedia`, `MeetingAtaAttachments`, `CommentImages`
   rows), song plays (`SongPlayCounts`), naipe plays (`NaipePlayCounts`), enrollments (`Enrollments.EnrolledAt`).
 - **Now**: accounts, signed in within the last hour (as `/users`), members with a push subscription.
-- **Busiest hours**: `LoginEvents` by Portugal weekday × hour. **Rankings** (top 10): songs, naipes, members by
-  movements, areas (entity types, `ENTITY_LABELS`, now exported from `ownerApi.ts`) and actions.
+- **Busiest hours**: `LoginEvents` by Portugal weekday × hour. **Rankings** (top 10): members by movements and areas
+  of the app (`OwnerOperationsService.Dashboard.cs` → `DashboardAreas`, entity type → Atuações / Ensaios / Logística /
+  Tesouraria…; an unmapped type keeps its name). Task 088 (owner request, 2026-11-07) dropped the song, naipe and
+  action-type rankings; the song / naipe play tiles stay.
 - Every count is bucketed by **Portugal day** (`PortugalTime.FromUtc`); stored stamps stay UTC. Messaging is never
   counted. Bucketing is in memory over one narrow column per source (`ponytail:` note in the service).
 - Line chart, heatmap and bars are plain SVG / CSS (no chart dependency), one series at a time in `--purple-ink`, with a
@@ -236,7 +238,7 @@ A *system action* is an audit entry the application wrote by itself: the daily a
 with no signed-in member (`UserName` null or `System`: background jobs, cleanups, geocoding).
 `AuditLogService.IsMemberAction` is the one rule.
 
-- `/owner/dashboard`: movements, their previous period, top members, areas and action types count members' actions only.
+- `/owner/dashboard`: movements, their previous period, top members and areas count members' actions only.
 - `/owner/tracing`: the **Esconder sistema** toggle (`?system=hide`, also applied to the JSON export). Filters are now
   a search, typeahead member fields (`datalist`: "Excluir" applies once the name is an exact username), entity / action
   selects, quick toggles and removable chips for the filters in force.

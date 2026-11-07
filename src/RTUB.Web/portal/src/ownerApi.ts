@@ -186,11 +186,9 @@ export type Dashboard = {
   to: string;
   days: string[];
   series: DashboardSeries[];
-  topSongs: DashboardRank[];
-  topNaipes: DashboardRank[];
   topMembers: DashboardRank[];
+  /** Areas of the app (Atuações, Logística…), decided by the server (088). */
   areas: DashboardRank[];
-  actions: DashboardRank[];
   /** 7 rows (Monday first) × 24 Portugal hours. */
   hours: number[][];
   now: { accounts: number; online: number; pushMembers: number };

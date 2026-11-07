@@ -93,9 +93,8 @@ public sealed record OwnerDashboardNow(int Accounts, int Online, int PushMembers
 /// </summary>
 public sealed record OwnerDashboard(
     string From, string To, IReadOnlyList<string> Days, IReadOnlyList<OwnerDashboardSeries> Series,
-    IReadOnlyList<OwnerDashboardRank> TopSongs, IReadOnlyList<OwnerDashboardRank> TopNaipes,
     IReadOnlyList<OwnerDashboardRank> TopMembers, IReadOnlyList<OwnerDashboardRank> Areas,
-    IReadOnlyList<OwnerDashboardRank> Actions, IReadOnlyList<IReadOnlyList<int>> Hours, OwnerDashboardNow Now);
+    IReadOnlyList<IReadOnlyList<int>> Hours, OwnerDashboardNow Now);
 
 /// <summary>
 /// One member in the tracing "Logins" dialog (task 050: from LoginEvents). <see cref="LastLoginAt"/> and
