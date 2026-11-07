@@ -169,7 +169,7 @@ sender's own recipient rule picks them. A Leitão starts active (`InitialIsRetir
 | Lembrete ensaio | ✅ Sends | **No** (`!IsRetired` filter) | `ActivityReminderBackgroundService`: day before and same day, every non-retired member |
 | Nova presença / Presença cancelada / Não vai ao ensaio | ✅ Sends | Yes, if they said "vou" | member answers on `/rehearsals/{id}` (`RehearsalAgendaService.MarkAttendanceAsync`) to members who said "vou". A manager removing a presença sends "Presença cancelada" to the others |
 | Presença aprovada | ✅ Sends | Yes (own presença) | `POST /api/rehearsals/{id}/attendances/{attendanceId}/approve` (`RehearsalAdminService`) → the member |
-| **Presença recusada** | ❌ **Never** | — (never sent) | only `RehearsalAttendanceService.CancelAttendanceAsync(rejectorUserId)` sends it and nothing calls that; the React "remove" uses `DeleteAttendanceAsync` |
+| Presença recusada | ✅ Sends | Yes (own presença) | `POST /api/rehearsals/{id}/attendances/{attendanceId}/refuse` (`RehearsalAdminService.RefuseAsync` → `CancelAttendanceAsync(id, refuserId)`) → the member. (Corrected 2026-11-07; earlier marked never sent.) The React "remove" uses `DeleteAttendanceAsync` and sends no refusal |
 | Lembrete: Ensaios Pendentes | ✅ Sends | Yes (the Ensaiador, any status) | `RehearsalApprovalReminderBackgroundService` (15:00) → approvers, when past rehearsals have pending presenças |
 | Nova Reunião Convocada | ✅ Sends | Yes, if in the type's audience | `POST /api/meetings` → `MeetingService.CreateMeetingAsync` → the type's audience |
 | Pedido de reunião (proposal) | ✅ Sends | Yes (Owners / president) | `/meetings` proposal → `MeetingRequestService.CreateAsync` → Owners + the type's president |
@@ -213,8 +213,8 @@ Not checked here: Azure App Settings that may override an `Enabled` flag (run
 
 Re-verified against source on 2026-11-07: the catalogue and "Does it send?" table above still hold (079 and 080 added
 no push). The only pushes built outside the factory are the Owner's `/notifications` text
-(`OwnerOperationsService.SendPushAsync`) and the `/profile` test (factory, sent by `PushEndpoints`). Dead:
-`CreateRehearsalAttendanceRejectionNotification` (its only caller, `CancelAttendanceAsync(rejectorUserId)`, has no caller).
+(`OwnerOperationsService.SendPushAsync`) and the `/profile` test (factory, sent by `PushEndpoints`). No dead factory method: "Presença recusada" is sent by the refuse
+route (`RehearsalAdminService.RefuseAsync`); the earlier audit missed it.
 
 Nothing below is built. **No preference is enforced and no schema exists** until the owner fills the last two columns.
 Keys are stable, fine-grained, and per account (not per device). New events, member answers and reminders are separate
@@ -233,7 +233,7 @@ keys on purpose. Abbreviations: Mand. = mandatory (shown checked and locked); Op
 | `rehearsals.reminder` | Lembretes de ensaios | `CreateRehearsalReminderNotification` | non-Reformados, day before + same day | sends | Und. | Und. |
 | `rehearsals.member-answers` | Quando um membro vai ou não ao ensaio | `CreateRehearsalAttendanceNotification`, `…CancellationNotification`, `…NonAttendanceNotification` | members who said "vou" | sends | Und. | Und. |
 | `rehearsals.manager-notice` | Avisos sobre o ensaio | `CreateRehearsalNotification` | chosen | sends | Und. | Und. |
-| `rehearsals.my-attendance` | A minha presença foi aprovada | `CreateRehearsalAttendanceApprovalNotification` (rejection: dead) | one | sends | Und. | Und. |
+| `rehearsals.my-attendance` | A minha presença no ensaio (aprovada ou recusada) | `CreateRehearsalAttendanceApprovalNotification`, `CreateRehearsalAttendanceRejectionNotification` | one, on approve / refuse | sends | Und. | Und. |
 | `rehearsals.approvals-pending` | Ensaios por aprovar | `CreatePendingRehearsalApprovalsReminderNotification` | approvers, 15:00 | sends | Und. | Und. |
 | `meetings.new` | Reuniões convocadas | `CreateMeetingNotification(isReminder: false)` | meeting type audience | sends | Und. | Und. |
 | `meetings.reminder` | Lembretes de reuniões | `CreateMeetingNotification(isReminder: true)` | non-Reformados who see it | sends | Und. | Und. |
@@ -262,7 +262,9 @@ Questions for the owner (answer in #262; #263 implements only what is answered):
    New accounts: same default?
 3. Muting a key: suppress the device push only, or also the saved "Notificações RTUB" copy? **Recommended: push only**
    (the record in `/messages` stays, as today with push off).
-4. Group any rows into one switch? The table keeps them separate; a merge is easy, a split after rollout needs a data
+4. Approval and refusal of a member's own presença share `rehearsals.my-attendance` (proposed): keep together or
+   split into two keys?
+5. Group any rows into one switch? The table keeps them separate; a merge is easy, a split after rollout needs a data
    migration.
 
 Fixed regardless of the answers: a preference never overrides a browser / OS permission or a missing device
