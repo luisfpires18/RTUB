@@ -145,6 +145,33 @@ debug otherwise). A failed delete of a gone row no longer stops the fan-out to t
 - Not done: Android installed app, iPhone / iPad Home Screen app, and DEV with its real VAPID keys. Track them before a
   production release (see `STATE.md`).
 
+## Startup reminder (task 080, issue #261)
+
+"Ativa as notificações" opens once per **app opening** for a signed-in member whose push is off on this device.
+
+- **Opening** = a new tab or window, or a cold launch of the installed app. Each portal page is its own document (no
+  client router), so the launch flag lives in `sessionStorage` (`rtub-startup-done`): moving between pages, coming back
+  to the app, polls and re-renders never show it again in that launch. A confirmed visitor page (sign-out, or `/login`
+  before signing in or switching account) clears the flag, so the next signed-in page starts a new launch.
+- **Who**: visitors never. The device state is `readPush()`: `off`, `stale`, `unregistered` (subscribed elsewhere only
+  counts as off here) and `denied` remind; `unsupported` outside the installed app shows the iPhone / iPad install
+  steps (inside it there is nothing useful to say, so nothing shows); `on`, push disabled / not configured, no worker
+  and any read error do not (unknown is never "off"). Rules in `portal/src/startupRules.ts`.
+- **Active vs Reformado** (`ApplicationUser.IsRetired`, the canonical flag; no new field): active = every opening while
+  off ("Agora não" is for that opening only). Reformado = once per account across devices: closing or enabling a shown
+  reminder stores `POST /api/push/reminder/ack` (a `PendingActionDismissals` row, kind `startup.push`, no source or
+  period; no migration). A failed save is not reported as saved: it simply shows again on a later opening. A member back
+  to active gets the active rule whatever was stored.
+- **API** (members only, no-store, the caller's own account, no id in the request): `GET /api/push/reminder` →
+  `{ reformed, acknowledged }`; `POST /api/push/reminder/ack` (antiforgery) → 204, idempotent across tabs.
+- **Browser permission** is asked only by the "Ativar notificações" click (`turnOn`, as `/profile`). Denied shows how to
+  allow it in the site / app settings; the native prompt is never repeated by RTUB.
+- **Queue** (`portal/src/Startup.tsx`, `StartupModals`): one dialog at a time, after the page settles (1.5 s) and only
+  while no other `<dialog>` is open, so a dialog the page opened from a notification's deep link goes first and the URL
+  is never changed. Order: #264 release notes (to be added first in `STEPS`), then this reminder. The system
+  announcement keeps its own path.
+- Checks: `npm run check:startup`, `PushApiTests.Reminder_*`, `StartupReminderPortalTests`.
+
 ## Follow-ups
 
 - Real-device checks above (Android PWA, iOS Home Screen app, DEV).

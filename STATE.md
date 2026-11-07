@@ -6,6 +6,13 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
+**Task 080 = Startup notification reminder** (issue #261; `feat/080/startup-notification-modal`). Signed-in member with
+push off on this device: "Ativa as notificações" once per app opening (tab session); Reformado (`IsRetired`) once per
+account via `GET/POST /api/push/reminder[/ack]` (`PendingActionDismissals` kind `startup.push`, no migration). Shared
+startup queue (`Startup.tsx`) for #264 release notes. Not checked: real iPhone / Android, screenshots at all widths.
+
+**Task 079 (#260)**: PR #280 merged into `dev`, not released.
+
 **Task 079 = Add to Google Calendar** (issue #260; `feat/079/add-to-google-calendar`). After a new "vou" to an upcoming
 event / rehearsal (module dialogs and `/pending-actions` Próximas) an optional offer opens Google's prefilled template
 (`ctz=Europe/Lisbon`, wall-clock times, suggested duration when no end, all-day for date-only / multi-day) only on click;

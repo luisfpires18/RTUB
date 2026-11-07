@@ -3,6 +3,7 @@ import { getAnnouncement, getCurrentUser, wasSignedIn, type Announcement, type C
 import { Dialog } from './Dialog';
 import { portal, social } from './content';
 import { Icon } from './icons';
+import { resetStartup, StartupModals } from './Startup';
 import { MemberCategory, MemberDrawer, MemberIdentity, MemberInbox, type Member } from './MemberShell';
 
 export const sections = [
@@ -48,8 +49,19 @@ export function Layout({ children }: { children: ReactNode }) {
         <Footer />
       </div>
       <SystemAnnouncement />
+      {member && <StartupModals />}
+      <StartupReset />
     </div>
   );
+}
+
+/** A confirmed visitor (signed out, or on /login before signing in or switching account) starts a new launch (task 080). */
+function StartupReset() {
+  const { user } = useCurrentUser();
+  useEffect(() => {
+    if (user && !user.authenticated) resetStartup();
+  }, [user]);
+  return null;
 }
 
 // ---------- system announcement ----------
