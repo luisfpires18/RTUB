@@ -262,8 +262,8 @@ Questions for the owner (answer in #262; #263 implements only what is answered):
    New accounts: same default?
 3. Muting a key: suppress the device push only, or also the saved "Notificações RTUB" copy? **Recommended: push only**
    (the record in `/messages` stays, as today with push off).
-4. Approval and refusal of a member's own presença share `rehearsals.my-attendance` (proposed): keep together or
-   split into two keys?
+4. ~~Approval and refusal: one key or two?~~ Decided 2026-11-07: **one key**, `rehearsals.my-attendance` (both are the
+   answer to the member's own presença). A later split copies this value into both new keys.
 5. Group any rows into one switch? The table keeps them separate; a merge is easy, a split after rollout needs a data
    migration.
 
