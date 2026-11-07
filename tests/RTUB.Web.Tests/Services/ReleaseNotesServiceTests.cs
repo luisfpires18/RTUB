@@ -56,11 +56,15 @@ public sealed class ReleaseNotesServiceTests : IDisposable
     {
         Service("2.2.0").Bundled.Should().NotContain(n => n.Version == "2.1.8" || n.Version == "2.1.7" || n.Version == "2.1.6");
 
+        // The repository's own files load, every one is at or below dev's VERSION (notes for the current version are
+        // optional since 090: a release without a file shows no dialog).
         var root = FindRoot();
         var current = File.ReadAllText(Path.Combine(root, "VERSION")).Trim();
         var real = new ReleaseNotesService(Mock.Of<IDbContextFactory<ApplicationDbContext>>(),
             Options.Create(new ReleaseNotesOptions { Directory = Path.Combine(root, "releases") }), Mock.Of<ILogger<ReleaseNotesService>>(), new BuildInfo(current, null));
-        real.Bundled.Should().Contain(n => n.Version == current).Which.Items.Should().NotBeEmpty();
+        var files = Directory.GetFiles(Path.Combine(root, "releases"), "*.json").Select(Path.GetFileNameWithoutExtension).ToList();
+        real.Bundled.Select(n => n.Version).Should().BeEquivalentTo(files, "every committed notes file is valid and not newer than VERSION");
+        real.Bundled.Should().OnlyContain(n => ReleaseNotesService.Compare(n.Version, current) <= 0 && n.Items.Count > 0);
     }
 
     [Theory]
