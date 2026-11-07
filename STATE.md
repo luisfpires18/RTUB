@@ -3,9 +3,13 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-11-07 (2.3.0 released to PROD; `dev` on 2.3.4)_
+_Last updated: 2026-11-07 (2.3.4 released to PROD; `dev` on 2.3.5)_
 
 ## Phase
+**Release 2.3.4** (2026-11-07, PR #287, tasks 065–085): the first release with member notes (`releases/2.3.4.json`).
+`dev` is on 2.3.5 with a one-line draft in `releases/2.3.5.json` — rewrite it before the next release. Task 085
+(PR #286): login lands on `/events`, dialog selects themed. Task 083 (PR #284) and 082 (PR #283) merged and released.
+
 **Task 083 = Release notes modal** (issue #264; `feat/083/release-notes`). `releases/<VERSION>.json` (pt-PT, plain
 text) bundled by `RTUB.csproj` into the artifact; `release.sh notes-check` gates the PR into master, Deploy • PROD and
 the package. `ReleaseNotesService` + `GET/POST /api/releases/notes[/ack]` (members; receipt = `PendingActionDismissals`
