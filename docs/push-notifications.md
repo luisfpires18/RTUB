@@ -209,65 +209,63 @@ Not checked here: Azure App Settings that may override an `Enabled` flag (run
 3. Add the row to the catalogue above under its category, and assert the URL in `PushNotificationFactoryTests`.
 4. A page that should open one item needs a deep link (a route or a query parameter it reads on load).
 
-## Preference keys for #263 (audit #262, 2026-11-07): owner decisions needed
+## Preference keys for #263 (audit #262, decided 2026-11-07)
 
 Re-verified against source on 2026-11-07: the catalogue and "Does it send?" table above still hold (079 and 080 added
 no push). The only pushes built outside the factory are the Owner's `/notifications` text
 (`OwnerOperationsService.SendPushAsync`) and the `/profile` test (factory, sent by `PushEndpoints`). No dead factory method: "Presença recusada" is sent by the refuse
 route (`RehearsalAdminService.RefuseAsync`); the earlier audit missed it.
 
-Nothing below is built. **No preference is enforced and no schema exists** until the owner fills the last two columns.
+Nothing below is built yet: #263 implements it. Owner decisions are recorded in the last two columns and below.
 Keys are stable, fine-grained, and per account (not per device). New events, member answers and reminders are separate
 keys on purpose. Abbreviations: Mand. = mandatory (shown checked and locked); Opt. = optional; Und. = undecided.
 
 | Key (proposed) | pt-PT label | Factory method / branch | Recipients, frequency | Status | Mand./Opt. | Default for existing accounts |
 |---|---|---|---|---|---|---|
 | `pending-actions.daily` | Lembrete: As minhas ações pendentes | `CreatePendingActionsReminderNotification` | one, daily 18:00 if page not empty | sends (078) | **Mand. (owner)** | on, locked |
-| `events.new` | Novas atuações | `CreateEventNotification(isReminder: false)` | all, on create | sends | **Opt. (owner)** | Und. |
-| `events.reminder` | Lembretes de atuações | `CreateEventNotification(isReminder: true)` | non-Reformados, 11:30 | sends | Und. | Und. |
-| `events.member-answers` | Quando um membro vai ou não à atuação | `CreateEventEnrollmentNotification`, `…CancellationNotification`, `…NonEnrollmentNotification` | members who said "vou", per answer | sends | **Opt. (owner)** | Und. |
-| `events.manager-notice` | Avisos da direção sobre a atuação | `CreateEventCustomNotification` | chosen | sends | Und. | Und. |
-| `events.video` | Novos vídeos de atuações | `CreateEventVideoUploadNotification` | every account but uploader | sends | Und. | Und. |
-| `discussion.activity` | Posts e comentários na discussão | `CreateDiscussionPostNotification`, `CreateDiscussionCommentNotification` | "vou" / participants, until event start | sends (narrow) | Und. | Und. |
-| `mentions` | Menções | `CreateMentionNotification`, `CreateLogisticsNotification(Mention)` | mentioned | sends | Und. | Und. |
-| `rehearsals.reminder` | Lembretes de ensaios | `CreateRehearsalReminderNotification` | non-Reformados, day before + same day | sends | Und. | Und. |
-| `rehearsals.member-answers` | Quando um membro vai ou não ao ensaio | `CreateRehearsalAttendanceNotification`, `…CancellationNotification`, `…NonAttendanceNotification` | members who said "vou" | sends | Und. | Und. |
-| `rehearsals.manager-notice` | Avisos sobre o ensaio | `CreateRehearsalNotification` | chosen | sends | Und. | Und. |
-| `rehearsals.my-attendance` | A minha presença no ensaio (aprovada ou recusada) | `CreateRehearsalAttendanceApprovalNotification`, `CreateRehearsalAttendanceRejectionNotification` | one, on approve / refuse | sends | Und. | Und. |
-| `rehearsals.approvals-pending` | Ensaios por aprovar | `CreatePendingRehearsalApprovalsReminderNotification` | approvers, 15:00 | sends | Und. | Und. |
-| `meetings.new` | Reuniões convocadas | `CreateMeetingNotification(isReminder: false)` | meeting type audience | sends | Und. | Und. |
-| `meetings.reminder` | Lembretes de reuniões | `CreateMeetingNotification(isReminder: true)` | non-Reformados who see it | sends | Und. | Und. |
-| `meetings.manager-notice` | Avisos sobre a reunião | `CreateMeetingCustomNotification` | chosen | sends | Und. | Und. |
-| `meetings.requests` | Pedidos de reunião | `CreateMeetingNotification` (proposal branch), `CreatePendingMeetingRequestReminderNotification`, `CreateMeetingRequestRejectedNotification` | approvers / author | sends | Und. | Und. |
-| `requests.public` | Pedidos de atuação | `CreateRequestNotification`, `CreatePendingPublicRequestsReminderNotification` | Admin + Owner, on request + 10:00 | sends | Und. | Und. |
-| `questions` | Perguntas | `CreateNewQuestionNotification`, `…Answered…`, `…Reply…`, `…Reminder…`, `CreatePendingQuestionsNotification` | asked member / author, + 09:00 job | sends | Und. | Und. |
-| `messages` | Mensagens | `CreateConversationMessageNotification` (not kept in inbox; per-chat mute stays) | participants | sends | Und. | Und. |
-| `leaderboard.first-place` | Novo 1º lugar | `CreateLeaderboardFirstPlaceNotification` | all, Mondays | sends | Und. | Und. |
-| `leaderboard.comments` | Comentários e likes no meu perfil | `CreateLeaderboardCommentNotification`, `…CommentLikeNotification` | one | sends | Und. | Und. |
-| `members.status` | O meu estado na Tuna | `CreateMemberRetirementWarningNotification`, `CreateMemberActivityReminderNotification` | that member | sends | Und. | Und. |
-| `members.reactivated` | Membros reativados | `CreateMemberReactivatedNotification` | all, daily status run | sends | Und. | Und. |
-| `media.new` | Novos conteúdos (música, naipes) | `CreateSongVideoUploadNotification`, `CreateNaipeContentNotification` | all / album members | sends | Und. | Und. |
-| `gallery.tag` | Fui identificado na Galeria | `CreateGalleryTagNotification` | tagged | sends | Und. | Und. |
-| `logistics.assigned` | Logística: tarefas atribuídas | `CreateLogisticsNotification(Owner)`, `(Collaborator)` | one | sends (069) | Und. | Und. |
-| `logistics.reminder` | Lembretes de Logística | `CreateLogisticsNotification(Reminder)` | targeted, every minute job | sends (069) | Und. | Und. |
-| `treasury.calotes` | Calotes pendentes | `CreateCalotesReminderNotification` | members who owe, 10:30 | sends | Und. | Und. |
-| `summary.weekly` | Resumo semanal | `CreateWeeklySummaryNotification` | every account, Mondays (keep schedule) | sends | **Opt. (owner)** | Und. |
-| `owner.announcement` | Avisos da RTUB | `OwnerOperationsService.SendPushAsync` (outside factory) | chosen by Owner | sends | Und. (not silently mandatory) | Und. |
+| `events.new` | Novas atuações | `CreateEventNotification(isReminder: false)` | all, on create | sends | Opt. | on |
+| `events.reminder` | Lembretes de atuações | `CreateEventNotification(isReminder: true)` | non-Reformados, 11:30 | sends | Opt. | on |
+| `events.member-answers` | Quando um membro vai ou não à atuação | `CreateEventEnrollmentNotification`, `…CancellationNotification`, `…NonEnrollmentNotification` | members who said "vou", per answer | sends | Opt. | on |
+| `events.manager-notice` | Avisos da direção sobre a atuação | `CreateEventCustomNotification` | chosen | sends | Opt. | on |
+| `events.video` | Novos vídeos de atuações | `CreateEventVideoUploadNotification` | every account but uploader | sends | Opt. | on |
+| `discussion.activity` | Posts e comentários na discussão | `CreateDiscussionPostNotification`, `CreateDiscussionCommentNotification` | "vou" / participants, until event start | sends (narrow) | Opt. | on |
+| `mentions` | Menções | `CreateMentionNotification`, `CreateLogisticsNotification(Mention)` | mentioned | sends | Opt. | on |
+| `rehearsals.reminder` | Lembretes de ensaios | `CreateRehearsalReminderNotification` | non-Reformados, day before + same day | sends | Opt. | on |
+| `rehearsals.member-answers` | Quando um membro vai ou não ao ensaio | `CreateRehearsalAttendanceNotification`, `…CancellationNotification`, `…NonAttendanceNotification` | members who said "vou" | sends | Opt. | on |
+| `rehearsals.manager-notice` | Avisos sobre o ensaio | `CreateRehearsalNotification` | chosen | sends | Opt. | on |
+| `rehearsals.my-attendance` | A minha presença no ensaio (aprovada ou recusada) | `CreateRehearsalAttendanceApprovalNotification`, `CreateRehearsalAttendanceRejectionNotification` | one, on approve / refuse | sends | Opt. | on |
+| `rehearsals.approvals-pending` | Ensaios por aprovar | `CreatePendingRehearsalApprovalsReminderNotification` | approvers, 15:00 | sends | Opt. | on |
+| `meetings.new` | Reuniões convocadas | `CreateMeetingNotification(isReminder: false)` | meeting type audience | sends | Opt. | on |
+| `meetings.reminder` | Lembretes de reuniões | `CreateMeetingNotification(isReminder: true)` | non-Reformados who see it | sends | Opt. | on |
+| `meetings.manager-notice` | Avisos sobre a reunião | `CreateMeetingCustomNotification` | chosen | sends | Opt. | on |
+| `meetings.requests` | Pedidos de reunião | `CreateMeetingNotification` (proposal branch), `CreatePendingMeetingRequestReminderNotification`, `CreateMeetingRequestRejectedNotification` | approvers / author | sends | Opt. | on |
+| `requests.public` | Pedidos de atuação | `CreateRequestNotification`, `CreatePendingPublicRequestsReminderNotification` | Admin + Owner, on request + 10:00 | sends | Opt. | on |
+| `questions` | Perguntas | `CreateNewQuestionNotification`, `…Answered…`, `…Reply…`, `…Reminder…`, `CreatePendingQuestionsNotification` | asked member / author, + 09:00 job | sends | Opt. | on |
+| `messages` | Mensagens | `CreateConversationMessageNotification` (not kept in inbox; per-chat mute stays) | participants | sends | Opt. | on |
+| `leaderboard.first-place` | Novo 1º lugar | `CreateLeaderboardFirstPlaceNotification` | all, Mondays | sends | Opt. | on |
+| `leaderboard.comments` | Comentários e likes no meu perfil | `CreateLeaderboardCommentNotification`, `…CommentLikeNotification` | one | sends | Opt. | on |
+| `members.status` | O meu estado na Tuna | `CreateMemberRetirementWarningNotification`, `CreateMemberActivityReminderNotification` | that member | sends | Opt. | on |
+| `members.reactivated` | Membros reativados | `CreateMemberReactivatedNotification` | all, daily status run | sends | Opt. | on |
+| `media.new` | Novos conteúdos (música, naipes) | `CreateSongVideoUploadNotification`, `CreateNaipeContentNotification` | all / album members | sends | Opt. | on |
+| `gallery.tag` | Fui identificado na Galeria | `CreateGalleryTagNotification` | tagged | sends | Opt. | on |
+| `logistics.assigned` | Logística: tarefas atribuídas | `CreateLogisticsNotification(Owner)`, `(Collaborator)` | one | sends (069) | Opt. | on |
+| `logistics.reminder` | Lembretes de Logística | `CreateLogisticsNotification(Reminder)` | targeted, every minute job | sends (069) | Opt. | on |
+| `treasury.calotes` | Calotes pendentes | `CreateCalotesReminderNotification` | members who owe, 10:30 | sends | Opt. | on |
+| `summary.weekly` | Resumo semanal | `CreateWeeklySummaryNotification` | every account, Mondays (keep schedule) | sends | Opt. | on |
+| `owner.announcement` | Avisos da RTUB | `OwnerOperationsService.SendPushAsync` (outside factory) | chosen by Owner | sends | Opt. | on |
 | — | (no switch) | `CreatePushTestNotification` | own device, on request | sends | not a preference | — |
 
-Questions for the owner (answer in #262; #263 implements only what is answered):
+Owner decisions (#262, 2026-11-07):
 
-1. Each Und. row: mandatory or optional?
-2. Default for existing accounts on every optional key: checked (nothing changes on rollout, recommended) or unchecked?
-   New accounts: same default?
-3. Muting a key: suppress the device push only, or also the saved "Notificações RTUB" copy? **Recommended: push only**
-   (the record in `/messages` stays, as today with push off).
-4. ~~Approval and refusal: one key or two?~~ Decided 2026-11-07: **one key**, `rehearsals.my-attendance` (both are the
-   answer to the member's own presença). A later split copies this value into both new keys.
-5. Group any rows into one switch? The table keeps them separate; a merge is easy, a split after rollout needs a data
-   migration.
+1. Only `pending-actions.daily` is mandatory (checked and locked). Every other key is optional, the Owner's
+   announcements included.
+2. Every optional key starts **on**, for existing and new accounts: the rollout changes nothing until a member turns
+   one off.
+3. Turning a key off stops the device push only; the "Notificações RTUB" copy in `/messages` is still saved.
+4. Keys stay separate. The only combination is `rehearsals.my-attendance` (approval and refusal); a later split copies
+   its value into both new keys.
 
-Fixed regardless of the answers: a preference never overrides a browser / OS permission or a missing device
+Also fixed: a preference never overrides a browser / OS permission or a missing device
 subscription; the device switch in `/profile` stays separate; the server enforces the preference before sending
 (`PushNotificationService`, subscriptions already loaded with `.Include(s => s.User)`), so a stale client cannot bypass it.
 Storage shape (per-key rows vs a bit field) is decided in #263 once the keys are final.
