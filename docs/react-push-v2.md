@@ -138,6 +138,8 @@ debug otherwise). A failed delete of a gone row no longer stops the fan-out to t
   persists, never touches another member; mandatory / unknown key / missing token refused with nothing stored;
   independent of subscribe / unsubscribe); `PushPreferenceFilterTests` (muted member skipped on every send path, other
   keys / mandatory / no key mute nobody, no store = no filter, every factory method names a catalogue key);
+  `PushPreferenceServiceTests` (real SQLite: save replaces the set; a rival tab writing the same row first is still a
+  success; any other write failure throws, so the dialog never says guardado over the old choices);
   `PushV2SourceTests` (dialog apart from the device switch, labels never in the client).
 
 ## Validation done (local, scratch data, locally generated VAPID keys)

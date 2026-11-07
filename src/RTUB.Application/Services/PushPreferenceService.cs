@@ -67,7 +67,13 @@ public sealed class PushPreferenceService(IDbContextFactory<ApplicationDbContext
         }
         catch (DbUpdateException)
         {
-            // Two tabs saved the same key at once: the row exists, which is what was asked. Re-read instead of failing.
+            // Two tabs saved the same key at once (unique UserId + Key): only when what is stored is exactly what was
+            // asked is that a success. Any other write failure is reported, never shown as "guardado".
+            await using var check = await contexts.CreateDbContextAsync();
+            if (!(await MutedKeysAsync(check, userId)).SetEquals(wanted))
+            {
+                throw;
+            }
         }
 
         await using var fresh = await contexts.CreateDbContextAsync();
