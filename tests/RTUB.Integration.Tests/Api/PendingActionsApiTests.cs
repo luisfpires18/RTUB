@@ -105,19 +105,21 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
         (await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().PendingActionDismissals.CountAsync(d => d.UserId == me.Id)).Should().Be(0);
     }
 
+    /// <summary>Task 085: the 071 landing on /pending-actions is gone; every member lands on /events unless a deep link asked for a page.</summary>
     [Fact]
-    public async Task Login_LandsAnActiveMemberOnTheirActions_UnlessTheyAskedForAPage()
+    public async Task Login_LandsEveryMemberOnEvents_UnlessTheyAskedForAPage()
     {
         var (active, user) = await NewUserAsync([MemberCategory.Leitao], retired: false);
         var (retired, other) = await NewUserAsync([MemberCategory.Tuno], retired: true);
 
-        (await LoginAsync(active, user, returnUrl: null)).Should().Be("/pending-actions");
+        (await LoginAsync(active, user, returnUrl: null)).Should().Be("/events");
         (await LoginAsync(Client(), user, returnUrl: "/logistics/3?card=7")).Should().Be("/logistics/3?card=7", "a deep link wins");
-        (await LoginAsync(Client(), user, returnUrl: "https://evil.example/")).Should().Be("/pending-actions");
+        (await LoginAsync(Client(), user, returnUrl: "/pending-actions")).Should().Be("/pending-actions", "asked for explicitly");
+        (await LoginAsync(Client(), user, returnUrl: "https://evil.example/")).Should().Be("/events");
         (await LoginAsync(retired, other, returnUrl: null)).Should().Be("/events");
 
         var again = await active.GetAsync("/login");
-        again.Headers.Location!.ToString().Should().Be("/pending-actions", "a signed-in active member opening /login goes to the same place");
+        again.Headers.Location!.ToString().Should().Be("/events", "a signed-in member opening /login goes to the same place");
     }
 
     // ---------- answers (072) ----------

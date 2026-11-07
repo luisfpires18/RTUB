@@ -2335,6 +2335,7 @@ input::-webkit-date-and-time-value {
 
 .form__field input,
 .form__field textarea,
+.form__field select,
 .prize-manager__row input {
   width: 100%;
   min-height: 48px;
@@ -2354,6 +2355,7 @@ input::-webkit-date-and-time-value {
 
 .form__field input:focus-visible,
 .form__field textarea:focus-visible,
+.form__field select:focus-visible,
 .prize-manager__row input:focus-visible {
   border-color: var(--purple-ink);
   outline: 2px solid var(--focus);
@@ -2361,8 +2363,26 @@ input::-webkit-date-and-time-value {
 }
 
 .form__field--error input,
-.form__field--error textarea {
+.form__field--error textarea,
+.form__field--error select {
   border-color: #ff8f86;
+}
+
+/* A bare <select> in a dialog form (instrument, group, calendar duration) draws like the inputs beside it, with the
+   same CSS chevron as .control--select instead of the browser's own control (task 085). */
+.form__field select {
+  appearance: none;
+  padding-right: 40px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.form__field select option {
+  background: var(--bg-card);
+  color: var(--ink);
 }
 
 .form__hint {
