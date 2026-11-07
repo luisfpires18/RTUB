@@ -89,11 +89,11 @@ public class PendingActionsServiceTests
         var retired = AddUser([MemberCategory.Tuno], retired: true);
         var none = AddUser([], retired: false);
 
-        var r = (await Service().GetPageAsync(SignedIn(retired))).Value!;
+        var r = await Service().GetPageAsync(SignedIn(retired));
         var n = (await Service().GetPageAsync(SignedIn(none))).Value!;
 
-        r.Status.Should().Be("retired");
-        r.Panels.Should().BeEmpty("status alone grants nothing, and Reformados answer in the agenda");
+        r.Status.Should().Be(EventResultStatus.NotFound, "087: the page is not for a Reformado at all");
+        (await Service().CountPendingAsync(retired)).Should().Be(0, "no reminder push either");
         n.Status.Should().Be("none");
         n.Panels.Should().BeEmpty();
         (await Service().GetPanelAsync(SignedIn(retired), "events", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
@@ -404,7 +404,9 @@ public class PendingActionsServiceTests
         AddRole(me, "Mod");
         (await Service(gated).GetPageAsync(cookie)).Value!.Panels.Select(p => p.Key).Should().Contain("mods");
         SetRetired(me, true);
-        (await Service(gated).GetPageAsync(cookie)).Value!.Panels.Select(p => p.Key).Should().Equal("mods");
+        (await Service(gated).GetPageAsync(cookie)).Status.Should().Be(EventResultStatus.NotFound, "087: a Reformado has no page, whatever the role");
+        SetRetired(me, false);
+        (await Service(gated).GetPageAsync(cookie)).Value!.Panels.Select(p => p.Key).Should().Contain("mods");
     }
 
     // ---------- Galeria and Novidades (077) ----------
@@ -456,14 +458,20 @@ public class PendingActionsServiceTests
     [Fact]
     public async Task News_OnlyForWriters_OnePromptPerWeek_ResolvedByOwnPostThisWeek_DismissedForTheWeek()
     {
-        var mod = AddUser([MemberCategory.Tuno], retired: false);
+        // 087: the Direção in office who may write news; a writer outside the Direção, or a Direção member who cannot write, has no panel.
+        var mod = AddUser([MemberCategory.Tuno], retired: false, positions: [Position.ViceMagister]);
         AddRole(mod, "Mod");
-        var admin = AddUser([MemberCategory.Tuno], retired: false);
+        var admin = AddUser([MemberCategory.Tuno], retired: false, positions: [Position.Magister]);
         AddRole(admin, "Admin");
         var member = AddUser([MemberCategory.Tuno], retired: false);
+        var writerOutside = AddUser([MemberCategory.Tuno], retired: false);
+        AddRole(writerOutside, "Mod");
+        var direcaoNotWriter = AddUser([MemberCategory.Tuno], retired: false, positions: [Position.Secretario]);
         var service = Service(new NewsPendingActionSource());
 
         (await service.GetPanelAsync(SignedIn(member), "news", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
+        (await service.GetPanelAsync(SignedIn(writerOutside), "news", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
+        (await service.GetPanelAsync(SignedIn(direcaoNotWriter), "news", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
         var row = (await service.GetPanelAsync(SignedIn(mod), "news", null, 1)).Value!.Rows.Single();
         row.Actions.Single().Href.Should().Be("/news?new=1");
         row.Required.Should().BeFalse();

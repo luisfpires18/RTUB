@@ -138,7 +138,7 @@ Card title and board name only: never the card's details or a comment's text. Ne
 | Factory method | Trigger | Recipients | Title | Opens | Tag |
 |---|---|---|---|---|---|
 | `CreateWeeklySummaryNotification` | Mondays (`WeeklyNotificationBackgroundService`) | one | "Resumo Semanal" | `/events`, else `/rehearsals`, else `/meetings`, else `/` | `weekly-summary` |
-| `CreatePendingActionsReminderNotification` (078) | daily 18:00 Portugal (`PendingActionsReminderService`) | one, only a member whose `/pending-actions` has something pending | "As minhas ações pendentes" (no count, no item details) | `/pending-actions` | `pending-actions-reminder` |
+| `CreatePendingActionsReminderNotification` (078) | daily 18:00 Portugal (`PendingActionsReminderService`) | one, only a member whose `/pending-actions` has something pending (never a Reformado, 087) | "As minhas ações pendentes" (no count, no item details) | `/pending-actions` | `pending-actions-reminder` |
 
 ### Sistema
 | Source | Trigger | Recipients | Title | Opens | Tag |

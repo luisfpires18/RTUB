@@ -136,7 +136,9 @@ sign in, other members → 403 shell; API: 401 / 403). Read only, `no-store`.
   additive). Every React page asks `GET /api/account/me` once per load, so `AccountController.Me` hands the request's
   Referer to `PageViewCounter` (same-origin only; ids → `{id}`, no query, lower-case, ≤ 128 chars), which counts in
   memory; `PageViewFlushService` upserts the buffer once a minute and on shutdown (a failed flush keeps the counts).
-  Never a write per request, no member, address or user agent. Labels (`PAGE_LABELS`) are the client's; an unknown
+  Never a write per request, no member, address or user agent. Signed-in members only, and the buffer holds at most
+  300 distinct (day, path) keys: a new path beyond that counts under `/outras`, so a client cannot grow memory or the
+  table with made-up paths. Labels (`PAGE_LABELS`) are the client's; an unknown
   route shows its path. Limits: a page restored from bfcache is not re-counted; one app instance assumed (a scaled-out
   App Service would each count its own).
 - Every count is bucketed by **Portugal day** (`PortugalTime.FromUtc`); stored stamps stay UTC. Messaging is never

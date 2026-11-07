@@ -70,6 +70,23 @@ public sealed class PageViewCounterTests : IDisposable
     }
 
     [Fact]
+    public void Record_CapsDistinctPaths_InOneOtherBucket()
+    {
+        var counter = new PageViewCounter();
+        for (var i = 0; i < PageViewCounter.MaxKeys + 50; i++)
+        {
+            counter.Record($"https://rtub.pt/made-up-{i}", "rtub.pt");
+        }
+
+        counter.Record("https://rtub.pt/made-up-0", "rtub.pt"); // known already: still its own key
+
+        var drained = counter.Drain();
+        drained.Should().HaveCount(PageViewCounter.MaxKeys + 1);
+        drained.Single(d => d.Path == PageViewCounter.Other).Count.Should().Be(50);
+        drained.Single(d => d.Path == "/made-up-0").Count.Should().Be(2);
+    }
+
+    [Fact]
     public async Task Flush_KeepsTheCountsWhenTheWriteFails()
     {
         var counter = new PageViewCounter();

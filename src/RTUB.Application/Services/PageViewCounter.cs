@@ -14,10 +14,15 @@ namespace RTUB.Application.Services;
 /// controller hands this counter the request's Referer; the path is normalised (ids → <c>{id}</c>, no query, no hash,
 /// lower-case, ≤ 128 chars) and counted in memory per Portugal day. Nothing is written per request:
 /// <see cref="PageViewFlushService"/> upserts the buffer once a minute and on shutdown. Same-origin referers only, so
-/// a stray request from elsewhere counts nothing. No member, address or user agent is kept.
+/// a stray request from elsewhere counts nothing. Signed-in members only, and at most <see cref="MaxKeys"/> distinct
+/// keys in the buffer (the rest is "/outras"). No member, address or user agent is kept.
 /// </summary>
 public sealed class PageViewCounter(TimeProvider? time = null)
 {
+    /// <summary>Distinct (day, path) keys the buffer holds at most; beyond it a new path counts as <see cref="Other"/>.</summary>
+    public const int MaxKeys = 300;
+    public const string Other = "/outras";
+
     private static readonly Regex Id = new(@"/\d+(?=/|$)", RegexOptions.Compiled);
     private readonly TimeProvider _time = time ?? TimeProvider.System;
     private readonly ConcurrentDictionary<(DateTime Day, string Path), int> _pending = new();
@@ -37,12 +42,25 @@ public sealed class PageViewCounter(TimeProvider? time = null)
         return path.Length <= 128 ? path : null;
     }
 
+    /// <summary>
+    /// Counts one view. The caller passes only a signed-in member's request (visitors are not counted, so an anonymous
+    /// client cannot grow the buffer); a path never seen before once the buffer holds <see cref="MaxKeys"/> keys goes
+    /// to <see cref="Other"/>, so made-up paths can neither fill memory nor the table.
+    /// </summary>
     public void Record(string? referer, string? host)
     {
-        if (Normalise(referer, host) is { } path)
+        if (Normalise(referer, host) is not { } path)
         {
-            _pending.AddOrUpdate((PortugalTime.Today(_time), path), 1, (_, n) => n + 1);
+            return;
         }
+
+        var key = (PortugalTime.Today(_time), path);
+        if (!_pending.ContainsKey(key) && _pending.Count >= MaxKeys)
+        {
+            key = (key.Item1, Other);
+        }
+
+        _pending.AddOrUpdate(key, 1, (_, n) => n + 1);
     }
 
     /// <summary>Takes everything counted so far; the caller stores it (and gives it back on failure).</summary>
