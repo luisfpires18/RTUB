@@ -16273,3 +16273,50 @@ html.app-screen .footer {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* Task 079: "Adicionar ao Google Calendar" offer (CalendarOffer.tsx). */
+.calendar-offer {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.calendar-offer__saved {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+.calendar-offer__what {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.calendar-offer__what dd {
+  margin: 0;
+}
+.calendar-offer__title {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+.calendar-offer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.calendar-offer__actions .btn {
+  min-height: 44px;
+}
+.calendar-offer__fallback {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

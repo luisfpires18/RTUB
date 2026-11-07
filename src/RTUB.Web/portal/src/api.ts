@@ -20,6 +20,8 @@ export type CurrentUser =
       avatarUrl: string;
       categories: string[];
       menu: MemberMenu;
+      /** Calendar:PublicOrigin (task 079), the trusted origin for links that leave RTUB; null when not configured. */
+      publicOrigin: string | null;
     };
 
 let session: Promise<CurrentUser> | null = null;

@@ -6,7 +6,14 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-06 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
-**Task 078 = As minhas ações pendentes 8/8** (issue #259; `feat/078/pending-actions-push-reminder`). Daily push
+**Task 079 = Add to Google Calendar** (issue #260; `feat/079/add-to-google-calendar`). After a new "vou" to an upcoming
+event / rehearsal (module dialogs and `/pending-actions` Próximas) an optional offer opens Google's prefilled template
+(`ctz=Europe/Lisbon`, wall-clock times, suggested duration when no end, all-day for date-only / multi-day) only on click;
+detail pages keep "Adicionar ao calendário". Frontend only, no schema change. Not checked: Google page, devices, screenshots.
+
+**Task 078 (#259)**: PR #279 merged into `dev`, not released.
+
+**Task 078 = As minhas ações pendentes 8/8** (issue #259; merged into `dev` via PR #279). Daily push
 `PendingActionsReminderService` (18:00 Portugal, catch-up 6 h): every non-expelled account counted with the page's
 `CountPendingAsync`; pending > 0 → one summary push to `/pending-actions`, 0 → nothing. Claimed per member/day in
 `PendingActionDismissals` (kind `reminder.push`; at most once), failed counts retried 3x then logged. No migration.

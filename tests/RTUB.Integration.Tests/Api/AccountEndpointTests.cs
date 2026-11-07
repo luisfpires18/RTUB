@@ -48,7 +48,7 @@ public class AccountEndpointTests : IntegrationTestBase
         var body = await response.Content.ReadAsStringAsync();
         using var json = JsonDocument.Parse(body);
         json.RootElement.EnumerateObject().Select(p => p.Name)
-            .Should().BeEquivalentTo("authenticated", "version", "displayName", "fullName", "avatarUrl", "categories", "menu");
+            .Should().BeEquivalentTo("authenticated", "version", "displayName", "fullName", "avatarUrl", "categories", "menu", "publicOrigin");
         json.RootElement.GetProperty("authenticated").GetBoolean().Should().BeTrue();
         json.RootElement.GetProperty("displayName").GetString().Should().NotBeNullOrWhiteSpace();
         body.Should().NotContain("testadmin@test.com", "no contact details leave this endpoint");
@@ -149,4 +149,20 @@ public class AccountEndpointTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.Redirect, "the seeded admin must sign in");
         return client;
     }
+
+    [Theory]
+    [InlineData("https://rtub.azurewebsites.net", "https://rtub.azurewebsites.net")]
+    [InlineData(" https://rtub.pt/ ", "https://rtub.pt")]
+    [InlineData("https://rtub.pt:8443", "https://rtub.pt:8443")]
+    [InlineData("http://localhost:5000", "http://localhost:5000")]
+    [InlineData("http://rtub.pt", null)] // plain http only for loopback
+    [InlineData("https://rtub.pt/events", null)] // an origin, not a path
+    [InlineData("https://rtub.pt?x=1", null)]
+    [InlineData("https://user@rtub.pt", null)]
+    [InlineData("javascript:alert(1)", null)]
+    [InlineData("rtub.pt", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void PublicOrigin_IsOnlyAnAbsoluteHttpsOrigin(string? configured, string? expected) =>
+        RTUB.Controllers.AccountController.TrustedOrigin(configured).Should().Be(expected, "task 079: Calendar:PublicOrigin");
 }

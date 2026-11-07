@@ -1,3 +1,7 @@
+import { CalendarOfferDialog, eventActivity, rehearsalActivity } from './CalendarOffer';
+import type { CalendarActivity } from './calendar';
+import { eventsApi } from './eventsApi';
+import { rehearsalsApi } from './rehearsalsApi';
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Loading } from './App';
 import { Dialog } from './Dialog';
@@ -199,6 +203,7 @@ function ActionPanel({
   const [state, setState] = useState<PanelState>({ panel: initial, busy: false, failed: false, notice: null });
   const [asking, setAsking] = useState<{ row: ActionRow; button: ActionButton } | null>(null);
   const [confirming, setConfirming] = useState<{ row: ActionRow; button: ActionButton } | null>(null);
+  const [calendar, setCalendar] = useState<{ activity: CalendarActivity; headline: string } | null>(null);
   const latest = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
   const { panel } = state;
@@ -251,8 +256,10 @@ function ActionPanel({
       return Object.values(o.errors)[0] ?? 'Há campos por corrigir.';
     }
     if (o.kind === 'ok' || o.kind === 'notfound' || o.kind === 'conflict' || o.kind === 'closed') {
+      const upcoming = panel.filter === 'upcoming';
       await go(panel.filter, panel.page, o.kind === 'ok' ? DONE[a.answer] ?? 'Resposta guardada.' : 'Isto já foi tratado ou mudou entretanto.');
       heading.current?.focus({ preventScroll: true });
+      if (o.kind === 'ok' && a.answer === 'yes' && upcoming) offerCalendar(row);
       return null;
     }
     setState((s) => ({
@@ -266,6 +273,26 @@ function ActionPanel({
             : 'Não foi possível guardar. Verifica a ligação e tenta de novo.',
     }));
     return null;
+  };
+
+  /**
+   * Task 079: after a saved "Vou" (upcoming only, never "Fui"), the module's own read of the answer gives the calendar
+   * details; the offer opens only when that read confirms the member is going to an open, upcoming activity. A failed
+   * read just skips the offer: the answer is saved either way.
+   */
+  const offerCalendar = async (row: ActionRow) => {
+    const id = Number(row.sourceKey);
+    if (row.kind === 'event.response') {
+      const o = await eventsApi.getEnrollment(id);
+      if (o.kind === 'ok' && o.data.status === 'going' && o.data.state === 'open' && !o.data.event.past && !o.data.event.cancelled) {
+        setCalendar({ activity: eventActivity(o.data.event), headline: 'Inscrição guardada.' });
+      }
+    } else if (row.kind === 'rehearsal.response') {
+      const o = await rehearsalsApi.myAttendance(id);
+      if (o.kind === 'ok' && o.data.status === 'pending' && o.data.state === 'open' && !o.data.rehearsal.past && !o.data.rehearsal.cancelled) {
+        setCalendar({ activity: rehearsalActivity(o.data.rehearsal), headline: 'Presença registada, pendente de aprovação.' });
+      }
+    }
   };
 
   // Vou / Fui asks for the instrument only when there is a choice; otherwise it is sent at once with the primary.
@@ -353,6 +380,7 @@ function ActionPanel({
         </button>
       </footer>
 
+      {calendar && <CalendarOfferDialog activity={calendar.activity} headline={calendar.headline} onClose={() => setCalendar(null)} />}
       {confirming && (
         <Dialog
           title={confirming.row.title}

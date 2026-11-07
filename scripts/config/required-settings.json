@@ -898,6 +898,23 @@
       "notes": "Daily run time (committed default)."
     },
     {
+      "name": "Calendar__PublicOrigin",
+      "group": "app",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "example": {
+        "dev": "https://rtub-dev.azurewebsites.net",
+        "prod": "https://rtub.azurewebsites.net"
+      },
+      "notes": "Trusted public origin (https, no path) for the RTUB link inside a Google Calendar copy (task 079). Never taken from the request host. Missing or invalid: the copy has no RTUB link."
+    },
+    {
       "name": "PendingActionsReminder__Enabled",
       "group": "scheduler",
       "secret": false,

@@ -318,3 +318,9 @@ the real services, module parity, races, stale reads), `RehearsalAttendanceAdmin
 (opens the "Fechar questão" confirmation and never confirms: the audit must not write; 073 replaced the 072
 `pending-actions-answer` scenario, which clicked the first primary button and so answered or completed rows on the
 audit database).
+
+## Calendário (079)
+
+A saved "Vou" under Próximas (Atuações, Ensaios) opens the optional "Adicionar ao Google Calendar" dialog once the
+module's own read confirms the member is going to an open, upcoming activity; "Fui" never does. A failed read skips the
+offer, never the answer. Rules: [react-events → Calendário](react-events.md).

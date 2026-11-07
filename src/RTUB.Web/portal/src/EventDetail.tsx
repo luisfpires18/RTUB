@@ -1,3 +1,4 @@
+import { CalendarOfferDialog, eventActivity } from './CalendarOffer';
 import { useEffect, useRef, useState } from 'react';
 import { Loading } from './App';
 import { portal } from './content';
@@ -276,6 +277,7 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
   const { event } = detail;
   const m = event.member!;
   const open = !event.past && !event.cancelled;
+  const [calendar, setCalendar] = useState(false);
   const answer = m.myStatus === 'going' ? 'Disseste que vais.' : m.myStatus === 'notGoing' ? 'Disseste que não vais.' : 'Ainda não respondeste.';
 
   return (
@@ -290,6 +292,13 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
             <Icon name="check" />
             {m.myStatus ? 'Alterar resposta' : 'Responder'}
           </button>
+          {m.myStatus === 'going' && (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setCalendar(true)}>
+              <Icon name="calendar" />
+              Adicionar ao calendário
+            </button>
+          )}
+          {calendar && <CalendarOfferDialog activity={eventActivity(event)} headline={null} onClose={() => setCalendar(false)} />}
         </>
       ) : event.past && m.myStatus === 'going' && !event.cancelled ? (
         <button type="button" className="btn btn--ghost btn--sm" onClick={onAnswer}>

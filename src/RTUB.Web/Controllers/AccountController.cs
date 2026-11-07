@@ -19,10 +19,12 @@ namespace RTUB.Controllers;
 public class AccountController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly string? _publicOrigin;
 
-    public AccountController(UserManager<ApplicationUser> userManager)
+    public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration)
     {
         _userManager = userManager;
+        _publicOrigin = TrustedOrigin(configuration["Calendar:PublicOrigin"]);
     }
 
     [HttpGet("me")]
@@ -53,9 +55,19 @@ public class AccountController : ControllerBase
             fullName = fullName.Length > 0 ? fullName : null,
             avatarUrl = user.ProfilePictureSrc,
             categories = user.Categories.Select(StatusHelper.GetCategoryDisplay).ToArray(),
-            menu = MemberMenuAccess.For(User, user)
+            menu = MemberMenuAccess.For(User, user),
+            // Task 079: the configured public origin for links that leave RTUB (Google Calendar). Never the request's host.
+            publicOrigin = _publicOrigin
         });
     }
+
+    /// <summary>An absolute https origin (http only for localhost), normalized to scheme://host[:port]; else null.</summary>
+    public static string? TrustedOrigin(string? value) =>
+        Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback))
+            && uri.AbsolutePath == "/" && uri.Query == "" && uri.Fragment == "" && uri.UserInfo == ""
+            ? uri.GetLeftPart(UriPartial.Authority)
+            : null;
 
     private static string FirstNonBlank(params string?[] values) =>
         values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? "Tuno";

@@ -426,3 +426,32 @@ activity status is reconciled. Answers already given are never changed from ther
 `EventDetailDto.CanManageRepertoire`: Admin / Owner for any event, the current Ensaiador / Magister for an upcoming, not
 cancelled one; the event page's repertoire button follows it. `/events/{id}?repertoire=1` opens the editor once (from
 "As minhas ações pendentes" → Repertório).
+
+## Calendário: "Adicionar ao Google Calendar" (task 079, issue #260)
+
+Shared by events, rehearsals and `/pending-actions` (`portal/src/calendar.ts` builds the link, `CalendarOffer.tsx` shows it).
+
+- **When**: right after the server saved the member's **new** "vou" to an **upcoming**, not cancelled activity (event
+  dialog on `/events` and `/events/{id}`, rehearsal dialog on `/rehearsals` and `/rehearsals/{id}`, and a "Vou" under
+  Próximas on `/pending-actions`, which then reads the module's own answer to get the details). Never after a "não", a
+  past "Fui", a failed save, a page load, or editing a "vou" that was already a "vou".
+- **Copy**: events "Inscrição guardada."; rehearsals "Presença registada, pendente de aprovação." (the calendar never
+  approves anything). Help: "Confirma em Guardar no Google Calendar. Alterações ou cancelamentos na RTUB não atualizam
+  esta cópia automaticamente." RTUB never says it was added: it cannot see Google.
+- **Later**: an upcoming detail page shows "Adicionar ao calendário" to whoever is going (so "Agora não" is reversible).
+- **Link**: Google's documented template `https://calendar.google.com/calendar/render?action=TEMPLATE` (fixed
+  destination) with `text`, `dates`, `ctz=Europe/Lisbon`, `location`, `details` = the item's RTUB page
+  (built from the configured `Calendar:PublicOrigin`, sent to signed-in members by `/api/account/me`; never
+  `location.origin` or the request Host, so an alternate or untrusted host never ends up in the copy; not configured or
+  not an absolute https origin = no RTUB link) and the independent-copy note. Times are RTUB's Portugal wall
+  clock; Google applies the zone, so summer / winter and a device in another zone are right. No notes, participants,
+  descriptions, tokens or user data. No OAuth, no Calendar API, nothing written by RTUB.
+- **Dates**: rehearsal `start`–`end`, an end not after the start ends the next day (21:00–00:00); an event with a time and
+  no end: a **suggested** duration the member picks (1 h to 4 h, default 2 h), labelled as a suggestion; an event with no
+  time, or spanning several days, is an all-day entry through its last day (end exclusive).
+- Opening happens only from the member's click on a link (`target=_blank`, `noopener noreferrer`); "Copiar o link" (or
+  "abrir o link" when copying fails) is the fallback for installed apps that block it. Closing / Esc / "Agora não"
+  leaves the answer saved; nothing is retried or re-sent.
+- Checks: `npm run check:calendar` (builder: winter, summer, midnight, month / year rollover, all-day, multi-day,
+  encoding), `CalendarOfferPortalTests`. Not checked: the Google page itself (needs a Google sign-in), installed-app
+  behaviour on iPhone / Android, screenshots.
