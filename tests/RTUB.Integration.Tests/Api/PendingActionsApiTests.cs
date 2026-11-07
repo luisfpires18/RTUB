@@ -63,7 +63,7 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
         var raw = await member.GetStringAsync("/api/pending-actions/panels/events?filter=upcoming&page=1");
 
         page.GetProperty("status").GetString().Should().Be("active");
-        page.GetProperty("panels").EnumerateArray().Select(p => p.GetProperty("key").GetString()).Should().Equal("events", "rehearsals", "logistics", "questions", "gallery");
+        page.GetProperty("panels").EnumerateArray().Select(p => p.GetProperty("key").GetString()).Should().Equal("events", "rehearsals", "logistics", "gallery");
         raw.Should().NotContain(me.Id).And.NotContain("@test.com");
         var keys = await AllKeysAsync(member, "events", "upcoming");
         keys.Should().Contain(mine.ToString()).And.NotContain(answered.ToString());
@@ -73,17 +73,25 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
         panel.GetProperty("rows").GetArrayLength().Should().BeLessThanOrEqualTo(3);
     }
 
+    /// <summary>Task 087 (owner decision): a Reformado has no pending action at all, whatever roles or positions they hold.</summary>
     [Fact]
-    public async Task AReformado_GetsThePage_ButNoParticipationPanels()
+    public async Task AReformado_GetsThePage_WithNoPanelAtAll()
     {
-        var (member, _) = await SignInAsync([MemberCategory.Tuno], retired: true);
+        var (member, me) = await SignInAsync([MemberCategory.Tuno], retired: true, role: "Admin", positions: [Position.Magister]);
+        await WithTokenAsync(member);
+        var board = await SeedBoardAsync(withDone: true);
+        var card = await AddCardAsync(board.Todo, "Trabalho meu", owner: me.Id);
 
         var page = await member.GetFromJsonAsync<JsonElement>("/api/pending-actions");
 
         page.GetProperty("status").GetString().Should().Be("retired");
-        page.GetProperty("panels").EnumerateArray().Select(p => p.GetProperty("key").GetString()).Should().Equal(["logistics", "questions"],
-            "a Reformado keeps their own work, not participation");
-        (await member.GetAsync("/api/pending-actions/panels/events")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        page.GetProperty("panels").EnumerateArray().Should().BeEmpty("a Reformado sees nothing, not even own work or a position's duties");
+        foreach (var panel in new[] { "events", "logistics", "questions", "news", "members", "treasury", "meetings" })
+        {
+            (await member.GetAsync($"/api/pending-actions/panels/{panel}")).StatusCode.Should().Be(HttpStatusCode.NotFound, panel);
+        }
+
+        (await Answer(member, "logistics.card", card, "done")).StatusCode.Should().Be(HttpStatusCode.NotFound, "no command either");
     }
 
     [Fact]
@@ -211,7 +219,7 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
     [Fact]
     public async Task Logistics_ShowsOnlyTheMembersOwnOpenCardsOnBoardsTheySee_AndConcluirIsTheBoardsOwnMove()
     {
-        var (member, me) = await SignInAsync([MemberCategory.Leitao], retired: true); // own work: Reformados too
+        var (member, me) = await SignInAsync([MemberCategory.Leitao], retired: false); // own work: Leitões too
         await WithTokenAsync(member);
         var (_, other) = await SignInAsync([MemberCategory.Tuno], retired: false);
         var board = await SeedBoardAsync(withDone: true);
@@ -224,8 +232,8 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
         var hidden = await AddCardAsync(privateBoard.Todo, "Segredo", owner: me.Id);
 
         var page = await member.GetFromJsonAsync<JsonElement>("/api/pending-actions");
-        page.GetProperty("panels").EnumerateArray().Select(p => p.GetProperty("key").GetString()).Should().Contain(["logistics", "questions"])
-            .And.NotContain("events", "a Reformado has no participation panel");
+        page.GetProperty("panels").EnumerateArray().Select(p => p.GetProperty("key").GetString()).Should().Contain("logistics")
+            .And.NotContain("questions", "Questões is the Direção's panel (087)");
         var keys = await AllKeysAsync(member, "logistics", null);
         keys.Should().Contain([owned.ToString(), helping.ToString()])
             .And.NotContain([someoneElses.ToString(), unowned.ToString(), done.ToString(), hidden.ToString()],
@@ -265,10 +273,13 @@ public class PendingActionsApiTests : IClassFixture<EventsApiFactory>
     [Fact]
     public async Task Questions_ListsTheAuthorsOpenQuestions_AndOnlyTheAuthorCloses()
     {
-        var (author, me) = await SignInAsync([MemberCategory.Tuno], retired: false);
-        var (recipient, them) = await SignInAsync([MemberCategory.Tuno], retired: false);
+        var (author, me) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.Secretario]);
+        var (recipient, them) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.Magister]);
+        var (plain, _) = await SignInAsync([MemberCategory.Tuno], retired: false);
         await WithTokenAsync(author);
         await WithTokenAsync(recipient);
+        (await plain.GetAsync("/api/pending-actions/panels/questions")).StatusCode.Should().Be(HttpStatusCode.NotFound,
+            "Questões is the Direção's panel (087)");
         var mine = await AddQuestionAsync(me.Id, them.Id, "Quando é o jantar?");
         var closed = await AddQuestionAsync(me.Id, them.Id, "Antiga", closed: true);
         var theirs = await AddQuestionAsync(them.Id, me.Id, "Pergunta deles");

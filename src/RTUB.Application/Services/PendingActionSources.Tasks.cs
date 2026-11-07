@@ -147,7 +147,8 @@ public sealed class QuestionsPendingActionSource : IPendingActionSource, IPendin
     public string Category => "tasks";
     public IReadOnlyList<(string Key, string Label)> Filters => [];
 
-    public bool AppliesTo(PendingActionMember member) => true;
+    /// <summary>Task 087: only a member of the Direção in office (owner decision); the rows stay their own open questions.</summary>
+    public bool AppliesTo(PendingActionMember member) => member.HoldsDirecao;
 
     public Task<int> CountAsync(ApplicationDbContext db, PendingActionMember member, string? filter) => Query(db, member).CountAsync();
 

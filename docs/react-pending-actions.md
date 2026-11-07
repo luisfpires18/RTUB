@@ -16,7 +16,7 @@ module's own data, run on every load; the only thing stored is a member's own di
 | Atuações | participation | **delivered (072)** | unanswered events: Próximas → **Vou / Não vou**; Passadas → **Fui / Não fui**; the title opens `/events/{id}` |
 | Ensaios | participation | **delivered (072)** | unanswered rehearsals: Próximas → **Vou / Não vou**; Passadas → **Fui / Não fui** (a "Fui" stays pending until approved); the title opens `/rehearsals/{id}` |
 | Logística | tasks | **delivered (073)** | the member's own open cards (owner or collaborator) on boards they see: **Concluir** (the board's own status change to its done column) and **Abrir** (`/logistics/{board}?card={id}`) |
-| Questões | tasks | **delivered (073)** | the member's own open questions (the ones they may close): **Fechar questão** (asks first) and **Abrir** (`/questions?question={id}` opens the conversation) |
+| Questões | tasks | **delivered (073)**, Direção only since 087 | the member's own open questions (the ones they may close): **Fechar questão** (asks first) and **Abrir** (`/questions?question={id}` opens the conversation) |
 | Tesouraria | responsibilities | **delivered (074)** | current 1.º / 2.º Tesoureiro: **Criar relatório** (Obrigatório while the year's report is missing), then each begun event of the year: **Sim** (opens the report's "Nova atividade" for that event) / **Não** (shared "Sem movimentos", confirmed); "Sem movimentos" filter with **Reabrir** |
 | Secretaria | responsibilities | **delivered (074)** | current Secretário: **Criar pastas** (last year's top-level folders missing this year, confirmed) / **Agora não** (own, this fiscal year) |
 | Reuniões | responsibilities | **delivered (075)** | current Presidente da Mesa / Magister / Presidente do CV: **Criar ata** (Obrigatório) for each past meeting of their bodies this fiscal year with no ata saved; optional monthly **Registar reunião** per body (Agora não = this month) |
@@ -24,10 +24,15 @@ module's own data, run on every load; the only thing stored is a member's own di
 | Repertório | responsibilities | **delivered (075)** | current Ensaiador / Magister: upcoming, not cancelled events with no repertoire: **Preparar repertório** / **Não é necessário** (own dismissal per event) |
 | Membros | responsibilities | **delivered (076)** | system role Mod / Admin / Owner: each member in scope with an applicable field empty ("Em falta: Cidade, Padrinho…") → **Completar** (`/members?info={id}`, the focused edit) |
 | Galeria | participation | **delivered (077)** | active member: each event of the fiscal year that is over, not cancelled and has no photo linked to it → **Adicionar** (`/gallery?upload=1&event={id}&date=&title=`, the gallery upload with the event named) / **Não tenho** (own, this fiscal year) |
-| Novidades | participation | **delivered (077)** | whoever may write news (Mod / Admin / Owner): one weekly **Há novidades para partilhar?** → **Criar novidade** (`/news?new=1`, the composer) / **Agora não** (own, this ISO week) |
+| Novidades | participation | **delivered (077)**, Direção only since 087 | a member of the Direção in office who may write news (Mod / Admin / Owner): one weekly **Há novidades para partilhar?** → **Criar novidade** (`/news?new=1`, the composer) / **Agora não** (own, this ISO week) |
 | Push summary | - | **delivered (078)** | one daily push per member whose page is not empty (see *Daily push*) |
 
 A panel that is not delivered is **not shown** (no empty placeholder pretending a module is done).
+
+**Reformados see no panel at all** (task 087, owner decision, 2026-11-07): `PendingActionsService.Applies` refuses
+every source for `IsRetired`, whatever roles or positions the account holds, so the page shows only the "Reformado"
+badge, and no panel, command or dismissal answers for them. Earlier phases kept Logística and Questões for them; that
+is gone.
 
 ## Page
 
@@ -117,8 +122,9 @@ the activity id, so another member's row can never be addressed.
 
 ## Logística and Questões (073)
 
-Both panels are for **every signed-in member** (Leitões and Reformados included: it is their own work; activity status
-plays no part). Each command re-checks the row is pending for the member, then calls the module's own service **as the
+Logística is for every signed-in member who is not Reformado (Leitões included: it is their own work; activity status
+plays no part). Questões is the **Direção's** panel since task 087 (owner decision, 2026-11-07: Magister, Vice-Magister,
+Secretário, 1.º / 2.º Tesoureiro in office); the rows are still the member's own open questions. Each command re-checks the row is pending for the member, then calls the module's own service **as the
 member, with the roles read from the database** (`PendingActionMember.ToPrincipal()`), so the module's rules decide.
 
 | Panel | Pending when | Command | Module call | Leaves the panel when |
