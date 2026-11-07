@@ -4,7 +4,7 @@
  * Which member-menu groups the caller sees (MemberMenuAccess, task 030): the Blazor navbar's rules, decided by the
  * server. It only hides links; every page and API still enforces its own rule.
  */
-export type MemberMenu = { management: boolean; logisticsAndTreasury: boolean; admin: boolean; owner: boolean };
+export type MemberMenu = { management: boolean; logistics: boolean; treasury: boolean; admin: boolean; owner: boolean };
 
 /**
  * GET /api/account/me (AccountController). Only the caller's own, non-sensitive fields. `version` is the build, as
@@ -20,6 +20,8 @@ export type CurrentUser =
       avatarUrl: string;
       categories: string[];
       menu: MemberMenu;
+      /** Calendar:PublicOrigin (task 079), the trusted origin for links that leave RTUB; null when not configured. */
+      publicOrigin: string | null;
     };
 
 let session: Promise<CurrentUser> | null = null;
@@ -314,6 +316,8 @@ export type Outcome<T> =
   | { kind: 'notfound' }
   | { kind: 'forbidden' }
   | { kind: 'inuse' }
+  /** 409 from a Logística card saved from an older copy (task 066); an archived board or card is 'closed' (067). */
+  | { kind: 'conflict' }
   | { kind: 'failed' };
 
 let token: Promise<string> | null = null;
@@ -361,7 +365,7 @@ export async function call<T>(method: string, url: string, body?: unknown, retri
     if (r.status === 401) return { kind: 'signin' };
     if (r.status === 404) return { kind: 'notfound' };
     if (r.status === 403) return { kind: 'forbidden' };
-    if (r.status === 409) return { kind: problem.type === 'events:in-use' ? 'inuse' : 'closed' };
+    if (r.status === 409) return { kind: problem.type === 'events:in-use' ? 'inuse' : problem.type === 'logistics:conflict' ? 'conflict' : 'closed' };
     return { kind: 'failed' };
   } catch {
     return { kind: 'failed' };

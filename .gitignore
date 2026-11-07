@@ -21,6 +21,8 @@ mono_crash.*
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+# Task 083 (#264): the member release notes at the repository root are source, not build output.
+!/releases/
 x64/
 x86/
 [Ww][Ii][Nn]32/

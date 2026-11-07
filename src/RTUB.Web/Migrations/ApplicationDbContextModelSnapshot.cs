@@ -15,7 +15,7 @@ namespace RTUB.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -185,6 +185,9 @@ namespace RTUB.Migrations
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("EventId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsLocked")
                         .HasColumnType("INTEGER");
 
@@ -206,6 +209,8 @@ namespace RTUB.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EventId");
 
                     b.HasIndex("ReportId")
                         .HasDatabaseName("IX_Activities_ReportId");
@@ -839,6 +844,9 @@ namespace RTUB.Migrations
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("HasNoFinances")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
@@ -1079,6 +1087,9 @@ namespace RTUB.Migrations
                     b.Property<byte?>("Day")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("EventId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsPrivate")
                         .HasColumnType("INTEGER");
 
@@ -1120,6 +1131,8 @@ namespace RTUB.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EventId");
 
                     b.HasIndex("UploaderId")
                         .HasDatabaseName("IX_GalleryMedia_UploaderId");
@@ -1402,6 +1415,9 @@ namespace RTUB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("TEXT");
 
@@ -1422,9 +1438,17 @@ namespace RTUB.Migrations
                     b.Property<bool>("IsCompleted")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("LegacyFolder")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OwnerUserId")
+                        .HasMaxLength(450)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -1433,11 +1457,52 @@ namespace RTUB.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Visibility")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EventId");
 
+                    b.HasIndex("OwnerUserId");
+
                     b.ToTable("LogisticsBoards");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoardMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BoardId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("BoardId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("LogisticsBoardMembers");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCard", b =>
@@ -1445,6 +1510,9 @@ namespace RTUB.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("AssignedToUserId")
                         .HasColumnType("TEXT");
@@ -1481,6 +1549,9 @@ namespace RTUB.Migrations
                     b.Property<int>("Position")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("Priority")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("ReminderDate")
                         .HasColumnType("TEXT");
 
@@ -1501,6 +1572,9 @@ namespace RTUB.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedToUserId");
@@ -1510,6 +1584,41 @@ namespace RTUB.Migrations
                     b.HasIndex("ListId");
 
                     b.ToTable("LogisticsCards");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardActivity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ActorId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CardId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Detail")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("CardId", "CreatedAt");
+
+                    b.ToTable("LogisticsCardActivities");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardAssignment", b =>
@@ -1546,7 +1655,7 @@ namespace RTUB.Migrations
                     b.ToTable("LogisticsCardAssignments");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardReminder", b =>
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardAttachment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1555,10 +1664,124 @@ namespace RTUB.Migrations
                     b.Property<int>("CardId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("StoragePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UploadedById")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CardId");
+
+                    b.HasIndex("UploadedById");
+
+                    b.ToTable("LogisticsCardAttachments");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AuthorId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CardId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MentionsJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("CardId", "CreatedAt");
+
+                    b.ToTable("LogisticsCardComments");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardReminder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ActivatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CardId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ClaimedUntil")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByUserId")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Frequency")
@@ -1572,6 +1795,9 @@ namespace RTUB.Migrations
 
                     b.Property<DateTime>("NextReminderDate")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("Personal")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("TargetUserIds")
                         .IsRequired()
@@ -1611,6 +1837,9 @@ namespace RTUB.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("State")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -2661,6 +2890,43 @@ namespace RTUB.Migrations
                     b.ToTable("NewsPosts");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.PendingActionDismissal", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ActionKind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DismissedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Period")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ActionKind", "SourceKey", "Period")
+                        .IsUnique();
+
+                    b.ToTable("PendingActionDismissals");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
                 {
                     b.Property<int>("Id")
@@ -2895,6 +3161,35 @@ namespace RTUB.Migrations
                         .IsUnique();
 
                     b.ToTable("ProductReservations");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.PushPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("MutedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key");
+
+                    b.HasIndex("UserId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("PushPreferences");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.PushSubscription", b =>
@@ -4151,6 +4446,25 @@ namespace RTUB.Migrations
                     b.Navigation("Event");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoardMember", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.LogisticsBoard", "Board")
+                        .WithMany("Members")
+                        .HasForeignKey("BoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Board");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCard", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "AssignedToUser")
@@ -4174,6 +4488,24 @@ namespace RTUB.Migrations
                     b.Navigation("List");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardActivity", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RTUB.Core.Entities.LogisticsCard", "Card")
+                        .WithMany("Activities")
+                        .HasForeignKey("CardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("Card");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardAssignment", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.LogisticsCard", "Card")
@@ -4191,6 +4523,42 @@ namespace RTUB.Migrations
                     b.Navigation("Card");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardAttachment", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.LogisticsCard", "Card")
+                        .WithMany("CardAttachments")
+                        .HasForeignKey("CardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Card");
+
+                    b.Navigation("UploadedBy");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardComment", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RTUB.Core.Entities.LogisticsCard", "Card")
+                        .WithMany("Comments")
+                        .HasForeignKey("CardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Card");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCardReminder", b =>
@@ -4514,6 +4882,15 @@ namespace RTUB.Migrations
                     b.Navigation("Author");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.PendingActionDismissal", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
@@ -4561,6 +4938,15 @@ namespace RTUB.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.PushPreference", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.PushSubscription", b =>
@@ -4828,11 +5214,19 @@ namespace RTUB.Migrations
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>
                 {
                     b.Navigation("Lists");
+
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCard", b =>
                 {
+                    b.Navigation("Activities");
+
                     b.Navigation("Assignments");
+
+                    b.Navigation("CardAttachments");
+
+                    b.Navigation("Comments");
 
                     b.Navigation("Reminders");
                 });

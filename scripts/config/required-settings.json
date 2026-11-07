@@ -898,6 +898,53 @@
       "notes": "Daily run time (committed default)."
     },
     {
+      "name": "Calendar__PublicOrigin",
+      "group": "app",
+      "secret": false,
+      "local": "optional",
+      "dev": "required",
+      "prod": "required",
+      "source": [
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "example": {
+        "dev": "https://rtub-dev.azurewebsites.net",
+        "prod": "https://rtub.azurewebsites.net"
+      },
+      "notes": "Trusted public origin (https, no path) for the RTUB link inside a Google Calendar copy (task 079). Never taken from the request host. Missing or invalid: the copy has no RTUB link."
+    },
+    {
+      "name": "PendingActionsReminder__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Background job switch (committed default; task 078)."
+    },
+    {
+      "name": "PendingActionsReminder__ScheduledTime",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "18:00",
+      "notes": "Daily run time, Portugal time (committed default; task 078)."
+    },
+    {
       "name": "PendingRequestReminder__Enabled",
       "group": "scheduler",
       "secret": false,
@@ -1046,6 +1093,36 @@
       "devProd": "any",
       "committedDefault": "11:30",
       "notes": "Daily run time (committed default)."
+    },
+    {
+      "name": "LogisticsReminders__Enabled",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "true",
+      "notes": "Logística reminder delivery switch (task 069; committed default)."
+    },
+    {
+      "name": "LogisticsReminders__IntervalSeconds",
+      "group": "scheduler",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "any",
+      "committedDefault": "60",
+      "notes": "Seconds between Logística reminder runs, at least 30 (task 069; committed default)."
     },
     {
       "name": "MemberStatusUpdate__Enabled",

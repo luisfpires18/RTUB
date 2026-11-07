@@ -372,6 +372,27 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         deleted.Should().BeNull();
     }
 
+    /// <summary>Task 074 (PR #275 review): an activity that accounted for the event stays, unlinked; others keep their link.</summary>
+    [Fact]
+    public async Task DeleteEventAsync_UnlinksItsActivities_AndKeepsThem()
+    {
+        var deleted = await _eventService.CreateEventAsync("Apagado", DateTime.Now.AddDays(-7), "Braga", EventType.Festival);
+        var kept = await _eventService.CreateEventAsync("Mantido", DateTime.Now.AddDays(-6), "Braga", EventType.Festival);
+        var linked = Activity.Create(1, "Serenata", DateTime.Today);
+        linked.EventId = deleted.Id;
+        var other = Activity.Create(1, "Outra", DateTime.Today);
+        other.EventId = kept.Id;
+        _context.Activities.AddRange(linked, other);
+        await _context.SaveChangesAsync();
+
+        await _eventService.DeleteEventAsync(deleted.Id);
+
+        await using var db = _fixture.CreateContext();
+        (await db.Activities.AsNoTracking().SingleAsync(a => a.Id == linked.Id)).EventId.Should().BeNull("the link goes with the event");
+        (await db.Activities.AsNoTracking().SingleAsync(a => a.Id == other.Id)).EventId.Should().Be(kept.Id);
+        (await db.Events.AnyAsync(e => e.Id == deleted.Id)).Should().BeFalse();
+    }
+
     [Fact]
     public async Task DeleteEventAsync_WithImage_DeletesImageFromStorage()
     {

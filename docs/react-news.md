@@ -84,7 +84,9 @@ the app only together with a hotfix or accept that window; `Down` drops the colu
 - **Push / in-app / audit**: news sends no push, e-mail or in-app notification (asserted in the tests), so nothing can leak
   and no recipient filter is needed (push subscriptions are members-only anyway, see `react-events.md`). The audit appender
   is generic over entities: `IsPublic` shows up in create / update changes with no code change.
-- UI: `.tag--private` "Só membros" next to the author line, `.news-tabs` pills (signed-in only), checkbox in the form.
+- UI: `.tag--private` "Só membros" next to the author line, `.news-tabs` pills (signed-in only). Form (077): a radio
+  **Público** / **Apenas RTUB**; a new post has none preselected and the form refuses to save without one; an edit starts
+  on the post's own. `/news?new=1` opens the composer for writers (from `/pending-actions` → Novidades).
 
 ## Tests
 

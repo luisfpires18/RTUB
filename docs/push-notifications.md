@@ -22,12 +22,16 @@ Every Web Push RTUB sends, grouped by area, with the page a tap opens. Delivery,
 5. **Every push is kept in /messages** (task 061): `NotificationInbox` saves title + body + link in each recipient's
    "Notificações RTUB" conversation, as read, push on or off. Not kept: chat-message pushes (`KeepInInbox = false`,
    the message is already in its chat) and the `/profile` test push.
-6. **Every push belongs to a category** (table headings below). Today the category is documentation only; the
-   per-category opt-out below makes it data.
+6. **Every push carries a preference key** (`SendPushNotificationDto.PreferenceKey`, task 082): the factory sets it,
+   `PushNotificationService` drops the device push for every member who turned that key off on `/profile`, after the
+   inbox copy (rule 5) is saved. The keys and their policy are the section *Preference keys* below;
+   `PushPreferenceFilterTests` fails when a factory method forgets one.
 
 Deep links the React pages accept: `/events/{id}`, `/events/{id}/discussion`, `/rehearsals/{id}`,
 `/meetings?meeting={id}` (opens the meeting's details, 058), `/messages?c={id}`, `/gallery?item={id}`,
-`/music/albums/{id}`, `/naipes?instrument={InstrumentType}`, `/treasury/calotes`, `/profile#push`.
+`/music/albums/{id}`, `/naipes?instrument={InstrumentType}`, `/treasury/calotes`, `/profile#push`,
+`/logistics/{boardId}?card={cardId}` (opens the card on its board, 069; a card or board the member can no longer see
+shows "não existe ou não tem acesso" and nothing of the card).
 
 ## Catalogue
 
@@ -116,6 +120,15 @@ Recipients: **all** = `BroadcastAsync` (every subscribed member), **some** = `Se
 | `CreateNaipeContentNotification` | naipe video / image (`NaipeService`) | all | "Novo {vídeo/imagem} em {instrument}" | `/naipes?instrument={InstrumentType}` | `naipe-content-{instrument}` |
 | `CreateGalleryTagNotification` | tagged on upload (`GalleryManagementService`) | some (tagged) | "Nova media na Galeria" | `/gallery?item={id}` | `gallery-tag` |
 
+### Logística (task 069)
+Card title and board name only: never the card's details or a comment's text. Never to the member who made the change.
+| Factory method | Trigger | Recipients | Title | Opens | Tag |
+|---|---|---|---|---|---|
+| `CreateLogisticsNotification(Owner)` | a manager makes a member the card's responsible (card created or edited, `LogisticsKanbanService`) | one (new owner) | "Logística: tarefa atribuída" | `/logistics/{boardId}?card={id}` | `logistics-card-{id}` |
+| `CreateLogisticsNotification(Collaborator)` | a manager adds a collaborator | one | "Logística: tarefa atribuída" | `/logistics/{boardId}?card={id}` | `logistics-card-{id}` |
+| `CreateLogisticsNotification(Mention)` | @mention in a new comment (an edit never notifies again) | some (mentioned) | "Logística: mencionaram-te" | `/logistics/{boardId}?card={id}` | `logistics-card-{id}` |
+| `CreateLogisticsNotification(Reminder)` | a due card reminder (`LogisticsReminderDelivery`, every minute) | some (still seeing the board) | "Lembrete de Logística" | `/logistics/{boardId}?card={id}` | `logistics-card-{id}` |
+
 ### Tesouraria
 | Factory method | Trigger | Recipients | Title | Opens | Tag |
 |---|---|---|---|---|---|
@@ -125,6 +138,7 @@ Recipients: **all** = `BroadcastAsync` (every subscribed member), **some** = `Se
 | Factory method | Trigger | Recipients | Title | Opens | Tag |
 |---|---|---|---|---|---|
 | `CreateWeeklySummaryNotification` | Mondays (`WeeklyNotificationBackgroundService`) | one | "Resumo Semanal" | `/events`, else `/rehearsals`, else `/meetings`, else `/` | `weekly-summary` |
+| `CreatePendingActionsReminderNotification` (078) | daily 18:00 Portugal (`PendingActionsReminderService`) | one, only a member whose `/pending-actions` has something pending | "As minhas ações pendentes" (no count, no item details) | `/pending-actions` | `pending-actions-reminder` |
 
 ### Sistema
 | Source | Trigger | Recipients | Title | Opens | Tag |
@@ -157,7 +171,7 @@ sender's own recipient rule picks them. A Leitão starts active (`InitialIsRetir
 | Lembrete ensaio | ✅ Sends | **No** (`!IsRetired` filter) | `ActivityReminderBackgroundService`: day before and same day, every non-retired member |
 | Nova presença / Presença cancelada / Não vai ao ensaio | ✅ Sends | Yes, if they said "vou" | member answers on `/rehearsals/{id}` (`RehearsalAgendaService.MarkAttendanceAsync`) to members who said "vou". A manager removing a presença sends "Presença cancelada" to the others |
 | Presença aprovada | ✅ Sends | Yes (own presença) | `POST /api/rehearsals/{id}/attendances/{attendanceId}/approve` (`RehearsalAdminService`) → the member |
-| **Presença recusada** | ❌ **Never** | — (never sent) | only `RehearsalAttendanceService.CancelAttendanceAsync(rejectorUserId)` sends it and nothing calls that; the React "remove" uses `DeleteAttendanceAsync` |
+| Presença recusada | ✅ Sends | Yes (own presença) | `POST /api/rehearsals/{id}/attendances/{attendanceId}/refuse` (`RehearsalAdminService.RefuseAsync` → `CancelAttendanceAsync(id, refuserId)`) → the member. (Corrected 2026-11-07; earlier marked never sent.) The React "remove" uses `DeleteAttendanceAsync` and sends no refusal |
 | Lembrete: Ensaios Pendentes | ✅ Sends | Yes (the Ensaiador, any status) | `RehearsalApprovalReminderBackgroundService` (15:00) → approvers, when past rehearsals have pending presenças |
 | Nova Reunião Convocada | ✅ Sends | Yes, if in the type's audience | `POST /api/meetings` → `MeetingService.CreateMeetingAsync` → the type's audience |
 | Pedido de reunião (proposal) | ✅ Sends | Yes (Owners / president) | `/meetings` proposal → `MeetingRequestService.CreateAsync` → Owners + the type's president |
@@ -166,6 +180,7 @@ sender's own recipient rule picks them. A Leitão starts active (`InitialIsRetir
 | Lembrete: Pedido de reunião | ✅ Sends | Yes (approvers) | manual reminder (`/meetings` requests) + `PendingRequestReminderService` (10:00) |
 | Pedido de reunião rejeitado | ✅ Sends | Yes (own request) | reject on `/meetings`, or expired by the daily job |
 | Novo Pedido de Atuação | ✅ Sends | Yes (Admin / Owner) | public `/request` (`PublicRequestEndpoints`) → Admin + Owner |
+| As minhas ações pendentes | ✅ Sends (078) | Yes (own page not empty) | `PendingActionsReminderService` (18:00) → each member with `CountPendingAsync > 0`, once per day |
 | Lembrete: Pedidos Pendentes | ✅ Sends | Yes (Admin / Owner) | `PendingRequestReminderService` (10:00) → Admin + Owner, when any pending |
 | Nova Pergunta / Respondida / Resposta / Lembrete | ✅ Sends | Yes (asked member / author) | `/questions` (`QuestionBoardService`) |
 | Perguntas Pendentes | ✅ Sends | Yes | `QuestionNotificationBackgroundService` (09:00 by default) |
@@ -181,6 +196,8 @@ sender's own recipient rule picks them. A Leitão starts active (`InitialIsRetir
 | Resumo Semanal | ✅ Sends | Yes (every account) | `WeeklyNotificationBackgroundService`, Mondays |
 | Teste (`/profile`) | ✅ Sends | Yes (own device) | own device, 30 s cooldown |
 | Owner custom (`/notifications`) | ✅ Sends | Yes, if chosen | Owner only |
+| Logística: tarefa atribuída / mencionaram-te (069) | ✅ Sends | Yes, if picked | a manager sets the card's owner or adds a collaborator; a worker @mentions board viewers in a new comment; never the actor |
+| Lembrete de Logística (069) | ✅ Sends | Yes, if targeted | `LogisticsReminderBackgroundService` (every minute, `LogisticsReminders:Enabled`) → `LogisticsReminderDelivery`: due card reminders, recipients re-checked at send time. Rules: `docs/react-logistics.md` → *Reminders and notifications* |
 
 Not checked here: Azure App Settings that may override an `Enabled` flag (run
 `scripts/config/audit-azure-app-settings.ps1`), and delivery on real devices.
@@ -191,21 +208,82 @@ Not checked here: Azure App Settings that may override an `Enabled` flag (run
    to the item, a tag.
 2. Call it from the service; send with the narrowest method (`SendToUserAsync` / `SendToSelectedUsersAsync`;
    `BroadcastAsync` only for news meant for everyone).
-3. Add the row to the catalogue above under its category, and assert the URL in `PushNotificationFactoryTests`.
-4. A page that should open one item needs a deep link (a route or a query parameter it reads on load).
+3. Set `PreferenceKey` to a `PushPreferenceCatalog` key (an existing one, or a new `Item` with its pt-PT label, group
+   and `Mandatory: false`; a new key starts on for everyone because no row means on). `PushPreferenceFilterTests`
+   refuses a factory method without one.
+4. Add the row to the catalogue above under its category and to the *Preference keys* table, and assert the URL in
+   `PushNotificationFactoryTests`.
+5. A page that should open one item needs a deep link (a route or a query parameter it reads on load).
 
-## Designed, not built: per-category opt-out in `/profile`
+## Preference keys (audit #262, decided 2026-11-07; built in task 082, #263)
 
-Goal: "Notificações push" in `/profile` keeps the device on / off switch and adds one switch per category (Eventos,
-Ensaios, Reuniões, Mensagens, …): "receber notificações de eventos".
+Re-verified against source on 2026-11-07: the catalogue and "Does it send?" table above still hold (079 and 080 added
+no push). The only pushes built outside the factory are the Owner's `/notifications` text
+(`OwnerOperationsService.SendPushAsync`) and the `/profile` test (factory, sent by `PushEndpoints`). No dead factory method: "Presença recusada" is sent by the refuse
+route (`RehearsalAdminService.RefuseAsync`); the earlier audit missed it.
 
-- `PushCategory` enum (`[Flags]`, one bit per heading above; Sistema is never muted) and a `Category` on
-  `SendPushNotificationDto`, set by each factory method.
-- One column `ApplicationUser.PushMutedCategories` (`int`, default `0` = everything on). Additive migration, N-1 safe
-  (the previous release ignores it).
-- Filter in `PushNotificationService` before sending: `BroadcastAsync`, `SendToSelectedUsersAsync` and
-  `SendToUserAsync` already load subscriptions with `.Include(s => s.User)`, so skipping a muted member costs no query.
-  Mensagens also keeps the per-chat mute.
-- `GET` / `PUT /api/push/preferences` on `PushEndpoints` (own account only, `X-CSRF-TOKEN`, no-store), and the switches
-  in `Profile.tsx` `PushSection`.
-- Per account, not per device (a member mutes Reuniões everywhere).
+Built in task 082: the keys are `PushPreferenceCatalog` (`src/RTUB.Application/Services/PushPreferenceCatalog.cs`,
+the one source of keys, pt-PT labels, groups and the mandatory flag), the member's choices are `PushPreferences` rows
+(one row = one key **off**; no row = on), read and saved through `GET` / `PUT /api/push/preferences` from the
+`/profile` → "Escolher o que receber" dialog (`docs/react-push-v2.md` → *Preferences*). Owner decisions are recorded
+in the last two columns and below. Keys are stable, fine-grained, and per account (not per device). New events, member
+answers and reminders are separate keys on purpose. Abbreviations: Mand. = mandatory (shown checked and locked); Opt. =
+optional.
+
+| Key | pt-PT label | Factory method / branch | Recipients, frequency | Status | Mand./Opt. | Default for existing accounts |
+|---|---|---|---|---|---|---|
+| `pending-actions.daily` | Lembrete: As minhas ações pendentes | `CreatePendingActionsReminderNotification` | one, daily 18:00 if page not empty | sends (078) | **Mand. (owner)** | on, locked |
+| `events.new` | Novas atuações | `CreateEventNotification(isReminder: false)` | all, on create | sends | Opt. | on |
+| `events.reminder` | Lembretes de atuações | `CreateEventNotification(isReminder: true)` | non-Reformados, 11:30 | sends | Opt. | on |
+| `events.member-answers` | Quando um membro vai ou não à atuação | `CreateEventEnrollmentNotification`, `…CancellationNotification`, `…NonEnrollmentNotification` | members who said "vou", per answer | sends | Opt. | on |
+| `events.manager-notice` | Avisos da direção sobre a atuação | `CreateEventCustomNotification` | chosen | sends | Opt. | on |
+| `events.video` | Novos vídeos de atuações | `CreateEventVideoUploadNotification` | every account but uploader | sends | Opt. | on |
+| `discussion.activity` | Posts e comentários na discussão | `CreateDiscussionPostNotification`, `CreateDiscussionCommentNotification` | "vou" / participants, until event start | sends (narrow) | Opt. | on |
+| `mentions` | Menções | `CreateMentionNotification`, `CreateLogisticsNotification(Mention)` | mentioned | sends | Opt. | on |
+| `rehearsals.reminder` | Lembretes de ensaios | `CreateRehearsalReminderNotification` | non-Reformados, day before + same day | sends | Opt. | on |
+| `rehearsals.member-answers` | Quando um membro vai ou não ao ensaio | `CreateRehearsalAttendanceNotification`, `…CancellationNotification`, `…NonAttendanceNotification` | members who said "vou" | sends | Opt. | on |
+| `rehearsals.manager-notice` | Avisos sobre o ensaio | `CreateRehearsalNotification` | chosen | sends | Opt. | on |
+| `rehearsals.my-attendance` | A minha presença no ensaio (aprovada ou recusada) | `CreateRehearsalAttendanceApprovalNotification`, `CreateRehearsalAttendanceRejectionNotification` | one, on approve / refuse | sends | Opt. | on |
+| `rehearsals.approvals-pending` | Ensaios por aprovar | `CreatePendingRehearsalApprovalsReminderNotification` | approvers, 15:00 | sends | Opt. | on |
+| `meetings.new` | Reuniões convocadas | `CreateMeetingNotification(isReminder: false)` | meeting type audience | sends | Opt. | on |
+| `meetings.reminder` | Lembretes de reuniões | `CreateMeetingNotification(isReminder: true)` | non-Reformados who see it | sends | Opt. | on |
+| `meetings.manager-notice` | Avisos sobre a reunião | `CreateMeetingCustomNotification` | chosen | sends | Opt. | on |
+| `meetings.requests` | Pedidos de reunião | `CreateMeetingNotification` (proposal branch: meeting `Id` 0), `CreatePendingMeetingRequestReminderNotification`, `CreateMeetingRequestRejectedNotification` | approvers / author | sends | Opt. | on |
+| `requests.public` | Pedidos de atuação | `CreateRequestNotification`, `CreatePendingPublicRequestsReminderNotification` | Admin + Owner, on request + 10:00 | sends | Opt. | on |
+| `questions` | Perguntas | `CreateNewQuestionNotification`, `…Answered…`, `…Reply…`, `…Reminder…`, `CreatePendingQuestionsNotification` | asked member / author, + 09:00 job | sends | Opt. | on |
+| `messages` | Mensagens | `CreateConversationMessageNotification` (not kept in inbox; per-chat mute stays) | participants | sends | Opt. | on |
+| `leaderboard.first-place` | Novo 1º lugar | `CreateLeaderboardFirstPlaceNotification` | all, Mondays | sends | Opt. | on |
+| `leaderboard.comments` | Comentários e likes no meu perfil | `CreateLeaderboardCommentNotification`, `…CommentLikeNotification` | one | sends | Opt. | on |
+| `members.status` | O meu estado na Tuna | `CreateMemberRetirementWarningNotification`, `CreateMemberActivityReminderNotification` | that member | sends | Opt. | on |
+| `members.reactivated` | Membros reativados | `CreateMemberReactivatedNotification` | all, daily status run | sends | Opt. | on |
+| `media.new` | Novos conteúdos (música, naipes) | `CreateSongVideoUploadNotification`, `CreateNaipeContentNotification` | all / album members | sends | Opt. | on |
+| `gallery.tag` | Fui identificado na Galeria | `CreateGalleryTagNotification` | tagged | sends | Opt. | on |
+| `logistics.assigned` | Logística: tarefas atribuídas | `CreateLogisticsNotification(Owner)`, `(Collaborator)` | one | sends (069) | Opt. | on |
+| `logistics.reminder` | Lembretes de Logística | `CreateLogisticsNotification(Reminder)` | targeted, every minute job | sends (069) | Opt. | on |
+| `treasury.calotes` | Calotes pendentes | `CreateCalotesReminderNotification` | members who owe, 10:30 | sends | Opt. | on |
+| `summary.weekly` | Resumo semanal | `CreateWeeklySummaryNotification` | every account, Mondays (keep schedule) | sends | Opt. | on |
+| `owner.announcement` | Avisos da RTUB | `OwnerOperationsService.SendPushAsync` (outside factory) | chosen by Owner | sends | Opt. | on |
+| — | (no switch) | `CreatePushTestNotification` | own device, on request | sends | not a preference | — |
+
+Owner decisions (#262, 2026-11-07):
+
+1. Only `pending-actions.daily` is mandatory (checked and locked). Every other key is optional, the Owner's
+   announcements included.
+2. Every optional key starts **on**, for existing and new accounts: the rollout changes nothing until a member turns
+   one off.
+3. Turning a key off stops the device push only; the "Notificações RTUB" copy in `/messages` is still saved.
+4. Keys stay separate. The only combination is `rehearsals.my-attendance` (approval and refusal); a later split copies
+   its value into both new keys.
+
+Also fixed: a preference never overrides a browser / OS permission or a missing device
+subscription; the device switch in `/profile` stays separate; the server enforces the preference before sending
+(`PushNotificationService.MutedAsync`, every send path: one member, selected members, broadcast, background jobs, the
+Owner's text), so a stale client cannot bypass it.
+
+Storage (082): per-key rows, not a bit field, so a key can be added or split without a migration. `PushPreferences`
+(`UserId`, `Key` ≤ 64, `MutedAt`; unique `UserId + Key`, index on `Key`, FK to `AspNetUsers` with cascade), migration
+`AddPushPreferences` (additive, N-1 safe: the previous release never reads the table). The mandatory key never has a
+row: `PUT` refuses it with a field error (never silently normalised), and `MutedUserIdsAsync` answers nobody for it.
+An unknown key is refused too, so a future key needs a catalogue entry first and starts on. Retention: the inbox copy
+is written before the preference is applied and is never affected by it (decision 3); the test push has no key and is
+never kept. Chat per-conversation mute is unchanged and applies on top of `messages` (both must be on for a push).

@@ -12,6 +12,8 @@
   },
   "scripts": {
     "build:portal": "vite build --config portal/vite.config.ts",
-    "check:portal": "tsc -p portal/tsconfig.json"
+    "check:portal": "tsc -p portal/tsconfig.json",
+    "check:calendar": "node portal/checks/calendar.check.mjs",
+    "check:startup": "node portal/checks/startup.check.mjs"
   }
 }

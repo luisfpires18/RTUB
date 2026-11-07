@@ -86,7 +86,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["Cloudflare:R2:SecretAccessKey"] = "test-cloudflare-secret-key",
                 ["Cloudflare:R2:AccountId"] = "test-account-id",
                 ["Cloudflare:R2:Bucket"] = "test-bucket",
-                ["Cloudflare:R2:PublicUrl"] = "https://pub-test.r2.dev"
+                ["Cloudflare:R2:PublicUrl"] = "https://pub-test.r2.dev",
+                // The tests drive LogisticsReminderDelivery themselves (controlled time); the worker would race them.
+                ["LogisticsReminders:Enabled"] = "false"
             });
         });
 

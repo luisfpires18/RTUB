@@ -17,6 +17,11 @@
 #   release.sh schema-gate <live.json> <target.json>
 #                                               exit 3 and list them if the live release has
 #                                               migrations the target does not know
+#   release.sh notes-check <version> <notes-dir>
+#                                               the member-facing release notes of <version>
+#                                               (task 083, #264): releases/<version>.json exists,
+#                                               is valid, names that version, and holds short
+#                                               plain-text pt-PT items; exit 5 when it fails
 #   release.sh --self-test
 #
 # The version is SemVer MAJOR.MINOR.PATCH from the root VERSION file - the number you say out
@@ -261,6 +266,73 @@ print(f"  release.json: {version} {commit[:7]} sha256={manifest['sha256'][:12]}.
 PY
 }
 
+# The release notes members see after a deploy (docs/release-and-rollback.md → Release notes). Fails
+# before anything is packaged: a release without its notes, or with a stale or malformed file, is not
+# a release. Plain text only - the client renders the strings as text, never as HTML - and short.
+cmd_notes_check() {
+    [ $# -eq 2 ] || die "usage: release.sh notes-check <version> <notes-dir>"
+    need_python
+    "$PY" - "$@" <<'PY'
+import json, os, re, sys
+
+version, notes_dir = sys.argv[1:3]
+SEMVER = r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+if not re.fullmatch(SEMVER, version):
+    sys.exit(f"ERROR: version {version!r} is not MAJOR.MINOR.PATCH")
+path = os.path.join(notes_dir, f"{version}.json")
+if not os.path.isfile(path):
+    print(f"ERROR: no release notes for {version}: write {path} (see docs/release-and-rollback.md)", file=sys.stderr)
+    sys.exit(5)
+
+def fail(reason):
+    print(f"ERROR: {path}: {reason}", file=sys.stderr)
+    sys.exit(5)
+
+try:
+    with open(path, encoding="utf-8") as f:
+        raw = f.read()
+    if raw.startswith("﻿"):
+        fail("must not start with a byte-order mark")
+    notes = json.loads(raw)
+except (OSError, ValueError) as e:
+    fail(f"not valid JSON ({e})")
+
+if not isinstance(notes, dict):
+    fail("must be a JSON object")
+extra = set(notes) - {"version", "title", "items"}
+if extra:
+    fail(f"unknown fields: {', '.join(sorted(extra))}")
+if notes.get("version") != version:
+    fail(f"\"version\" is {notes.get('version')!r}, the file is for {version}")
+title = notes.get("title")
+if not isinstance(title, str) or not title.strip():
+    fail("\"title\" must be a non-empty string")
+if len(title) > 80:
+    fail("\"title\" must be at most 80 characters")
+items = notes.get("items")
+if not isinstance(items, list) or not items:
+    fail("\"items\" must be a non-empty list of strings")
+if len(items) > 12:
+    fail("\"items\" must hold at most 12 entries: keep it brief")
+UNSAFE = re.compile(r"[<>]|https?://|javascript:|[\x00-\x08\x0b\x0c\x0e-\x1f]")
+PLACEHOLDER = re.compile(r"\b(TODO|TBD|lorem|xxx)\b", re.IGNORECASE)
+if UNSAFE.search(title):
+    fail("\"title\" must be plain text")
+for i, item in enumerate(items, 1):
+    if not isinstance(item, str) or not item.strip():
+        fail(f"item {i} must be a non-empty string")
+    if len(item) > 240:
+        fail(f"item {i} must be at most 240 characters")
+    if "\n" in item:
+        fail(f"item {i} must be one line")
+    if UNSAFE.search(item):
+        fail(f"item {i} must be plain text: no markup, links or control characters")
+    if PLACEHOLDER.search(item):
+        fail(f"item {i} looks like a placeholder")
+print(f"  release notes {version}: \"{title}\", {len(items)} items")
+PY
+}
+
 cmd_schema_gate() {
     [ $# -eq 2 ] || { echo "usage: release.sh schema-gate <live.json> <target.json>" >&2; exit 2; }
     need_python
@@ -467,6 +539,38 @@ PY
     [[ "$out" == *"20250404000000_Third"* ]] && echo "  OK    names the migration that stays applied" \
         || { echo "  FAIL  schema-gate did not name the migration"; rc=1; }
 
+    echo "notes-check, as CI and Deploy • PROD run it"
+    "$PY" - "$tmp" <<'PY'
+import json, os, sys
+root = os.path.join(sys.argv[1], "notes"); os.makedirs(root)
+def w(name, data):
+    with open(os.path.join(root, name), "w", encoding="utf-8") as f:
+        f.write(data if isinstance(data, str) else json.dumps(data, ensure_ascii=False))
+w("1.1.2.json", {"version": "1.1.2", "title": "Nova atualização 1.1.2", "items": ["Podes agora ver as novidades.", "Corrigimos a Galeria."]})
+w("1.1.3.json", {"version": "1.1.2", "title": "Nova atualização 1.1.3", "items": ["x"]})
+w("1.1.4.json", {"version": "1.1.4", "title": "Nova atualização 1.1.4", "items": []})
+w("1.1.5.json", {"version": "1.1.5", "title": "", "items": ["x"]})
+w("1.1.6.json", {"version": "1.1.6", "title": "T", "items": ["Vê em <a href=x>aqui</a>."]})
+w("1.1.7.json", {"version": "1.1.7", "title": "T", "items": ["Mais em https://rtub.pt."]})
+w("1.1.8.json", {"version": "1.1.8", "title": "T", "items": ["TODO escrever"]})
+w("1.1.9.json", "{not json")
+w("1.2.0.json", {"version": "1.2.0", "title": "T", "items": ["ok"], "html": "<b>"})
+w("1.2.1.json", {"version": "1.2.1", "title": "T", "items": ["x" * 241]})
+PY
+    expect "notes present and valid"            0 bash "$0" notes-check 1.1.2 "$tmp/notes"
+    expect "notes missing refused"              5 bash "$0" notes-check 1.1.1 "$tmp/notes"
+    expect "notes for another version refused"  5 bash "$0" notes-check 1.1.3 "$tmp/notes"
+    expect "empty items refused"                5 bash "$0" notes-check 1.1.4 "$tmp/notes"
+    expect "empty title refused"                5 bash "$0" notes-check 1.1.5 "$tmp/notes"
+    expect "markup refused"                     5 bash "$0" notes-check 1.1.6 "$tmp/notes"
+    expect "links refused"                      5 bash "$0" notes-check 1.1.7 "$tmp/notes"
+    expect "placeholder refused"                5 bash "$0" notes-check 1.1.8 "$tmp/notes"
+    expect "broken json refused"                5 bash "$0" notes-check 1.1.9 "$tmp/notes"
+    expect "unknown field refused"              5 bash "$0" notes-check 1.2.0 "$tmp/notes"
+    expect "long item refused"                  5 bash "$0" notes-check 1.2.1 "$tmp/notes"
+    expect "bad version argument refused"       1 bash "$0" notes-check 1.1 "$tmp/notes"
+    expect "the repository's own notes for VERSION" 0 bash "$0" notes-check "$(bash "$0" version)" "$ROOT/releases"
+
     echo "previous-version + bump-check, as both workflows run them (fake gh)"
     mkdir -p "$tmp/bin"
     cat > "$tmp/bin/gh" <<'GH'
@@ -529,6 +633,7 @@ case "${1:-}" in
     verify)       shift; cmd_verify "$@" ;;
     manifest)     shift; cmd_manifest "$@" ;;
     schema-gate)  shift; cmd_schema_gate "$@" ;;
+    notes-check)  shift; cmd_notes_check "$@" ;;
     --self-test)  self_test ;;
     *) sed -n '3,24p' "$0"; exit 2 ;;
 esac

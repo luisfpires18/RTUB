@@ -28,9 +28,26 @@ public class LogisticsBoard : BaseEntity
     /// </summary>
     public DateTime? CompletedAt { get; set; }
 
+    /// <summary>Task 067: the member responsible for the board (accountability only: no staff rights, no access rights).</summary>
+    public string? OwnerUserId { get; set; }
+
+    /// <summary>Task 067: every member (default, as before) or only its access list.</summary>
+    public RTUB.Core.Enums.BoardVisibility Visibility { get; set; } = RTUB.Core.Enums.BoardVisibility.Members;
+
+    /// <summary>Task 067: archived boards are read-only until a manager restores them.</summary>
+    public DateTime? ArchivedAt { get; set; }
+
+    /// <summary>
+    /// Task 067: the board's pre-067 file folder name under docs/{env}/{year}/Logistics/ (its sanitised name then), read
+    /// from every year so old files stay on the board after a rename or the 1 September rollover. "" = none (a new board,
+    /// or two old boards sharing one folder); null = not resolved yet (resolved at startup).
+    /// </summary>
+    public string? LegacyFolder { get; set; }
+
     // Navigation properties
     public virtual Event? Event { get; set; }
     public virtual ICollection<LogisticsList> Lists { get; set; } = new List<LogisticsList>();
+    public virtual ICollection<LogisticsBoardMember> Members { get; set; } = new List<LogisticsBoardMember>();
 
     // Private constructor for EF Core
     public LogisticsBoard() { }

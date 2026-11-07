@@ -127,6 +127,15 @@ rsync fails with `Invalid argument (22)`. Python's `zipfile` also hides the prob
 on Windows (it rewrites `os.sep`), so the guard reads `orig_filename`. `release.sh package` writes
 with `zipfile`, whose rewrite is correct on write.
 
+### Release notes in the package (task 083)
+
+`releases/<VERSION>.json` (repository root) is copied by `RTUB.csproj` into the publish output as
+`releases/`, so it is inside the one zip and the running build serves exactly its own notes
+(`GET /api/releases/notes`, members only). `scripts/release.sh notes-check` validates the file in
+the PR into master and in Deploy • PROD before the build; the package step refuses a production zip
+without it. DEV builds hide the notes unless `ReleaseNotes__ShowPrerelease=true` (App Setting, set on both since 2026-11-07; a no-op in PROD).
+Rules and content guidance: `docs/release-and-rollback.md` → *Release notes*.
+
 ## Run from package
 
 `WEBSITE_RUN_FROM_PACKAGE=1` is **supported and proven** for this .NET app on App Service Linux.
@@ -225,6 +234,7 @@ Names only; values live in Azure. None of these are in the repository or applied
 | `Cloudflare__R2__ReferencePublicUrl`, `Cloudflare__R2__Reference__*` | set | never | DEV's read-only view of production media (unit 029) |
 | `WebPush__Enabled`, `WebPush__VapidSubject`, `WebPush__VapidPublicKey`, `WebPush__VapidPrivateKey` | set (own key pair) | set (own key pair) | required for push since 038 (`/profile` shows "not configured" without them); absence disables push, not startup. Never rotate a live pair casually: existing subscriptions stop working |
 | `EmailSettings__*` | set for real mail | set | required for real outgoing email; absence disables email, not startup |
+| `ReleaseNotes__ShowPrerelease` | `true` | `true` (set 2026-11-07) | DEV: shows the next release's notes on `-dev.N` builds (task 083). PROD builds have no prerelease suffix, so the value is a no-op there; kept identical on both so the two App Services differ only where they must |
 | `Geocoding__DisabledInTests` | `false` | `false` | maps need **no API key** (Leaflet + OpenStreetMap tiles, Nominatim geocoding) |
 | `IDrive__*` | absent | **absent** (dead since the move to R2; owner action to delete on `rtub`) | |
 

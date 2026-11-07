@@ -11,3 +11,7 @@ Source: `MusicAuthorization`. Page doc: [react-music](../react-music.md).
 | Owner only | exclusive albums and their access list |
 
 Which albums a viewer sees (private, exclusive) is in the page doc.
+
+Task 075: the event repertoire editor (songs on an event, `EventRepertoireAdminService`) is also open to the current
+Ensaiador / Magister for upcoming events; its song picker still shows only what Music shows them (album visibility rules
+unchanged). See [events](events.md).

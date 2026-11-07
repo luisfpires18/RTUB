@@ -1,3 +1,4 @@
+import { CalendarOfferDialog, eventActivity } from './CalendarOffer';
 import { useEffect, useRef, useState } from 'react';
 import { Loading } from './App';
 import { portal } from './content';
@@ -22,6 +23,9 @@ import { MemberBadge, badgeKind } from './MemberBadge';
  */
 const wantsToRespond = () => new URLSearchParams(location.search).get('respond') === '1';
 
+/** Task 075: ?repertoire=1 (from "As minhas ações pendentes") opens the repertoire editor once, if the member may use it. */
+const wantsRepertoire = () => new URLSearchParams(location.search).get('repertoire') === '1';
+
 function dropRespondFlag() {
   const url = new URL(location.href);
   url.searchParams.delete('respond');
@@ -42,6 +46,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
   const [managingRepertoire, setManagingRepertoire] = useState(false);
   const [managingParticipants, setManagingParticipants] = useState(false);
   const respond = useRef(wantsToRespond());
+  const repertoire = useRef(wantsRepertoire());
 
   const load = (quiet = false) => {
     if (!quiet) setDetail(undefined);
@@ -55,6 +60,13 @@ export default function EventDetail({ eventId }: { eventId: number }) {
       respond.current = false;
       dropRespondFlag();
       setAnswering(true);
+    }
+    if (detail && detail !== 'missing' && repertoire.current) {
+      repertoire.current = false;
+      const url = new URL(location.href);
+      url.searchParams.delete('repertoire');
+      history.replaceState(null, '', url.pathname + url.search);
+      if (detail.canManageRepertoire) setManagingRepertoire(true);
     }
   }, [detail]);
 
@@ -117,7 +129,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
           // Admin/Owner (012C): uploads go to past events, as before; existing videos stay manageable anywhere.
           onManageVideos={detail.canManage && (detail.event.past || detail.videos.length > 0) ? () => setManagingVideos(true) : undefined}
           // Admin/Owner (012D): the repertoire of any event, as the old modal allowed.
-          onManageRepertoire={detail.canManage ? () => setManagingRepertoire(true) : undefined}
+          onManageRepertoire={detail.canManageRepertoire ? () => setManagingRepertoire(true) : undefined}
           // Admin/Owner (012E): add a member who has not answered, remove any answer.
           onManageParticipants={detail.canManage ? () => setManagingParticipants(true) : undefined}
         />
@@ -265,6 +277,7 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
   const { event } = detail;
   const m = event.member!;
   const open = !event.past && !event.cancelled;
+  const [calendar, setCalendar] = useState(false);
   const answer = m.myStatus === 'going' ? 'Disseste que vais.' : m.myStatus === 'notGoing' ? 'Disseste que não vais.' : 'Ainda não respondeste.';
 
   return (
@@ -279,6 +292,13 @@ function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => voi
             <Icon name="check" />
             {m.myStatus ? 'Alterar resposta' : 'Responder'}
           </button>
+          {m.myStatus === 'going' && (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setCalendar(true)}>
+              <Icon name="calendar" />
+              Adicionar ao calendário
+            </button>
+          )}
+          {calendar && <CalendarOfferDialog activity={eventActivity(event)} headline={null} onClose={() => setCalendar(false)} />}
         </>
       ) : event.past && m.myStatus === 'going' && !event.cancelled ? (
         <button type="button" className="btn btn--ghost btn--sm" onClick={onAnswer}>

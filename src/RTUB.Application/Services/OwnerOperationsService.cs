@@ -187,6 +187,7 @@ public partial class OwnerOperationsService : IOwnerOperationsService
             Icon = "/icons/rtub-logo-192.png",
             Url = "/",
             Tag = $"announcement-{DateTime.UtcNow.Ticks}",
+            PreferenceKey = PushPreferenceCatalog.OwnerAnnouncement,
         };
         var (sent, failed) = await _push.SendToSelectedUsersAsync(userIds, notification);
 

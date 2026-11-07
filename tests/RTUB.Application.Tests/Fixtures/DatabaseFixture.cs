@@ -98,6 +98,8 @@ public class DatabaseFixture : IDisposable
         context.QuestionReplies.RemoveRange(context.QuestionReplies);
         context.Questions.RemoveRange(context.Questions);
         context.NewsPosts.RemoveRange(context.NewsPosts);
+        context.PendingActionDismissals.RemoveRange(context.PendingActionDismissals);
+        context.PushPreferences.RemoveRange(context.PushPreferences);
 
         await context.SaveChangesAsync();
     }

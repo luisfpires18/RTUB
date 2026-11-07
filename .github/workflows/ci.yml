@@ -85,7 +85,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          sparse-checkout: scripts
+          sparse-checkout: |
+            scripts
+            releases
 
       - name: Compare with master
         env:
@@ -97,3 +99,8 @@ jobs:
           new=$(bash scripts/release.sh version)
           previous=$(bash scripts/release.sh previous-version "$REPO" "$BASE_SHA")
           bash scripts/release.sh bump-check "$previous" "$new"
+
+      # Task 083 (#264): a release ships its member-facing notes, releases/<VERSION>.json, inside the
+      # artifact. Missing, stale, malformed or empty notes fail the PR here, before Deploy • PROD.
+      - name: Release notes for this version exist and are valid
+        run: bash scripts/release.sh notes-check "$(bash scripts/release.sh version)" releases

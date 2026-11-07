@@ -32,6 +32,18 @@ public class LogisticsCard : BaseEntity
     [Required]
     public CardStatus Status { get; set; } = CardStatus.Todo;
 
+    /// <summary>Task 066: low / normal / high / urgent; existing rows are normal (column default).</summary>
+    public CardPriority Priority { get; set; } = CardPriority.Normal;
+
+    /// <summary>
+    /// Task 066: bumped on every save of the card's own fields (title, details, priority, dates, owner), so a save made
+    /// from an older copy is refused instead of silently overwriting the newer one.
+    /// </summary>
+    public int Version { get; set; }
+
+    /// <summary>Task 067: archived cards leave the board's columns and are read-only until a manager restores them.</summary>
+    public DateTime? ArchivedAt { get; set; }
+
     // Labels for organization (stored as comma-separated string)
     public string? Labels { get; set; }
 
@@ -52,6 +64,9 @@ public class LogisticsCard : BaseEntity
     public virtual ApplicationUser? AssignedToUser { get; set; }
     public virtual ICollection<LogisticsCardAssignment> Assignments { get; set; } = new List<LogisticsCardAssignment>();
     public virtual ICollection<LogisticsCardReminder> Reminders { get; set; } = new List<LogisticsCardReminder>();
+    public virtual ICollection<LogisticsCardComment> Comments { get; set; } = new List<LogisticsCardComment>();
+    public virtual ICollection<LogisticsCardActivity> Activities { get; set; } = new List<LogisticsCardActivity>();
+    public virtual ICollection<LogisticsCardAttachment> CardAttachments { get; set; } = new List<LogisticsCardAttachment>();
 
     // Private constructor for EF Core
     public LogisticsCard() { }

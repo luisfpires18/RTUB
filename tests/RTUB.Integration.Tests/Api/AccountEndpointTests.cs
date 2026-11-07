@@ -48,27 +48,29 @@ public class AccountEndpointTests : IntegrationTestBase
         var body = await response.Content.ReadAsStringAsync();
         using var json = JsonDocument.Parse(body);
         json.RootElement.EnumerateObject().Select(p => p.Name)
-            .Should().BeEquivalentTo("authenticated", "version", "displayName", "fullName", "avatarUrl", "categories", "menu");
+            .Should().BeEquivalentTo("authenticated", "version", "displayName", "fullName", "avatarUrl", "categories", "menu", "publicOrigin");
         json.RootElement.GetProperty("authenticated").GetBoolean().Should().BeTrue();
         json.RootElement.GetProperty("displayName").GetString().Should().NotBeNullOrWhiteSpace();
         body.Should().NotContain("testadmin@test.com", "no contact details leave this endpoint");
         body.Should().NotContain("\"roles\"", "roles are not listed; menu only says which menu groups to show");
-        Menu(json).Should().Equal(("management", true), ("logisticsAndTreasury", true), ("admin", true), ("owner", true));
+        Menu(json).Should().Equal(("management", true), ("logistics", true), ("treasury", true), ("admin", true), ("owner", true));
     }
 
     /// <summary>
     /// 030: the React member menu shows a group only where the Blazor navbar did (MemberMenuAccess). The pages and APIs
-    /// still enforce their own rules; this only hides links.
+    /// still enforce their own rules; this only hides links. Task 065: Logística is its own flag, on for every member, so
+    /// a Leitão's Gestão shows Logística only (management and treasury stay off).
     /// </summary>
     [Theory]
-    [InlineData(null, null, true, false, false, false)]
-    [InlineData(null, MemberCategory.Leitao, false, false, false, false)]
-    [InlineData(null, MemberCategory.Tuno, true, true, false, false)]
-    [InlineData("Mod", MemberCategory.Leitao, true, true, false, false)]
-    [InlineData("Admin", null, true, true, true, false)]
-    [InlineData("Owner", null, true, true, false, true)]
+    [InlineData(null, null, true, true, false, false, false)]
+    [InlineData(null, MemberCategory.Leitao, false, true, false, false, false)]
+    [InlineData(null, MemberCategory.Caloiro, true, true, false, false, false)]
+    [InlineData(null, MemberCategory.Tuno, true, true, true, false, false)]
+    [InlineData("Mod", MemberCategory.Leitao, true, true, true, false, false)]
+    [InlineData("Admin", null, true, true, true, true, false)]
+    [InlineData("Owner", null, true, true, true, false, true)]
     public async Task Menu_ShowsEachGroupOnlyWhereTheNavbarDid(
-        string? role, MemberCategory? category, bool management, bool logisticsAndTreasury, bool admin, bool owner)
+        string? role, MemberCategory? category, bool management, bool logistics, bool treasury, bool admin, bool owner)
     {
         var name = $"menu{Guid.NewGuid():N}"[..20];
         var (client, user) = await CookieTestSession.SignInAsync(Factory, name, $"10.97.0.{Interlocked.Increment(ref _ip)}", role);
@@ -84,7 +86,7 @@ public class AccountEndpointTests : IntegrationTestBase
         using var json = JsonDocument.Parse(await client.GetStringAsync(Me));
 
         Menu(json).Should().Equal(
-            ("management", management), ("logisticsAndTreasury", logisticsAndTreasury), ("admin", admin), ("owner", owner));
+            ("management", management), ("logistics", logistics), ("treasury", treasury), ("admin", admin), ("owner", owner));
     }
 
     private static int _ip;
@@ -147,4 +149,20 @@ public class AccountEndpointTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.Redirect, "the seeded admin must sign in");
         return client;
     }
+
+    [Theory]
+    [InlineData("https://rtub.azurewebsites.net", "https://rtub.azurewebsites.net")]
+    [InlineData(" https://rtub.pt/ ", "https://rtub.pt")]
+    [InlineData("https://rtub.pt:8443", "https://rtub.pt:8443")]
+    [InlineData("http://localhost:5000", "http://localhost:5000")]
+    [InlineData("http://rtub.pt", null)] // plain http only for loopback
+    [InlineData("https://rtub.pt/events", null)] // an origin, not a path
+    [InlineData("https://rtub.pt?x=1", null)]
+    [InlineData("https://user@rtub.pt", null)]
+    [InlineData("javascript:alert(1)", null)]
+    [InlineData("rtub.pt", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void PublicOrigin_IsOnlyAnAbsoluteHttpsOrigin(string? configured, string? expected) =>
+        RTUB.Controllers.AccountController.TrustedOrigin(configured).Should().Be(expected, "task 079: Calendar:PublicOrigin");
 }

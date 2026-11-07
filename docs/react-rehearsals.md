@@ -86,3 +86,25 @@ reminder, member status, rankings) are unchanged.
 
 - Bulk "confirmar todas" does not exist (it did not before either); pending today: 0.
 - The 302 sign-in redirects stay as they are at the PROD cutover (they are not legacy redirects).
+
+## As minhas ações pendentes (072)
+
+`/pending-actions` answers a member's own **unanswered** rehearsals in place (docs/react-pending-actions.md → Answers),
+through the new create-only `IRehearsalAttendanceService.AddFirstAttendanceAsync` (same row, category snapshot and push as
+`MarkAttendanceAsync`; an existing presença is never touched). New on purpose: a member may report a past rehearsal of the
+current fiscal year (Fui / Não fui); a "Fui" is `Attended = false`, pending in the Admin's approval like any "vou", and
+earns nothing until confirmed.
+
+## Ensaiador / Magister approvals (075)
+
+The current Ensaiador and Magister approve and refuse pending presenças without Admin
+(`RehearsalsAuthorization.CanApprove`), on the rehearsal page ("Confirmar" / "Recusar") and on `/pending-actions` →
+Presenças por aprovar (current fiscal year). Refusal keeps the presença as not attended and notifies the member (the
+existing, until now unused, `CancelAttendanceAsync` + "Presença recusada" push); approval is unchanged (push, activity
+status, XP).
+
+## Calendário (task 079)
+
+A new "vou" to an upcoming rehearsal offers "Adicionar ao Google Calendar" ("Presença registada, pendente de aprovação."); the
+detail page keeps "Adicionar ao calendário" while the member is going. The presença stays pending: the calendar approves
+nothing. Rules, link and dates: [react-events → Calendário](react-events.md).

@@ -209,6 +209,30 @@ public class ReleaseWorkflowTests
         text.Should().NotMatchRegex(@"azure/(login|webapps-deploy)@v[12]\b");
     }
 
+    // ---------- release notes (task 083, #264) ----------
+
+    /// <summary>
+    /// A release ships its member-facing notes inside the artifact: the PR into master and Deploy • PROD both refuse a
+    /// version without valid releases/&lt;VERSION&gt;.json (release.sh notes-check, self-tested), the package step
+    /// refuses a production zip that does not carry the file, and the csproj is what puts it there.
+    /// </summary>
+    [Fact]
+    public void ReleaseNotes_AreValidatedBeforeAProductionPackage_AndShipInsideIt()
+    {
+        var bump = Job(Ci, "version-bump");
+        bump.Should().Contain("releases", "the sparse checkout needs the notes").And.Contain("release.sh notes-check");
+        bump.IndexOf("bump-check", StringComparison.Ordinal).Should().BeLessThan(bump.IndexOf("notes-check", StringComparison.Ordinal));
+
+        var version = Job(DeployProd, "version");
+        version.Should().Contain("releases").And.Contain("release.sh notes-check \"$VERSION\" releases");
+
+        PackageAction.Should().Contain("releases/$VERSION.json");
+        Read("src/RTUB.Web/RTUB.csproj").Should().Contain(@"releases\*.json").And.Contain("CopyToPublishDirectory=\"PreserveNewest\"");
+
+        var current = File.ReadAllText(Path.Combine(Root, "VERSION")).Trim();
+        File.Exists(Path.Combine(Root, "releases", $"{current}.json")).Should().BeTrue($"dev's VERSION {current} needs its notes before it can be released");
+    }
+
     // ---------- the scripts (bash; Linux CI) ----------
 
     [Theory]

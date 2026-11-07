@@ -67,6 +67,10 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<LogisticsCard> LogisticsCards { get; set; }
     public DbSet<LogisticsCardAssignment> LogisticsCardAssignments { get; set; }
     public DbSet<LogisticsCardReminder> LogisticsCardReminders { get; set; }
+    public DbSet<LogisticsCardComment> LogisticsCardComments { get; set; }
+    public DbSet<LogisticsCardActivity> LogisticsCardActivities { get; set; }
+    public DbSet<LogisticsCardAttachment> LogisticsCardAttachments { get; set; }
+    public DbSet<LogisticsBoardMember> LogisticsBoardMembers { get; set; }
 
     // Audit Log DbSet
     public DbSet<AuditLog> AuditLogs { get; set; }
@@ -137,6 +141,12 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     // Event Contact DbSet
     public DbSet<EventContact> EventContacts { get; set; }
+
+    // As minhas ações pendentes (task 071): a member's own dismissals of optional actions
+    public DbSet<PendingActionDismissal> PendingActionDismissals { get; set; } = null!;
+
+    // Push preferences (task 082): the push kinds a member turned off, per account
+    public DbSet<PushPreference> PushPreferences { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -112,17 +112,18 @@ Old = the Blazor page's effective behaviour; New = the API. They are the same ev
 | --- | --- |
 | Mod | nothing |
 | Admin | "Adicionar Membro" (anyone with categories who is not Leitão / Caloiro, as "Vou"). With the Tuno category: sees Direção meetings, proposes Direção. **No ata writing** (A2). Cannot remove others' answers. |
-| Owner | Create any type; edit / delete / cancel / reactivate / email / push any meeting **it sees**; accept / reject any request **if it sees the section**; delete any request, remind on any pending one; remove anyone's answer; "Adicionar Membro"; write / publish any ata of a meeting it sees; propose AG and Direção. Not exempt from visibility (A3), the requests gate (A4) or the Leitão block. |
-| Magister | sees CV + Direção; requests section; proposes CV, AG, Direção; writes Direção atas |
+| Owner | Create any type; edit / delete / cancel / reactivate / email / push any meeting **it sees**; accept / reject any request **if it sees the section**; delete any request, remind on any pending one; remove anyone's answer; "Adicionar Membro"; write / publish any ata; propose AG and Direção. Since 075 sees every type (A3 superseded); not exempt from the requests gate (A4) or the Leitão block. |
+| Magister | sees CV + Direção; requests section; proposes CV, AG, Direção; writes Direção atas; since 075 creates / manages Direção meetings (the Direção's president) |
 | Vice-Magister, Secretário, 1.º / 2.º Tesoureiro | see Direção; propose Direção |
 | Presidente da Mesa da AG | creates AG / AGE; manages AG / AGE meetings; accepts / rejects AG requests (when it sees the section); writes AG atas |
 | 1.º / 2.º Secretário da Mesa | write / publish an AG ata saved with them as secretary (from the day after the meeting) |
-| Presidente do CV | creates CV; manages CV meetings; accepts / rejects CV requests; proposes AG; writes CV atas; no "Propor CV" |
+| Presidente do CV | creates CV; manages CV meetings; accepts / rejects CV requests; proposes AG; writes CV atas; no "Propor CV"; since 075 sees CV meetings even if not a Veterano by time |
 | Presidente do Conselho Fiscal | proposes AG |
 | Secretary named on a CV / Direção ata | write / publish that ata (from the day after the meeting) |
 | Tuno representative of a CV meeting | sees it; writes / publishes its ata |
 
-If someone is both Presidente da Mesa and Presidente do CV, the Mesa wins (AG only), as before.
+If someone is both Presidente da Mesa and Presidente do CV, they get both (task 075: the union; before, the Mesa won).
+Task 075 also gives the Magister the Direção meetings (create, manage) and Owner every type (see below).
 
 **Per-meeting conditions** (unchanged): email / push / cancel only while the meeting is not cancelled and its day has
 not passed; reactivate only a cancelled meeting; "Vou / Não vou" only before the day; the ata only from the day of the
@@ -205,3 +206,33 @@ routes left** (11 before). `wwwroot/css/4-pages/meetings.css` stays, without the
 `.member-avatar-small` (32px) still sizes the avatars in the `/users` dialogs. Kept: every meeting service, repository,
 entity and DTO, `AtaPdfService`, `EmailRecipientsPreview` (`/emails`), `EnrollmentCard` (now without a caller) and the
 Application / Core / Integration meeting tests.
+
+## Presidents and atas (task 075, #256 — supersedes A2's wording, A3 and A6 where they conflict)
+
+The current president of each body creates and manages that body's meetings and writes its atas; Owner every type.
+"Current" = `ApplicationUser.Positions`, the mandate in office. Admin alone gives none of this.
+
+| Meeting type | Create / edit / delete / cancel / notify the meeting | Create / edit the ata (draft) |
+| --- | --- | --- |
+| Assembleia Geral Ordinária / Extraordinária | Presidente da Mesa da AG, or Owner | Presidente da Mesa da AG, or Owner (+ the 1.º / 2.º Secretário named on that ata, from the day after) |
+| Reunião de Direção | **Magister** (the Direção's president: the position model has no separate "Presidente da Direção"), or Owner | Magister, or Owner (+ the Secretário named on that ata) |
+| Conselho de Veteranos | Presidente do CV, or Owner | Presidente do CV, or Owner (+ the delegated writer, the meeting's Tuno representative, the secretary named on that ata) |
+
+- **Union**: someone presiding over several bodies gets every one of them (no "the Mesa wins").
+- **Owner sees every type** (CV and Direção included), so Owner's ata authority is reachable; no other president gains
+  another body's meetings. The CV president sees CV meetings even if not a Veterano by time.
+- **Publishing** an ata stays a separate operation, never automatic, allowed to the same people who may write that ata
+  (unchanged rule).
+- The extra writers in brackets are the pre-075 delegations (secretaries, delegate, Tuno representative), kept as they
+  were; the owner's matrix names the presidents and Owner.
+- **Ended mandate**: the position leaves `Positions` at the mandate sync, and with it every one of these rights.
+- **Registering a past meeting** (a president catching up) was already possible (no future-only date rule); since 075
+  such a meeting is **not pushed** as a new one (`MeetingService.CreateMeetingAsync` skips the broadcast when the date
+  is before today in Portugal). No date bound was added.
+- Changed from before: the Magister now creates and manages Direção meetings (before: nobody but Owner); an Admin with
+  the Tuno category, and the other Direção positions, no longer get the Direção type in the create form (before: only
+  reachable by someone who already presided over another body).
+
+Deep links (075, from "As minhas ações pendentes"): `/meetings?meeting={id}&ata=1` opens the ata editor when the member
+may write it (otherwise the details); `/meetings?new={Type}` opens "Nova reunião" with that type when the member may
+create it. The parameters are removed once read; the server decides again on save.

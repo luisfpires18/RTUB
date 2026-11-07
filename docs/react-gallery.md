@@ -61,6 +61,11 @@ Verdict: **no schema change, no migration.** The real `app.db` was only read (ag
 | Rights | UI only: uploader or `Admin` | server-side: uploader, Admin or Owner |
 | Audit | none | none |
 
+**Event link (077)**: `POST /api/gallery` takes an optional `eventId` (form field). It must be an existing, not cancelled
+event, else `400` (`eventId`). Stored in `GalleryMedia.EventId` (no FK; deleting the event clears it). `/gallery?upload=1&event=&date=&title=`
+opens the upload prefilled for that event (the query is dropped after reading). Edit does not change the link. Used by
+`/pending-actions` → Galeria (`docs/react-pending-actions.md`). Old items are not linked.
+
 Real data (009 audit): 12 items (11 images, 1 video), 3 members-only, 2 uploaders, 29 tags on 4 items.
 
 ## Cloudflare R2

@@ -150,6 +150,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentationService, DocumentationService>();
         services.AddSingleton<DocumentTreeCache>();
         services.AddScoped<ILogisticsKanbanService, LogisticsKanbanService>();
+        services.AddScoped<LogisticsReminderDelivery>();
+        services.AddScoped<LogisticsNotifier>();
         services.AddScoped<ITreasuryService, TreasuryService>();
         services.AddScoped<ITreasuryRecordsService, TreasuryRecordsService>();
         services.AddScoped<IGalleryTimelineService, GalleryTimelineService>();
@@ -161,6 +163,21 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventContactsAdminService, EventContactsAdminService>();
         services.AddScoped<IRehearsalAgendaService, RehearsalAgendaService>();
         services.AddScoped<IRehearsalAdminService, RehearsalAdminService>();
+        // Task 071: As minhas ações pendentes. One source per panel, in page order (docs/react-pending-actions.md).
+        services.AddScoped<IPendingActionSource, EventResponsePendingActionSource>();
+        services.AddScoped<IPendingActionSource, RehearsalResponsePendingActionSource>();
+        services.AddScoped<IPendingActionSource, LogisticsPendingActionSource>();
+        services.AddScoped<IPendingActionSource, QuestionsPendingActionSource>();
+        services.AddScoped<IPendingActionSource, TreasuryPendingActionSource>();
+        services.AddScoped<IPendingActionSource, SecretaryPendingActionSource>();
+        services.AddScoped<IPendingActionSource, MeetingsPendingActionSource>();
+        services.AddScoped<IPendingActionSource, RehearsalApprovalsPendingActionSource>();
+        services.AddScoped<IPendingActionSource, RepertoirePendingActionSource>();
+        services.AddScoped<IPendingActionSource, MembersInfoPendingActionSource>();
+        services.AddScoped<IPendingActionSource, GalleryPendingActionSource>();
+        services.AddScoped<IPendingActionSource, NewsPendingActionSource>();
+        services.AddScoped<IPendingActionsService, PendingActionsService>();
+        services.AddScoped<PushReminderService>();
         services.AddScoped<IGalleryManagementService, GalleryManagementService>();
         services.AddScoped<ISongContentService, SongContentService>();
         services.AddScoped<IRequestService, RequestService>();
@@ -491,6 +508,8 @@ public static class ServiceCollectionExtensions
         // and connection pool) per request scope and nothing ever disposes it (task 054).
         services.AddHttpClient(PushNotificationService.HttpClientName);
         services.AddScoped<NotificationInbox>();
+        services.AddScoped<PushPreferenceService>();
+        services.AddScoped<IPushPreferenceStore>(sp => sp.GetRequiredService<PushPreferenceService>());
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IPushNotificationFactory, RTUB.Application.Factories.PushNotificationFactory>();
 
@@ -616,6 +635,8 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(RTUB.Application.Configuration.MemberStatusUpdateOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.PendingRequestReminderOptions>(
             configuration.GetSection(RTUB.Application.Configuration.PendingRequestReminderOptions.SectionName));
+        services.Configure<RTUB.Application.Configuration.PendingActionsReminderOptions>(
+            configuration.GetSection(RTUB.Application.Configuration.PendingActionsReminderOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.RehearsalApprovalReminderOptions>(
             configuration.GetSection(RTUB.Application.Configuration.RehearsalApprovalReminderOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.QuestionNotificationOptions>(
@@ -624,6 +645,7 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(RTUB.Application.Configuration.WeeklyNotificationOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.CalotesNotificationOptions>(
             configuration.GetSection(RTUB.Application.Configuration.CalotesNotificationOptions.SectionName));
+        services.Configure<LogisticsReminderOptions>(configuration.GetSection(LogisticsReminderOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.ActivityReminderOptions>(
             configuration.GetSection(RTUB.Application.Configuration.ActivityReminderOptions.SectionName));
         services.Configure<RTUB.Application.Configuration.DatabaseBackupOptions>(
@@ -921,11 +943,13 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<BirthdayEmailSchedulerService>();
         services.AddHostedService<MemberStatusUpdateBackgroundService>();
         services.AddHostedService<PendingRequestReminderService>();
+        services.AddHostedService<PendingActionsReminderService>();
         services.AddHostedService<RehearsalApprovalReminderBackgroundService>();
         services.AddHostedService<QuestionNotificationBackgroundService>();
         services.AddHostedService<WeeklyNotificationBackgroundService>();
         services.AddHostedService<CalotesNotificationBackgroundService>();
         services.AddHostedService<ActivityReminderBackgroundService>();
+        services.AddHostedService<LogisticsReminderBackgroundService>();
 
         return services;
     }
@@ -936,6 +960,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddWebServices(this IServiceCollection services, IHostEnvironment environment)
     {
         services.AddSingleton<AnnouncementService>();
+        // Release notes (task 083): scoped for the context factory; the bundled releases/*.json are cached per process.
+        services.AddOptions<RTUB.Web.Services.ReleaseNotesOptions>().BindConfiguration("ReleaseNotes");
+        services.AddScoped<RTUB.Web.Services.ReleaseNotesService>();
         services.AddAuthorization(o =>
         {
             o.AddPolicy("RequireAdministratorRole", p => p.RequireRole("Admin"));

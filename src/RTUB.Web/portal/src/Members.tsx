@@ -4,7 +4,7 @@ import { portal } from './content';
 import { Icon } from './icons';
 import { ActiveMembersDialog, BirthdaysDialog, MemberDialog, MemberFace } from './MemberDialogs';
 import { MemberBadge } from './MemberBadge';
-import { ConfirmAction, MemberFormDialog, NicknameDialog } from './MemberManage';
+import { ConfirmAction, MemberFormDialog, MemberInfoDialog, NicknameDialog } from './MemberManage';
 import { memberAdminApi, membersApi, type ActiveMember, type Directory, type DirectoryFilters, type MemberCard, type MemberDetail } from './membersApi';
 import { loginTo } from './musicApi';
 
@@ -52,6 +52,8 @@ export default function Members() {
   const [filters, setFilters] = useState(filtersFromUrl);
   const [query, setQuery] = useState(filters.q);
   const [open, setOpen] = useState<string | null>(new URLSearchParams(location.search).get('member'));
+  // Task 076: ?info={id} (from "As minhas ações pendentes" → Membros) opens "Completar informação" once.
+  const [info, setInfo] = useState<string | null>(new URLSearchParams(location.search).get('info'));
   const [dialog, setDialog] = useState<'active' | 'birthdays'>();
   const [shown, setShown] = useState(PAGE);
   const [tool, setTool] = useState<Tool>();
@@ -219,7 +221,18 @@ export default function Members() {
           key={`${open}-${version}`}
           memberId={open}
           onClose={() => openMember(null)}
-          actions={data?.canManage ? (m) => <MemberTools m={m} canDelete={m.leitao || data.canDeleteMembers} onPick={setTool} /> : undefined}
+          actions={
+            data?.canManage
+              ? (m) => <MemberTools m={m} canDelete={m.leitao || data.canDeleteMembers} onPick={setTool} />
+              : data?.canEditInfo
+                ? (m) => (
+                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => setInfo(m.id)}>
+                      <Icon name="pencil" />
+                      Completar informação
+                    </button>
+                  )
+                : undefined
+          }
         />
       )}
       {dialog === 'active' && (
@@ -242,6 +255,23 @@ export default function Members() {
         />
       )}
       {dialog === 'birthdays' && <BirthdaysDialog onClose={() => setDialog(undefined)} />}
+
+      {info && data?.canEditInfo && (
+        <MemberInfoDialog
+          memberId={info}
+          instrumentOptions={data.instruments}
+          onClose={() => {
+            setInfo(null);
+            const url = new URL(location.href);
+            url.searchParams.delete('info');
+            history.replaceState(null, '', url.pathname + url.search);
+          }}
+          onSaved={() => {
+            setFilters({ ...filters });
+            setVersion((v) => v + 1);
+          }}
+        />
+      )}
 
       {tool && data && (
         <ToolDialog

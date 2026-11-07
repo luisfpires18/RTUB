@@ -182,6 +182,22 @@ public class Program
                         logger.LogError(ex, "Failed to sync the premade message groups on startup");
                     }
 
+                    // Logística 3/5 (067): pre-067 columns get their workflow state (mixed ones split, no card changes
+                    // status) and pre-067 boards their file folder name, once. Idempotent; never fails startup.
+                    try
+                    {
+                        var mapped = await LogisticsWorkflow.MapLegacyAsync(db);
+                        if (mapped != (0, 0, 0))
+                        {
+                            logger.LogInformation("Logistics workflow mapped: {Columns} column(s), {Split} split column(s), {Boards} board folder(s)",
+                                mapped.Columns, mapped.Split, mapped.Boards);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to map the legacy logistics columns on startup");
+                    }
+
                     // Initialize MemberStatus table if the migration just ran
                     // This ensures "Gestao de membros ativos" has data immediately after deployment
                     // instead of waiting for the scheduled daily update
@@ -487,6 +503,7 @@ public class Program
         app.MapShopEndpoints();
         app.MapDocumentationEndpoints();
         app.MapLogisticsEndpoints();
+        app.MapPendingActionsEndpoints();
         app.MapTreasuryEndpoints();
 
         // --------- Public "Novidades" feed for the React /news (React track 025) ---------
@@ -516,6 +533,9 @@ public class Program
 
         // --------- The member's own push subscriptions for the React /profile (task 038) ---------
         app.MapPushEndpoints();
+
+        // --------- Release notes for signed-in members (task 083, #264) ---------
+        app.MapReleaseEndpoints();
 
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
@@ -562,7 +582,7 @@ public class Program
         // [Authorize]). React Classificação (track 019): /leaderboard, members only (the Blazor page was [Authorize]).
         // React Instrumentos (track 020): /inventory; React Loja (track 021): /shop is public read-only, while member
         // actions remain service-authorized; React Documentação (track 022):
-        // /documentation; React Logística (track 023): /logistics and /logistics/{id}; members only (the Blazor pages were
+        // /documentation; React Logística (track 023): /logistics, /logistics/{id} and (069) /logistics/tasks; members only (the Blazor pages were
         // [Authorize]; Leitões are refused by the API). React Tesouraria (track 024): reports, one report, calotes, MBWay and
         // Nerba; members only (the old calotes, MBWay and Nerba pages were open to visitors; the API decides the rest).
         // Task 031: /requests (Gestão de Pedidos) and /questions (Perguntas), members only (both Blazor pages were [Authorize]).
@@ -571,16 +591,18 @@ public class Program
         // Task 034: /meetings, members only (the Blazor page was [Authorize]; the API refuses Leitões and decides the rest).
         // Task 041: /messages, Messaging v2 (React; the conversation is ?c=<id>), members only. /messages/{id} and the old
         // /hubs/messages stay 404: nothing of the 027-retired inbox comes back.
+        // Task 071: /pending-actions (As minhas ações pendentes), members only; the API decides each panel.
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
-                     "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/{id:int}",
+                     "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/tasks", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
-                     "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/meetings", "/messages" })
+                     "/pending-actions", "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/meetings", "/messages" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {
                 if (context.User.Identity?.IsAuthenticated != true)
                 {
-                    return Results.Redirect("/login?returnUrl=" + Uri.EscapeDataString(context.Request.Path));
+                    // 069: the query comes back too (/logistics/{id}?card=, /messages?c=); /login keeps local targets only.
+                    return Results.Redirect("/login?returnUrl=" + Uri.EscapeDataString(context.Request.Path + context.Request.QueryString));
                 }
 
                 context.Response.Headers.CacheControl = "no-cache";
@@ -699,7 +721,7 @@ public class Program
         // A signed-in member never sees the form and goes to the members' landing page. The return
         // URL is deliberately ignored here: /login is also the cookie's AccessDeniedPath, so a member
         // bounced off a page their role cannot open would be sent straight back to it, in a loop.
-        app.MapMethods("/login", ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
+        app.MapMethods("/login", ["GET", "HEAD"], async (HttpContext context, IWebHostEnvironment env) =>
         {
             if (context.User.Identity?.IsAuthenticated == true)
             {
@@ -716,7 +738,11 @@ public class Program
         app.Run();
     }
 
-    /// <summary>Where a signed-in member goes: a local return URL, otherwise the (React) events page.</summary>
+    /// <summary>
+    /// Where a signed-in member goes: a local return URL (a deep link, a PWA target) always wins; otherwise the (React)
+    /// events page. Task 085 (owner request): the 071 landing on "As minhas ações pendentes" for active members is gone;
+    /// the page is reached from the menu and the daily reminder push.
+    /// </summary>
     internal static string MemberLanding(string? returnUrl) =>
         RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl) ? returnUrl! : "/events";
 

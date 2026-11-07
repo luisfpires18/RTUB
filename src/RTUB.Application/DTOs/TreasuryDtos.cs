@@ -25,8 +25,12 @@ public sealed record TreasuryTotalsDto(decimal TotalMoney, decimal Bank, decimal
 
 public sealed record TreasuryTransactionDto(int Id, DateTime Date, string Description, string Category, decimal Amount, string Type, string? ReceiptUrl);
 
+/// <summary>An activity of a report; <c>EventId</c> / <c>EventName</c>: the event it accounts for (task 074), if any.</summary>
 public sealed record TreasuryActivityDto(int Id, string Name, string? Description, DateTime StartDate, DateTime? EndDate, bool IsLocked,
-    decimal Income, decimal Expenses, decimal Balance, IReadOnlyList<TreasuryTransactionDto> Transactions);
+    decimal Income, decimal Expenses, decimal Balance, IReadOnlyList<TreasuryTransactionDto> Transactions, int? EventId = null, string? EventName = null);
+
+/// <summary>An event an activity of this report may account for (task 074): not cancelled, starting in the report's fiscal year.</summary>
+public sealed record TreasuryEventOptionDto(int Id, string Name, DateTime Date, DateTime? EndDate);
 
 /// <summary>
 /// /treasury/reports/{id}. Activities in date order without the BANCO / CAIXA / CALOTES ones; transactions newest first.
@@ -34,12 +38,14 @@ public sealed record TreasuryActivityDto(int Id, string Name, string? Descriptio
 /// <c>CanSeeHistory</c>: Admin and Owner.
 /// </summary>
 public sealed record TreasuryReportDto(int Id, string Title, int Year, string? Summary, bool IsPublished, TreasuryTotalsDto Totals,
-    IReadOnlyList<TreasuryActivityDto> Activities, bool CanManage, bool CanPublish, bool CanSeeHistory);
+    IReadOnlyList<TreasuryActivityDto> Activities, bool CanManage, bool CanPublish, bool CanSeeHistory,
+    IReadOnlyList<TreasuryEventOptionDto>? Events = null);
 
 /// <summary>"Dinheiro no Banco" (<c>Kind</c> = "bank") or "Dinheiro em Caixa" ("cash"); any sign, 0 clears it.</summary>
 public sealed record TreasuryBalanceInput(string? Kind, decimal? Value);
 
-public sealed record TreasuryActivityInput(string? Name, DateTime? StartDate, DateTime? EndDate, string? Description);
+/// <summary>An activity form. <c>EventId</c> (task 074): the event it accounts for, or null for none (also on edit: null unlinks).</summary>
+public sealed record TreasuryActivityInput(string? Name, DateTime? StartDate, DateTime? EndDate, string? Description, int? EventId = null);
 
 public sealed record TreasuryLockInput(bool Locked);
 

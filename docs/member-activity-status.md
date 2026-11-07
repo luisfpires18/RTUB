@@ -29,6 +29,9 @@ Clock: one injected `TimeProvider` (`TimeProvider.System` in DI); no `DateTime.N
   because no performance-attendance field or table exists (after the event the app shows it as "Quem foi / Foste" and
   Admin corrects it by removing / adding answers). A member who never withdraws from an event they missed gets credit.
   The query is isolated in `MemberStatusService.PerformanceActivityAsync`; when real attendance exists, replace only it.
+  Since 072 a member can also self-report a past event of the current fiscal year ("Fui" on `/pending-actions`), which
+  writes this same row and reconciles the member at once; a self-reported past **rehearsal** stays pending and counts
+  only once confirmed.
 
 ## Rules
 

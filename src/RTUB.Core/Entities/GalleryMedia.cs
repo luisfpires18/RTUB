@@ -40,6 +40,13 @@ public class GalleryMedia : BaseEntity
     /// </summary>
     public bool IsPrivate { get; set; } = true;
 
+    /// <summary>
+    /// The event this media was uploaded for (task 077, "As minhas ações pendentes" → Galeria), or null. Set only by an
+    /// upload that names the event; legacy items are never matched by title. No foreign key (as <c>Activity.EventId</c>):
+    /// deleting the event clears it in the same save.
+    /// </summary>
+    public int? EventId { get; set; }
+
     // Navigation properties
     public virtual ApplicationUser Uploader { get; set; } = null!;
     public virtual ICollection<GalleryMediaPersonTag> PeopleInMedia { get; set; } = new List<GalleryMediaPersonTag>();
@@ -60,7 +67,8 @@ public class GalleryMedia : BaseEntity
         byte? day = null,
         string? thumbnailUrl = null,
         DateTime? takenAt = null,
-        bool isPrivate = true)
+        bool isPrivate = true,
+        int? eventId = null)
     {
         ValidateUploaderId(uploaderId);
         ValidateTitle(title);
@@ -82,6 +90,7 @@ public class GalleryMedia : BaseEntity
             ThumbnailUrl = thumbnailUrl,
             TakenAt = takenAt,
             IsPrivate = isPrivate,
+            EventId = eventId,
             CreatedAt = now
         };
     }

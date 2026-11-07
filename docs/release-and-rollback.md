@@ -99,19 +99,65 @@ MAJOR, in which case raise it again before the `dev → master` PR.
 1. On `dev`: `VERSION` already holds the next version from the last sync-back; raise it (PR as
    usual) if this release turned out MINOR or MAJOR. Check the release's migrations against the
    N-1 rule below.
-2. Open a PR `dev → master`. **CI • Build & Test** and *VERSION is bumped* must pass.
-3. Merge it with **Create a merge commit**.
-4. Watch **Deploy • PROD**. Its summary shows version, commit, artifact SHA-256 and the version that
+2. Write the release notes members will see: `releases/<VERSION>.json` (see *Release notes* below;
+   `bash scripts/release.sh notes-check "$(cat VERSION)" releases` says whether they pass). Every
+   release, patch and hotfix included.
+3. Open a PR `dev → master`. **CI • Build & Test** and *VERSION is bumped* (which also checks the
+   notes) must pass.
+4. Merge it with **Create a merge commit**.
+5. Watch **Deploy • PROD**. Its summary shows version, commit, artifact SHA-256 and the version that
    was live before.
-5. Merge `master` back into `dev`.
-6. Bump `dev`'s `VERSION` to the next unreleased version (2.0.0 released → `2.0.1`, or `2.1.0` /
-   `3.0.0` when that is already the plan) before anything else merges into `dev`.
+6. Merge `master` back into `dev`.
+7. Bump `dev`'s `VERSION` to the next unreleased version (2.0.0 released → `2.0.1`, or `2.1.0` /
+   `3.0.0` when that is already the plan) before anything else merges into `dev`, and start its
+   `releases/<VERSION>.json` (a short draft is fine until the release; `notes-check` runs only on
+   the PR into master and on the deploy).
+
+### Release notes (task 083, issue #264)
+
+After a release, every signed-in member sees **Nova atualização <version>** once (the startup
+queue, `portal/src/Startup.tsx`, before the notification reminder); "Entendido" stores a receipt
+per member and version (`PendingActionDismissals`, kind `release.notes`, source = version, no
+migration), so it follows the account across devices, and another account on the same device sees
+it on its own. The footer's *Ver novidades da versão* reopens the running release's notes without
+touching the receipt. Visitors never get the notes (`/api/releases/notes` is 401).
+
+- **Source**: `releases/<VERSION>.json` at the repository root, written by hand as part of release
+  preparation from what was actually merged (issues / PRs since the previous release), pt-PT,
+  user-facing: "Podes agora…", "Alterámos…", "Corrigimos…". Never commit messages, technical,
+  security or private details. Plain text only: no markup, no links. Fields: `version` (equal to
+  the file name and to `VERSION`), `title` (≤ 80 chars, e.g. "Nova atualização 2.3.4"), `items`
+  (1–12 strings, each ≤ 240 chars, one line). `scripts/release.sh notes-check` enforces exactly
+  this (self-tested); `ReleaseNotesService` ignores a file that still fails.
+- **Bundled, never fetched**: `RTUB.csproj` copies `releases/*.json` into the publish output
+  (`releases/`), so the one immutable zip carries its own notes. The running build reads only that
+  folder, once per process (`ReleaseNotesService`, `AppContext.BaseDirectory/releases`): a failed
+  deploy, a stale service worker or a cached old frontend can only show the live build's own
+  notes, and a rollback restores its own. Nothing is generated at runtime; nothing is read from
+  GitHub.
+- **Gates**, all before the archive: the PR into master (`CI • Build & Test` → *VERSION is bumped*
+  runs `notes-check`), the `version` job of Deploy • PROD (`notes-check` again), and the package
+  step, which refuses a production zip without `releases/<VERSION>.json`.
+- **What a member sees**: the bundled notes with a version ≤ the running build's and > the highest
+  version that member acknowledged, newest first, at most 5 in one dialog (the running release
+  first, the skipped ones under "Desde a última vez…"). SemVer comparison (`2.1.10` after `2.1.9`),
+  never text. A receipt for a version newer than the running build (a rollback) hides the dialog:
+  no false "new update". The acknowledgement accepts only the running version (400 otherwise) and
+  covers the older pending ones. A failed receipt is shown as an error and asked again on the next
+  opening; reading is never an acknowledgement. Rerunning the same release re-prompts nobody.
+- **Launch baseline**: the first file is `releases/2.3.4.json`; older versions have none, so no
+  member is flooded with history on the first deploy.
+- **DEV**: a `-dev.N` build hides its notes unless the App Setting `ReleaseNotes__ShowPrerelease`
+  is `true`. Set to `true` on both `rtub-dev` and `rtub` on 2026-11-07 (owner request): DEV shows
+  the next release's dialog as soon as `dev` deploys; in PROD the value is a no-op, because a
+  production build never carries a prerelease suffix.
 
 ### What Deploy • PROD does
 
 ```
 version    VERSION is valid SemVer and higher than the previous master commit's
-           (none there - legacy master - is the first versioned release)
+           (none there - legacy master - is the first versioned release);
+           releases/<VERSION>.json exists and passes notes-check
 ci         CI • Build & Test, on this exact commit
 package    the ONLY build: dotnet publish -r linux-x64 --self-contained false (Node 22),
            ONE zip, guards run on that zip, release.json written. No Azure token in this job.

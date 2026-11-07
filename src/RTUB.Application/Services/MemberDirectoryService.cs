@@ -113,7 +113,7 @@ public sealed class MemberDirectoryService : IMemberDirectoryService
             .ToList();
 
         return EventResult<MemberDirectoryDto>.Ok(new MemberDirectoryDto(members, leitaoCards, options, MembersAuthorization.CanManage(user),
-            MembersAuthorization.CanDeleteAnyMember(user)));
+            MembersAuthorization.CanDeleteAnyMember(user), MembersAuthorization.CanEditInfo(user)));
     }
 
     public async Task<EventResult<MemberDetailDto>> GetMemberAsync(string id, ClaimsPrincipal user)

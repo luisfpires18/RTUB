@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { getGallery, getGalleryItem, type GalleryFilters, type GalleryItem, type GalleryTimeline } from './api';
 import { Loading, useLatest } from './App';
-import { EditDialog, UploadDialog } from './GalleryManage';
+import { EditDialog, UploadDialog, type UploadEvent } from './GalleryManage';
 import { Icon } from './icons';
 
 const monthName = (month: number) =>
@@ -35,6 +35,15 @@ export function groupTimeline(items: GalleryItem[]): YearGroup[] {
   return years;
 }
 
+/** Task 077: ?upload=1&event=&date=&title= (from /pending-actions → Galeria → Adicionar) opens the upload for that event. */
+function uploadEventFromUrl(): UploadEvent | undefined {
+  const q = new URLSearchParams(location.search);
+  const id = Number(q.get('event'));
+  if (q.get('upload') !== '1' || !Number.isInteger(id) || id <= 0) return undefined;
+  const date = q.get('date') ?? '';
+  return { id, title: q.get('title') ?? '', date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '' };
+}
+
 const itemFromUrl = () => Number(new URLSearchParams(location.search).get('item')) || undefined;
 
 function setItemInUrl(id?: number) {
@@ -58,6 +67,8 @@ export default function Gallery() {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState<GalleryItem>();
   const [managing, setManaging] = useState<'upload' | number>();
+  const [uploadEvent, setUploadEvent] = useState<UploadEvent>();
+  const askedUpload = useRef(false);
 
   useEffect(() => {
     document.title = 'Galeria · RTUB';
@@ -99,6 +110,19 @@ export default function Gallery() {
     const id = itemFromUrl();
     if (id) getGalleryItem(id).then(setOpen, () => setItemInUrl());
   }, []);
+
+  // The pending-actions link: open the upload once the page knows the member may upload, then drop the query.
+  useEffect(() => {
+    if (!data || askedUpload.current) return;
+    askedUpload.current = true;
+    const event = uploadEventFromUrl();
+    if (!event) return;
+    history.replaceState(null, '', location.pathname);
+    if (data.isMember) {
+      setUploadEvent(event);
+      setManaging('upload');
+    }
+  }, [data]);
 
   const show = (item?: GalleryItem) => {
     setOpen(item);
@@ -218,7 +242,16 @@ export default function Gallery() {
           }
         />
       )}
-      {managing === 'upload' && <UploadDialog onClose={() => setManaging(undefined)} onDone={() => load(1, filters)} />}
+      {managing === 'upload' && (
+        <UploadDialog
+          event={uploadEvent}
+          onClose={() => {
+            setManaging(undefined);
+            setUploadEvent(undefined);
+          }}
+          onDone={() => load(1, filters)}
+        />
+      )}
       {typeof managing === 'number' && <EditDialog itemId={managing} onClose={() => setManaging(undefined)} onDone={() => load(1, filters)} />}
     </section>
   );

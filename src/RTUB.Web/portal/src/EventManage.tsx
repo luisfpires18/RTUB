@@ -619,6 +619,7 @@ export function ParticipantsManagerDialog({ event, onClose, onChanged }: { event
                             <>
                               <strong>{p.name}</strong>
                               <span className="participants-manager__meta">{[p.badge, p.instrument].filter(Boolean).join(' · ')}</span>
+                              {p.notes && <span className="participants-manager__meta participants-manager__note">“{p.notes}”</span>}
                             </>
                           )}
                         </span>

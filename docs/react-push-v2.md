@@ -52,6 +52,8 @@ removes their **own** subscriptions.
 | `POST /api/push/subscribe` | `subscription.toJSON()` + `replaces` | the status; 403 when push is off for the caller, 409 without keys, 400 with field errors |
 | `POST /api/push/unsubscribe` | `{endpoint}` or `{all: true}` | the status; works even when push is switched off |
 | `POST /api/push/test` (#230) | `{endpoint}` | `{outcome, status}`: a fixed test push to the caller's own subscription with that endpoint; 403 / 409 as subscribe; 429 within 30 s of the member's last test |
+| `GET /api/push/preferences` (082) | | `{items: [{key, group, label, help, mandatory, enabled}]}`: the whole catalogue with the caller's choices (see *Preferences*) |
+| `PUT /api/push/preferences` (082) | `{disabled: string[]}` | the same `items` after the save; 400 with field `disabled` for the mandatory key or an unknown key (nothing stored); needs the token like every write |
 
 - **Validation** (`PushSubscriptionRules`): the endpoint is an https URL on a browser push service (FCM
   `fcm.googleapis.com` / `android.googleapis.com`, Mozilla `push.services.mozilla.com`, Apple `push.apple.com`,
@@ -132,6 +134,13 @@ debug otherwise). A failed delete of a gone row no longer stops the fan-out to t
   capability detection, no storage, no user-agent checks, the old client gone, the worker's push / click / rotation
   contracts. `ServiceWorkerReliabilityTests`: the React client adopts the single registration.
 - Owner custom push: `OwnerOperationsApiTests` (unchanged, green).
+- Preferences (082): `PushApiTests` (defaults all on, only the pending-actions key mandatory; save replaces the set,
+  persists, never touches another member; mandatory / unknown key / missing token refused with nothing stored;
+  independent of subscribe / unsubscribe); `PushPreferenceFilterTests` (muted member skipped on every send path, other
+  keys / mandatory / no key mute nobody, no store = no filter, every factory method names a catalogue key);
+  `PushPreferenceServiceTests` (real SQLite: save replaces the set; a rival tab writing the same row first is still a
+  success; any other write failure throws, so the dialog never says guardado over the old choices);
+  `PushV2SourceTests` (dialog apart from the device switch, labels never in the client).
 
 ## Validation done (local, scratch data, locally generated VAPID keys)
 
@@ -144,6 +153,58 @@ debug otherwise). A failed delete of a gone row no longer stops the fan-out to t
   showed "RTUB: notificação de teste" with `/profile#push`; second click within 30 s refused.
 - Not done: Android installed app, iPhone / iPad Home Screen app, and DEV with its real VAPID keys. Track them before a
   production release (see `STATE.md`).
+
+## Startup reminder (task 080, issue #261)
+
+"Ativa as notificações" opens once per **app opening** for a signed-in member whose push is off on this device.
+
+- **Opening** = a new tab or window, or a cold launch of the installed app. Each portal page is its own document (no
+  client router), so the launch flag lives in `sessionStorage` (`rtub-startup-done`): moving between pages, coming back
+  to the app, polls and re-renders never show it again in that launch. A confirmed visitor page (sign-out, or `/login`
+  before signing in or switching account) clears the flag, so the next signed-in page starts a new launch.
+- **Who**: visitors never. The device state is `readPush()`: `off`, `stale`, `unregistered` (subscribed elsewhere only
+  counts as off here) and `denied` remind; `unsupported` outside the installed app shows the iPhone / iPad install
+  steps only in Safari on iPhone / iPad (`navigator.standalone` exists), general "use an up-to-date browser or another
+  device" text elsewhere (inside the installed app there is nothing useful to say, so nothing shows); `on`, push disabled / not configured, no worker
+  and any read error do not (unknown is never "off"). Rules in `portal/src/startupRules.ts`.
+- **Active vs Reformado** (`ApplicationUser.IsRetired`, the canonical flag; no new field): active = every opening while
+  off ("Agora não" is for that opening only). Reformado = once per account across devices: closing or enabling a shown
+  reminder stores `POST /api/push/reminder/ack` (a `PendingActionDismissals` row, kind `startup.push`, no source or
+  period; no migration). A failed save is not reported as saved: it simply shows again on a later opening. A member back
+  to active gets the active rule whatever was stored.
+- **API** (members only, no-store, the caller's own account, no id in the request): `GET /api/push/reminder` →
+  `{ reformed, acknowledged }`; `POST /api/push/reminder/ack` (antiforgery) → 204, idempotent across tabs.
+- **Browser permission** is asked only by the "Ativar notificações" click (`turnOn`, as `/profile`). Denied shows how to
+  allow it in the site / app settings; the native prompt is never repeated by RTUB.
+- **Queue** (`portal/src/Startup.tsx`, `StartupModals`): one dialog at a time, after the page settles (1.5 s). A
+  `MutationObserver` watches for any other open `<dialog>` (a deep-link dialog, the system announcement, even one that
+  opens later): the reminder is hidden meanwhile (not closed, nothing stored) and comes back once it closes, so two
+  modals never stack and the URL is never changed. Order: the release notes (task 083, `ReleaseNotes`; docs/release-and-rollback.md → *Release notes*), then this reminder. The system
+  announcement keeps its own path.
+- Checks: `npm run check:startup`, `PushApiTests.Reminder_*`, `StartupReminderPortalTests`.
+
+## Preferences (task 082, issue #263)
+
+What a member receives, per **account**, apart from the per-device switch above. `/profile` → Notificações push →
+"Escolher o que receber" opens `PushPreferences.tsx` (the shared `Dialog`): one checkbox per catalogue key, grouped
+(Geral, Atuações, Ensaios, Reuniões, Tuna), with the key's help under it (schedules such as "Segunda-feira, uma vez por
+semana"). "Lembrete: As minhas ações pendentes" is checked, disabled and marked **Obrigatório**. Guardar sends the full
+set of keys that are off; the answer re-renders the list, so two tabs or devices end on what the server has (last
+write wins). Loading, failure ("Tentar outra vez") and save errors are shown in the dialog; the device state above is
+not re-read, because the save never touches a subscription.
+
+- **Server is the source**: `PushPreferenceCatalog` gives keys, labels, groups and the mandatory flag;
+  `PushPreferenceService` validates and stores (`PushPreferences`, one row per key off); `PushNotificationService`
+  applies it to every send. The client holds no label and no policy (`PushV2SourceTests`).
+- **Independent of the device**: turning a key off never unsubscribes a device and never sets `PushNotificationsOptedOut`;
+  turning a device off keeps the account's choices. A key on still needs this device's push on, OS permission granted
+  and a stored subscription to show anything; the dialog says so.
+- **Mandatory**: `pending-actions.daily` cannot be turned off through the API (400), has no row, and is still sent only
+  when the page has something pending (078). No other key maps to it.
+- **Inbox**: "Notificações RTUB" keeps its copy whether the key is on or off (`docs/push-notifications.md`).
+- **#261 startup reminder** is untouched: it reads the device state and the Reformado acknowledgement, never a
+  preference.
+- Not checked on a real iPhone / Android; the dialog was checked in the desktop app's browser at 375 px (sticky Guardar visible, no document overflow) and at desktop width: defaults all on, locked key, save, reload persisted.
 
 ## Follow-ups
 

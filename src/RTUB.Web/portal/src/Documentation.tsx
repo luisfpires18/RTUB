@@ -46,7 +46,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
   o.kind === 'invalid'
     ? Object.values(o.errors)[0]
     : o.kind === 'forbidden'
-      ? 'Só o Owner gere pastas e documentos.'
+      ? 'Não tem permissão para gerir pastas e documentos.'
       : o.kind === 'notfound'
         ? 'Este documento ou pasta já não existe.'
         : o.kind === 'signin'

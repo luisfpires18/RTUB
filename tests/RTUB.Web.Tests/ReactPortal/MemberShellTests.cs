@@ -96,6 +96,7 @@ public class MemberShellTests
     }
 
     [Theory]
+    [InlineData("portal.pendingActions")]
     [InlineData("portal.events")]
     [InlineData("portal.rehearsals")]
     [InlineData("portal.music")]
@@ -171,8 +172,8 @@ public class MemberShellTests
     [InlineData("portal.emails", "owner")]
     [InlineData("portal.notifications", "owner")]
     [InlineData("portal.requests", "admin")]
-    [InlineData("portal.logistics", "logisticsAndTreasury")]
-    [InlineData("portal.treasury", "logisticsAndTreasury")]
+    [InlineData("portal.logistics", "logistics")]
+    [InlineData("portal.treasury", "treasury")]
     [InlineData("portal.documentation", "management")]
     [InlineData("portal.meetings", "management")]
     [InlineData("portal.questions", "management")]

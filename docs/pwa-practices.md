@@ -140,6 +140,12 @@ Everything else adopts it through `navigator.serviceWorker.ready` / `getRegistra
 
 Detail: `docs/react-push-v2.md`.
 
+### Startup notification reminder (task 080)
+
+An "app opening" is a tab session (`sessionStorage`), so a PWA cold launch reminds and a resume does not; the browser's
+permission prompt only follows the member's "Ativar notificações" click. Rules and API: `docs/react-push-v2.md` →
+*Startup reminder*.
+
 ### Caching Strategy
 
 ✅ **Always:**
@@ -375,3 +381,8 @@ Home Screen routing behaviour.
 - [Service Worker API](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
 - [PWABuilder](https://www.pwabuilder.com/)
 - [PWA Best Practices](https://web.dev/progressive-web-apps/)
+## External links from the installed app (079)
+
+The Google Calendar offer opens Google with a plain link (`target=_blank`, `noopener noreferrer`) from the member's click,
+never after an async save (popup blockers, unexpected navigation). An installed app may hand it to the browser or block
+it: "Copiar o link" is the fallback. RTUB's state is untouched either way. Real-device check outstanding.

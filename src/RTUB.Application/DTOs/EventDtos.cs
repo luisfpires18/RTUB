@@ -100,7 +100,8 @@ public sealed record EventDetailDto(
     IReadOnlyList<EventVideoDto> Videos,
     EventMemberDetailDto? Member,
     bool CanManagePrizes = false,
-    bool CanTrackContacts = false);
+    bool CanTrackContacts = false,
+    bool CanManageRepertoire = false);
 
 /// <summary>A video on the public R2 host, in its stored order.</summary>
 public sealed record EventVideoDto(int Id, string Title, string Url, string MimeType);
@@ -182,6 +183,8 @@ public enum EventResultStatus
     Invalid,
     Forbidden,
     InUse,
+    /// <summary>The caller edited an older copy (Logística card version, task 066): 409.</summary>
+    Conflict,
 }
 
 /// <summary>Outcome of an Events call that a member makes; the endpoint maps it to HTTP.</summary>

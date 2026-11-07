@@ -8,7 +8,7 @@ Traffic controller. Routing rules only. Detailed standards live in the docs link
 3. Task-relevant doc from the map below. Nothing else by default.
 
 ## Stack
-ASP.NET Core on .NET 10 (minimal-API endpoints + a few controllers; Blazor host retired in 037) · EF Core 10 · SQLite · ASP.NET Identity · PWA (service worker + Web Push) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/news`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`, `/requests`, `/questions`, `/members/map`, `/hall-of-fame`, `/naipes`, `/naipes/config`, `/meetings`, `/messages`, `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/dashboard`, `/owner/db`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/share`; `/Error` is a server static page; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions.
+ASP.NET Core on .NET 10 (minimal-API endpoints + a few controllers; Blazor host retired in 037) · EF Core 10 · SQLite · ASP.NET Identity · PWA (service worker + Web Push) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/news`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`, `/requests`, `/questions`, `/members/map`, `/hall-of-fame`, `/naipes`, `/naipes/config`, `/meetings`, `/messages`, `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/dashboard`, `/owner/db`, `/pending-actions`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/share`; `/Error` is a server static page; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions.
 
 Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Web` (host, endpoints, controllers, React portal). `RTUB.Shared` was removed in 037.
 
@@ -75,6 +75,7 @@ Run only what the change can break.
 | React Owner tools (`/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/dashboard`, `/owner/db`: Owner only) | `docs/react-owner-operations.md` |
 | React password recovery / email confirmation, `/Error`, `/share` (Web Share Target, 053) | `docs/react-identity.md` |
 | PWA manifest members and the PWABuilder decisions (053) | `docs/pwa-practices.md` → *PWABuilder report card* |
+| React As minhas ações pendentes (`/pending-actions`: panels, eligibility, dismissal, landing) | `docs/react-pending-actions.md` |
 | React Push v2 (`/profile` push opt-in / opt-out, `/api/push`, service-worker push handlers) | `docs/react-push-v2.md` |
 | Push catalogue (every push by area, the page a tap opens, deep-link rules, planned per-category opt-out) | `docs/push-notifications.md` |
 | React track roadmap (done, next, task contract) | `docs/RTUB_REACT_MIGRATION_GUIDE.md` |
@@ -85,7 +86,7 @@ Run only what the change can break.
 | R2 storage & database backups | `docs/cloudflare-r2-and-database-backups.md` |
 | CI/CD, Azure DEV & production deploy | `docs/ci-cd-and-azure-environments.md` |
 | Settings per environment, user-secrets / App Settings audit, VAPID keys | `docs/configuration-runbook.md` |
-| Releases, versions, rollback, DB restore | `docs/release-and-rollback.md` |
+| Releases, versions, rollback, DB restore, member release notes (`releases/<VERSION>.json`, required per release) | `docs/release-and-rollback.md` |
 | Performance gate (Lighthouse baseline, budgets, deferred perf findings) | `docs/performance-gate.md` |
 | Repository routing map | `docs/architecture/system-index.md` |
 | Architecture decisions (ADRs) | `docs/architecture/adr/` |

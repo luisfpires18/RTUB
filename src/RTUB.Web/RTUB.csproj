@@ -29,4 +29,11 @@
   <ItemGroup>
     <Content Remove="portal\**" />
   </ItemGroup>
+
+  <!-- Release notes (task 083, #264): releases/<VERSION>.json at the repository root ride inside the one
+       immutable artifact as releases/, so the running build serves exactly its own notes (ReleaseNotesService).
+       Validated by scripts/release.sh notes-check before a production package. -->
+  <ItemGroup>
+    <Content Include="..\..\releases\*.json" Link="releases\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

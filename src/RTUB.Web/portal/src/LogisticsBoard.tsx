@@ -1,11 +1,74 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { Loading } from './App';
 import { Icon } from './icons';
-import { day, logisticsApi, problem, STATUS, type Board, type Card, type List, type Status } from './logisticsApi';
-import { CardDialog, ConfirmDialog, CreateCardDialog, FilesDialog, ListDialog, MoveCardDialog, ReminderDialog } from './LogisticsDialogs';
+import { day, logisticsApi, PRIORITY, problem, STATUS, type Board, type Card, type List, type Priority, type Status } from './logisticsApi';
+import { CardWorkspace, deadline } from './LogisticsCard';
+import { DeleteListDialog, ConfirmDialog, CreateCardDialog, FilesDialog, ListDialog, MoveCardDialog } from './LogisticsDialogs';
+import { CalendarView, isLate, lisbonToday, ListView, sortRows, Summary, type Row, type Sort } from './LogisticsViews';
 import { loginTo } from './musicApi';
 
-const STATUSES: Status[] = ['Todo', 'InProgress', 'Done'];
+const STATUSES: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
+const PRIORITIES: Priority[] = ['Urgent', 'High', 'Normal', 'Low'];
+type View = 'board' | 'list' | 'calendar';
+type Due = '' | 'late' | 'soon' | 'none';
+const VIEWS: { key: View; label: string; icon: 'kanban' | 'listOl' | 'calendar' }[] = [
+  { key: 'board', label: 'Quadro', icon: 'kanban' },
+  { key: 'list', label: 'Lista', icon: 'listOl' },
+  { key: 'calendar', label: 'Calendário', icon: 'calendar' },
+];
+
+/**
+ * Task 070: what the address keeps - the view, the filters, the list order, the calendar month and the open card - so
+ * refresh and back restore the board as it was. Only the member's own choices, and nothing from a card but its id. A
+ * person filter is "mine" / "none", or "person" for a named member: the name never goes in the address (a link may be
+ * shared). It is kept in that history entry's own state (history.state, per entry, kept by the browser across refresh
+ * and Back), so each entry restores the person chosen in it; a shared link or a fresh visit has no state, so no person
+ * filter.
+ */
+const PERSON = 'rtubLogisticsPerson';
+const entryPerson = (): string => {
+  const state = history.state as Record<string, unknown> | null;
+  return typeof state?.[PERSON] === 'string' ? (state[PERSON] as string) : '';
+};
+type UrlState = { view: View; q: string; status: Status | ''; label: string; who: string; prio: Priority | ''; due: Due; sort: Sort; month: string; card?: number };
+const readUrl = (): UrlState => {
+  const p = new URLSearchParams(location.search);
+  const pick = <T extends string>(key: string, allowed: readonly T[], fallback: T) => (allowed.includes(p.get(key) as T) ? (p.get(key) as T) : fallback);
+  const card = Number(p.get('card'));
+  return {
+    view: pick<View>('view', ['board', 'list', 'calendar'], 'board'),
+    q: p.get('q') ?? '',
+    status: pick<Status | ''>('status', ['', ...STATUSES], ''),
+    label: p.get('label') ?? '',
+    who: ((w) => (w === 'person' ? entryPerson() : w))(pick('who', ['', 'mine', 'none', 'person'], '')),
+    prio: pick<Priority | ''>('prio', ['', ...PRIORITIES], ''),
+    due: pick<Due>('due', ['', 'late', 'soon', 'none'], ''),
+    sort: pick<Sort>('sort', ['due', 'priority', 'status', 'title'], 'due'),
+    month: /^\d{4}-(0[1-9]|1[0-2])$/.test(p.get('month') ?? '') ? p.get('month')! : lisbonToday().slice(0, 7),
+    card: Number.isInteger(card) && card > 0 ? card : undefined,
+  };
+};
+const writeUrl = (u: UrlState, push: boolean) => {
+  const p = new URLSearchParams();
+  if (u.view !== 'board') p.set('view', u.view);
+  if (u.q) p.set('q', u.q);
+  if (u.status) p.set('status', u.status);
+  if (u.label) p.set('label', u.label);
+  const person = u.who && u.who !== 'mine' && u.who !== 'none' ? u.who : '';
+  if (u.who) p.set('who', person ? 'person' : u.who);
+  if (u.prio) p.set('prio', u.prio);
+  if (u.due) p.set('due', u.due);
+  if (u.view === 'list' && u.sort !== 'due') p.set('sort', u.sort);
+  if (u.view === 'calendar' && u.month !== lisbonToday().slice(0, 7)) p.set('month', u.month);
+  if (u.card) p.set('card', String(u.card));
+  const query = p.toString();
+  const next = `${location.pathname}${query ? `?${query}` : ''}`;
+  if (next === `${location.pathname}${location.search}` && entryPerson() === person) return;
+  // The entry's state carries the person's name (or none); everything else in it is kept.
+  const state = { ...((history.state as Record<string, unknown> | null) ?? {}), [PERSON]: person || undefined };
+  if (push) history.pushState(state, '', next);
+  else history.replaceState(state, '', next);
+};
 const HEX = /^#[0-9a-f]{6}$/i;
 
 type Drag = { cardId: number; fromList: number };
@@ -17,7 +80,6 @@ type Open =
   | { kind: 'delete-list'; list: List }
   | { kind: 'delete-card'; card: Card }
   | { kind: 'move'; card: Card; listId: number }
-  | { kind: 'reminder' }
   | { kind: 'files' };
 
 /** A small action menu, drawn in fixed position so the board's horizontal scroll never clips it. */
@@ -98,23 +160,35 @@ const fullIndex = (list: List, visible: number[], index: number, dragged: number
 /**
  * /logistics/{id} - one board (React track 023; was the Blazor page). Lists side by side in a horizontal scroll, cards
  * by position with a coloured status (TODO red, WIP yellow, DONE green), labels, dates, checklist progress and counts.
- * Search, status and label filters stay in a sticky bar. Mod, Admin and Owner manage everything, drag cards between
- * lists (or use "Mover…") and open card details; every member reads the board and creates reminders.
+ * Search, status, label and "Só os meus" filters stay in a sticky bar. Mod, Admin and Owner manage everything and drag
+ * cards between lists (or use "Mover…"); every member (Leitões too, task 065) opens any card to read it, and the members
+ * a card is assigned to tick its checklist and change its status there. Reminders live on the card (task 069); ?card=<id> opens a card (links and pushes).
  */
 export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const [board, setBoard] = useState<Board | 'signin' | 'forbidden' | 'missing' | null>();
   const [files, setFiles] = useState<Board['files']>();
-  const [text, setText] = useState('');
-  const [status, setStatus] = useState<Status | ''>('');
-  const [label, setLabel] = useState('');
-  const [open, setOpen] = useState<Open>();
+  const [initial] = useState(readUrl);
+  const [view, setView] = useState<View>(initial.view);
+  const [text, setText] = useState(initial.q);
+  const [status, setStatus] = useState<Status | ''>(initial.status);
+  const [label, setLabel] = useState(initial.label);
+  const [who, setWho] = useState(initial.who);
+  const [prio, setPrio] = useState<Priority | ''>(initial.prio);
+  const [due, setDue] = useState<Due>(initial.due);
+  const [sort, setSort] = useState<Sort>(initial.sort);
+  const [month, setMonth] = useState(initial.month);
+  // ?card=<id> (task 069): a link or a push opens that card; the address follows the open card, so it can be shared.
+  const [open, setOpen] = useState<Open | undefined>(() => (initial.card ? { kind: 'card', id: initial.card } : undefined));
+  const pushNext = useRef(false);
+  // Phones: the extra filters fold behind "Filtros", so the sticky bar stays one or two rows high.
+  const [moreFilters, setMoreFilters] = useState(false);
   const [message, setMessage] = useState<string>();
   const [drag, setDrag] = useState<Drag>();
   const [drop, setDrop] = useState<Drop>();
   const columns = useRef<Record<number, HTMLElement | null>>({});
   // The dragged card, read by the drop handler directly (state may not have re-rendered between dragover and drop).
   const dragged = useRef<Drag | undefined>(undefined);
-  const ids = { q: useId(), status: useId(), label: useId() };
+  const ids = { q: useId(), status: useId(), label: useId(), who: useId(), prio: useId(), due: useId(), sort: useId() };
 
   // The files are a storage listing (one slow R2 round trip): fetched on open and after a file change only, never
   // again on each card / list change. The board renders as soon as it arrives; the files join when they do.
@@ -139,6 +213,37 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
     load();
   }, [boardId]);
 
+  // The address follows the view, filters, order, month and open card (task 070). Changing the view adds a history
+  // entry, so Back returns to the previous view; everything else replaces the current one.
+  const cardOpen = open?.kind === 'card' ? open.id : undefined;
+  useEffect(() => {
+    writeUrl({ view, q: text.trim(), status, label, who, prio, due, sort, month, card: cardOpen }, pushNext.current);
+    pushNext.current = false;
+  }, [view, text, status, label, who, prio, due, sort, month, cardOpen]);
+
+  useEffect(() => {
+    const back = () => {
+      const u = readUrl();
+      setView(u.view);
+      setText(u.q);
+      setStatus(u.status);
+      setLabel(u.label);
+      setWho(u.who);
+      setPrio(u.prio);
+      setDue(u.due);
+      setSort(u.sort);
+      setMonth(u.month);
+      setOpen(u.card ? { kind: 'card', id: u.card } : undefined);
+    };
+    window.addEventListener('popstate', back);
+    return () => window.removeEventListener('popstate', back);
+  }, []);
+  const switchView = (v: View) => {
+    if (v === view) return;
+    pushNext.current = true;
+    setView(v);
+  };
+
   const data = board && typeof board === 'object' ? { ...board, files: files ?? board.files } : null;
 
   useEffect(() => {
@@ -156,15 +261,15 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
           {board === 'signin' ? (
             <>
               <p>A logística é da área de membros.</p>
-              <a className="btn btn--primary btn--sm" href={loginTo(`/logistics/${boardId}`)}>
+              <a className="btn btn--primary btn--sm" href={loginTo(`/logistics/${boardId}${location.search}`)}>
                 <Icon name="login" />
                 Entrar
               </a>
             </>
           ) : board === 'forbidden' ? (
-            <p>Os quadros de logística ainda não estão disponíveis para Leitões.</p>
+            <p>Não tem acesso a este quadro.</p>
           ) : board === 'missing' ? (
-            <p>Este quadro já não existe.</p>
+            <p>Este quadro não existe ou não tem acesso a ele.</p>
           ) : (
             <>
               <p>Não conseguimos abrir o quadro agora.</p>
@@ -187,15 +292,42 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   }
 
   const q = text.trim().toLocaleLowerCase('pt');
-  const filtering = q !== '' || status !== '' || label !== '';
+  const filtering = q !== '' || status !== '' || label !== '' || who !== '' || prio !== '' || due !== '';
+  const today = lisbonToday();
+  const soon = (() => {
+    const d = new Date(`${today}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 7);
+    return d.toISOString().slice(0, 10);
+  })();
+  // A restored person filter stays selectable even when that member has no card left, so the select shows what filters.
+  const named = who !== '' && who !== 'mine' && who !== 'none' ? [who] : [];
+  const people = [...new Set([...named, ...data.lists.flatMap((l) => l.cards.flatMap((c) => (c.assignedTo ? [c.assignedTo.displayName] : [])))]).values()].sort((a, b) =>
+    a.localeCompare(b, 'pt-PT'),
+  );
+  // One filter for every view (task 070): state, label, responsible member, priority, deadline, title / details.
   const visible = (cards: Card[]) =>
     cards.filter(
       (c) =>
         (status === '' || c.status === status) &&
+        (who === '' || (who === 'mine' ? c.mine : who === 'none' ? !c.assignedTo : c.assignedTo?.displayName === who)) &&
+        (prio === '' || c.priority === prio) &&
+        (due === '' ||
+          (due === 'late'
+            ? isLate(c, today)
+            : due === 'none'
+              ? !c.dueDate
+              : c.status !== 'Done' && !!c.dueDate && c.dueDate.slice(0, 10) >= today && c.dueDate.slice(0, 10) <= soon)) &&
         (label === '' || c.labels.some((l) => l.text === label)) &&
         (q === '' || c.title.toLocaleLowerCase('pt').includes(q) || c.description.toLocaleLowerCase('pt').includes(q)),
     );
-  const total = data.lists.reduce((n, l) => n + l.cards.length, 0);
+  const allCards = data.lists.flatMap((l) => l.cards);
+  const total = allCards.length;
+  const rows: Row[] = data.lists.flatMap((list) => visible(list.cards).map((card) => ({ card, list })));
+  const clear = () => (setText(''), setStatus(''), setLabel(''), setWho(''), setPrio(''), setDue(''));
+  // Task 067: an archived board is read-only for everyone; managers only restore it.
+  const archived = !!data.archivedAt;
+  const manage = data.canManage && !archived;
+  const states = STATUSES.filter((s) => data.lists.some((l) => l.state === s));
 
   const run = async (o: Promise<{ kind: string }>, what: string) => {
     setMessage(undefined);
@@ -258,6 +390,16 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
             </h1>
             <p className="lx-head__meta">
               {data.isCompleted && <span className="lx-chip lx-chip--done">Concluído</span>}
+              {data.visibility === 'Private' && (
+                <span className="lx-chip lx-chip--private" title={data.members.map((m) => m.displayName).join(', ') || undefined}>
+                  <Icon name="lock" />
+                  Privado · {data.members.length} {data.members.length === 1 ? 'membro' : 'membros'}
+                </span>
+              )}
+              <span className={data.owner ? 'lx-chip' : 'lx-chip lx-chip--warn'}>
+                <Icon name="person" />
+                {data.owner ? `Responsável: ${data.owner.displayName}` : 'Sem responsável'}
+              </span>
               {data.event && (
                 <a className="lx-chip" href={`/events/${data.event.id}`}>
                   <Icon name="calendar" />
@@ -265,7 +407,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                 </a>
               )}
               <span className="lx-head__count">
-                {data.lists.length} {data.lists.length === 1 ? 'lista' : 'listas'} · {total} {total === 1 ? 'cartão' : 'cartões'}
+                {data.lists.length} {data.lists.length === 1 ? 'coluna' : 'colunas'} · {total} {total === 1 ? 'cartão' : 'cartões'}
               </span>
             </p>
             {data.description && <p className="lx-head__desc">{data.description}</p>}
@@ -275,19 +417,42 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
               <Icon name="file" />
               Ficheiros{data.files.length > 0 && ` (${data.files.length})`}
             </button>
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen({ kind: 'reminder' })} disabled={total === 0}>
-              <Icon name="bell" />
-              Criar lembrete
-            </button>
-            {data.canManage && (
+            <a className="btn btn--ghost btn--sm" href="/logistics/tasks">
+              <Icon name="check" />
+              As minhas tarefas
+            </a>
+            {manage && (
               <button type="button" className="btn btn--primary btn--sm" onClick={() => setOpen({ kind: 'list' })}>
                 <Icon name="plus" />
-                Adicionar lista
+                Adicionar coluna
               </button>
             )}
           </div>
         </div>
+        {archived && (
+          <div className="lx-archived-banner" role="status">
+            <p>
+              <Icon name="folder" />
+              Quadro arquivado a {day(data.archivedAt)}: só leitura.
+            </p>
+            {data.canManage && (
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => run(logisticsApi.archiveBoard(data.id, false), 'restaurar o quadro')}>
+                <Icon name="restore" />
+                Restaurar
+              </button>
+            )}
+          </div>
+        )}
       </header>
+
+      <div className="lx-views" role="group" aria-label="Vista">
+        {VIEWS.map((v) => (
+          <button key={v.key} type="button" aria-pressed={view === v.key} onClick={() => switchView(v.key)}>
+            <Icon name={v.icon} />
+            {v.label}
+          </button>
+        ))}
+      </div>
 
       <div className="lx-toolbar" role="search">
         <label className="control control--sm" htmlFor={ids.q}>
@@ -305,20 +470,82 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
             </button>
           ))}
         </div>
-        {data.labels.length > 0 && (
-          <label className="control control--select control--sm" htmlFor={ids.label}>
-            <span className="sr-only">Etiqueta</span>
-            <select id={ids.label} value={label} onChange={(e) => setLabel(e.target.value)}>
-              <option value="">Todas as etiquetas</option>
-              {data.labels.map((l) => (
-                <option key={l} value={l}>
-                  {l}
+        <button
+          type="button"
+          className="lx-more-toggle"
+          aria-expanded={moreFilters}
+          aria-controls={`${ids.who}-more`}
+          onClick={() => setMoreFilters(!moreFilters)}
+        >
+          <Icon name="chevronDown" />
+          Filtros{(who || prio || due || label) && ` (${[who, prio, due, label].filter(Boolean).length})`}
+        </button>
+        <div id={`${ids.who}-more`} className={moreFilters ? 'lx-toolbar__more lx-toolbar__more--open' : 'lx-toolbar__more'}>
+          <label className="control control--select control--sm" htmlFor={ids.who}>
+            <span className="sr-only">Responsável</span>
+            <select id={ids.who} value={who} onChange={(e) => setWho(e.target.value)}>
+              <option value="">Qualquer responsável</option>
+              <option value="mine">Os meus cartões</option>
+              <option value="none">Sem responsável</option>
+              {people.map((p) => (
+                <option key={p} value={p}>
+                  {p}
                 </option>
               ))}
             </select>
           </label>
+          <label className="control control--select control--sm" htmlFor={ids.prio}>
+            <span className="sr-only">Prioridade</span>
+            <select id={ids.prio} value={prio} onChange={(e) => setPrio(e.target.value as Priority | '')}>
+              <option value="">Qualquer prioridade</option>
+              {PRIORITIES.map((p) => (
+                <option key={p} value={p}>
+                  {PRIORITY[p]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="control control--select control--sm" htmlFor={ids.due}>
+            <span className="sr-only">Prazo</span>
+            <select id={ids.due} value={due} onChange={(e) => setDue(e.target.value as Due)}>
+              <option value="">Qualquer prazo</option>
+              <option value="late">Atrasados</option>
+              <option value="soon">Próximos 7 dias</option>
+              <option value="none">Sem prazo</option>
+            </select>
+          </label>
+          {data.labels.length > 0 && (
+            <label className="control control--select control--sm" htmlFor={ids.label}>
+              <span className="sr-only">Etiqueta</span>
+              <select id={ids.label} value={label} onChange={(e) => setLabel(e.target.value)}>
+                <option value="">Todas as etiquetas</option>
+                {data.labels.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {view === 'list' && (
+            <label className="control control--select control--sm" htmlFor={ids.sort}>
+              <span className="sr-only">Ordenar</span>
+              <select id={ids.sort} value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+                <option value="due">Ordenar por prazo</option>
+                <option value="priority">Ordenar por prioridade</option>
+                <option value="status">Ordenar por estado</option>
+                <option value="title">Ordenar por título</option>
+              </select>
+            </label>
+          )}
+        </div>
+        {filtering && (
+          <button type="button" className="btn btn--ghost btn--sm" onClick={clear}>
+            <Icon name="close" />
+            Limpar filtros
+          </button>
         )}
-        {data.lists.length > 1 && (
+        {view === 'board' && data.lists.length > 1 && (
           <nav className="lx-jump" aria-label="Ir para a lista">
             {data.lists.map((l) => (
               <button key={l.id} type="button" onClick={() => columns.current[l.id]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })}>
@@ -335,13 +562,32 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
         </p>
       )}
 
-      {data.lists.length === 0 ? (
+      {data.lists.length > 0 && <Summary all={allCards} shown={rows.length} filtering={filtering} />}
+
+      {data.lists.length > 0 && view !== 'board' && filtering && rows.length === 0 ? (
+        <div className="lx-empty" role="status">
+          <p>Nenhum cartão corresponde aos filtros.</p>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={clear}>
+            Limpar filtros
+          </button>
+        </div>
+      ) : data.lists.length > 0 && view === 'list' ? (
+        rows.length === 0 ? (
+          <div className="lx-empty" role="status">
+            <p>Este quadro ainda não tem cartões.</p>
+          </div>
+        ) : (
+          <ListView rows={sortRows(rows, sort)} sort={sort} onSort={setSort} onOpen={(id) => setOpen({ kind: 'card', id })} />
+        )
+      ) : data.lists.length > 0 && view === 'calendar' ? (
+        <CalendarView rows={rows} month={month} onMonth={setMonth} onOpen={(id) => setOpen({ kind: 'card', id })} />
+      ) : data.lists.length === 0 ? (
         <div className="notice" role="status">
           <p>Este quadro ainda não tem listas.</p>
-          {data.canManage && (
+          {manage && (
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setOpen({ kind: 'list' })}>
               <Icon name="plus" />
-              Criar a primeira lista
+              Criar a primeira coluna
             </button>
           )}
         </div>
@@ -361,14 +607,17 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
               >
                 <header className="lx-col__head">
                   <h2 className="lx-col__title">{list.name}</h2>
+                  <span className={`lx-status lx-view__status--${list.state.toLowerCase()}`} title={`Cartões nesta coluna: ${STATUS[list.state].name}`}>
+                    {STATUS[list.state].label}
+                  </span>
                   <span className="lx-col__count">{filtering ? `${cards.length}/${list.cards.length}` : list.cards.length}</span>
-                  {data.canManage && (
+                  {manage && (
                     <Menu label={`Ações da lista ${list.name}`}>
                       {(close) => (
                         <>
                           <button type="button" role="menuitem" onClick={() => (close(), setOpen({ kind: 'list', list }))}>
                             <Icon name="pencil" />
-                            Renomear
+                            Nome e estado
                           </button>
                           <button type="button" role="menuitem" disabled={li === 0} onClick={() => (close(), run(logisticsApi.moveList(list.id, li - 1), 'mover a lista'))}>
                             <Icon name="prev" />
@@ -385,7 +634,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                           </button>
                           <button type="button" role="menuitem" className="lx-menu__danger" onClick={() => (close(), setOpen({ kind: 'delete-list', list }))}>
                             <Icon name="trash" />
-                            Eliminar lista
+                            Eliminar coluna
                           </button>
                         </>
                       )}
@@ -407,7 +656,8 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                       )}
                       <CardFace
                         card={card}
-                        canManage={data.canManage}
+                        canManage={manage}
+                        canMove={!archived && (data.canManage || card.mine)}
                         dragging={drag?.cardId === card.id}
                         onOpen={() => setOpen({ kind: 'card', id: card.id })}
                         onDragStart={(e) => {
@@ -423,20 +673,34 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                         }}
                         menu={(close) => (
                           <>
-                            {STATUSES.filter((s) => s !== card.status).map((s) => (
-                              <button key={s} type="button" role="menuitem" onClick={() => (close(), run(logisticsApi.setStatus(card.id, s), 'mudar o estado'))}>
-                                <span className={`lx-dot lx-dot--${s.toLowerCase()}`} aria-hidden="true" />
-                                Marcar {STATUS[s].label}
-                              </button>
-                            ))}
+                            {states
+                              .filter((s) => s !== card.status)
+                              .map((s) => (
+                                <button key={s} type="button" role="menuitem" onClick={() => (close(), run(logisticsApi.setStatus(card.id, s), 'mudar o estado'))}>
+                                  <span className={`lx-dot lx-dot--${s.toLowerCase()}`} aria-hidden="true" />
+                                  Marcar {STATUS[s].label}
+                                </button>
+                              ))}
                             <button type="button" role="menuitem" onClick={() => (close(), setOpen({ kind: 'move', card, listId: list.id }))}>
                               <Icon name="arrow" />
                               Mover…
                             </button>
-                            <button type="button" role="menuitem" className="lx-menu__danger" onClick={() => (close(), setOpen({ kind: 'delete-card', card }))}>
-                              <Icon name="trash" />
-                              Eliminar cartão
-                            </button>
+                            {manage && (
+                              <>
+                                <button type="button" role="menuitem" onClick={() => (close(), run(logisticsApi.duplicateCard(card.id), 'duplicar o cartão'))}>
+                                  <Icon name="kanban" />
+                                  Duplicar
+                                </button>
+                                <button type="button" role="menuitem" onClick={() => (close(), run(logisticsApi.archiveCard(card.id, true), 'arquivar o cartão'))}>
+                                  <Icon name="folder" />
+                                  Arquivar
+                                </button>
+                                <button type="button" role="menuitem" className="lx-menu__danger" onClick={() => (close(), setOpen({ kind: 'delete-card', card }))}>
+                                  <Icon name="trash" />
+                                  Eliminar cartão
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
                       />
@@ -449,7 +713,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
                   )}
                   {cards.length === 0 && !drop && <li className="lx-col__empty">{filtering ? 'Nada com estes filtros.' : 'Sem cartões.'}</li>}
                 </ol>
-                {data.canManage && (
+                {manage && (
                   <button type="button" className="lx-col__add" onClick={() => setOpen({ kind: 'create-card', list })}>
                     <Icon name="plus" />
                     Adicionar cartão
@@ -458,17 +722,40 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
               </section>
             );
           })}
-          {data.canManage && (
+          {manage && (
             <button type="button" className="lx-col lx-col--new" onClick={() => setOpen({ kind: 'list' })}>
               <Icon name="plus" />
-              Adicionar lista
+              Adicionar coluna
             </button>
           )}
         </div>
       )}
 
+      {data.archivedCards.length > 0 && (
+        <details className="lx-archived">
+          <summary>
+            Cartões arquivados <small>{data.archivedCards.length}</small>
+          </summary>
+          <ul className="lx-archived__list">
+            {data.archivedCards.map((c) => (
+              <li key={c.id}>
+                <button type="button" className="lx-files__open" onClick={() => setOpen({ kind: 'card', id: c.id })}>
+                  {c.title}
+                </button>
+                {manage && (
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => run(logisticsApi.archiveCard(c.id, false), 'restaurar o cartão')}>
+                    <Icon name="restore" />
+                    Restaurar
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
       {open?.kind === 'card' && (
-        <CardDialog
+        <CardWorkspace
           board={data}
           cardId={open.id}
           onClose={() => setOpen(undefined)}
@@ -478,6 +765,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
       )}
       {open?.kind === 'create-card' && (
         <CreateCardDialog
+          boardId={data.id}
           list={open.list}
           onClose={() => setOpen(undefined)}
           onCreated={(id) => {
@@ -487,16 +775,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
         />
       )}
       {open?.kind === 'list' && <ListDialog boardId={data.id} list={open.list} onClose={() => setOpen(undefined)} onSaved={load} />}
-      {open?.kind === 'delete-list' && (
-        <ConfirmDialog
-          title="Eliminar lista"
-          what={<>a lista <strong>{open.list.name}</strong></>}
-          warning="Os cartões da lista vão com ela. Não dá para desfazer."
-          action={() => logisticsApi.removeList(open.list.id)}
-          onClose={() => setOpen(undefined)}
-          onDone={load}
-        />
-      )}
+      {open?.kind === 'delete-list' && <DeleteListDialog board={data} list={open.list} onClose={() => setOpen(undefined)} onDone={load} />}
       {open?.kind === 'delete-card' && (
         <ConfirmDialog
           title="Eliminar cartão"
@@ -519,7 +798,6 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
           }}
         />
       )}
-      {open?.kind === 'reminder' && <ReminderDialog board={data} onClose={() => setOpen(undefined)} />}
       {open?.kind === 'files' && <FilesDialog board={data} onClose={() => setOpen(undefined)} onChanged={loadFiles} />}
     </section>
   );
@@ -528,6 +806,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
 function CardFace({
   card,
   canManage,
+  canMove,
   dragging,
   onOpen,
   onDragStart,
@@ -536,6 +815,8 @@ function CardFace({
 }: {
   card: Card;
   canManage: boolean;
+  /** Task 067: managers, and a card's owner / collaborators, move it (drag or "Mover…"). */
+  canMove: boolean;
   dragging: boolean;
   onOpen: () => void;
   onDragStart: (e: DragEvent<HTMLElement>) => void;
@@ -544,15 +825,16 @@ function CardFace({
 }) {
   const s = card.status.toLowerCase();
   const progress = card.checklistTotal ? Math.round((card.checklistDone / card.checklistTotal) * 100) : 0;
+  const due = deadline(card.dueDate, card.status);
   return (
     <article
-      className={`lx-card lx-card--${s}${dragging ? ' lx-card--dragging' : ''}${canManage ? ' lx-card--open' : ''}`}
+      className={`lx-card lx-card--${s} lx-card--open${dragging ? ' lx-card--dragging' : ''}${card.mine ? ' lx-card--mine' : ''}`}
       data-card={card.id}
-      draggable={canManage}
-      onDragStart={canManage ? onDragStart : undefined}
-      onDragEnd={canManage ? onDragEnd : undefined}
+      draggable={canMove}
+      onDragStart={canMove ? onDragStart : undefined}
+      onDragEnd={canMove ? onDragEnd : undefined}
       // The whole card opens the details (a native drag cannot start on a button); the title button is the keyboard path.
-      onClick={canManage ? onOpen : undefined}
+      onClick={onOpen}
     >
       <div className="lx-card__top">
         <span className={`lx-status lx-status--${s}`}>{STATUS[card.status].label}</span>
@@ -564,24 +846,23 @@ function CardFace({
             {day(card.dueDate)}
           </span>
         )}
-        {canManage && <Menu label={`Ações do cartão ${card.title}`}>{menu}</Menu>}
+        {card.priority !== 'Normal' && <span className={`lx-prio lx-prio--${card.priority.toLowerCase()}`}>{PRIORITY[card.priority]}</span>}
+        {due && <span className={`lx-due lx-due--${due.tone}`}>{due.text}</span>}
+        {card.mine && <span className="lx-chip lx-chip--mine">Atribuído a si</span>}
+        {(canManage || canMove) && <Menu label={`Ações do cartão ${card.title}`}>{menu}</Menu>}
       </div>
-      {canManage ? (
-        <h3 className="lx-card__title">
-          <button
-            type="button"
-            className="lx-card__button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpen();
-            }}
-          >
-            {card.title}
-          </button>
-        </h3>
-      ) : (
-        <h3 className="lx-card__title">{card.title}</h3>
-      )}
+      <h3 className="lx-card__title">
+        <button
+          type="button"
+          className="lx-card__button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen();
+          }}
+        >
+          {card.title}
+        </button>
+      </h3>
       {card.description && <p className="lx-card__desc">{card.description}</p>}
       {card.labels.length > 0 && (
         <ul className="lx-labels">
@@ -603,34 +884,47 @@ function CardFace({
           </small>
         </div>
       )}
-      {(card.eventName || card.assignedTo || card.assignments > 0 || card.links > 0) && (
-        <div className="lx-card__meta">
-          {card.eventName && (
-            <span>
-              <Icon name="calendar" />
-              {card.eventName}
-            </span>
-          )}
-          {card.assignedTo && (
-            <span title={card.assignedTo.fullName ?? undefined}>
-              <Icon name="person" />
-              {card.assignedTo.displayName}
-            </span>
-          )}
-          {card.assignments > 0 && (
-            <span title="Membros atribuídos">
-              <Icon name="person" />
-              {card.assignments}
-            </span>
-          )}
-          {card.links > 0 && (
-            <span title="Ligações">
-              <Icon name="link" />
-              {card.links}
-            </span>
-          )}
-        </div>
-      )}
+      {/* Always shown: the owner, or "Sem responsável" (task 066). */}
+      <div className="lx-card__meta">
+        {card.eventName && (
+          <span>
+            <Icon name="calendar" />
+            {card.eventName}
+          </span>
+        )}
+        {card.assignedTo ? (
+          <span title={card.assignedTo.fullName ?? 'Responsável'}>
+            <Icon name="person" />
+            {card.assignedTo.displayName}
+          </span>
+        ) : (
+          <span className="lx-card__unowned">Sem responsável</span>
+        )}
+        {card.assignments > 0 && (
+          <span title="Colaboradores">
+            <Icon name="people" />
+            {card.assignments}
+          </span>
+        )}
+        {card.comments > 0 && (
+          <span title="Comentários">
+            <Icon name="chat" />
+            {card.comments}
+          </span>
+        )}
+        {card.attachments > 0 && (
+          <span title="Anexos">
+            <Icon name="file" />
+            {card.attachments}
+          </span>
+        )}
+        {card.links > 0 && (
+          <span title="Cartões ligados">
+            <Icon name="link" />
+            {card.links}
+          </span>
+        )}
+      </div>
     </article>
   );
 }

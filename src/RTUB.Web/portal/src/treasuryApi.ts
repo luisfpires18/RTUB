@@ -30,7 +30,12 @@ export type Activity = {
   expenses: number;
   balance: number;
   transactions: Transaction[];
+  /** Task 074: the event this activity accounts for, if any. */
+  eventId: number | null;
+  eventName: string | null;
 };
+/** Task 074: an event of the report's fiscal year an activity may account for (managers only). */
+export type ReportEvent = { id: number; name: string; date: string; endDate: string | null };
 export type Totals = { totalMoney: number; bank: number; cash: number; calotes: number; income: number; expenses: number; balance: number };
 export type Report = {
   id: number;
@@ -43,8 +48,9 @@ export type Report = {
   canManage: boolean;
   canPublish: boolean;
   canSeeHistory: boolean;
+  events: ReportEvent[] | null;
 };
-export type ActivityInput = { name: string; startDate: string; endDate: string | null; description: string };
+export type ActivityInput = { name: string; startDate: string; endDate: string | null; description: string; eventId: number | null };
 export type TransactionInput = { date: string; description: string; category: string; amount: string; type: string; removeReceipt: boolean; receipt: File | null };
 export type History = {
   entries: { timestamp: string; activityName: string; description: string; userName: string; action: string }[];

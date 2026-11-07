@@ -32,7 +32,7 @@ public class MemberAdminApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task Visitors_MembersAndMods_CannotUseTheTools()
+    public async Task Visitors_MembersAndMods_CannotUseTheTools_ExceptTheModsLimitedEdit()
     {
         var tuno = await AddAsync(MemberCategory.Tuno);
         var leitao = await AddAsync(MemberCategory.Leitao);
@@ -59,13 +59,29 @@ public class MemberAdminApiTests : IClassFixture<EventsApiFactory>
             (await SendAsync(anonymous, method, path, body)).StatusCode.Should().Be(HttpStatusCode.Unauthorized, $"{method} {path}");
         }
 
+        // Task 076: the limited member-information edit (mentors, instruments, /info) is Mod's too; every other tool is not.
+        var info = new[] { "/api/members/mentors", "/instruments", "/info" };
+        bool IsInfo(string path) => info.Any(path.Contains);
+        var member = new (HttpMethod Method, string Path, object? Body)[]
+        {
+            (HttpMethod.Get, $"/api/members/{tuno.Id}/info", null),
+            (HttpMethod.Put, $"/api/members/{tuno.Id}/info", new { city = "Braga", phoneNumber = "912", stamp = "x" }),
+        };
         foreach (var role in new[] { "Member", "Mod" })
         {
             var (client, _) = await SignInAsync(role);
             await WithTokenAsync(client);
-            foreach (var (method, path, body) in calls)
+            foreach (var (method, path, body) in calls.Concat(member))
             {
-                (await SendAsync(client, method, path, body)).StatusCode.Should().Be(HttpStatusCode.Forbidden, $"{role}: {method} {path}");
+                var status = (await SendAsync(client, method, path, body)).StatusCode;
+                if (role == "Mod" && IsInfo(path))
+                {
+                    status.Should().NotBe(HttpStatusCode.Forbidden, $"{role}: {method} {path} (076)");
+                }
+                else
+                {
+                    status.Should().Be(HttpStatusCode.Forbidden, $"{role}: {method} {path}");
+                }
             }
         }
 

@@ -4,8 +4,9 @@ using RTUB.Core.Enums;
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// Represents a reminder for a logistics card.
-/// Sends push notifications to target users at specified frequency.
+/// A reminder for a logistics card, delivered by <c>LogisticsReminderDelivery</c> (task 069) as a push plus the
+/// "Notificações RTUB" inbox copy. <see cref="NextReminderDate"/> is Portugal wall-clock time (Europe/Lisbon): a daily
+/// reminder at 10:00 stays at 10:00 across the DST changes.
 /// </summary>
 public class LogisticsCardReminder : BaseEntity
 {
@@ -37,6 +38,24 @@ public class LogisticsCardReminder : BaseEntity
     /// </summary>
     public DateTime? LastSentAt { get; set; }
 
+    /// <summary>Who created it (task 069); null on reminders saved before 069.</summary>
+    public string? CreatedByUserId { get; set; }
+
+    /// <summary>A member's own reminder (069): only for themselves, only while they work on the card.</summary>
+    public bool Personal { get; set; }
+
+    /// <summary>
+    /// When delivery took this reminder on (UTC). Null = saved before 069 and never sent: the first delivery run
+    /// activates it without replaying the past (see LogisticsReminderDelivery.ActivateLegacyAsync).
+    /// </summary>
+    public DateTime? ActivatedAt { get; set; }
+
+    /// <summary>A delivery run holds the reminder until then (UTC), so two runs never send the same occurrence.</summary>
+    public DateTime? ClaimedUntil { get; set; }
+
+    /// <summary>Failed attempts at the current occurrence (bounded retry).</summary>
+    public int Attempts { get; set; }
+
     // Navigation properties
     public virtual LogisticsCard Card { get; set; } = null!;
 
@@ -58,24 +77,26 @@ public class LogisticsCardReminder : BaseEntity
         };
     }
 
-    // Business methods
-    public void MarkAsSent()
+    /// <summary>
+    /// Past the current occurrence: a one-time reminder stops; a daily / weekly one moves, in Portugal wall-clock time,
+    /// to its first occurrence after <paramref name="nowLocal"/> (missed ones are skipped, never replayed).
+    /// </summary>
+    public void Advance(DateTime nowLocal)
     {
-        LastSentAt = DateTime.UtcNow;
-
-        // Update next reminder date based on frequency
-        switch (Frequency)
+        Attempts = 0;
+        ClaimedUntil = null;
+        if (Frequency == ReminderFrequency.OneTime)
         {
-            case ReminderFrequency.Daily:
-                NextReminderDate = NextReminderDate.AddDays(1);
-                break;
-            case ReminderFrequency.Weekly:
-                NextReminderDate = NextReminderDate.AddDays(7);
-                break;
-            case ReminderFrequency.OneTime:
-                IsActive = false;
-                break;
+            IsActive = false;
+            return;
         }
+
+        var step = Frequency == ReminderFrequency.Weekly ? 7 : 1;
+        do
+        {
+            NextReminderDate = NextReminderDate.AddDays(step);
+        }
+        while (NextReminderDate <= nowLocal);
     }
 
     public void Deactivate()

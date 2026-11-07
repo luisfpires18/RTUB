@@ -23,6 +23,8 @@ export const memberMenu: MenuGroup[] = [
     key: 'member',
     label: 'Membro',
     links: [
+      // Task 071: every signed-in member (Leitões too), outside Gestão; the page decides its panels.
+      { href: portal.pendingActions, label: 'As minhas ações pendentes', icon: 'calendarCheck' },
       { href: portal.events, label: 'Atuações', icon: 'calendar' },
       { href: portal.rehearsals, label: 'Ensaios', icon: 'clock' },
       { href: portal.music, label: 'Música', icon: 'music' },
@@ -51,10 +53,10 @@ export const memberMenu: MenuGroup[] = [
     links: [
       { href: portal.meetings, label: 'Reuniões', icon: 'journal', when: 'management' },
       { href: portal.documentation, label: 'Documentação', icon: 'folder', when: 'management' },
-      { href: portal.questions, label: 'Questões', icon: 'question', when: 'management' },
-      { href: portal.logistics, label: 'Logística', icon: 'kanban', when: 'logisticsAndTreasury' },
-      { href: portal.treasury, label: 'Tesouraria', icon: 'cash', when: 'logisticsAndTreasury' },
+      { href: portal.logistics, label: 'Logística', icon: 'kanban', when: 'logistics' },
+      { href: portal.treasury, label: 'Tesouraria', icon: 'cash', when: 'treasury' },
       { href: portal.requests, label: 'Pedidos', icon: 'send', when: 'admin' },
+      { href: portal.questions, label: 'Questões', icon: 'question', when: 'management' },
     ],
   },
   {

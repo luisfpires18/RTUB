@@ -127,8 +127,14 @@ public sealed class EventAgendaService : IEventAgendaService
         }
 
         var canManage = EventsAuthorization.CanManage(user);
+        var me = EventsAuthorization.UserId(user);
+        // Task 075: the current Ensaiador / Magister prepare the repertoire of an upcoming, not cancelled event.
+        var canPrepare = !canManage && extras.IsMember && !e.IsCancelled && !IsPast(e)
+            && (await db.Users.AsNoTracking().Where(u => u.Id == me).Select(u => u.Positions).FirstOrDefaultAsync())
+                ?.Any(RehearsalsAuthorization.Approvers.Contains) == true;
         return new EventDetailDto(extras.IsMember, canManage, ToSummary(e, extras), videos, member,
-            canManage && EventAdminService.TakesPrizes(e, Today), await EventsAuthorization.CanTrackContactsAsync(db, user));
+            canManage && EventAdminService.TakesPrizes(e, Today), await EventsAuthorization.CanTrackContactsAsync(db, user),
+            canManage || canPrepare);
     }
 
     public async Task<EventResult<EventEnrollmentDto>> GetEnrollmentAsync(int id, ClaimsPrincipal user)

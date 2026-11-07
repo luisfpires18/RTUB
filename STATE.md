@@ -3,9 +3,130 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
 
-_Last updated: 2026-11-02 (2.3.0 released to PROD; `dev` on 2.3.1)_
+_Last updated: 2026-11-07 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
+**Task 083 = Release notes modal** (issue #264; `feat/083/release-notes`). `releases/<VERSION>.json` (pt-PT, plain
+text) bundled by `RTUB.csproj` into the artifact; `release.sh notes-check` gates the PR into master, Deploy • PROD and
+the package. `ReleaseNotesService` + `GET/POST /api/releases/notes[/ack]` (members; receipt = `PendingActionDismissals`
+kind `release.notes`, source = version, no migration); "Nova atualização" first in the `Startup.tsx` queue; footer
+"Ver novidades da versão". Baseline = `releases/2.3.4.json` (first file). **Every release now needs its notes file**
+(docs/release-and-rollback.md → Release notes). Not checked: real iPhone / Android; DEV with `ShowPrerelease`.
+
+**Task 082 (#263)**: PR #283 merged into `dev` 2026-11-07, not released. Migration `AddPushPreferences` runs on the
+next DEV / PROD deploy.
+
+**Task 082 = Push preferences on /profile** (issue #263; `feat/082/push-preferences`). Account-wide "Escolher o que
+receber" dialog in `/profile` → Notificações push: one checkbox per `PushPreferenceCatalog` key (server is the source of
+keys, pt-PT labels, groups), `pending-actions.daily` checked + locked (Obrigatório; `PUT` refuses it), every other key
+on by default. `GET/PUT /api/push/preferences`; rows `PushPreferences` = keys **off** (migration `AddPushPreferences`,
+additive). Every factory push carries `PreferenceKey`; `PushNotificationService` drops the device push for muted
+members on every send path, after the inbox copy. Device subscription untouched. Not checked: real iPhone / Android.
+
+**Task 081 = Push preference audit** (issue #262; `docs/081/push-preference-audit`, docs only). Proposed
+per-account keys + owner decisions in `docs/push-notifications.md` → *Preference keys for #263*. Decided 2026-11-07:
+only pending-actions mandatory, optional keys on by default, mute = push only, keys separate. No code, no schema.
+
+**Task 080 (#261)**: PR #281 merged into `dev`, not released.
+
+**Task 080 = Startup notification reminder** (issue #261; `feat/080/startup-notification-modal`). Signed-in member with
+push off on this device: "Ativa as notificações" once per app opening (tab session); Reformado (`IsRetired`) once per
+account via `GET/POST /api/push/reminder[/ack]` (`PendingActionDismissals` kind `startup.push`, no migration). Shared
+startup queue (`Startup.tsx`) for #264 release notes. Not checked: real iPhone / Android, screenshots at all widths.
+
+**Task 079 (#260)**: PR #280 merged into `dev`, not released.
+
+**Task 079 = Add to Google Calendar** (issue #260; `feat/079/add-to-google-calendar`). After a new "vou" to an upcoming
+event / rehearsal (module dialogs and `/pending-actions` Próximas) an optional offer opens Google's prefilled template
+(`ctz=Europe/Lisbon`, wall-clock times, suggested duration when no end, all-day for date-only / multi-day) only on click;
+detail pages keep "Adicionar ao calendário". Frontend only, no schema change. Not checked: Google page, devices, screenshots.
+
+**Task 078 (#259)**: PR #279 merged into `dev`, not released.
+
+**Task 078 = As minhas ações pendentes 8/8** (issue #259; merged into `dev` via PR #279). Daily push
+`PendingActionsReminderService` (18:00 Portugal, catch-up 6 h): every non-expelled account counted with the page's
+`CountPendingAsync`; pending > 0 → one summary push to `/pending-actions`, 0 → nothing. Claimed per member/day in
+`PendingActionDismissals` (kind `reminder.push`; at most once), failed counts retried 3x then logged. No migration.
+Real-device tap and DEV push not checked.
+
+**Task 077 = As minhas ações pendentes 7/8** (issue #258; PR #278 merged into `dev`, not released). Galeria
+(active members): over, not cancelled events of the fiscal year with no **photo** linked by the new `GalleryMedia.EventId`
+(migration `AddGalleryMediaEventId`, additive, no FK; legacy items never title-matched; a video does not count) →
+Adicionar (gallery upload prefilled, `eventId` validated) / Não tenho (own, fiscal year). Novidades (Mod/Admin/Owner):
+weekly prompt, own draft this Portugal ISO week resolves, Agora não = week; composer asks Público / Apenas RTUB
+explicitly. Not done from #258: integrated journey screenshots, real-device PWA checks, #259 push.
+
+**Task 076 = As minhas ações pendentes 6/8** (issue #257; `feat/076/pending-actions-member-info`, not merged). System role
+Mod completes member info through `GET/PUT /api/members/{id}/info` (Cidade, Contacto, missing Leitão/Caloiro/Tuno dates,
+Padrinho; instruments via the existing endpoints, now Mod too): allow-list by contract, complete date pairs stay
+Owner/Magister, stale stamp = 409, audited. `MemberInfoRules` decides what applies by category; "Membros" queue (Mod /
+Admin / Owner) paged in SQL; `/members?info=` dialog. No schema change.
+
+**Task 075 = As minhas ações pendentes 5/8** (issue #256; PR #276 merged into `dev`, not released).
+Meetings: each body's current president (Mesa: AG/AGE; Magister: Direção; CV president: CV) creates/manages its meetings
+and writes its atas, Owner every type and sees every type, union for several, Admin alone none; a backdated meeting is
+not pushed. Rehearsals: current Ensaiador/Magister approve and refuse (durable "não foi" + push, not delete) without
+Admin. Events: they edit upcoming repertoires. Panels Reuniões (required "Criar ata" this FY; monthly "Registar"),
+Presenças por aprovar (this FY), Repertório ("Não é necessário" own). No schema change.
+
+**Task 074 = As minhas ações pendentes 4/8** (issue #255; PR #275 merged into `dev`, not released).
+Tesouraria (current 1.º/2.º Tesoureiro): required "Criar relatório" (one report per year under a lock in
+`CreateReportAsync`), then each begun event of the year: Sim = report page "Nova atividade" linked to the event
+(`Activity.EventId`), Não = shared `Event.HasNoFinances` (reopen under "Sem movimentos"). Secretaria (current Secretário):
+create last year's top-level folders missing this year, or "Agora não" for the year. Panels follow the position, writes
+the module's rule; no permission added. Migration `AddEventFinanceClassification` (additive, no FK). Secretaria not
+visually checked with real storage (local run has no R2 listing).
+
+**Task 073 = As minhas ações pendentes 3/8** (issue #254; PR #274 merged into `dev`, not released).
+Logística panel (own open cards on boards the member sees, the "As minhas tarefas" rule extracted as `WorkableCards`;
+Concluir = the board's `SetStatusAsync`) and Questões panel (own open questions; Fechar questão = `CloseAsync`, author
+only, confirmed first; `/questions?question={id}` deep link), for every member incl. Reformados. Module services run as
+the member with roles from the database. Not dismissible, no snooze. The responsive audit no longer writes (072's
+`pending-actions-answer` clicked answer buttons). No schema change.
+
+**Task 072 = As minhas ações pendentes 2/8** (issue #253; PR #273 merged into `dev`, not released). Vou /
+Não vou and Fui / Não fui answered in place on Atuações and Ensaios, through `IEnrollmentService` and the new create-only
+`IRehearsalAttendanceService.AddFirstAttendanceAsync` (unique indexes guard races; existing answers never changed).
+Past = current fiscal year from the member's admission month (PastFrom). A past event "Fui" counts at once (same row as
+"Quem foi", status reconciled); a past rehearsal "Fui" stays pending until approved. Instrument dialog only with 2+
+instruments. No schema change. Real-device PWA open.
+
+**Task 071 = As minhas ações pendentes 1/8** (issue #252; PR #272 merged into `dev`, not released). `/pending-actions`
+foundation: panels paged on their own, `IPendingActionSource`, dismissals (migration `AddPendingActionDismissals`,
+additive), active-member login landing. Docs: `docs/react-pending-actions.md`, `docs/permissions/pending-actions.md`.
+
+**Task 070 = Logística 5/5** (issue #250; PR #271 merged into `dev`, not released; closes roadmap #245
+once merged). Board views Quadro / Lista / Calendário over the same authorised cards and filters (no new endpoint),
+board summary (board-wide numbers, filtered count), filters / view / order / month / card in the address, phone
+agenda, folding filters on phones, responsive audit extended (63/63), end-to-end journey on a synthetic board. No
+schema change. Real-device PWA checks still outstanding.
+
+**Task 069 = Logística 4/5** (issue #249; PR #269 merged into `dev`, not released). Card
+reminders delivered (worker every minute; Portugal time, DST-safe; claimed per occurrence; 6 h catch-up; bounded retry;
+at-least-once), pre-069 reminders activated without replay, reminders on the card (members for themselves, managers for
+board viewers), assignment / mention pushes (never the actor), "As minhas tarefas" (`/logistics/tasks`), card deep
+links `?card=` (login keeps the query). Migration `AddLogisticsReminderDelivery` (additive). Next after review: #250.
+(068: role-free UI copy, PR #268 merged.)
+
+**Task 067 = Logística 3/5** (issue #248; PR #267 merged into `dev`, not released; completes the first
+delivery #246-#248). Private boards (access list; inaccessible = 404 everywhere, Documentação too), responsible member
+(no rights), workflow columns (column = status; legacy columns mapped once at startup, mixed ones split), stable board
+files (`logistics/{env}/boards/{id}/files/`, old per-year folders still listed), archive (read-only), duplicate
+card / board, templates (FITAB, deslocação). Migration `AddLogisticsBoardAccess` (additive). Rollback caveat: the old app
+shows private boards to everyone. Next after review: #249.
+
+**Task 066 = Logística 2/5** (issue #247; PR #266 merged into `dev`, not released). The card is a
+workspace: owner ("Atribuir a") + collaborators (assignment rows, no data rewritten), priority, version-checked field
+edits (409 + conflict choices), checklist edits one item at a time, comments with @mentions (author edits; author or
+manager deletes), a pt-PT history, and the card's own files (stable key `logistics/{env}/cards/…`) and links. One
+additive migration `AddLogisticsCardWorkspace` (N-1 safe). Next: #248. Mention notifications are phase 4 (#249).
+
+**Task 065 = Logística 1/5** (issue #246 under roadmap #245; PR #265 merged into `dev`, not released).
+Leitões read Logística (boards, card details, files); a Leitão's Gestão shows Logística only (new menu flag `logistics`;
+`logisticsAndTreasury` became `treasury`, values unchanged). Card assignees tick checklist items
+(`POST /api/logistics/cards/{id}/checklist/{index}`) and change status; everything else stays Mod/Admin/Owner. Read-only
+card view, full screen on phones. No schema change. Next: #247 (Logística 2/5) after review. Real-device PWA check open.
+
 **Released to PROD: 2.2.0** (MINOR: features; merge `44abad0c`, tag `v2.2.0`, `/api/version` verified; `master` merged back, `dev` on 2.2.1) = 053 PWABuilder manifest + `/share`, 054 performance quick wins, the `/members`
 badge wrap fix, 057 Face ID / fingerprint sign-in. One migration, `AddUserPasskeys` (additive, N-1 safe; the app takes
 its pre-migration snapshot). Rollback across 2.2.0 is a plain app rollback (2.1.8 ignores `AspNetUserPasskeys`).
@@ -429,6 +550,7 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 068 (UI text names no system roles): the server 403 title in `NewsEndpoints.cs` ("Só Admin ou Owner gerem as Novidades.") still names roles; the portal shows its own message instead, so it only reaches API callers. Not in the 068 scope.
 Raised by the 058 push audit (`docs/push-notifications.md` → *Does it send?*): "Presença recusada" never sends (`CancelAttendanceAsync` has no caller); leaderboard comment / like push failures are swallowed with no log; discussion pushes stop at the event start (UTC compare).
 `AspNetUsers.ExperiencePoints` / `Level` have no writer (their only one, `UpdateUserRankingAsync`, never ran and was removed in 058); the leaderboard computes XP per request. Candidate for the DB cleanup list.
 Raised by 054 (performance audit; the full table is `docs/performance-gate.md` → *Task 054 → Deferred findings*): the hot

@@ -212,6 +212,7 @@ public class PortalRouteTests : IntegrationTestBase
     [InlineData("/confirm-email")]
     [InlineData("/Error")]
     [InlineData("/share")]
+    [InlineData("/pending-actions")]
     public void NoBlazorComponent_OwnsAReactRoute(string route)
     {
         var owners = typeof(RTUB.Program).Assembly.GetTypes()

@@ -70,7 +70,7 @@ public class MeetingAccessTests
     [InlineData("Admin", false)]
     [InlineData("Admin Tuno", false)]
     [InlineData("Owner", true)]
-    [InlineData("Magister", false)]
+    [InlineData("Magister", true)]
     [InlineData("Vice-Magister", false)]
     [InlineData("Secretário", false)]
     [InlineData("1.º Tesoureiro", false)]
@@ -82,7 +82,7 @@ public class MeetingAccessTests
     [InlineData("Presidente do CV Veterano", true)]
     [InlineData("Presidente do CF", false)]
     [InlineData("Mesa e CV", true)]
-    public void CanCreateMeetings_OnlyOwnerAndTheTwoPresidents(string who, bool expected)
+    public void CanCreateMeetings_OwnerAndTheThreePresidents(string who, bool expected)
     {
         Persona(who).CanCreateMeetings.Should().Be(expected, who);
     }
@@ -99,7 +99,7 @@ public class MeetingAccessTests
     [InlineData("Admin", "")]
     [InlineData("Admin Tuno", "")]
     [InlineData("Owner", "AGO AGE CV DIR")]
-    [InlineData("Magister", "")]
+    [InlineData("Magister", "DIR")]
     [InlineData("Vice-Magister", "")]
     [InlineData("Secretário", "")]
     [InlineData("1.º Tesoureiro", "")]
@@ -110,7 +110,7 @@ public class MeetingAccessTests
     [InlineData("Presidente do CV", "CV")]
     [InlineData("Presidente do CV Veterano", "CV")]
     [InlineData("Presidente do CF", "")]
-    [InlineData("Mesa e CV", "AGO AGE")]
+    [InlineData("Mesa e CV", "AGO AGE CV")]
     public void FormTypes_AreTheCreatableTypes_InTheFormsOrder(string who, string expected)
     {
         Persona(who).FormTypes.Should().Equal(Types(expected), "{0} gets exactly these types, in the form's order", who);
@@ -128,7 +128,7 @@ public class MeetingAccessTests
     [InlineData("Admin", false, false, false, false)]
     [InlineData("Admin Tuno", false, false, false, false)]
     [InlineData("Owner", true, true, true, true)]
-    [InlineData("Magister", false, false, false, false)]
+    [InlineData("Magister", false, false, false, true)]
     [InlineData("Vice-Magister", false, false, false, false)]
     [InlineData("Secretário", false, false, false, false)]
     [InlineData("1.º Tesoureiro", false, false, false, false)]
@@ -139,13 +139,13 @@ public class MeetingAccessTests
     [InlineData("Presidente do CV", false, false, true, false)]
     [InlineData("Presidente do CV Veterano", false, false, true, false)]
     [InlineData("Presidente do CF", false, false, false, false)]
-    [InlineData("Mesa e CV", true, true, false, false)]
+    [InlineData("Mesa e CV", true, true, true, false)]
     public void CanManage_ByMeetingType(string who, bool ago, bool age, bool cv, bool direcao)
     {
         var access = Persona(who);
 
         ByType(type => access.CanManage(Meeting(type))).Should().Equal(new[] { ago, age, cv, direcao },
-            "{0} manages AGO, AGE, CV, Direção like this (the Mesa wins over the CV)", who);
+            "{0} manages AGO, AGE, CV, Direção like this (075: each body's president, the union for several)", who);
     }
 
     [Theory]
@@ -158,21 +158,21 @@ public class MeetingAccessTests
     [InlineData("Fundador", false, false, false, false)]
     [InlineData("Membro", false, false, false, false)]
     [InlineData("Admin", false, false, false, false)]
-    [InlineData("Admin Tuno", false, false, false, true)]
+    [InlineData("Admin Tuno", false, false, false, false)]
     [InlineData("Owner", true, true, true, true)]
     [InlineData("Magister", false, false, false, true)]
-    [InlineData("Vice-Magister", false, false, false, true)]
-    [InlineData("Secretário", false, false, false, true)]
-    [InlineData("1.º Tesoureiro", false, false, false, true)]
-    [InlineData("2.º Tesoureiro", false, false, false, true)]
+    [InlineData("Vice-Magister", false, false, false, false)]
+    [InlineData("Secretário", false, false, false, false)]
+    [InlineData("1.º Tesoureiro", false, false, false, false)]
+    [InlineData("2.º Tesoureiro", false, false, false, false)]
     [InlineData("Presidente da Mesa", true, true, false, false)]
     [InlineData("1.º Secretário da Mesa", false, false, false, false)]
     [InlineData("2.º Secretário da Mesa", false, false, false, false)]
     [InlineData("Presidente do CV", false, false, true, false)]
     [InlineData("Presidente do CV Veterano", false, false, true, false)]
     [InlineData("Presidente do CF", false, false, false, false)]
-    [InlineData("Mesa e CV", true, true, false, false)]
-    public void CanCreateType_IsTheOldRule_EvenWhereTheFormNeverOpens(string who, bool ago, bool age, bool cv, bool direcao)
+    [InlineData("Mesa e CV", true, true, true, false)]
+    public void CanCreateType_IsEachBodysPresident_AndOwner(string who, bool ago, bool age, bool cv, bool direcao)
     {
         var access = Persona(who);
 

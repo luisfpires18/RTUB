@@ -164,7 +164,7 @@ redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTe
 | `/inventory` | **React** (020) | Instrumentos: list, details, Mod/Admin/Owner management with image; signed-in members, visitors get a 302 to sign in. `docs/react-inventory.md`. |
 | `/shop` | **React** (021) | Loja RTUB: products, member reservations, Mod/Admin/Owner management; signed-in members, visitors get a 302 to sign in. `docs/react-shop.md`. |
 | `/documentation` | **React** (022) | Documentação: folders per fiscal year, download, member upload, Owner folder/document management; signed-in members (Leitões refused), visitors get a 302 to sign in. `docs/react-documentation.md`. |
-| `/logistics`, `/logistics/{id}` | **React** (023) | Logística: boards, then a horizontal Kanban (lists, cards, status, labels, checklist, links, members, board files, reminders); signed-in members (Leitões refused), Mod/Admin/Owner manage; visitors get a 302 to sign in. `docs/react-logistics.md`. |
+| `/logistics`, `/logistics/{id}` | **React** (023) | Logística: boards, then a horizontal Kanban (lists, cards, status, labels, checklist, links, members, board files, reminders); signed-in members (Leitões too since 065; assignees tick checklists and change status), Mod/Admin/Owner manage; visitors get a 302 to sign in. `docs/react-logistics.md`. |
 | `/treasury`, `/treasury/reports/{id}`, `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{eventId}]` | **React** (024) | Tesouraria: annual reports (totals, activities, transactions, receipts, PDF, history), calotes, MBWay, Nerba orders; signed-in members (Caloiros and Leitões: own calotes only), visitors get a 302 to sign in; old `/finance`, `/calotes`, `/mbway`, `/nerba` URLs 302 here. `docs/react-treasury.md`. |
 | `/rehearsals`, `/rehearsals/{id}` | **React** (014) | Ensaios: presenças (attendance), Admin/Owner management; visitors get a 302 to sign in. `docs/react-rehearsals.md`. |
 | `/members/map` | **React** (032) | Mapa de membros: members by city (geocoding cache), without a city, cities waiting; signed-in members (Leitões included), visitors get a 302 to sign in. `/member/map` 302s here. `docs/react-member-area.md`. |
@@ -354,7 +354,8 @@ Signed-in members navigate with one menu (`portal/src/MemberShell.tsx`), not wit
   Instrumentos da Tuna, Questões, Logística, Tesouraria, Pedidos) · Owner
   (Utilizadores, Auditoria, Base de dados).
 - **Who sees what** (`MemberMenuAccess`, the retired Blazor navbar's rules): Documentação, Reuniões, Questões → Admin,
-  Owner, Mod or anyone not a Leitão; Logística, Tesouraria → Admin, Owner, Mod or Tuno; Pedidos, Emails,
+  Owner, Mod or anyone not a Leitão; Logística → every member (`logistics`, task 065: a Leitão's Gestão shows
+  Logística only); Tesouraria → Admin, Owner, Mod or Tuno (`treasury`); Pedidos, Emails,
   Notificações → Admin; the Owner group → Owner. The rest → every member.
 - **Never listed:** the removed modules - Jogos, Bets, MyTuno (026), Imagens and Conteúdo /
   Labels (029A). `MemberShellTests` pins the list, the gating and that every link opens a live route.

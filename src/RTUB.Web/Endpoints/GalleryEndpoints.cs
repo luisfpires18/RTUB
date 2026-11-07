@@ -44,7 +44,8 @@ public static class GalleryEndpoints
         manage.MapGet("/items/{id:int}/edit", async (int id, ClaimsPrincipal user, IGalleryManagementService gallery) =>
             ToResult(await gallery.GetForEditAsync(id, user)));
 
-        // Multipart: "file", "title", "date" (yyyy-MM-dd), "membersOnly" (true/false) and "personIds" (repeated).
+        // Multipart: "file", "title", "date" (yyyy-MM-dd), "membersOnly" (true/false), "personIds" (repeated) and, task 077,
+        // "eventId" (optional: the event it was taken at).
         var maxVideo = app.ServiceProvider.GetRequiredService<IConfiguration>().GetValue<long?>("GalleryMedia:MaxVideoSize") ?? 100 * 1024 * 1024;
         writes.MapPost("/", async (IFormCollection form, ClaimsPrincipal user, IGalleryManagementService gallery) =>
             {
@@ -57,7 +58,8 @@ public static class GalleryEndpoints
                 await using var content = file.OpenReadStream();
                 return ToResult(await gallery.UploadAsync(new GalleryUpload(content, file.FileName, file.ContentType ?? string.Empty, file.Length,
                     form["title"].ToString(), form["date"].ToString(), !string.Equals(form["membersOnly"], "false", StringComparison.OrdinalIgnoreCase),
-                    form["personIds"].Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!).ToList()), user),
+                    form["personIds"].Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!).ToList(),
+                    string.IsNullOrWhiteSpace(form["eventId"]) ? null : int.TryParse(form["eventId"], out var eventId) ? eventId : -1), user),
                     created => Results.Created($"/api/gallery/items/{created.Id}", created));
             })
             .WithMetadata(new RequestSizeLimitAttribute(maxVideo + 64 * 1024));
