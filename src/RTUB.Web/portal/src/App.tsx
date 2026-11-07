@@ -3,6 +3,8 @@ import { getAnnouncement, getCurrentUser, wasSignedIn, type Announcement, type C
 import { Dialog } from './Dialog';
 import { portal, social } from './content';
 import { Icon } from './icons';
+import { ReleaseNotesDialog } from './ReleaseNotes';
+import { releaseNotesApi, type ReleaseNote } from './releaseNotesApi';
 import { resetStartup, StartupModals } from './Startup';
 import { MemberCategory, MemberDrawer, MemberIdentity, MemberInbox, type Member } from './MemberShell';
 
@@ -352,14 +354,45 @@ function Footer() {
   );
 }
 
-/** The build the footer shows. It rides on /api/account/me (task 054), so a page load asks nothing extra for it. */
+/**
+ * The build the footer shows. It rides on /api/account/me (task 054), so a page load asks nothing extra for it. A
+ * signed-in member can reopen the running release's notes from here (task 083, #264): read on click only, and
+ * reading never touches the acknowledgement.
+ */
 function VersionTag() {
   const { user, failed } = useCurrentUser();
+  const [notes, setNotes] = useState<ReleaseNote[] | 'none' | 'failed'>();
 
   if (failed) return <p className="version">Versão indisponível</p>;
+  const member = user?.authenticated === true;
+  const open = async () => {
+    setNotes(undefined);
+    const o = await releaseNotesApi.state();
+    if (o.kind !== 'ok') return setNotes('failed');
+    setNotes(o.data.current ? [o.data.current] : 'none');
+  };
   return (
     <p className="version" aria-busy={!user}>
       {user ? `Versão ${user.version}` : 'A obter versão…'}
+      {member && (
+        <>
+          {' · '}
+          <button type="button" className="version__notes" onClick={open}>
+            Ver novidades da versão
+          </button>
+        </>
+      )}
+      {Array.isArray(notes) && <ReleaseNotesDialog notes={notes} onClose={() => setNotes(undefined)} />}
+      {notes === 'none' && (
+        <span role="status" className="version__hint">
+          Esta versão não tem novidades para mostrar.
+        </span>
+      )}
+      {notes === 'failed' && (
+        <span role="status" className="version__hint">
+          Não foi possível ver as novidades.
+        </span>
+      )}
     </p>
   );
 }

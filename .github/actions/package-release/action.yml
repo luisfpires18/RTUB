@@ -87,6 +87,9 @@ runs:
         zip="$out/rtub-$VERSION.zip"
         bash scripts/release.sh package "$RUNNER_TEMP/publish" "$zip"
         if [ "$CHANNEL" = production ]; then
+          # Task 083 (#264): the zip carries exactly this version's notes (RTUB.csproj copies releases/).
+          unzip -l "$zip" | grep -q " releases/$VERSION.json$" ||
+            { echo "::error::rtub-$VERSION.zip does not contain releases/$VERSION.json"; exit 1; }
           bash scripts/release.sh manifest "$zip" "$VERSION" "$GITHUB_SHA" "$RUN_ID" \
             src/RTUB.Web/Migrations "$out/release.json"
         fi

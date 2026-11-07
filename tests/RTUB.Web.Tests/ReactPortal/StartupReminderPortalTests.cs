@@ -28,7 +28,7 @@ public class StartupReminderPortalTests
         startup.Should().Contain("'standalone' in navigator ?", "iPhone / iPad install steps only where that route exists");
         startup.Should().NotContain("requestPermission", "only turnOn, from the Ativar click, asks the browser");
         startup.Should().Contain("const result = await turnOn(state.status.vapidPublicKey);");
-        startup.Should().Contain("const STEPS: Step[] = [PushReminder];");
+        startup.Should().Contain("const STEPS: Step[] = [ReleaseNotes, PushReminder];", "release notes (083) first, then the reminder");
         startup.Should().Contain("Ativa as notificações").And.Contain("A app RTUB é agora a principal fonte de informação da tuna.")
             .And.Contain("Recebe os avisos de atuações, ensaios e ações pendentes.").And.Contain("Ativar notificações").And.Contain("Agora não");
         startup.Should().Contain("if (account.kind !== 'ok' || device.kind === 'error') return onDone();", "unknown is not off");

@@ -6,10 +6,12 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-07 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
-**Task 083 = Release notes modal** (issue #264; `feat/083/release-notes`, started 2026-11-07, nothing built yet).
-Versioned pt-PT patch notes bundled in the immutable release artifact (`releases/<VERSION>.json` or equivalent), CI
-validation before packaging, once-per-member-per-version server receipt, first step of the `Startup.tsx` queue, manual
-"Ver novidades da versão" reopen. Read the issue first; decide the launch baseline (no historical flood).
+**Task 083 = Release notes modal** (issue #264; `feat/083/release-notes`). `releases/<VERSION>.json` (pt-PT, plain
+text) bundled by `RTUB.csproj` into the artifact; `release.sh notes-check` gates the PR into master, Deploy • PROD and
+the package. `ReleaseNotesService` + `GET/POST /api/releases/notes[/ack]` (members; receipt = `PendingActionDismissals`
+kind `release.notes`, source = version, no migration); "Nova atualização" first in the `Startup.tsx` queue; footer
+"Ver novidades da versão". Baseline = `releases/2.3.4.json` (first file). **Every release now needs its notes file**
+(docs/release-and-rollback.md → Release notes). Not checked: real iPhone / Android; DEV with `ShowPrerelease`.
 
 **Task 082 (#263)**: PR #283 merged into `dev` 2026-11-07, not released. Migration `AddPushPreferences` runs on the
 next DEV / PROD deploy.

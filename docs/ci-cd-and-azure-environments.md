@@ -127,6 +127,15 @@ rsync fails with `Invalid argument (22)`. Python's `zipfile` also hides the prob
 on Windows (it rewrites `os.sep`), so the guard reads `orig_filename`. `release.sh package` writes
 with `zipfile`, whose rewrite is correct on write.
 
+### Release notes in the package (task 083)
+
+`releases/<VERSION>.json` (repository root) is copied by `RTUB.csproj` into the publish output as
+`releases/`, so it is inside the one zip and the running build serves exactly its own notes
+(`GET /api/releases/notes`, members only). `scripts/release.sh notes-check` validates the file in
+the PR into master and in Deploy • PROD before the build; the package step refuses a production zip
+without it. DEV builds hide the notes unless `ReleaseNotes__ShowPrerelease=true` (App Setting).
+Rules and content guidance: `docs/release-and-rollback.md` → *Release notes*.
+
 ## Run from package
 
 `WEBSITE_RUN_FROM_PACKAGE=1` is **supported and proven** for this .NET app on App Service Linux.
