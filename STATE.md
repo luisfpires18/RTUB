@@ -6,6 +6,14 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-07 (2.3.0 released to PROD; `dev` on 2.3.4)_
 
 ## Phase
+**Task 083 = Release notes modal** (issue #264; `feat/083/release-notes`, started 2026-11-07, nothing built yet).
+Versioned pt-PT patch notes bundled in the immutable release artifact (`releases/<VERSION>.json` or equivalent), CI
+validation before packaging, once-per-member-per-version server receipt, first step of the `Startup.tsx` queue, manual
+"Ver novidades da versão" reopen. Read the issue first; decide the launch baseline (no historical flood).
+
+**Task 082 (#263)**: PR #283 merged into `dev` 2026-11-07, not released. Migration `AddPushPreferences` runs on the
+next DEV / PROD deploy.
+
 **Task 082 = Push preferences on /profile** (issue #263; `feat/082/push-preferences`). Account-wide "Escolher o que
 receber" dialog in `/profile` → Notificações push: one checkbox per `PushPreferenceCatalog` key (server is the source of
 keys, pt-PT labels, groups), `pending-actions.daily` checked + locked (Obrigatório; `PUT` refuses it), every other key
