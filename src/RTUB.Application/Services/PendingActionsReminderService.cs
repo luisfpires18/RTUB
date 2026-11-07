@@ -22,7 +22,8 @@ namespace RTUB.Application.Services;
 /// (<see cref="ClaimKind"/>, period = the Portugal day) under that table's unique index, so restarts, a second instance
 /// or a catch-up run never send twice. The claim comes first, so delivery is at most once: a push service failure after
 /// the claim is logged and not retried. A count that fails is not "nothing pending": the member is retried
-/// (<see cref="Attempts"/> in all) after the others, then logged as failed, with no claim and no push.
+/// (<see cref="Attempts"/> in all) after the others, then logged as failed, with no claim and no push. The same for a
+/// claim that cannot be stored: only an existing claim row is "already sent"; any other write error is a failure.
 /// </summary>
 public sealed class PendingActionsReminderService : BackgroundService
 {
@@ -134,7 +135,20 @@ public sealed class PendingActionsReminderService : BackgroundService
                     continue;
                 }
 
-                if (!await ClaimAsync(contexts, user.Id, period, cancellationToken))
+                bool claimedNow;
+                try
+                {
+                    claimedNow = await ClaimAsync(contexts, user.Id, period, cancellationToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Not a duplicate: the claim could not be stored. No push without a claim; retried like a failed count.
+                    _logger.LogWarning(ex, "Pending actions reminder: claiming {User}'s day failed (attempt {Attempt} of {Attempts})", user.Name, attempt, Attempts);
+                    retry.Add(user);
+                    continue;
+                }
+
+                if (!claimedNow)
                 {
                     already++;
                     continue;
@@ -159,13 +173,16 @@ public sealed class PendingActionsReminderService : BackgroundService
         foreach (var user in queue)
         {
             failed++;
-            _logger.LogError("Pending actions reminder: {User} could not be counted after {Attempts} attempts; nothing sent", user.Name, Attempts);
+            _logger.LogError("Pending actions reminder: {User} could not be counted or claimed after {Attempts} attempts; nothing sent", user.Name, Attempts);
         }
 
         return new RunSummary(users.Count, sent, already, failed);
     }
 
-    /// <summary>The member's day, or false when another run (restart, second instance) holds it already.</summary>
+    /// <summary>
+    /// The member's day, or false when another run (restart, second instance) holds it already. Only a save that fails
+    /// while the claim row really exists counts as "already"; any other failure throws (it is not a duplicate).
+    /// </summary>
     private async Task<bool> ClaimAsync(IDbContextFactory<ApplicationDbContext> contexts, string userId, string period, CancellationToken cancellationToken)
     {
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
@@ -180,7 +197,14 @@ public sealed class PendingActionsReminderService : BackgroundService
         }
         catch (DbUpdateException)
         {
-            return false;
+            await using var check = await contexts.CreateDbContextAsync(cancellationToken);
+            if (await check.PendingActionDismissals.AsNoTracking().AnyAsync(d =>
+                    d.UserId == userId && d.ActionKind == ClaimKind && d.SourceKey == "" && d.Period == period, cancellationToken))
+            {
+                return false;
+            }
+
+            throw;
         }
     }
 

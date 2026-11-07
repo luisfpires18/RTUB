@@ -254,7 +254,9 @@ time, `:CatchUpHours` = 6; Azure overrides `PendingActionsReminder__*`).
   the claim is logged and not retried that day (the push service may also have delivered before failing, so a retry
   could duplicate).
 - **Failures**: a count that throws is not "empty" and not "pending": that member is retried after the others (3 attempts
-  in all), then logged as an error with no claim and no push; one member's failure never stops the run.
+  in all), then logged as an error with no claim and no push; one member's failure never stops the run. A claim that
+  cannot be stored is the same: only an existing claim row means "already sent"; any other write error is retried, then
+  logged as a failure, and nothing is sent without a claim.
 - **Schedule**: daily at the configured Portugal time (DST-safe, `PortugalTime`). Started late (restart, cold start) it
   still runs that day within `CatchUpHours`; later than that the day is skipped. Never a backlog of earlier days.
 - **Deep link**: `/pending-actions` is relative and same-origin (058 rule); a signed-out tap goes through `/login` with the

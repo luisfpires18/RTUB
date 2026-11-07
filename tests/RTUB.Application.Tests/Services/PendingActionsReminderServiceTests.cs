@@ -33,10 +33,13 @@ public class PendingActionsReminderServiceTests
         _pending.Setup(p => p.CountPendingAsync(It.IsAny<string>())).ReturnsAsync((string id) => _counts.GetValueOrDefault(id));
     }
 
+    /// <summary>How many claim saves fail with a write error that is not a duplicate (e.g. the database unavailable).</summary>
+    private int _claimFailures;
+
     private PendingActionsReminderService Service(DateTimeOffset now, int catchUp = 6)
     {
         var services = new ServiceCollection();
-        services.AddSingleton<IDbContextFactory<ApplicationDbContext>>(new Contexts(_db));
+        services.AddSingleton<IDbContextFactory<ApplicationDbContext>>(new Contexts(_db, () => _claimFailures-- > 0));
         services.AddSingleton(_pending.Object);
         services.AddSingleton(_push.Object);
         services.AddSingleton<IPushNotificationFactory, PushNotificationFactory>();
@@ -124,6 +127,26 @@ public class PendingActionsReminderServiceTests
         _push.Verify(p => p.SendToUserAsync(busy, It.IsAny<SendPushNotificationDto>()), Times.Once);
     }
 
+    [Fact]
+    public async Task AClaimThatCannotBeStored_IsNotADuplicate_ItIsRetried_ThenAFailure_AndNothingIsSentWithoutAClaim()
+    {
+        var busy = AddUser();
+        _counts[busy] = 1;
+
+        _claimFailures = 1; // fails once, then the retry stores it
+        var recovered = await Service(Evening).RunAsync(Day);
+        recovered.Should().Be(new PendingActionsReminderService.RunSummary(1, 1, 0, 0));
+
+        var other = AddUser();
+        _counts[other] = 1;
+        _claimFailures = int.MaxValue; // never stored
+        var broken = await Service(Evening).RunAsync(Day);
+
+        broken.Should().Be(new PendingActionsReminderService.RunSummary(2, 0, 1, 1), "busy was already sent; other failed, not 'already sent'");
+        _push.Verify(p => p.SendToUserAsync(other, It.IsAny<SendPushNotificationDto>()), Times.Never);
+        Claims().Should().NotContain(other);
+    }
+
     [Theory]
     [InlineData("2026-11-06T17:59:00Z", null)] // before 18:00
     [InlineData("2026-11-06T18:00:00Z", "2026-11-06")]
@@ -178,8 +201,19 @@ public class PendingActionsReminderServiceTests
         public override DateTimeOffset GetUtcNow() => now;
     }
 
-    private sealed class Contexts(DatabaseFixture db) : IDbContextFactory<ApplicationDbContext>
+    private sealed class Contexts(DatabaseFixture db, Func<bool> failClaim) : IDbContextFactory<ApplicationDbContext>
     {
-        public ApplicationDbContext CreateDbContext() => db.CreateContext();
+        public ApplicationDbContext CreateDbContext()
+        {
+            var context = db.CreateContext();
+            context.SavingChanges += (_, _) =>
+            {
+                if (context.ChangeTracker.Entries<PendingActionDismissal>().Any(e => e.State == EntityState.Added) && failClaim())
+                {
+                    throw new DbUpdateException("disk I/O error");
+                }
+            };
+            return context;
+        }
     }
 }
