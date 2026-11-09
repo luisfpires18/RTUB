@@ -6,6 +6,14 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-07 (2.3.4 released to PROD; `dev` on 2.3.5)_
 
 ## Phase
+**Task 094 = Tocar junto** (`feat/094/music-play-along`, PR open into `dev`). `/music/play/{songId}` (members only):
+a song's chords arrive on a string lane in time with its recording, lyric line underneath, guitarra / bandolim,
+60 / 80 / 100 % speed, section loop. Chart = validated JSON per song in the new `SongPlayAlongs` table (migration
+`AddSongPlayAlongs`, additive), `GET/PUT/DELETE /api/music/songs/{id}/playalong`, uploaded in the song edit form
+(Mod+). Charts are made offline with `tools/playalong` and reviewed by ear. Prototype song: album 4, "É Esta a
+Tuna" (chart not in the repo: upload it on DEV / PROD). Not checked: real R2 audio, real phones, the timing of the
+prototype chart by ear, bandolim chord shapes. Detail: `docs/react-music.md` → *Tocar junto*.
+
 **Release 2.3.4** (2026-11-07, PR #287, tasks 065–085): the first release with member notes (`releases/2.3.4.json`).
 `dev` is on 2.3.5 with a one-line draft in `releases/2.3.5.json` — rewrite it before the next release. Task 085
 (PR #286): login lands on `/events`, dialog selects themed. Task 083 (PR #284) and 082 (PR #283) merged and released.
@@ -554,6 +562,7 @@ at "Refuse without a release archive" or at the Azure login, before anything is 
 migration: production's newest migration is already dev's newest.
 
 ## Deferred - recorded, not fixed
+Raised by 094: the integration test hosts run `PendingActionsReminderService` (enabled by default, nothing turns it off in tests), so a full `dotnet test` between 18:00 and 24:00 Portugal time can fail 3 `NewsApiTests` ("Push.Invocations to be empty"; seen 2026-11-09 23:35-23:45, twice; the class passes alone). Wall-clock dependent; fix = disable the worker in the test factories.
 Raised by 068 (UI text names no system roles): the server 403 title in `NewsEndpoints.cs` ("Só Admin ou Owner gerem as Novidades.") still names roles; the portal shows its own message instead, so it only reaches API callers. Not in the 068 scope.
 Raised by the 058 push audit (`docs/push-notifications.md` → *Does it send?*): "Presença recusada" never sends (`CancelAttendanceAsync` has no caller); leaderboard comment / like push failures are swallowed with no log; discussion pushes stop at the event start (UTC compare).
 `AspNetUsers.ExperiencePoints` / `Level` have no writer (their only one, `UpdateUserRankingAsync`, never ran and was removed in 058); the leaderboard computes XP per request. Candidate for the DB cleanup list.

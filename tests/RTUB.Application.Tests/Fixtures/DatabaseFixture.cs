@@ -61,6 +61,7 @@ public class DatabaseFixture : IDisposable
         // Note: Not cleaning Users table to allow shared test user fixtures
         context.EventRepertoires.RemoveRange(context.EventRepertoires);
         context.SongYouTubeUrls.RemoveRange(context.SongYouTubeUrls);
+        context.SongPlayAlongs.RemoveRange(context.SongPlayAlongs);
         context.Songs.RemoveRange(context.Songs);
         context.Albums.RemoveRange(context.Albums);
         context.RehearsalAttendances.RemoveRange(context.RehearsalAttendances);

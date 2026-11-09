@@ -51,6 +51,14 @@ public interface IMusicService
 
     Task<MusicResult<bool>> DeleteSongAsync(int songId, ClaimsPrincipal user);
 
+    /// <summary>The song's play-along chart, for signed-in members who can see its album (task 094).</summary>
+    Task<MusicResult<MusicPlayAlongDto>> GetPlayAlongAsync(int songId, ClaimsPrincipal user);
+
+    /// <summary>Stores or replaces the chart after validating it; same rule as editing the song.</summary>
+    Task<MusicResult<bool>> SavePlayAlongAsync(int songId, PlayAlongChartDto? chart, ClaimsPrincipal user);
+
+    Task<MusicResult<bool>> DeletePlayAlongAsync(int songId, ClaimsPrincipal user);
+
     Task<MusicResult<MusicVideoDto>> UploadVideoAsync(int songId, MusicVideoUpload upload, ClaimsPrincipal user);
 
     Task<MusicResult<bool>> DeleteVideoAsync(int videoId, ClaimsPrincipal user);

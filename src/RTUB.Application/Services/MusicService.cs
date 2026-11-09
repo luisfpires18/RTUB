@@ -101,6 +101,7 @@ public sealed class MusicService : IMusicService
                 YouTube = s.YouTubeUrls.OrderBy(y => y.Id).Select(y => y.Url).ToList(),
                 Plays = s.PlayCounts.Count(),
                 Videos = s.Videos.Count(),
+                PlayAlong = ctx.SongPlayAlongs.Any(p => p.SongId == s.Id),
             })
             .ToListAsync();
 
@@ -108,7 +109,8 @@ public sealed class MusicService : IMusicService
         var dto = songs
             .OrderBy(s => s.TrackNumber is null).ThenBy(s => s.TrackNumber).ThenBy(s => s.Id)
             .Select(s => new MusicSongDto(s.Id, s.Title, s.TrackNumber, Blank(s.LyricAuthor), Blank(s.MusicAuthor),
-                Blank(s.Adaptation), s.HasMusic, s.Plays, Links(s.SpotifyUrl, s.YouTube), member ? s.Videos : null))
+                Blank(s.Adaptation), s.HasMusic, s.Plays, Links(s.SpotifyUrl, s.YouTube), member ? s.Videos : null,
+                member && s.PlayAlong))
             .ToList();
 
         return MusicResult<MusicAlbumDetailDto>.Ok(new MusicAlbumDetailDto(CleanAlbum(album), dto, Permissions(user)));
@@ -448,7 +450,8 @@ public sealed class MusicService : IMusicService
         var song = await ctx.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstAsync(s => s.Id == songId);
         return MusicResult<MusicSongEditDto>.Ok(new MusicSongEditDto(song.Id, song.Title, song.TrackNumber, song.LyricAuthor,
             song.MusicAuthor, song.Adaptation, song.SpotifyUrl, song.HasMusic,
-            song.YouTubeUrls.OrderBy(y => y.Id).Select(y => y.Url).ToList(), song.Lyrics));
+            song.YouTubeUrls.OrderBy(y => y.Id).Select(y => y.Url).ToList(), song.Lyrics,
+            await ctx.SongPlayAlongs.AnyAsync(p => p.SongId == songId)));
     }
 
     public async Task<MusicResult<int>> CreateSongAsync(int albumId, MusicSongInput input, ClaimsPrincipal user)
@@ -549,6 +552,84 @@ public sealed class MusicService : IMusicService
         }
 
         await _songs.DeleteSongAsync(songId);
+        return MusicResult<bool>.Ok(true);
+    }
+
+    // ---------- tocar junto (094) ----------
+
+    public async Task<MusicResult<MusicPlayAlongDto>> GetPlayAlongAsync(int songId, ClaimsPrincipal user)
+    {
+        if (!MusicAuthorization.IsMember(user))
+        {
+            return MusicResult<MusicPlayAlongDto>.Fail(MusicResultStatus.SignInRequired);
+        }
+
+        var (status, song) = await FindSongAsync(songId, user);
+        if (status != MusicResultStatus.Ok)
+        {
+            return MusicResult<MusicPlayAlongDto>.Fail(status);
+        }
+
+        await using var ctx = await _contexts.CreateDbContextAsync();
+        var json = await ctx.SongPlayAlongs.AsNoTracking().Where(p => p.SongId == songId).Select(p => p.Chart).FirstOrDefaultAsync();
+        var chart = json is null ? null : PlayAlongChart.Deserialize(json);
+        return chart is null
+            ? MusicResult<MusicPlayAlongDto>.Fail(MusicResultStatus.NotFound)
+            : MusicResult<MusicPlayAlongDto>.Ok(new MusicPlayAlongDto(song!.Id, song.Title, song.AlbumId, song.AlbumTitle, song.HasMusic, chart));
+    }
+
+    public async Task<MusicResult<bool>> SavePlayAlongAsync(int songId, PlayAlongChartDto? chart, ClaimsPrincipal user)
+    {
+        if (!MusicAuthorization.CanManage(user))
+        {
+            return MusicResult<bool>.Fail(MusicResultStatus.Forbidden);
+        }
+
+        var (status, _) = await FindSongAsync(songId, user);
+        if (status != MusicResultStatus.Ok)
+        {
+            return MusicResult<bool>.Fail(status);
+        }
+
+        if (PlayAlongChart.Validate(chart) is { } problem)
+        {
+            return MusicResult<bool>.Invalid(new Dictionary<string, string[]> { ["chart"] = new[] { problem } });
+        }
+
+        await using var ctx = await _contexts.CreateDbContextAsync();
+        var row = await ctx.SongPlayAlongs.FirstOrDefaultAsync(p => p.SongId == songId);
+        if (row is null)
+        {
+            row = new SongPlayAlong { SongId = songId };
+            ctx.SongPlayAlongs.Add(row);
+        }
+
+        row.Chart = PlayAlongChart.Serialize(chart!);
+        await ctx.SaveChangesAsync();
+        return MusicResult<bool>.Ok(true);
+    }
+
+    public async Task<MusicResult<bool>> DeletePlayAlongAsync(int songId, ClaimsPrincipal user)
+    {
+        if (!MusicAuthorization.CanManage(user))
+        {
+            return MusicResult<bool>.Fail(MusicResultStatus.Forbidden);
+        }
+
+        var (status, _) = await FindSongAsync(songId, user);
+        if (status != MusicResultStatus.Ok)
+        {
+            return MusicResult<bool>.Fail(status);
+        }
+
+        await using var ctx = await _contexts.CreateDbContextAsync();
+        var row = await ctx.SongPlayAlongs.FirstOrDefaultAsync(p => p.SongId == songId);
+        if (row is not null)
+        {
+            ctx.SongPlayAlongs.Remove(row);
+            await ctx.SaveChangesAsync();
+        }
+
         return MusicResult<bool>.Ok(true);
     }
 

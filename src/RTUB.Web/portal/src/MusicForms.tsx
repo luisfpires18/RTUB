@@ -275,6 +275,7 @@ export function SongForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [banner, setBanner] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [hasPlayAlong, setHasPlayAlong] = useState(false);
 
   useEffect(() => {
     if (songId === null) return;
@@ -284,6 +285,7 @@ export function SongForm({
         return;
       }
       const s = r.data;
+      setHasPlayAlong(s.hasPlayAlong);
       setForm({
         title: s.title,
         trackNumber: s.trackNumber,
@@ -426,9 +428,89 @@ export function SongForm({
               onChange={(e) => set('lyrics', e.target.value)}
             />
           </Field>
+
+          {songId !== null && <PlayAlongField songId={songId} has={hasPlayAlong} onChange={setHasPlayAlong} />}
         </form>
       )}
     </Dialog>
+  );
+}
+
+/**
+ * The song's play-along chart (task 094): a .json file made offline with tools/playalong. Sending and
+ * removing act at once, apart from "Guardar"; the server validates the chart.
+ */
+function PlayAlongField({ songId, has, onChange }: { songId: number; has: boolean; onChange: (has: boolean) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+
+  const finish = (r: Awaited<ReturnType<typeof musicApi.savePlayAlong>>, nowHas: boolean, done: string) => {
+    setBusy(false);
+    if (r.kind === 'ok') {
+      onChange(nowHas);
+      setMessage({ text: done, error: false });
+    } else if (r.kind === 'invalid') {
+      setMessage({ text: r.errors.chart ?? 'A pauta não é válida.', error: true });
+    } else {
+      setMessage({ text: failedMessage(r.kind === 'failed' ? r.title : undefined), error: true });
+    }
+  };
+
+  const send = async (file: File | undefined) => {
+    if (!file) return;
+    let chart: unknown;
+    try {
+      chart = JSON.parse(await file.text());
+    } catch {
+      setMessage({ text: 'O ficheiro não é JSON.', error: true });
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    finish(await musicApi.savePlayAlong(songId, chart), true, 'Pauta guardada.');
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    setMessage(null);
+    finish(await musicApi.deletePlayAlong(songId), false, 'Pauta removida.');
+  };
+
+  return (
+    <fieldset className="urls playalong-upload">
+      <legend>Tocar junto</legend>
+      <p className="form__hint">
+        {has ? 'Esta música tem pauta de tocar junto.' : 'Esta música ainda não tem pauta de tocar junto.'} A pauta é um
+        ficheiro .json feito a partir da cifra e da gravação.
+      </p>
+      <div className="playalong-upload__actions">
+        <label className="btn btn--ghost btn--sm">
+          <Icon name="upload" />
+          {has ? 'Substituir pauta' : 'Enviar pauta'}
+          <input
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            disabled={busy}
+            onChange={(e) => {
+              void send(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
+        </label>
+        {has && (
+          <button type="button" className="btn btn--ghost btn--sm" onClick={remove} disabled={busy}>
+            <Icon name="trash" />
+            Remover pauta
+          </button>
+        )}
+      </div>
+      {message && (
+        <p className={message.error ? 'form__error' : 'form__hint'} role={message.error ? 'alert' : 'status'}>
+          {message.text}
+        </p>
+      )}
+    </fieldset>
   );
 }
 

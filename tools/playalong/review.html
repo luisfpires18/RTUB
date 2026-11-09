@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tocar junto</title>
+<style>
+  :root {
+    --bg: #14110f; --panel: #1f1a17; --line: #3a302a; --text: #f3ece4; --dim: #9c8f83;
+    --accent: #d9628f; --accent-soft: #5a2a3d; --now: #f2c14e;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.4 "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+  h1 { font: 600 1.5rem Georgia, serif; margin: 0; }
+  .meta { color: var(--dim); font-size: .85rem; font-variant-numeric: tabular-nums; }
+
+  .lane { position: relative; height: 96px; margin-top: 14px; overflow: hidden;
+          background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .track { position: absolute; inset: 0 auto 0 0; will-change: transform; }
+  .chip { position: absolute; top: 22px; height: 52px; padding: 0 10px; overflow: hidden;
+          display: flex; align-items: center; white-space: nowrap; border-radius: 8px;
+          background: var(--accent-soft); border-left: 3px solid var(--accent);
+          font: 700 1.25rem Georgia, serif; }
+  .chip.on { background: var(--accent); color: #1a0d13; }
+  .tick { position: absolute; top: 0; width: 1px; height: 12px; background: var(--line); }
+  .now { position: absolute; top: 0; bottom: 0; left: 22%; width: 2px; background: var(--now); }
+
+  .stage { display: grid; grid-template-columns: 1fr auto; gap: 16px; margin-top: 16px; }
+  .lyrics { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+            padding: 14px 18px; min-height: 172px; }
+  .section-name { color: var(--accent); font-size: .8rem; letter-spacing: .08em;
+                  text-transform: uppercase; }
+  .line { font-size: 1.45rem; line-height: 2.6; margin: 0; }
+  .line.next { font-size: 1.05rem; color: var(--dim); }
+  .w { position: relative; white-space: nowrap; }
+  .w.sung { color: var(--now); }
+  .w u { text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  .w b { position: absolute; bottom: 1.25em; font: 700 .62em Georgia, serif; color: var(--accent); }
+  .solo { display: inline-block; margin-right: 14px; font: 700 1em Georgia, serif;
+          color: var(--accent); }
+
+  .shapes { display: flex; gap: 10px; }
+  .shape { width: 132px; padding: 8px; text-align: center; background: var(--panel);
+           border: 1px solid var(--line); border-radius: 10px; }
+  .shape.then { opacity: .55; }
+  .shape small { display: block; color: var(--dim); font-size: .7rem; text-transform: uppercase;
+                 letter-spacing: .08em; }
+  .shape strong { font: 700 1.5rem Georgia, serif; }
+  .shape svg { width: 100%; height: auto; }
+
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
+  button, select, input[type=number] { font: inherit; color: var(--text); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-height: 40px; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: #1a0d13; }
+  :focus-visible { outline: 2px solid var(--now); outline-offset: 2px; }
+  #play { min-width: 104px; font-weight: 700; }
+  input[type=range] { flex: 1 1 220px; accent-color: var(--accent); }
+  input[type=number] { width: 84px; }
+  label { color: var(--dim); font-size: .85rem; display: flex; align-items: center; gap: 6px; }
+  .sections { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .sections button { padding: 6px 10px; min-height: 36px; font-size: .85rem; }
+
+  @media (max-width: 720px) {
+    .stage { grid-template-columns: 1fr; }
+    .line { font-size: 1.15rem; }
+    .shape { width: 50%; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title"></h1>
+    <span class="meta" id="meta"></span>
+  </header>
+
+  <div class="lane" aria-hidden="true"><div class="track" id="track"></div><div class="now"></div></div>
+
+  <div class="stage">
+    <div class="lyrics" aria-live="off">
+      <div class="section-name" id="sectionName"></div>
+      <p class="line" id="lineNow"></p>
+      <p class="line next" id="lineNext"></p>
+    </div>
+    <div class="shapes">
+      <div class="shape"><small>Agora</small><strong id="chordNow">–</strong><div id="shapeNow"></div></div>
+      <div class="shape then"><small>A seguir</small><strong id="chordNext">–</strong><div id="shapeNext"></div></div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button id="play">▶ Tocar</button>
+    <input id="seek" type="range" min="0" step="0.1" value="0" aria-label="Posição na música">
+    <span class="meta" id="clock">0:00</span>
+  </div>
+  <div class="bar">
+    <span class="meta">Andamento</span>
+    <button class="rate" data-rate="0.6">60%</button>
+    <button class="rate" data-rate="0.8">80%</button>
+    <button class="rate" data-rate="1" aria-pressed="true">100%</button>
+    <button id="loop" aria-pressed="false">Repetir secção</button>
+    <label>Instrumento
+      <select id="instrument"><option value="guitar">Guitarra</option><option value="bandolim">Bandolim</option></select>
+    </label>
+    <label title="Positivo: acordes mais cedo">Ajuste (s)
+      <input id="offset" type="number" step="0.05" value="0">
+    </label>
+  </div>
+  <div class="sections" id="sections"></div>
+  <audio id="audio" preload="auto"></audio>
+</main>
+
+<script src="data.js"></script>
+<script>
+const song = window.SONG;
+const PX = 90;  // lane pixels per second
+// Frets low string -> high string; -1 = string not played.
+const SHAPES = {
+  guitar: { F: [1,3,3,2,1,1], C: [-1,3,2,0,1,0], Dm: [-1,-1,0,2,3,1], A: [-1,0,2,2,2,0],
+            A7: [-1,0,2,0,2,0], Bb: [-1,1,3,3,3,1], F7: [1,3,1,2,1,1], E: [0,2,2,1,0,0] },
+  bandolim: { F: [5,3,0,1], C: [0,2,3,0], Dm: [2,0,0,1], A: [2,2,4,5],
+              A7: [2,2,4,3], Bb: [3,0,1,1], F7: [5,1,0,1], E: [1,2,2,0] },
+};
+const $ = id => document.getElementById(id);
+const audio = $('audio');
+audio.src = song.audio;
+
+const lines = song.sections.flatMap(s => s.lines.map(line => ({ ...line, section: s })));
+const chords = lines.flatMap(line => line.chords).sort((a, b) => a.time - b.time);
+let offset = 0, loopOn = false, loopSection = null, shownLine = null, shownChord = -2;
+
+$('title').textContent = song.title;
+$('meta').textContent = `${Math.round(song.bpm)} bpm · ${chords.length} acordes`;
+$('seek').max = song.duration;
+
+// Lane: one chip per chord, as wide as the chord lasts.
+const track = $('track');
+song.beats.forEach(t => {
+  const tick = document.createElement('div');
+  tick.className = 'tick'; tick.style.left = t * PX + 'px'; track.append(tick);
+});
+const chips = chords.map((chord, i) => {
+  const chip = document.createElement('div');
+  const end = i + 1 < chords.length ? chords[i + 1].time : song.duration;
+  chip.className = 'chip'; chip.textContent = chord.pt;
+  chip.style.left = chord.time * PX + 'px';
+  chip.style.width = Math.max((end - chord.time) * PX - 3, 14) + 'px';
+  track.append(chip);
+  return chip;
+});
+
+song.sections.forEach(section => {
+  const button = document.createElement('button');
+  button.textContent = section.name;
+  button.onclick = () => { loopSection = section; audio.currentTime = Math.max(section.start - 1, 0); };
+  section.button = button;
+  $('sections').append(button);
+});
+
+function diagram(name) {
+  const frets = SHAPES[$('instrument').value][name];
+  if (!frets) return '';
+  const strings = frets.length, played = frets.filter(f => f > 0);
+  const base = Math.max(...played, 0) > 5 ? Math.min(...played) : 1;
+  const gap = 100 / (strings - 1), x = s => 14 + s * gap, y = f => 22 + (f - base + .5) * 19;
+  let svg = `<svg viewBox="0 0 128 132" role="img" aria-label="Posição de ${name}">`;
+  for (let s = 0; s < strings; s++) svg += `<line x1="${x(s)}" y1="22" x2="${x(s)}" y2="117" stroke="#9c8f83"/>`;
+  for (let f = 0; f <= 5; f++) svg += `<line x1="14" y1="${22 + f * 19}" x2="114" y2="${22 + f * 19}" stroke="#9c8f83" stroke-width="${f === 0 && base === 1 ? 4 : 1}"/>`;
+  if (base > 1) svg += `<text x="122" y="38" fill="#9c8f83" font-size="11" text-anchor="middle">${base}</text>`;
+  frets.forEach((f, s) => {
+    if (f > 0) svg += `<circle cx="${x(s)}" cy="${y(f)}" r="7" fill="#d9628f"/>`;
+    else svg += `<text x="${x(s)}" y="14" fill="#f3ece4" font-size="12" text-anchor="middle">${f ? '×' : '○'}</text>`;
+  });
+  return svg + '</svg>';
+}
+
+function lineHtml(line) {
+  if (!line) return '';
+  if (!line.words.length) return line.chords.map(c => `<span class="solo">${c.pt}</span>`).join('');
+  return line.words.map((word, i) => {
+    const marks = line.chords.filter(c => c.word === i);
+    let inner = word;
+    if (marks.length) {
+      const at = marks[0].char;
+      inner = `<b>${marks.map(c => c.pt).join(' ')}</b>${word.slice(0, at)}<u>${word.slice(at)}</u>`;
+    }
+    return `<span class="w" data-t="${line.wordTimes[i]}">${inner}</span>`;
+  }).join(' ');
+}
+
+function render() {
+  const t = audio.currentTime + offset;
+  track.style.transform = `translateX(${$('track').parentElement.clientWidth * .22 - t * PX}px)`;
+  $('seek').value = audio.currentTime;
+  $('clock').textContent = `${Math.floor(audio.currentTime / 60)}:${String(Math.floor(audio.currentTime % 60)).padStart(2, '0')}`;
+
+  let index = lines.findIndex(line => t < line.end);
+  if (index < 0) index = lines.length - 1;
+  const line = lines[index];
+  if (line !== shownLine) {
+    shownLine = line;
+    $('sectionName').textContent = line.section.name;
+    $('lineNow').innerHTML = lineHtml(line);
+    $('lineNext').innerHTML = lineHtml(lines[index + 1]);
+    song.sections.forEach(s => s.button.setAttribute('aria-pressed', s === line.section));
+  }
+  $('lineNow').querySelectorAll('.w').forEach(w => w.classList.toggle('sung', +w.dataset.t <= t));
+
+  let current = -1;
+  while (current + 1 < chords.length && chords[current + 1].time <= t) current++;
+  if (current !== shownChord) {
+    shownChord = current;
+    chips.forEach((chip, i) => chip.classList.toggle('on', i === current));
+    const now = chords[current], next = chords[current + 1];
+    $('chordNow').textContent = now ? now.pt : '–';
+    $('chordNext').textContent = next ? next.pt : '–';
+    $('shapeNow').innerHTML = now ? diagram(now.en) : '';
+    $('shapeNext').innerHTML = next ? diagram(next.en) : '';
+  }
+
+  if (loopOn && !audio.paused && (t >= loopSection.end || t < loopSection.start - 1.5)) {
+    audio.currentTime = Math.max(loopSection.start - 1, 0);
+  }
+}
+(function frame() { render(); requestAnimationFrame(frame); })();
+
+$('play').onclick = () => audio.paused ? audio.play() : audio.pause();
+audio.onplay = audio.onpause = () => $('play').textContent = audio.paused ? '▶ Tocar' : '❚❚ Pausa';
+$('seek').oninput = e => audio.currentTime = +e.target.value;
+$('offset').oninput = e => offset = +e.target.value || 0;
+$('instrument').onchange = () => { shownChord = -2; };
+$('loop').onclick = e => { loopOn = !loopOn; loopSection = shownLine.section; e.target.setAttribute('aria-pressed', loopOn); };
+document.querySelectorAll('.rate').forEach(button => button.onclick = () => {
+  audio.playbackRate = +button.dataset.rate;
+  document.querySelectorAll('.rate').forEach(b => b.setAttribute('aria-pressed', b === button));
+});
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+    e.preventDefault(); $('play').click();
+  }
+});
+</script>
+</body>
+</html>

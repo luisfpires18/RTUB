@@ -97,6 +97,7 @@ Email notifications are a separate channel (`src/RTUB.Application/Services/Email
 | `src/RTUB.Application/Services/DatabaseSanitizer.cs` | Offline sanitizer: production snapshot → DEV-safe copy. Never writes to its source. |
 | `src/RTUB.Application/Services/Storage/StorageObjectOrigin.cs` | Storage ownership: classifies a stored URL as this environment's, a production reference, external or unknown. |
 | `src/RTUB.Application/Services/Storage/ReferenceStorageService.cs` | **Read-only** view of the production bucket for DEV/Staging. No upload, delete or copy member exists. |
+| `tools/playalong/` | Python scripts that make a song's play-along chart from its songbook PDF and recording (094; README there). Run on a PC; song files and models are git-ignored. |
 | `tools/RTUB.DbSanitizer/` | Console entry point for the sanitizer. Reads the DEV password from `RTUB_DEV_PASSWORD`. |
 | `docs/cloudflare-r2-and-database-backups.md` | Authoritative storage/backup design. |
 

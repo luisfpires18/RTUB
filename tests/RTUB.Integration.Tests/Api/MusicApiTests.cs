@@ -105,7 +105,7 @@ public class MusicApiTests : IClassFixture<MusicApiFactory>
 
         songs.Select(s => s.GetProperty("title").GetString()).Should().Equal("Abertura", "Serenata", MissingFileSong, "Sem faixa");
         songs[0].EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(
-            "id", "title", "trackNumber", "lyricAuthor", "musicAuthor", "adaptation", "hasAudio", "playCount", "links", "videoCount");
+            "id", "title", "trackNumber", "lyricAuthor", "musicAuthor", "adaptation", "hasAudio", "playCount", "links", "videoCount", "hasPlayAlong");
         songs.Should().OnlyContain(s => s.GetProperty("videoCount").ValueKind == JsonValueKind.Null, "videos are for members only");
         songs[0].GetProperty("links").EnumerateArray().Select(l => l.GetProperty("url").GetString())
             .Should().Equal("https://open.spotify.com/track/abertura", "https://www.youtube.com/watch?v=abertura");
@@ -440,6 +440,110 @@ public class MusicApiTests : IClassFixture<MusicApiFactory>
     }
 
     // ---------- helpers ----------
+
+    // ---------- tocar junto (094) ----------
+
+    [Fact]
+    public async Task PlayAlong_IsUploadedByAMod_ReadByMembers_AndHiddenFromVisitors()
+    {
+        var seed = await SeedAsync();
+        var (mod, _) = await SignInAsync("Mod");
+        var (member, _) = await SignInAsync("Member");
+        var visitor = await AnonymousAsync();
+        await WithTokenAsync(mod);
+        var url = $"/api/music/songs/{seed.SongWithPdf}/playalong";
+
+        (await member.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "the song has no chart yet");
+        (await mod.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await mod.PutAsJsonAsync(url, Chart(bpm: 90))).StatusCode.Should().Be(HttpStatusCode.NoContent, "a second upload replaces the chart");
+
+        var read = await member.GetFromJsonAsync<JsonElement>(url);
+        read.GetProperty("songId").GetInt32().Should().Be(seed.SongWithPdf);
+        read.GetProperty("title").GetString().Should().Be("Abertura");
+        read.GetProperty("hasAudio").GetBoolean().Should().BeTrue();
+        var chart = read.GetProperty("chart");
+        chart.GetProperty("bpm").GetDouble().Should().Be(90);
+        chart.GetProperty("sections")[0].GetProperty("lines")[0].GetProperty("chords")[0].GetProperty("name").GetString().Should().Be("F");
+        chart.TryGetProperty("extra", out _).Should().BeFalse("only the known fields are stored");
+
+        (await visitor.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.Unauthorized, "play-along is for members");
+        bool Flag(JsonElement album) => album.GetProperty("songs").EnumerateArray()
+            .Single(s => s.GetProperty("id").GetInt32() == seed.SongWithPdf).GetProperty("hasPlayAlong").GetBoolean();
+        Flag(await member.GetFromJsonAsync<JsonElement>($"/api/music/albums/{seed.PublicAlbum}")).Should().BeTrue();
+        Flag(await visitor.GetFromJsonAsync<JsonElement>($"/api/music/albums/{seed.PublicAlbum}")).Should().BeFalse();
+        (await mod.GetFromJsonAsync<JsonElement>($"/api/music/songs/{seed.SongWithPdf}/edit")).GetProperty("hasPlayAlong").GetBoolean().Should().BeTrue();
+
+        (await mod.DeleteAsync(url)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await member.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task PlayAlong_Writes_AreRefusedToMembers_WithoutToken_AndWhenTheChartIsInvalid()
+    {
+        var seed = await SeedAsync();
+        var (mod, _) = await SignInAsync("Mod");
+        var (member, _) = await SignInAsync("Member");
+        var url = $"/api/music/songs/{seed.SongWithPdf}/playalong";
+
+        (await mod.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.BadRequest, "no antiforgery token");
+        await WithTokenAsync(mod);
+        await WithTokenAsync(member);
+
+        (await member.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await member.DeleteAsync(url)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await mod.PutAsJsonAsync(url, Chart(version: 2))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await mod.PutAsJsonAsync(url, Chart(chord: "<script>"))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await mod.PutAsJsonAsync(url, new { version = 1 })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await mod.PutAsJsonAsync($"/api/music/songs/{seed.ExclusiveSong}/playalong", Chart())).StatusCode
+            .Should().Be(HttpStatusCode.NotFound, "a Mod who is not on an exclusive album cannot write to it");
+        (await mod.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "nothing invalid was stored");
+    }
+
+    [Fact]
+    public async Task PlayAlong_OfAnExclusiveAlbum_IsOnlyForMembersOnItsList()
+    {
+        var (listed, listedUser) = await SignInAsync("Member");
+        var (other, _) = await SignInAsync("Member");
+        var (owner, _) = await SignInAsync("Owner");
+        var seed = await SeedAsync(accessFor: listedUser.Id);
+        await WithTokenAsync(owner);
+        var url = $"/api/music/songs/{seed.ExclusiveSong}/playalong";
+        (await owner.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await listed.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await other.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    private static object Chart(int version = 1, double bpm = 80, string chord = "F") => new
+    {
+        version,
+        duration = 10.0,
+        bpm,
+        beats = new[] { 0.5, 1.25, 2.0 },
+        extra = "dropped",
+        sections = new[]
+        {
+            new
+            {
+                name = "Verso 1",
+                kind = "verse",
+                start = 0.5,
+                end = 4.0,
+                lines = new[]
+                {
+                    new
+                    {
+                        text = "Quis ser caçador",
+                        start = 0.5,
+                        end = 4.0,
+                        words = new[] { "Quis", "ser", "caçador" },
+                        wordTimes = new[] { 0.5, 1.0, 1.5 },
+                        chords = new[] { new { label = "FÁ", name = chord, time = 0.5, word = 0, @char = 0 } },
+                    },
+                },
+            },
+        },
+    };
 
     private sealed record Seed(
         int PublicAlbum, int PrivateAlbum, int ExclusiveAlbum, int ExclusivePublicAlbum, int StaleAccessAlbum,

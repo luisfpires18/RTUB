@@ -49,6 +49,8 @@ public static class AuditConfiguration
             ["MessageReaction"] = new(StringComparer.Ordinal) { "Emoji" },
             // #220: a push subscription's endpoint and keys address and decrypt the member's device; never logged.
             ["PushSubscription"] = new(StringComparer.Ordinal) { "Endpoint", "Auth", "P256dh" },
+            // 094: a play-along chart is a whole song of JSON; the log keeps who and when, not the chart.
+            ["SongPlayAlong"] = new(StringComparer.Ordinal) { "Chart" },
         };
 
     public const string RedactedValue = "[redacted]";

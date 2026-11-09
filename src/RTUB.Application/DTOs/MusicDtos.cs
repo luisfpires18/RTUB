@@ -36,7 +36,8 @@ public sealed record MusicSongDto(
     bool HasAudio,
     int PlayCount,
     IReadOnlyList<MusicLinkDto> Links,
-    int? VideoCount);
+    int? VideoCount,
+    bool HasPlayAlong);
 
 public sealed record MusicAlbumDetailDto(
     MusicAlbumSummaryDto Album,
@@ -68,7 +69,36 @@ public sealed record MusicSongEditDto(
     string? SpotifyUrl,
     bool HasAudio,
     IReadOnlyList<string> YouTubeUrls,
-    string? Lyrics);
+    string? Lyrics,
+    bool HasPlayAlong);
+
+// ---------- Tocar junto (task 094): the play-along chart, version 1. Times are seconds into the recording. ----------
+
+/// <summary>A chord change. <see cref="Label"/> is the name as the songbook writes it (FÁ, RÉm),
+/// <see cref="Name"/> the same chord in letters (F, Dm). In a sung line it sits on a word and a letter.</summary>
+public sealed record PlayAlongChordDto(string Label, string Name, double Time, int? Word, int? Char);
+
+/// <summary>A lyric line with a time per word, or an instrumental line (no words, only chords).</summary>
+public sealed record PlayAlongLineDto(
+    string Text,
+    double Start,
+    double End,
+    IReadOnlyList<string> Words,
+    IReadOnlyList<double> WordTimes,
+    IReadOnlyList<PlayAlongChordDto> Chords);
+
+/// <summary><see cref="Kind"/> is verse, refrain or instrumental.</summary>
+public sealed record PlayAlongSectionDto(string Name, string Kind, double Start, double End, IReadOnlyList<PlayAlongLineDto> Lines);
+
+public sealed record PlayAlongChartDto(
+    int Version,
+    double Duration,
+    double Bpm,
+    IReadOnlyList<double> Beats,
+    IReadOnlyList<PlayAlongSectionDto> Sections);
+
+/// <summary>What the play-along page needs for one song (members only).</summary>
+public sealed record MusicPlayAlongDto(int SongId, string Title, int AlbumId, string AlbumTitle, bool HasAudio, PlayAlongChartDto Chart);
 
 /// <summary>Lyrics: a short-lived PDF link when the songbook has one, the stored text otherwise.</summary>
 public sealed record MusicLyricsDto(string? PdfUrl, string? Text);
