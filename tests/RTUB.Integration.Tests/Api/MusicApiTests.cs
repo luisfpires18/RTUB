@@ -519,11 +519,13 @@ public class MusicApiTests : IClassFixture<MusicApiFactory>
         (await owner.PutAsJsonAsync($"/api/music/songs/{seed.SongWithPdf}/playalong", Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await owner.PutAsJsonAsync($"/api/music/songs/{seed.ExclusiveSong}/playalong", Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        int[] Ids(JsonElement list) => list.EnumerateArray().Select(s => s.GetProperty("songId").GetInt32()).ToArray();
+        int[] Ids(JsonElement list) => list.GetProperty("songs").EnumerateArray().Select(s => s.GetProperty("songId").GetInt32()).ToArray();
         Ids(await listed.GetFromJsonAsync<JsonElement>("/api/music/playalongs")).Should().Contain(new[] { seed.SongWithPdf, seed.ExclusiveSong });
         var seen = await other.GetFromJsonAsync<JsonElement>("/api/music/playalongs");
         Ids(seen).Should().Contain(seed.SongWithPdf).And.NotContain(seed.ExclusiveSong, "an exclusive album stays with the members on its list");
-        var mine = seen.EnumerateArray().Single(s => s.GetProperty("songId").GetInt32() == seed.SongWithPdf);
+        seen.GetProperty("canManage").GetBoolean().Should().BeFalse();
+        (await owner.GetFromJsonAsync<JsonElement>("/api/music/playalongs")).GetProperty("canManage").GetBoolean().Should().BeTrue();
+        var mine = seen.GetProperty("songs").EnumerateArray().Single(s => s.GetProperty("songId").GetInt32() == seed.SongWithPdf);
         mine.GetProperty("title").GetString().Should().Be("Abertura");
         mine.GetProperty("albumId").GetInt32().Should().Be(seed.PublicAlbum);
 
@@ -532,6 +534,26 @@ public class MusicApiTests : IClassFixture<MusicApiFactory>
         page.StatusCode.Should().Be(HttpStatusCode.Redirect);
         page.Headers.Location!.ToString().Should().Be("/login?returnUrl=" + Uri.EscapeDataString("/music/learn"));
         (await other.GetStringAsync("/music/learn")).Should().Contain("id=\"root\"");
+    }
+
+    [Fact]
+    public async Task LearnNotice_IsSentByTheOwnerOnly_ForASongWithAChart()
+    {
+        var seed = await SeedAsync();
+        var (owner, _) = await SignInAsync("Owner");
+        var (admin, _) = await SignInAsync("Admin");
+        await WithTokenAsync(owner);
+        await WithTokenAsync(admin);
+        var url = $"/api/music/songs/{seed.SongWithPdf}/playalong";
+
+        (await owner.DeleteAsync(url)).StatusCode.Should().BeOneOf(HttpStatusCode.NoContent, HttpStatusCode.NotFound);
+        (await owner.PostAsJsonAsync(url + "/notify", new { message = "" })).StatusCode.Should().Be(HttpStatusCode.NotFound, "the song has no chart");
+        (await owner.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await admin.PostAsJsonAsync(url + "/notify", new { message = "" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await owner.PostAsJsonAsync(url + "/notify", new { message = new string('a', 301) })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await owner.PostAsJsonAsync(url + "/notify", new { message = "" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await owner.PostAsJsonAsync(url + "/notify", new { message = "Experimentem!" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     [Fact]

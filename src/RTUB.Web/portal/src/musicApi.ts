@@ -217,7 +217,8 @@ export const musicApi = {
       : call<{ id: number }>('PUT', `/api/music/songs/${songId}`, input),
   deleteSong: (id: number) => call<void>('DELETE', `/api/music/songs/${id}`),
 
-  learnSongs: () => call<LearnSong[]>('GET', '/api/music/playalongs'),
+  learnSongs: () => call<{ songs: LearnSong[]; canManage: boolean }>('GET', '/api/music/playalongs'),
+  notifyPlayAlong: (songId: number, message: string) => call<void>('POST', `/api/music/songs/${songId}/playalong/notify`, { message }),
   playAlong: (songId: number) => call<PlayAlong>('GET', `/api/music/songs/${songId}/playalong`),
   /** `chart` is the parsed chart file as it is; the server validates it. */
   savePlayAlong: (songId: number, chart: unknown) => call<void>('PUT', `/api/music/songs/${songId}/playalong`, chart),

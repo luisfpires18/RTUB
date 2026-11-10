@@ -41,6 +41,8 @@ public sealed class MusicService : IMusicService
     private readonly IAuditLogService _audit;
     private readonly IMemoryCache _cache;
     private readonly ILogger<MusicService> _logger;
+    private readonly IPushNotificationService _push;
+    private readonly IPushNotificationFactory _pushFactory;
 
     public MusicService(
         IDbContextFactory<ApplicationDbContext> contexts,
@@ -52,8 +54,12 @@ public sealed class MusicService : IMusicService
         ISongContentService songContent,
         IAuditLogService audit,
         IMemoryCache cache,
-        ILogger<MusicService> logger)
+        ILogger<MusicService> logger,
+        IPushNotificationService push,
+        IPushNotificationFactory pushFactory)
     {
+        _push = push;
+        _pushFactory = pushFactory;
         _contexts = contexts;
         _albums = albums;
         _songs = songs;
@@ -557,11 +563,11 @@ public sealed class MusicService : IMusicService
 
     // ---------- tocar junto (094) ----------
 
-    public async Task<MusicResult<IReadOnlyList<MusicLearnSongDto>>> GetPlayAlongSongsAsync(ClaimsPrincipal user)
+    public async Task<MusicResult<MusicLearnListDto>> GetPlayAlongSongsAsync(ClaimsPrincipal user)
     {
         if (!MusicAuthorization.IsMember(user))
         {
-            return MusicResult<IReadOnlyList<MusicLearnSongDto>>.Fail(MusicResultStatus.SignInRequired);
+            return MusicResult<MusicLearnListDto>.Fail(MusicResultStatus.SignInRequired);
         }
 
         await using var ctx = await _contexts.CreateDbContextAsync();
@@ -572,12 +578,54 @@ public sealed class MusicService : IMusicService
             .ToListAsync();
 
         // Newest album first, then the album's own order.
-        return MusicResult<IReadOnlyList<MusicLearnSongDto>>.Ok(songs
+        return MusicResult<MusicLearnListDto>.Ok(new MusicLearnListDto(songs
             .OrderByDescending(s => s.Year ?? int.MaxValue).ThenBy(s => s.AlbumId)
             .ThenBy(s => s.TrackNumber is null).ThenBy(s => s.TrackNumber).ThenBy(s => s.Id)
             .Select(s => new MusicLearnSongDto(s.Id, s.Title, s.AlbumId, s.AlbumTitle, s.Year, IsWebUrl(s.ImageUrl) ? s.ImageUrl : null))
-            .ToList());
+            .ToList(), MusicAuthorization.CanManagePlayAlong(user)));
     }
+
+    public async Task<MusicResult<bool>> NotifyPlayAlongAsync(int songId, MusicLearnNoticeInput? input, ClaimsPrincipal user)
+    {
+        if (!MusicAuthorization.CanManagePlayAlong(user))
+        {
+            return MusicResult<bool>.Fail(MusicResultStatus.Forbidden);
+        }
+
+        var (status, song) = await FindSongAsync(songId, user);
+        if (status != MusicResultStatus.Ok)
+        {
+            return MusicResult<bool>.Fail(status);
+        }
+
+        var message = input?.Message?.Trim();
+        if (message?.Length > MaxLearnNoticeLength)
+        {
+            return MusicResult<bool>.Invalid(new Dictionary<string, string[]> { ["message"] = new[] { $"Máximo de {MaxLearnNoticeLength} caracteres." } });
+        }
+
+        await using var ctx = await _contexts.CreateDbContextAsync();
+        if (!await ctx.SongPlayAlongs.AnyAsync(p => p.SongId == songId))
+        {
+            return MusicResult<bool>.Fail(MusicResultStatus.NotFound);
+        }
+
+        // As the "Novo vídeo" push: everyone, or only the members on the list of an exclusive album.
+        var notification = _pushFactory.CreateSongLearnNotification(song!.Id, song.Title, message);
+        if (await ctx.Albums.AnyAsync(a => a.Id == song.AlbumId && a.IsExclusive))
+        {
+            var listed = await ctx.AlbumAccesses.AsNoTracking().Where(x => x.AlbumId == song.AlbumId).Select(x => x.UserId).ToListAsync();
+            await _push.SendToSelectedUsersAsync(listed, notification);
+        }
+        else
+        {
+            await _push.BroadcastAsync(notification);
+        }
+
+        return MusicResult<bool>.Ok(true);
+    }
+
+    public const int MaxLearnNoticeLength = 300;
 
     public async Task<MusicResult<MusicPlayAlongDto>> GetPlayAlongAsync(int songId, ClaimsPrincipal user)
     {

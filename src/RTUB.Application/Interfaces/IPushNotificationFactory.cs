@@ -194,6 +194,9 @@ public interface IPushNotificationFactory
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateSongVideoUploadNotification(Song song, string uploaderName);
 
+    /// <summary>A song is new in Aprender (task 097); <paramref name="message"/> replaces the default text.</summary>
+    SendPushNotificationDto CreateSongLearnNotification(int songId, string songTitle, string? message);
+
     /// <summary>
     /// Creates a push notification for pending public request reminders (sent to admins daily).
     /// </summary>

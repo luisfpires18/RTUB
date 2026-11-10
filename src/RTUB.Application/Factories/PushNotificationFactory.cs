@@ -723,6 +723,24 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// A song is new in Aprender (task 097): the Owner sends it from /music/learn; it opens the song's Aprender page.
+    /// </summary>
+    public SendPushNotificationDto CreateSongLearnNotification(int songId, string songTitle, string? message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(songTitle);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Nova música para aprender",
+            Body = string.IsNullOrWhiteSpace(message) ? $"Já podes aprender \"{songTitle}\" com os acordes a acompanhar a gravação." : message.Trim(),
+            Icon = "/icons/rtub-logo-192.png",
+            Url = $"/music/play/{songId}",
+            Tag = $"song-learn-{songId}",
+            PreferenceKey = PushPreferenceCatalog.MediaNew
+        };
+    }
+
+    /// <summary>
     /// Creates a push notification for pending public request reminders (sent to admins daily).
     /// </summary>
     public SendPushNotificationDto CreatePendingPublicRequestsReminderNotification(int pendingCount)

@@ -443,7 +443,7 @@ export function SongForm({
  * The song's play-along chart (task 094): a .json file made offline with tools/playalong. Sending and
  * removing act at once, apart from "Guardar"; the server validates the chart.
  */
-function PlayAlongField({ songId, has, onChange }: { songId: number; has: boolean; onChange: (has: boolean) => void }) {
+export function PlayAlongField({ songId, has, onChange }: { songId: number; has: boolean; onChange: (has: boolean) => void }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   // The stored chart, so ticking "dedilhado" can send it back with the flag changed.

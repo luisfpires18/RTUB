@@ -117,6 +117,7 @@ Recipients: **all** = `BroadcastAsync` (every subscribed member), **some** = `Se
 | Factory method | Trigger | Recipients | Title | Opens | Tag |
 |---|---|---|---|---|---|
 | `CreateSongVideoUploadNotification` | video added to a song (`SongService`) | one | "Novo vídeo" | `/music/albums/{albumId}` | `song-video-{id}` |
+| `CreateSongLearnNotification` | Owner's bell on `/music/learn` (`MusicService.NotifyPlayAlongAsync`, 097) | all (exclusive album: its list) | "Nova música para aprender" | `/music/play/{songId}` | `song-learn-{id}` |
 | `CreateNaipeContentNotification` | naipe video / image (`NaipeService`) | all | "Novo {vídeo/imagem} em {instrument}" | `/naipes?instrument={InstrumentType}` | `naipe-content-{instrument}` |
 | `CreateGalleryTagNotification` | tagged on upload (`GalleryManagementService`) | some (tagged) | "Nova media na Galeria" | `/gallery?item={id}` | `gallery-tag` |
 
@@ -190,6 +191,7 @@ sender's own recipient rule picks them. A Leitão starts active (`InitialIsRetir
 | Lembrete: Participa numa Atividade | ✅ Sends | Yes (aimed at them) | manager's button on `/members` (`POST /api/members/{id}/reminder`) |
 | Membro Reativado / 1 mês até reforma | ✅ Sends (058) | Reativado: yes (all); reforma warning: no (only the member losing the status) | daily member status run (`MemberStatusUpdate:ScheduledTime`, 00:00) only; `PushNotificationsEnabled` is `true` in `appsettings.json` since 058 (an App Setting can still turn it off). Never from triggers, the Owner sync or a member's first evaluation; an approval that reactivates first stays silent. Detail: `docs/member-activity-status.md` → *Transitions* |
 | Novo vídeo (música) | ✅ Sends | Yes | `/music` song video → every account (exclusive album: its members) but the uploader |
+| Nova música para aprender (097) | ✅ Sends | Yes | Owner's bell on `/music/learn` → every account (exclusive album: its members); never automatic |
 | Novo conteúdo Naipes | ✅ Sends | Yes | `/naipes` upload → all |
 | Nova media na Galeria | ✅ Sends | Yes, if tagged | `/gallery` upload with people tagged → the tagged |
 | Calote Pendente | ✅ Sends | Yes, if they owe | `CalotesNotificationBackgroundService` (10:30) → members who owe |
