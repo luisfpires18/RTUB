@@ -114,7 +114,8 @@ public sealed class MemberAdminService : IMemberAdminService
 
     public async Task<EventResult<MemberCreatedDto>> CreateAsync(MemberInput input, ClaimsPrincipal user)
     {
-        if (Refusal<MemberCreatedDto>(user) is { } refused)
+        // Hotfix 098: Mod creates members too; the account is always a plain Member, so nothing escalates.
+        if (InfoRefusal<MemberCreatedDto>(user) is { } refused)
         {
             return refused;
         }

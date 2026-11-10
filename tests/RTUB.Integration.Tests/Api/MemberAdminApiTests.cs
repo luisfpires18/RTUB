@@ -74,7 +74,8 @@ public class MemberAdminApiTests : IClassFixture<EventsApiFactory>
             foreach (var (method, path, body) in calls.Concat(member))
             {
                 var status = (await SendAsync(client, method, path, body)).StatusCode;
-                if (role == "Mod" && IsInfo(path))
+                // Hotfix 098: Mod creates members (POST /api/members) as well.
+                if (role == "Mod" && (IsInfo(path) || (method == HttpMethod.Post && path == "/api/members")))
                 {
                     status.Should().NotBe(HttpStatusCode.Forbidden, $"{role}: {method} {path} (076)");
                 }

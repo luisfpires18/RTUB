@@ -54,7 +54,8 @@ Admin/Owner tools). It replaces the Blazor `/members` (directory, "Detalhes do M
 | Who | Directory, details (with contacts), active, birthdays, hierarchy | Admin tools (018) |
 | --- | --- | --- |
 | Visitor | `401` (pages: 302 to sign in) | `401` |
-| Member, Mod | yes | `403` |
+| Member | yes | `403` |
+| Mod | yes | create (a plain Member account) and the limited edit; the rest `403` |
 | Admin | yes | create, edit, instruments, Leitões' nickname / expel / reactivate, push reminder, delete **Leitões** |
 | Owner | yes | everything Admin does (Owner inherits Admin), plus delete **any** member |
 
@@ -177,7 +178,7 @@ the full edit stays Admin / Owner.
 - **Audit**: the change is the same `ApplicationUser` update as the full form, audited with the actor and the fields.
 - **Scope**: not expelled, with a Leitão / Caloiro / Tuno category (an honorary-only account is out); otherwise `404`
   for a Mod.
-- **Not given to Mod**: create, delete, the full edit (`GET /edit`, `PUT /{id}`), "Definir alcunha", expel / reactivate,
+- **Not given to Mod**: delete, the full edit (`GET /edit`, `PUT /{id}`), "Definir alcunha", expel / reactivate,
   push reminder, categories, roles, positions, activity status.
 - `/members`: a Mod gets "Completar informação" in a member's details (Admin / Owner keep "Editar" and the rest);
   `/members?info={id}` opens it once (from "As minhas ações pendentes" → Membros).
