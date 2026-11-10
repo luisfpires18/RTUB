@@ -120,6 +120,12 @@ public sealed class MemberAdminService : IMemberAdminService
             return refused;
         }
 
+        // Fundador / Honorário are Admin-or-Owner decisions; a Mod creates ordinary members only.
+        if ((input.Fundador || input.Honorario) && !MembersAuthorization.CanManage(user))
+        {
+            return EventResult<MemberCreatedDto>.Fail(EventResultStatus.Forbidden);
+        }
+
         var noNickname = input.NoNickname && input.Category == "Leitao";
         // "Sem alcunha": the nickname follows the email's local part.
         var nickname = noNickname && !string.IsNullOrEmpty(input.Email) ? input.Email.Split('@')[0] : input.Nickname;
