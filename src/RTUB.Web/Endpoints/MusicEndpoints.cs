@@ -63,6 +63,10 @@ public static class MusicEndpoints
                 ToResult(await service.SavePlayAlongAsync(id, chart, http.User), _ => Results.NoContent()))
             .WithMetadata(new RequestSizeLimitAttribute(PlayAlongChart.MaxBytes));
 
+        writes.MapPost("/songs/{id:int}/playalong/notify", async (int id, MusicLearnNoticeInput? input, HttpContext http, IMusicService service) =>
+                ToResult(await service.NotifyPlayAlongAsync(id, input, http.User), _ => Results.NoContent()))
+            .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
+
         writes.MapDelete("/songs/{id:int}/playalong", async (int id, HttpContext http, IMusicService service) =>
             ToResult(await service.DeletePlayAlongAsync(id, http.User), _ => Results.NoContent()));
 

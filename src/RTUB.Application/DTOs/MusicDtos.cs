@@ -102,6 +102,12 @@ public sealed record PlayAlongChartDto(
 /// <summary>A song with an Aprender chart, for the Aprender Músicas list (members only).</summary>
 public sealed record MusicLearnSongDto(int SongId, string Title, int AlbumId, string AlbumTitle, int? Year, string? CoverUrl);
 
+/// <summary>The Aprender Músicas list; <see cref="CanManage"/> is the Owner (add, edit, remove, notify).</summary>
+public sealed record MusicLearnListDto(IReadOnlyList<MusicLearnSongDto> Songs, bool CanManage);
+
+/// <summary>The Owner's push about a song that is new in Aprender; an empty message sends the default text.</summary>
+public sealed record MusicLearnNoticeInput(string? Message);
+
 /// <summary>What the play-along page needs for one song (members only).</summary>
 public sealed record MusicPlayAlongDto(int SongId, string Title, int AlbumId, string AlbumTitle, bool HasAudio, PlayAlongChartDto Chart);
 

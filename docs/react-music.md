@@ -9,7 +9,7 @@ is retired. Shell, route table and module rules: `docs/react-portal-pilot.md`.
 | --- | --- | --- |
 | `/music` | **React** | Album grid. Visitors: public albums; members: + private + their exclusive albums; Owner: all. |
 | `/music/albums/{id}` | **React** | One album: songs, search, player, lyrics, links, videos (members), management. |
-| `/music/learn` | **React** | Aprender Músicas (task 095): members only; the songs that have a chart, in the `/music` grid; a card opens `/music/play/{songId}`. In the member menu. |
+| `/music/learn` | **React** | Aprender Músicas (task 095): members only; the songs that have a chart, one `/music` grid per album; a card opens `/music/play/{songId}`, whose back link returns here. In the member menu. The Owner (097) adds a song's chart here, edits it (replace the file, "Incluir dedilhado"), removes it, and sends the "new song" push (bell). |
 | `/music/play/{songId}` | **React** | Aprender (task 094): members only, a visitor is sent to sign in. Section below. |
 | `/music/songs/{id}` | redirect | Retired Blazor album page; `302` → `/music/albums/{id}`, query kept, GET/HEAD only. |
 | `/api/music/...` | API | `src/RTUB.Web/Endpoints/MusicEndpoints.cs` (below). |
@@ -108,7 +108,8 @@ JSON problem; details only go to the log.
 | DELETE | `/albums/{id}` | Admin, Owner | cascades songs, links, videos, plays, repertoire rows; deletes the cover |
 | POST | `/albums/{id}/songs` | Mod+ | JSON |
 | PUT / DELETE | `/songs/{id}` | Mod+ / Admin, Owner | |
-| GET | `/playalongs` | members | the songs with a chart in the albums the member can see (095), newest album first |
+| GET | `/playalongs` | members | `{ songs, canManage }`: the songs with a chart in the albums the member can see (095), newest album first; `canManage` = Owner |
+| POST | `/songs/{id}/playalong/notify` | Owner | push "Nova música para aprender" (097): optional `message` ≤300, default text otherwise; everyone, or the list of an exclusive album; `404` without a chart |
 | GET | `/songs/{id}/playalong` | members | the song's play-along chart (094); `404` when the song has none |
 | PUT / DELETE | `/songs/{id}/playalong` | Owner | JSON chart ≤512 KB, validated and rewritten by `PlayAlongChart`; replaces / removes |
 | POST | `/songs/{id}/videos` | members | multipart `file` (video, ≤100 MB) + `title`; notifies as before |

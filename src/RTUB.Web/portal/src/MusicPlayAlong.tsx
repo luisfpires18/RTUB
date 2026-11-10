@@ -125,9 +125,9 @@ export default function MusicPlayAlong({ songId }: { songId: number }) {
   if (load.kind !== 'ready') {
     return (
       <section className="page wrap" aria-labelledby="playalong-title">
-        <a className="back-link" href="/music">
+        <a className="back-link" href="/music/learn">
           <Icon name="arrow" />
-          Música
+          Aprender Músicas
         </a>
         <div className="state">
           <Icon name={load.kind === 'signin' ? 'lock' : 'music'} className="state__icon" />
@@ -258,9 +258,9 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
 
   return (
     <section className="page wrap playalong" aria-labelledby="playalong-title">
-      <a className="back-link" href={`/music/albums/${data.albumId}`}>
+      <a className="back-link" href="/music/learn">
         <Icon name="arrow" />
-        {data.albumTitle}
+        Aprender Músicas
       </a>
       <header className="playalong__head">
         <h1 id="playalong-title" className="playalong__title">
