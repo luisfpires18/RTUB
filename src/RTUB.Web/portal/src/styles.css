@@ -16792,9 +16792,10 @@ html.app-screen .footer {
 
 .playalong__group {
   display: inline-flex;
+  max-width: 100%;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  overflow: hidden;
+  overflow: auto hidden;
 }
 
 .playalong__group button {

@@ -145,14 +145,14 @@ A member plays a song's chords along with its recording: `/music/play/{songId}`,
   split, forced alignment of the known lyrics, beat tracking → `chart.json`, reviewed by ear before
   upload. It needs PyTorch and a 1.5 GB model, so it never runs on the server. Song files are never
   committed.
-- **Page** (`MusicPlayAlong.tsx`): the strings across the screen (6 for guitarra, 4 for bandolim, the
+- **Page** (`MusicPlayAlong.tsx`): the strings across the screen (6 for guitarra, 4 for bandolim, cavaquinho and baixo, the
   choice kept in `localStorage`), each chord arriving at the line as a block of fret numbers; the lyric
   line with its chords and the sung word lit; a section timeline that seeks; 60 / 80 / 100 % speed
   (`playbackRate`, pitch kept); "Repetir secção"; space bar plays / pauses; the screen stays awake while
   playing. One `requestAnimationFrame` loop reads the audio clock; React state changes only when the
   line or chord does. Audio is the existing `GET /songs/{id}/audio` link: opening the page counts no play.
 - **Chord shapes** live in `MusicPlayAlong.tsx` (`SHAPES`). A chord that is not there shows its name
-  with no fingering. The bandolim shapes were written for 094 and still need a bandolim player's review.
+  with no fingering. The bandolim shapes were written for 094 and still need a bandolim player's review. Cavaquinho (095) assumes the D G B D tuning and needs the same review; baixo has no table: it shows one note, the chord's root or the note after the slash.
 - A recording whose length differs from the chart's by more than 2 s shows "A gravação mudou…": the
   chart was made for another file.
 - **Not done:** microphone scoring, melody (the sheets carry chords only), an in-app chart editor,
