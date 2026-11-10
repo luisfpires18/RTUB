@@ -3814,6 +3814,39 @@ namespace RTUB.Migrations
                     b.ToTable("Songs");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.SongPlayAlong", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Chart")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SongId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SongId")
+                        .IsUnique();
+
+                    b.ToTable("SongPlayAlongs", (string)null);
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.SongPlayCount", b =>
                 {
                     b.Property<int>("Id")
@@ -5081,6 +5114,17 @@ namespace RTUB.Migrations
                         .IsRequired();
 
                     b.Navigation("Album");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.SongPlayAlong", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Song", "Song")
+                        .WithMany()
+                        .HasForeignKey("SongId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Song");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.SongPlayCount", b =>

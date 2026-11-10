@@ -122,6 +122,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   EventContact: 'Contacto de atuação',
   Song: 'Música',
   SongVideo: 'Vídeo de música',
+  SongPlayAlong: 'Pauta de tocar junto',
   SongYouTubeUrl: 'Link YouTube',
   Album: 'Álbum',
   AlbumAccess: 'Acesso a álbum',

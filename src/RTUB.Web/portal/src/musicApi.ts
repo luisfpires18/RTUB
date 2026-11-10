@@ -34,6 +34,8 @@ export type Song = {
   playCount: number;
   links: MusicLink[];
   videoCount: number | null;
+  /** Members only: the song has a play-along chart (task 094). */
+  hasPlayAlong: boolean;
 };
 
 export type AlbumDetail = { album: AlbumSummary; songs: Song[]; permissions: MusicPermissions };
@@ -59,7 +61,22 @@ export type SongEdit = {
   hasAudio: boolean;
   youTubeUrls: string[];
   lyrics: string | null;
+  hasPlayAlong: boolean;
 };
+
+/** The play-along chart, version 1 (server: PlayAlongChart.cs). Times are seconds into the recording. */
+export type PlayAlongChord = { label: string; name: string; time: number; word: number | null; char: number | null };
+export type PlayAlongLine = {
+  text: string;
+  start: number;
+  end: number;
+  words: string[];
+  wordTimes: number[];
+  chords: PlayAlongChord[];
+};
+export type PlayAlongSection = { name: string; kind: 'verse' | 'refrain' | 'instrumental'; start: number; end: number; lines: PlayAlongLine[] };
+export type PlayAlongChart = { version: number; duration: number; bpm: number; beats: number[]; sections: PlayAlongSection[] };
+export type PlayAlong = { songId: number; title: string; albumId: number; albumTitle: string; hasAudio: boolean; chart: PlayAlongChart };
 export type Lyrics = { pdfUrl: string | null; text: string | null };
 export type Video = { id: number; title: string; url: string; mimeType: string; canDelete: boolean };
 export type Statistics = {
@@ -198,6 +215,11 @@ export const musicApi = {
       ? call<{ id: number }>('POST', `/api/music/albums/${albumId}/songs`, input)
       : call<{ id: number }>('PUT', `/api/music/songs/${songId}`, input),
   deleteSong: (id: number) => call<void>('DELETE', `/api/music/songs/${id}`),
+
+  playAlong: (songId: number) => call<PlayAlong>('GET', `/api/music/songs/${songId}/playalong`),
+  /** `chart` is the parsed chart file as it is; the server validates it. */
+  savePlayAlong: (songId: number, chart: unknown) => call<void>('PUT', `/api/music/songs/${songId}/playalong`, chart),
+  deletePlayAlong: (songId: number) => call<void>('DELETE', `/api/music/songs/${songId}/playalong`),
 
   uploadVideo: (songId: number, file: File, title: string) => {
     const form = new FormData();

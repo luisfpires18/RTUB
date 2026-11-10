@@ -62,6 +62,10 @@ const Page = pages[path];
 const MusicAlbum = lazy(() => import('./MusicAlbum'));
 const albumId = /^\/music\/albums\/(\d+)$/.exec(path)?.[1];
 
+// /music/play/{songId} (task 094): the play-along page; Program.cs sends visitors to sign in first.
+const MusicPlayAlong = lazy(() => import('./MusicPlayAlong'));
+const playSongId = Number(/^\/music\/play\/(\d+)$/.exec(path)?.[1]) || undefined;
+
 // /events/{id} (React track 011), mapped with {id:int} as well. Answering is a modal on that page.
 const EventDetail = lazy(() => import('./EventDetail'));
 const eventId = Number(/^\/events\/(\d+)$/.exec(path)?.[1]) || undefined;
@@ -89,7 +93,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Layout>
       <ErrorBoundary>
-        {Page || albumId || eventId || eventPage || rehearsalId || boardId || treasuryReportId || nerbaEventId ? (
+        {Page || albumId || playSongId || eventId || eventPage || rehearsalId || boardId || treasuryReportId || nerbaEventId ? (
           <Suspense
             fallback={
               <div className="wrap">
@@ -99,6 +103,8 @@ createRoot(document.getElementById('root')!).render(
           >
             {albumId ? (
               <MusicAlbum albumId={Number(albumId)} />
+            ) : playSongId ? (
+              <MusicPlayAlong songId={playSongId} />
             ) : eventId ? (
               <EventDetail eventId={eventId} />
             ) : eventPage?.[2] === 'discussion' ? (

@@ -38,6 +38,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Song> Songs { get; set; }
     public DbSet<SongYouTubeUrl> SongYouTubeUrls { get; set; }
     public DbSet<SongVideo> SongVideos { get; set; } = null!;
+    public DbSet<SongPlayAlong> SongPlayAlongs { get; set; } = null!;
     public DbSet<SongPlayCount> SongPlayCounts { get; set; }
     public DbSet<EventVideo> EventVideos { get; set; } = null!;
     public DbSet<EventRepertoire> EventRepertoires { get; set; }

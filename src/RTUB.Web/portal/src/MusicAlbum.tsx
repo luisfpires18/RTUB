@@ -253,6 +253,12 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
                   {s.links.length}
                   <span className="sr-only"> links de {s.title}</span>
                 </button>
+                {s.hasPlayAlong && (
+                  <a className="song__btn" href={`/music/play/${s.id}`}>
+                    <Icon name="music" />
+                    Tocar junto<span className="sr-only"> com {s.title}</span>
+                  </a>
+                )}
                 {s.videoCount !== null && (
                   <button
                     type="button"

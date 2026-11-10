@@ -9,6 +9,7 @@ is retired. Shell, route table and module rules: `docs/react-portal-pilot.md`.
 | --- | --- | --- |
 | `/music` | **React** | Album grid. Visitors: public albums; members: + private + their exclusive albums; Owner: all. |
 | `/music/albums/{id}` | **React** | One album: songs, search, player, lyrics, links, videos (members), management. |
+| `/music/play/{songId}` | **React** | Tocar junto (task 094): members only, a visitor is sent to sign in. Section below. |
 | `/music/songs/{id}` | redirect | Retired Blazor album page; `302` → `/music/albums/{id}`, query kept, GET/HEAD only. |
 | `/api/music/...` | API | `src/RTUB.Web/Endpoints/MusicEndpoints.cs` (below). |
 
@@ -106,6 +107,8 @@ JSON problem; details only go to the log.
 | DELETE | `/albums/{id}` | Admin, Owner | cascades songs, links, videos, plays, repertoire rows; deletes the cover |
 | POST | `/albums/{id}/songs` | Mod+ | JSON |
 | PUT / DELETE | `/songs/{id}` | Mod+ / Admin, Owner | |
+| GET | `/songs/{id}/playalong` | members | the song's play-along chart (094); `404` when the song has none |
+| PUT / DELETE | `/songs/{id}/playalong` | Mod+ | JSON chart ≤512 KB, validated and rewritten by `PlayAlongChart`; replaces / removes |
 | POST | `/songs/{id}/videos` | members | multipart `file` (video, ≤100 MB) + `title`; notifies as before |
 | DELETE | `/videos/{id}` | uploader, Admin, Owner | |
 
@@ -119,6 +122,43 @@ JSON problem; details only go to the log.
   `SongService.AddVideoAsync`; deletes through `AlbumService`/`SongService`. Tests and the browser
   checks used fakes / placeholder credentials: nothing was uploaded to or deleted from R2.
 - CSP unchanged: `media-src` and `frame-src` already allow the R2 endpoint, `img-src` the public host.
+
+## Tocar junto (task 094)
+
+A member plays a song's chords along with its recording: `/music/play/{songId}`, opened from the
+"Tocar junto" button a song shows when it has a chart (`hasPlayAlong` in the album payload, always
+`false` for visitors).
+
+- **Who:** any signed-in member who can see the song's album (the same visibility rules as the rest of
+  Music, exclusive albums included). Upload, replace and remove: whoever may edit the song (Mod, Admin,
+  Owner), in the song's edit form; both act at once, apart from "Guardar".
+- **Chart:** one row per song in `SongPlayAlongs` (migration `AddSongPlayAlongs`, additive: a new table
+  with a cascade FK to `Songs` and a unique `SongId`; the N-1 app ignores it). A table, not a `Songs`
+  column, so no song query carries 20 KB of JSON. Format version 1 = `PlayAlongChartDto`
+  (`MusicDtos.cs`): duration, bpm, beats, and sections → lines → words with a time each and chords
+  (`label` as the songbook writes it, `name` in letters, `time`, and the word / letter it sits on).
+- **Trust boundary:** `PlayAlongChart.Validate` (`RTUB.Application/Helpers`) checks every field (counts,
+  lengths, time ranges, chord names by pattern, chord times in order) and the stored JSON is the chart
+  written back from the typed model, so unknown fields are dropped. The audit log records who changed a
+  chart and when, with the chart itself redacted (`AuditConfiguration.RedactedProperties`).
+- **Making a chart:** offline, `tools/playalong` (README there): songbook PDF + the recording → vocal
+  split, forced alignment of the known lyrics, beat tracking → `chart.json`, reviewed by ear before
+  upload. It needs PyTorch and a 1.5 GB model, so it never runs on the server. Song files are never
+  committed.
+- **Page** (`MusicPlayAlong.tsx`): the strings across the screen (6 for guitarra, 4 for bandolim, the
+  choice kept in `localStorage`), each chord arriving at the line as a block of fret numbers; the lyric
+  line with its chords and the sung word lit; a section timeline that seeks; 60 / 80 / 100 % speed
+  (`playbackRate`, pitch kept); "Repetir secção"; space bar plays / pauses; the screen stays awake while
+  playing. One `requestAnimationFrame` loop reads the audio clock; React state changes only when the
+  line or chord does. Audio is the existing `GET /songs/{id}/audio` link: opening the page counts no play.
+- **Chord shapes** live in `MusicPlayAlong.tsx` (`SHAPES`). A chord that is not there shows its name
+  with no fingering. The bandolim shapes were written for 094 and still need a bandolim player's review.
+- A recording whose length differs from the chart's by more than 2 s shows "A gravação mudou…": the
+  chart was made for another file.
+- **Not done:** microphone scoring, melody (the sheets carry chords only), an in-app chart editor,
+  charts for more than the prototype song (album 4, "É Esta a Tuna"; uploaded by hand per environment,
+  never seeded). Not checked: real audio from R2 (the local run has none; a stand-in file was used),
+  iPhone / Android installed app (speed change, landscape, wake lock).
 
 ## Player and cooldown
 
