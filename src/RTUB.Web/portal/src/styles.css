@@ -6238,14 +6238,82 @@ video.tile__media {
 .talk__reply {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 6px;
+  padding: 6px 6px 6px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 24px;
+  background: var(--bg);
 }
 
-.talk__reply textarea {
+.talk__reply:focus-within {
+  border-color: var(--purple-ink);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.talk__reply textarea,
+.talk__reply textarea:focus-visible {
   flex: 1;
   min-width: 0;
-  min-height: 44px;
-  resize: vertical;
+  min-height: 32px;
+  max-height: 160px;
+  padding: 6px 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  resize: none;
+  field-sizing: content;
+}
+
+.talk__send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--purple-ink);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.talk__send:disabled {
+  background: var(--line-strong);
+  color: var(--muted);
+  cursor: default;
+}
+
+.talk__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.talk__tools .icon-btn {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.talk__tools .icon-btn:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.talk__tools .icon-btn--danger:hover {
+  border-color: #ff8f86;
+  color: #ffb3ad;
+}
+
+.talk__comment {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .talk__closed {
