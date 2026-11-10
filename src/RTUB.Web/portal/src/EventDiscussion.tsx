@@ -613,7 +613,36 @@ function Comments({ eventId, post, onChange }: { eventId: number; post: EventPos
         <ol className="talk__thread" aria-label={`Comentários (${post.comments.length})`}>
           {post.comments.map((c) => (
             <li key={c.id} className="talk__comment">
-              <Who author={c.author} at={c.createdAt} edited={c.edited} />
+              <Who author={c.author} at={c.createdAt} edited={c.edited}>
+                {(c.canEdit || c.canDelete) && editing?.id !== c.id && (
+                  <div className="talk__tools">
+                    {confirming === c.id ? (
+                      <span className="talk__confirm">
+                        Apagar?
+                        <button type="button" className="btn btn--danger btn--sm" disabled={busy} onClick={() => run(eventsApi.deleteComment(eventId, c.id))}>
+                          Apagar
+                        </button>
+                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirming(undefined)}>
+                          Cancelar
+                        </button>
+                      </span>
+                    ) : (
+                      <>
+                        {c.canEdit && (
+                          <button type="button" className="icon-btn icon-btn--sm" title="Editar" aria-label="Editar comentário" onClick={() => setEditing({ id: c.id, body: c.body })}>
+                            <Icon name="pencil" />
+                          </button>
+                        )}
+                        {c.canDelete && (
+                          <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" title="Apagar" aria-label="Apagar comentário" onClick={() => setConfirming(c.id)}>
+                            <Icon name="trash" />
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </Who>
               {editing?.id === c.id ? (
                 <form
                   className="talk__reply"
@@ -635,31 +664,6 @@ function Comments({ eventId, post, onChange }: { eventId: number; post: EventPos
                 </form>
               ) : (
                 <Text>{c.body}</Text>
-              )}
-              {(c.canEdit || c.canDelete) && editing?.id !== c.id && (
-                <div className="talk__actions talk__actions--small">
-                  {c.canEdit && (
-                    <button type="button" className="link-btn" onClick={() => setEditing({ id: c.id, body: c.body })}>
-                      Editar
-                    </button>
-                  )}
-                  {c.canDelete &&
-                    (confirming === c.id ? (
-                      <span className="talk__confirm">
-                        Apagar?
-                        <button type="button" className="btn btn--danger btn--sm" disabled={busy} onClick={() => run(eventsApi.deleteComment(eventId, c.id))}>
-                          Apagar
-                        </button>
-                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirming(undefined)}>
-                          Cancelar
-                        </button>
-                      </span>
-                    ) : (
-                      <button type="button" className="link-btn link-btn--danger" onClick={() => setConfirming(c.id)}>
-                        Apagar
-                      </button>
-                    ))}
-                </div>
               )}
             </li>
           ))}
@@ -686,7 +690,7 @@ function Comments({ eventId, post, onChange }: { eventId: number; post: EventPos
             onChange={(e) => setBody(e.target.value)}
             onKeyDown={submitOnCtrlEnter}
           />
-          <button type="submit" className="icon-btn" disabled={busy || !body.trim()}>
+          <button type="submit" className="talk__send" disabled={busy || !body.trim()} title="Enviar (Ctrl+Enter)">
             <Icon name="send" />
             <span className="sr-only">Enviar comentário</span>
           </button>
