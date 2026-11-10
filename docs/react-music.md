@@ -152,7 +152,7 @@ A member plays a song's chords along with its recording: `/music/play/{songId}`,
   playing. One `requestAnimationFrame` loop reads the audio clock; React state changes only when the
   line or chord does. Audio is the existing `GET /songs/{id}/audio` link: opening the page counts no play.
 - **Chord shapes** live in `MusicPlayAlong.tsx` (`SHAPES`). A chord that is not there shows its name
-  with no fingering. The bandolim shapes were written for 094 and still need a bandolim player's review. Cavaquinho (095) assumes the D G B D tuning and needs the same review; baixo has no table: it shows one note, the chord's root or the note after the slash.
+  with no fingering. The bandolim shapes were written for 094 and still need a bandolim player's review. Cavaquinho (095) assumes the D G B D tuning and needs the same review; baixo has no table: it shows one note, the chord's root or the note after the slash. **Dedilhado** (guitarra only, switch "Acordes" / "Dedilhado"): each chord block shows picked notes instead of the whole chord, one built-in pattern (`pickingOf`): bass, 3rd string, 2nd + 1st together, 3rd string, then the same on the second bass string; the two bass strings follow the chord. A pattern per song is not stored yet.
 - A recording whose length differs from the chart's by more than 2 s shows "A gravação mudou…": the
   chart was made for another file.
 - **Not done:** microphone scoring, melody (the sheets carry chords only), an in-app chart editor,

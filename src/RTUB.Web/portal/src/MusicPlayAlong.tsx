@@ -31,19 +31,25 @@ const SHAPES: Record<Exclude<Instrument, 'bass'>, Record<string, number[]>> = {
     Cmaj7: [-1, 3, 2, 0, 0, 0], 'C#m7': [-1, 4, 6, 4, 5, 4], D: [-1, -1, 0, 2, 3, 2], Dm: [-1, -1, 0, 2, 3, 1],
     Dm7: [-1, -1, 0, 2, 1, 1], E: [0, 2, 2, 1, 0, 0], Em: [0, 2, 2, 0, 0, 0], F: [1, 3, 3, 2, 1, 1],
     F7: [1, 3, 1, 2, 1, 1], G: [3, 2, 0, 0, 0, 3], G7: [3, 2, 0, 0, 0, 1], Gm: [3, 5, 5, 3, 3, 3],
+    Am: [-1, 0, 2, 2, 1, 0], Am7: [-1, 0, 2, 0, 1, 0], B: [-1, 2, 4, 4, 4, 2], Bm: [-1, 2, 4, 4, 3, 2],
+    Bm7: [-1, 2, 4, 2, 3, 2], Bb7: [-1, 1, 3, 1, 3, 1], 'C#7': [-1, 4, 3, 4, 2, -1], D7: [-1, -1, 0, 2, 1, 2],
+    Dsus4: [-1, -1, 0, 2, 3, 3], E6: [0, 2, 2, 1, 2, 0], E7: [0, 2, 0, 1, 0, 0], Eb: [-1, 6, 8, 8, 8, 6],
+    Em6: [0, 2, 2, 0, 2, 0], Em7: [0, 2, 0, 0, 0, 0], Emaj7: [0, 2, 1, 1, 0, 0], Esus4: [0, 2, 2, 2, 0, 0],
+    'F#': [2, 4, 4, 3, 2, 2], 'F#m7': [2, 4, 2, 2, 2, 2], Fm: [1, 3, 3, 1, 1, 1], Fmaj7: [-1, -1, 3, 2, 1, 0],
+    'G#m7': [4, 6, 4, 4, 4, 4], Gm7: [3, 5, 3, 3, 3, 3], Gmaj7: [3, 2, 0, 0, 0, 2],
   },
   bandolim: {
     A: [2, 2, 4, 5], A7: [2, 2, 4, 3], 'A#7': [3, 0, 1, 4], Asus4: [2, 0, 0, 0], B7: [4, 1, 0, 2], Bb: [3, 0, 1, 1],
     C: [0, 2, 3, 0], C7: [3, 2, 3, 0], Cmaj7: [4, 2, 3, 0], 'C#m7': [4, 2, 4, 0], D: [2, 0, 0, 2], Dm: [2, 0, 0, 1],
     Dm7: [2, 0, 3, 1], E: [1, 2, 2, 0], Em: [0, 2, 2, 0], F: [5, 3, 0, 1], F7: [5, 1, 0, 1], G: [0, 0, 2, 3],
-    G7: [0, 0, 2, 1], Gm: [0, 0, 1, 3],
+    G7: [0, 0, 2, 1], Gm: [0, 0, 1, 3], Am: [2, 2, 3, 0], Am7: [2, 2, 3, 3], D7: [2, 0, 3, 2], E7: [1, 0, 2, 0],
   },
   // Tuned D G B D. C#m7 is shown as C#m.
   cavaquinho: {
     A: [2, 2, 2, 2], A7: [2, 2, 2, 5], 'A#7': [3, 3, 3, 6], Asus4: [2, 2, 3, 2], B7: [1, 2, 0, 1], Bb: [3, 3, 3, 3],
     C: [2, 0, 1, 2], C7: [2, 3, 1, 2], Cmaj7: [2, 4, 1, 2], 'C#m7': [2, 1, 2, 2], D: [0, 2, 3, 4], Dm: [0, 2, 3, 3],
     Dm7: [0, 2, 1, 3], E: [2, 1, 0, 2], Em: [2, 0, 0, 2], F: [3, 2, 1, 3], F7: [3, 2, 1, 1], G: [0, 0, 0, 0],
-    G7: [0, 0, 0, 3], Gm: [5, 3, 3, 5],
+    G7: [0, 0, 0, 3], Gm: [5, 3, 3, 5], Am: [2, 2, 1, 2], Am7: [2, 2, 1, 5], D7: [0, 2, 1, 4], E7: [2, 1, 0, 0],
   },
 };
 const STRINGS: Record<Instrument, number> = { guitar: 6, bandolim: 4, cavaquinho: 4, bass: 4 };
@@ -62,6 +68,20 @@ function bassNote(name: string) {
   shape[string] = (pitch - [4, 9, 2][string] + 12) % 12;
   return shape;
 }
+
+/**
+ * Dedilhado (guitar): bass, 3rd string, 2nd and 1st together, 3rd string, then the same on the other
+ * bass string. The bass strings follow the chord: its lowest string and the next one (MI: 5th and 4th;
+ * a chord whose lowest string is the 4th goes down to the 5th). Rows are indexes into a shape.
+ * ponytail: one pattern for every song; a pattern per song belongs in the chart when a second one exists.
+ */
+function pickingOf(name: string, shape: number[]) {
+  const lowest = shape.findIndex((fret) => fret >= 0);
+  const [first, second] = name.startsWith('E') ? [1, 2] : lowest >= 2 ? [2, 1] : [lowest, lowest + 1];
+  return [[first], [3], [4, 5], [3], [second], [3], [4, 5], [3]];
+}
+/** The narrowest a picked note can be before the next one covers it. */
+const PICK_PX = 24;
 
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 
@@ -153,6 +173,7 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
   const [rate, setRate] = useState(1);
   const [loop, setLoop] = useState(false);
   const [instrument, setInstrument] = useState<Instrument>(savedInstrument);
+  const [picking, setPicking] = useState(false);
   const [lineIndex, setLineIndex] = useState(0);
   const [chordIndex, setChordIndex] = useState(-1);
   const [stale, setStale] = useState(false);
@@ -273,15 +294,35 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
           {chords.map((chord, i) => {
             const end = chords[i + 1]?.time ?? chart.duration;
             const shape = shapeOf(chord.name, instrument);
+            const width = Math.max((end - chord.time) * PX_PER_SECOND - 4, 26);
+            // A short chord gets the first half of the pattern, a very short one only its bass.
+            const steps = picking && instrument === 'guitar' && shape
+              ? pickingOf(chord.name, shape).slice(0, width >= 8 * PICK_PX ? 8 : width >= 4 * PICK_PX ? 4 : 1)
+              : null;
             return (
               <div
                 key={i}
                 className={`playalong__block${i === chordIndex ? ' is-now' : i < chordIndex ? ' is-past' : ''}`}
-                style={{ left: chord.time * PX_PER_SECOND, width: Math.max((end - chord.time) * PX_PER_SECOND - 4, 26) }}
+                style={{ left: chord.time * PX_PER_SECOND, width }}
               >
                 <b className="playalong__name">{chord.label}</b>
                 {/* Highest string on top, as in a tab. */}
+                {steps?.map((strings, step) =>
+                  strings.map((string) =>
+                    // RÉ mutes the 5th string in its chord box, but the thumb plays it open.
+                    shape![string] < 0 && step % 4 !== 0 ? null : (
+                      <span
+                        key={`${step}-${string}`}
+                        className={`playalong__fret${step % 4 === 0 ? ' playalong__fret--bass' : ''}`}
+                        style={{ '--row': shape!.length - 1 - string, left: `${(step / steps.length) * 100}%` } as CSSProperties}
+                      >
+                        {Math.max(shape![string], 0)}
+                      </span>
+                    ),
+                  ),
+                )}
                 {shape &&
+                  !steps &&
                   [...shape].reverse().map((fret, row) =>
                     fret < 0 ? null : (
                       <span key={row} className="playalong__fret" style={{ '--row': row } as CSSProperties}>
@@ -370,6 +411,16 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
             </button>
           ))}
         </div>
+        {instrument === 'guitar' && (
+          <div className="playalong__group" role="group" aria-label="Mão direita">
+            <button type="button" aria-pressed={!picking} onClick={() => setPicking(false)}>
+              Acordes
+            </button>
+            <button type="button" aria-pressed={picking} onClick={() => setPicking(true)}>
+              Dedilhado
+            </button>
+          </div>
+        )}
         <div className="playalong__group">
           <button type="button" aria-pressed={loop} onClick={() => setLoop(!loop)}>
             Repetir secção

@@ -16585,6 +16585,12 @@ html.app-screen .footer {
   box-shadow: inset 0 0 0 1px var(--purple-ink);
 }
 
+/* Dedilhado: the thumb's note stands out from the fingers'. */
+.playalong__fret--bass {
+  box-shadow: inset 0 0 0 2px var(--focus);
+  transform: scale(1.15);
+}
+
 .playalong__block.is-now .playalong__fret {
   background: #fff;
   color: var(--royal);
