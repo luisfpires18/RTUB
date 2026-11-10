@@ -16517,8 +16517,8 @@ html.app-screen .footer {
   position: absolute;
   inset-inline: 0;
   top: calc(var(--names-h) + (var(--row) + 0.5) * var(--row-h));
-  /* Lower strings are thicker, as on the instrument. */
-  height: calc(1px + var(--row) * 0.35px);
+  /* Lower strings are thicker, as on the instrument; the lowest is the top row. */
+  height: calc(1px + (var(--strings) - 1 - var(--row)) * 0.35px);
   background: var(--line-strong);
 }
 

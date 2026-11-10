@@ -306,7 +306,7 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
                 style={{ left: chord.time * PX_PER_SECOND, width }}
               >
                 <b className="playalong__name">{chord.label}</b>
-                {/* Highest string on top, as in a tab. */}
+                {/* Lowest string on top, as the player sees the instrument (a tab is the other way up). */}
                 {steps?.map((strings, step) =>
                   strings.map((string) =>
                     // RÉ mutes the 5th string in its chord box, but the thumb plays it open.
@@ -314,7 +314,7 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
                       <span
                         key={`${step}-${string}`}
                         className={`playalong__fret${step % 4 === 0 ? ' playalong__fret--bass' : ''}`}
-                        style={{ '--row': shape!.length - 1 - string, left: `${(step / steps.length) * 100}%` } as CSSProperties}
+                        style={{ '--row': string, left: `${(step / steps.length) * 100}%` } as CSSProperties}
                       >
                         {Math.max(shape![string], 0)}
                       </span>
@@ -323,7 +323,7 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
                 )}
                 {shape &&
                   !steps &&
-                  [...shape].reverse().map((fret, row) =>
+                  shape.map((fret, row) =>
                     fret < 0 ? null : (
                       <span key={row} className="playalong__fret" style={{ '--row': row } as CSSProperties}>
                         {fret}

@@ -145,7 +145,7 @@ A member plays a song's chords along with its recording: `/music/play/{songId}`,
   split, forced alignment of the known lyrics, beat tracking → `chart.json`, reviewed by ear before
   upload. It needs PyTorch and a 1.5 GB model, so it never runs on the server. Song files are never
   committed.
-- **Page** (`MusicPlayAlong.tsx`): the strings across the screen (6 for guitarra, 4 for bandolim, cavaquinho and baixo, the
+- **Page** (`MusicPlayAlong.tsx`): the strings across the screen, lowest string on top (6 for guitarra, 4 for bandolim, cavaquinho and baixo, the
   choice kept in `localStorage`), each chord arriving at the line as a block of fret numbers; the lyric
   line with its chords and the sung word lit; a section timeline that seeks; 60 / 80 / 100 % speed
   (`playbackRate`, pitch kept); "Repetir secção"; space bar plays / pauses; the screen stays awake while
