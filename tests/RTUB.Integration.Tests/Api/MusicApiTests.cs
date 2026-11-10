@@ -444,18 +444,18 @@ public class MusicApiTests : IClassFixture<MusicApiFactory>
     // ---------- tocar junto (094) ----------
 
     [Fact]
-    public async Task PlayAlong_IsUploadedByAMod_ReadByMembers_AndHiddenFromVisitors()
+    public async Task PlayAlong_IsUploadedByTheOwner_ReadByMembers_AndHiddenFromVisitors()
     {
         var seed = await SeedAsync();
-        var (mod, _) = await SignInAsync("Mod");
+        var (owner, _) = await SignInAsync("Owner");
         var (member, _) = await SignInAsync("Member");
         var visitor = await AnonymousAsync();
-        await WithTokenAsync(mod);
+        await WithTokenAsync(owner);
         var url = $"/api/music/songs/{seed.SongWithPdf}/playalong";
 
         (await member.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "the song has no chart yet");
-        (await mod.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await mod.PutAsJsonAsync(url, Chart(bpm: 90))).StatusCode.Should().Be(HttpStatusCode.NoContent, "a second upload replaces the chart");
+        (await owner.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await owner.PutAsJsonAsync(url, Chart(bpm: 90))).StatusCode.Should().Be(HttpStatusCode.NoContent, "a second upload replaces the chart");
 
         var read = await member.GetFromJsonAsync<JsonElement>(url);
         read.GetProperty("songId").GetInt32().Should().Be(seed.SongWithPdf);
@@ -465,38 +465,73 @@ public class MusicApiTests : IClassFixture<MusicApiFactory>
         chart.GetProperty("bpm").GetDouble().Should().Be(90);
         chart.GetProperty("sections")[0].GetProperty("lines")[0].GetProperty("chords")[0].GetProperty("name").GetString().Should().Be("F");
         chart.TryGetProperty("extra", out _).Should().BeFalse("only the known fields are stored");
+        chart.GetProperty("picking").GetBoolean().Should().BeFalse("dedilhado is off unless the chart asks for it");
 
         (await visitor.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.Unauthorized, "play-along is for members");
         bool Flag(JsonElement album) => album.GetProperty("songs").EnumerateArray()
             .Single(s => s.GetProperty("id").GetInt32() == seed.SongWithPdf).GetProperty("hasPlayAlong").GetBoolean();
         Flag(await member.GetFromJsonAsync<JsonElement>($"/api/music/albums/{seed.PublicAlbum}")).Should().BeTrue();
         Flag(await visitor.GetFromJsonAsync<JsonElement>($"/api/music/albums/{seed.PublicAlbum}")).Should().BeFalse();
-        (await mod.GetFromJsonAsync<JsonElement>($"/api/music/songs/{seed.SongWithPdf}/edit")).GetProperty("hasPlayAlong").GetBoolean().Should().BeTrue();
+        (await owner.GetFromJsonAsync<JsonElement>($"/api/music/songs/{seed.SongWithPdf}/edit")).GetProperty("hasPlayAlong").GetBoolean().Should().BeTrue();
 
-        (await mod.DeleteAsync(url)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await owner.DeleteAsync(url)).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await member.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task PlayAlong_Writes_AreRefusedToMembers_WithoutToken_AndWhenTheChartIsInvalid()
+    public async Task PlayAlong_Writes_AreOwnerOnly_NeedAToken_AndAValidChart()
     {
         var seed = await SeedAsync();
-        var (mod, _) = await SignInAsync("Mod");
+        var (owner, _) = await SignInAsync("Owner");
         var (member, _) = await SignInAsync("Member");
         var url = $"/api/music/songs/{seed.SongWithPdf}/playalong";
 
-        (await mod.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.BadRequest, "no antiforgery token");
-        await WithTokenAsync(mod);
+        (await owner.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.BadRequest, "no antiforgery token");
+        await WithTokenAsync(owner);
         await WithTokenAsync(member);
 
         (await member.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await member.DeleteAsync(url)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await mod.PutAsJsonAsync(url, Chart(version: 2))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await mod.PutAsJsonAsync(url, Chart(chord: "<script>"))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await mod.PutAsJsonAsync(url, new { version = 1 })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await mod.PutAsJsonAsync($"/api/music/songs/{seed.ExclusiveSong}/playalong", Chart())).StatusCode
-            .Should().Be(HttpStatusCode.NotFound, "a Mod who is not on an exclusive album cannot write to it");
-        (await mod.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "nothing invalid was stored");
+        (await owner.PutAsJsonAsync(url, Chart(version: 2))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await owner.PutAsJsonAsync(url, Chart(chord: "<script>"))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await owner.PutAsJsonAsync(url, new { version = 1 })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        foreach (var role in new[] { "Mod", "Admin" })
+        {
+            var (manager, _) = await SignInAsync(role);
+            await WithTokenAsync(manager);
+            (await manager.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.Forbidden, $"{role} manages songs, not charts");
+            (await manager.DeleteAsync(url)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        (await owner.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "nothing invalid was stored");
+    }
+
+    [Fact]
+    public async Task LearnList_ShowsMembersTheSongsWithAChart_InTheAlbumsTheySee()
+    {
+        var (listed, listedUser) = await SignInAsync("Member");
+        var (other, _) = await SignInAsync("Member");
+        var (owner, _) = await SignInAsync("Owner");
+        var visitor = await AnonymousAsync();
+        var seed = await SeedAsync(accessFor: listedUser.Id);
+        await WithTokenAsync(owner);
+
+        (await owner.PutAsJsonAsync($"/api/music/songs/{seed.SongWithPdf}/playalong", Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await owner.PutAsJsonAsync($"/api/music/songs/{seed.ExclusiveSong}/playalong", Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        int[] Ids(JsonElement list) => list.EnumerateArray().Select(s => s.GetProperty("songId").GetInt32()).ToArray();
+        Ids(await listed.GetFromJsonAsync<JsonElement>("/api/music/playalongs")).Should().Contain(new[] { seed.SongWithPdf, seed.ExclusiveSong });
+        var seen = await other.GetFromJsonAsync<JsonElement>("/api/music/playalongs");
+        Ids(seen).Should().Contain(seed.SongWithPdf).And.NotContain(seed.ExclusiveSong, "an exclusive album stays with the members on its list");
+        var mine = seen.EnumerateArray().Single(s => s.GetProperty("songId").GetInt32() == seed.SongWithPdf);
+        mine.GetProperty("title").GetString().Should().Be("Abertura");
+        mine.GetProperty("albumId").GetInt32().Should().Be(seed.PublicAlbum);
+
+        (await visitor.GetAsync("/api/music/playalongs")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var page = await visitor.GetAsync("/music/learn");
+        page.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        page.Headers.Location!.ToString().Should().Be("/login?returnUrl=" + Uri.EscapeDataString("/music/learn"));
+        (await other.GetStringAsync("/music/learn")).Should().Contain("id=\"root\"");
     }
 
     [Fact]

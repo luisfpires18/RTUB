@@ -592,12 +592,13 @@ public class Program
         // Task 041: /messages, Messaging v2 (React; the conversation is ?c=<id>), members only. /messages/{id} and the old
         // /hubs/messages stay 404: nothing of the 027-retired inbox comes back.
         // Task 071: /pending-actions (As minhas ações pendentes), members only; the API decides each panel.
-        // Task 094: /music/play/{id} (Tocar junto), members only; the API decides which songs the member may open.
+        // Task 094: /music/play/{id} (Aprender), members only; the API decides which songs the member may open.
+        // Task 095: /music/learn (Aprender Músicas), members only: the songs that have a chart.
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
                      "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/tasks", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
                      "/pending-actions", "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config",
-                     "/music/play/{id:int}", "/meetings", "/messages" })
+                     "/music/play/{id:int}", "/music/learn", "/meetings", "/messages" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {

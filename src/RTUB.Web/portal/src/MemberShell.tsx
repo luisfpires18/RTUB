@@ -28,6 +28,7 @@ export const memberMenu: MenuGroup[] = [
       { href: portal.events, label: 'Atuações', icon: 'calendar' },
       { href: portal.rehearsals, label: 'Ensaios', icon: 'clock' },
       { href: portal.music, label: 'Música', icon: 'music' },
+      { href: portal.musicLearn, label: 'Aprender Músicas', icon: 'music' },
       { href: portal.gallery, label: 'Galeria', icon: 'images' },
       { href: portal.news, label: 'Novidades', icon: 'newspaper' },
       { href: portal.shop, label: 'Loja', icon: 'bag' },

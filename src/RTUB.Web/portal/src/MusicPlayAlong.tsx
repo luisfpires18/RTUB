@@ -173,7 +173,8 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
   const [rate, setRate] = useState(1);
   const [loop, setLoop] = useState(false);
   const [instrument, setInstrument] = useState<Instrument>(savedInstrument);
-  const [picking, setPicking] = useState(false);
+  // Dedilhado is offered only where the Owner marked the song as played that way, and it opens in it.
+  const [picking, setPicking] = useState(chart.picking);
   const [lineIndex, setLineIndex] = useState(0);
   const [chordIndex, setChordIndex] = useState(-1);
   const [stale, setStale] = useState(false);
@@ -411,7 +412,7 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
             </button>
           ))}
         </div>
-        {instrument === 'guitar' && (
+        {chart.picking && instrument === 'guitar' && (
           <div className="playalong__group" role="group" aria-label="Mão direita">
             <button type="button" aria-pressed={!picking} onClick={() => setPicking(false)}>
               Acordes

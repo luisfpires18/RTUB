@@ -306,6 +306,7 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
         <SongForm
           albumId={album.id}
           songId={editing}
+          canPlayAlong={can.canManageExclusive}
           onClose={() => setEditing(undefined)}
           onSaved={() => {
             setEditing(undefined);

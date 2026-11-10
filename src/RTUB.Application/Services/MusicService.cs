@@ -557,6 +557,28 @@ public sealed class MusicService : IMusicService
 
     // ---------- tocar junto (094) ----------
 
+    public async Task<MusicResult<IReadOnlyList<MusicLearnSongDto>>> GetPlayAlongSongsAsync(ClaimsPrincipal user)
+    {
+        if (!MusicAuthorization.IsMember(user))
+        {
+            return MusicResult<IReadOnlyList<MusicLearnSongDto>>.Fail(MusicResultStatus.SignInRequired);
+        }
+
+        await using var ctx = await _contexts.CreateDbContextAsync();
+        var albums = Visible(ctx, user).Select(a => a.Id);
+        var songs = await ctx.Songs.AsNoTracking()
+            .Where(s => albums.Contains(s.AlbumId) && ctx.SongPlayAlongs.Any(p => p.SongId == s.Id))
+            .Select(s => new { s.Id, s.Title, s.TrackNumber, s.AlbumId, AlbumTitle = s.Album!.Title, s.Album.Year, s.Album.ImageUrl })
+            .ToListAsync();
+
+        // Newest album first, then the album's own order.
+        return MusicResult<IReadOnlyList<MusicLearnSongDto>>.Ok(songs
+            .OrderByDescending(s => s.Year ?? int.MaxValue).ThenBy(s => s.AlbumId)
+            .ThenBy(s => s.TrackNumber is null).ThenBy(s => s.TrackNumber).ThenBy(s => s.Id)
+            .Select(s => new MusicLearnSongDto(s.Id, s.Title, s.AlbumId, s.AlbumTitle, s.Year, IsWebUrl(s.ImageUrl) ? s.ImageUrl : null))
+            .ToList());
+    }
+
     public async Task<MusicResult<MusicPlayAlongDto>> GetPlayAlongAsync(int songId, ClaimsPrincipal user)
     {
         if (!MusicAuthorization.IsMember(user))
@@ -580,7 +602,7 @@ public sealed class MusicService : IMusicService
 
     public async Task<MusicResult<bool>> SavePlayAlongAsync(int songId, PlayAlongChartDto? chart, ClaimsPrincipal user)
     {
-        if (!MusicAuthorization.CanManage(user))
+        if (!MusicAuthorization.CanManagePlayAlong(user))
         {
             return MusicResult<bool>.Fail(MusicResultStatus.Forbidden);
         }
@@ -611,7 +633,7 @@ public sealed class MusicService : IMusicService
 
     public async Task<MusicResult<bool>> DeletePlayAlongAsync(int songId, ClaimsPrincipal user)
     {
-        if (!MusicAuthorization.CanManage(user))
+        if (!MusicAuthorization.CanManagePlayAlong(user))
         {
             return MusicResult<bool>.Fail(MusicResultStatus.Forbidden);
         }
