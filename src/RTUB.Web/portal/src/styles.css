@@ -16585,8 +16585,8 @@ html.app-screen .footer {
   position: absolute;
   inset-inline: 0;
   top: calc(var(--names-h) + (var(--row) + 0.5) * var(--row-h));
-  /* Lower strings are thicker, as on the instrument. */
-  height: calc(1px + var(--row) * 0.35px);
+  /* Lower strings are thicker, as on the instrument; the lowest is the top row. */
+  height: calc(1px + (var(--strings) - 1 - var(--row)) * 0.35px);
   background: var(--line-strong);
 }
 
@@ -16653,6 +16653,12 @@ html.app-screen .footer {
   box-shadow: inset 0 0 0 1px var(--purple-ink);
 }
 
+/* Dedilhado: the thumb's note stands out from the fingers'. */
+.playalong__fret--bass {
+  box-shadow: inset 0 0 0 2px var(--focus);
+  transform: scale(1.15);
+}
+
 .playalong__block.is-now .playalong__fret {
   background: #fff;
   color: var(--royal);
@@ -16668,7 +16674,63 @@ html.app-screen .footer {
   box-shadow: 0 0 14px 2px rgba(212, 188, 255, 0.45);
 }
 
+.playalong__below {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: start;
+}
+
+.playalong__shapes {
+  display: flex;
+  gap: 10px;
+}
+
+.playalong__shape {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  width: 116px;
+  min-height: 152px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--purple-ink);
+}
+
+.playalong__shape--next {
+  opacity: 0.55;
+}
+
+.playalong__shape small {
+  font-size: 0.75rem;
+}
+
+.playalong__shape strong {
+  font-family: Fraunces, serif;
+  font-size: 1.25rem;
+}
+
+.playalong__shape svg {
+  width: 100%;
+  stroke: currentColor;
+  stroke-opacity: 0.5;
+}
+
+.playalong__shape circle {
+  fill: var(--purple);
+  stroke: none;
+}
+
+.playalong__shape text {
+  fill: currentColor;
+  stroke: none;
+  font-size: 12px;
+  text-anchor: middle;
+}
+
 .playalong__lyrics {
+  flex: 1 1 280px;
   display: grid;
   gap: 2px;
   min-height: 9.5rem;
@@ -16804,9 +16866,10 @@ html.app-screen .footer {
 
 .playalong__group {
   display: inline-flex;
+  max-width: 100%;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  overflow: hidden;
+  overflow: auto hidden;
 }
 
 .playalong__group button {

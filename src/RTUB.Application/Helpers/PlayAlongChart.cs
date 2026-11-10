@@ -6,8 +6,7 @@ namespace RTUB.Application.Helpers;
 
 /// <summary>
 /// The play-along chart format, version 1 (task 094, docs/react-music.md → Tocar junto). A chart is made
-/// offline by tools/playalong from a chord sheet and the song's recording, then uploaded by whoever
-/// manages Music. This is the trust boundary: everything a chart may contain is checked here, and what
+/// offline by tools/playalong from a chord sheet and the song's recording, then uploaded by the Owner. This is the trust boundary: everything a chart may contain is checked here, and what
 /// is stored is the chart written back from the typed model, so unknown fields never reach the database.
 /// </summary>
 public static partial class PlayAlongChart
@@ -48,7 +47,7 @@ public static partial class PlayAlongChart
     {
         if (chart is null || chart.Sections is null || chart.Beats is null)
         {
-            return "O ficheiro não é uma pauta de tocar junto.";
+            return "O ficheiro não é uma pauta de aprender.";
         }
 
         if (chart.Version != Version)

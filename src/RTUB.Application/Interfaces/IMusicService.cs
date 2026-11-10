@@ -51,6 +51,9 @@ public interface IMusicService
 
     Task<MusicResult<bool>> DeleteSongAsync(int songId, ClaimsPrincipal user);
 
+    /// <summary>Every song with an Aprender chart in the albums the member can see (task 095).</summary>
+    Task<MusicResult<IReadOnlyList<MusicLearnSongDto>>> GetPlayAlongSongsAsync(ClaimsPrincipal user);
+
     /// <summary>The song's play-along chart, for signed-in members who can see its album (task 094).</summary>
     Task<MusicResult<MusicPlayAlongDto>> GetPlayAlongAsync(int songId, ClaimsPrincipal user);
 

@@ -9,6 +9,7 @@ export const portal = {
   profile: '/profile',
   request: '/request',
   music: '/music',
+  musicLearn: '/music/learn',
   login: '/login',
   roles: '/roles',
   gallery: '/gallery',

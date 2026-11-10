@@ -90,12 +90,17 @@ public sealed record PlayAlongLineDto(
 /// <summary><see cref="Kind"/> is verse, refrain or instrumental.</summary>
 public sealed record PlayAlongSectionDto(string Name, string Kind, double Start, double End, IReadOnlyList<PlayAlongLineDto> Lines);
 
+/// <summary><see cref="Picking"/>: the song is played dedilhado, so the page offers that mode (guitar).</summary>
 public sealed record PlayAlongChartDto(
     int Version,
     double Duration,
     double Bpm,
     IReadOnlyList<double> Beats,
-    IReadOnlyList<PlayAlongSectionDto> Sections);
+    IReadOnlyList<PlayAlongSectionDto> Sections,
+    bool Picking = false);
+
+/// <summary>A song with an Aprender chart, for the Aprender Músicas list (members only).</summary>
+public sealed record MusicLearnSongDto(int SongId, string Title, int AlbumId, string AlbumTitle, int? Year, string? CoverUrl);
 
 /// <summary>What the play-along page needs for one song (members only).</summary>
 public sealed record MusicPlayAlongDto(int SongId, string Title, int AlbumId, string AlbumTitle, bool HasAudio, PlayAlongChartDto Chart);

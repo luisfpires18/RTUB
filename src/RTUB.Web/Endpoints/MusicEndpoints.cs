@@ -50,7 +50,10 @@ public static class MusicEndpoints
         music.MapGet("/songs/{id:int}/edit", async (int id, HttpContext http, IMusicService service) =>
             ToResult(await service.GetSongForEditAsync(id, http.User)));
 
-        // Tocar junto (094): members only; the chart is made offline (tools/playalong) and uploaded as JSON.
+        // Aprender (094): members read; the chart is made offline (tools/playalong) and uploaded as JSON by the Owner.
+        music.MapGet("/playalongs", async (HttpContext http, IMusicService service) =>
+            ToResult(await service.GetPlayAlongSongsAsync(http.User)));
+
         music.MapGet("/songs/{id:int}/playalong", async (int id, HttpContext http, IMusicService service) =>
             ToResult(await service.GetPlayAlongAsync(id, http.User)));
 

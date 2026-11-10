@@ -6,7 +6,9 @@ durable detail lives in the docs linked below.
 _Last updated: 2026-11-07 (2.3.4 released to PROD; `dev` on 2.3.5)_
 
 ## Phase
-**Task 094 = Tocar junto** (`feat/094/music-play-along`, PR open into `dev`). `/music/play/{songId}` (members only):
+**Task 095** (`feat/095/music-aprender`): the feature is named **Aprender** in the UI (was "Tocar junto") and the page shows the current and next chord as chord boxes ("Agora" / "A seguir").
+
+**Task 094 = Tocar junto** (`feat/094/music-play-along`, merged into `dev`). `/music/play/{songId}` (members only):
 a song's chords arrive on a string lane in time with its recording, lyric line underneath, guitarra / bandolim,
 60 / 80 / 100 % speed, section loop. Chart = validated JSON per song in the new `SongPlayAlongs` table (migration
 `AddSongPlayAlongs`, additive), `GET/PUT/DELETE /api/music/songs/{id}/playalong`, uploaded in the song edit form

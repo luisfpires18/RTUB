@@ -9,7 +9,8 @@ is retired. Shell, route table and module rules: `docs/react-portal-pilot.md`.
 | --- | --- | --- |
 | `/music` | **React** | Album grid. Visitors: public albums; members: + private + their exclusive albums; Owner: all. |
 | `/music/albums/{id}` | **React** | One album: songs, search, player, lyrics, links, videos (members), management. |
-| `/music/play/{songId}` | **React** | Tocar junto (task 094): members only, a visitor is sent to sign in. Section below. |
+| `/music/learn` | **React** | Aprender Músicas (task 095): members only; the songs that have a chart, in the `/music` grid; a card opens `/music/play/{songId}`. In the member menu. |
+| `/music/play/{songId}` | **React** | Aprender (task 094): members only, a visitor is sent to sign in. Section below. |
 | `/music/songs/{id}` | redirect | Retired Blazor album page; `302` → `/music/albums/{id}`, query kept, GET/HEAD only. |
 | `/api/music/...` | API | `src/RTUB.Web/Endpoints/MusicEndpoints.cs` (below). |
 
@@ -107,8 +108,9 @@ JSON problem; details only go to the log.
 | DELETE | `/albums/{id}` | Admin, Owner | cascades songs, links, videos, plays, repertoire rows; deletes the cover |
 | POST | `/albums/{id}/songs` | Mod+ | JSON |
 | PUT / DELETE | `/songs/{id}` | Mod+ / Admin, Owner | |
+| GET | `/playalongs` | members | the songs with a chart in the albums the member can see (095), newest album first |
 | GET | `/songs/{id}/playalong` | members | the song's play-along chart (094); `404` when the song has none |
-| PUT / DELETE | `/songs/{id}/playalong` | Mod+ | JSON chart ≤512 KB, validated and rewritten by `PlayAlongChart`; replaces / removes |
+| PUT / DELETE | `/songs/{id}/playalong` | Owner | JSON chart ≤512 KB, validated and rewritten by `PlayAlongChart`; replaces / removes |
 | POST | `/songs/{id}/videos` | members | multipart `file` (video, ≤100 MB) + `title`; notifies as before |
 | DELETE | `/videos/{id}` | uploader, Admin, Owner | |
 
@@ -123,10 +125,10 @@ JSON problem; details only go to the log.
   checks used fakes / placeholder credentials: nothing was uploaded to or deleted from R2.
 - CSP unchanged: `media-src` and `frame-src` already allow the R2 endpoint, `img-src` the public host.
 
-## Tocar junto (task 094)
+## Aprender (task 094; named "Tocar junto" until 095)
 
 A member plays a song's chords along with its recording: `/music/play/{songId}`, opened from the
-"Tocar junto" button a song shows when it has a chart (`hasPlayAlong` in the album payload, always
+"Aprender" button a song shows when it has a chart (`hasPlayAlong` in the album payload, always
 `false` for visitors).
 
 - **Who:** any signed-in member who can see the song's album (the same visibility rules as the rest of
@@ -145,14 +147,14 @@ A member plays a song's chords along with its recording: `/music/play/{songId}`,
   split, forced alignment of the known lyrics, beat tracking → `chart.json`, reviewed by ear before
   upload. It needs PyTorch and a 1.5 GB model, so it never runs on the server. Song files are never
   committed.
-- **Page** (`MusicPlayAlong.tsx`): the strings across the screen (6 for guitarra, 4 for bandolim, the
+- **Page** (`MusicPlayAlong.tsx`): the strings across the screen, lowest string on top (6 for guitarra, 4 for bandolim, cavaquinho and baixo, the
   choice kept in `localStorage`), each chord arriving at the line as a block of fret numbers; the lyric
   line with its chords and the sung word lit; a section timeline that seeks; 60 / 80 / 100 % speed
   (`playbackRate`, pitch kept); "Repetir secção"; space bar plays / pauses; the screen stays awake while
   playing. One `requestAnimationFrame` loop reads the audio clock; React state changes only when the
   line or chord does. Audio is the existing `GET /songs/{id}/audio` link: opening the page counts no play.
 - **Chord shapes** live in `MusicPlayAlong.tsx` (`SHAPES`). A chord that is not there shows its name
-  with no fingering. The bandolim shapes were written for 094 and still need a bandolim player's review.
+  with no fingering. The bandolim shapes were written for 094 and still need a bandolim player's review. Cavaquinho (095) assumes the D G B D tuning and needs the same review; baixo has no table: it shows one note, the chord's root or the note after the slash. **Dedilhado** (guitarra only, switch "Acordes" / "Dedilhado"): each chord block shows picked notes instead of the whole chord, one built-in pattern (`pickingOf`): bass, 3rd string, 2nd + 1st together, 3rd string, then the same on the second bass string; the two bass strings follow the chord. Offered only when the chart has `picking: true` (optional field, default false), which the Owner ticks per song in the song form ("Incluir dedilhado"); the page then opens in Dedilhado. A pattern per song is not stored yet.
 - A recording whose length differs from the chart's by more than 2 s shows "A gravação mudou…": the
   chart was made for another file.
 - **Not done:** microphone scoring, melody (the sheets carry chords only), an in-app chart editor,
