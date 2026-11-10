@@ -48,7 +48,7 @@ public static partial class PlayAlongChart
     {
         if (chart is null || chart.Sections is null || chart.Beats is null)
         {
-            return "O ficheiro não é uma pauta de tocar junto.";
+            return "O ficheiro não é uma pauta de aprender.";
         }
 
         if (chart.Version != Version)

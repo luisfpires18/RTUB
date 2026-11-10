@@ -4,7 +4,7 @@ import { Icon } from './icons';
 import { loginTo, musicApi, type PlayAlong, type PlayAlongLine, type PlayAlongSection } from './musicApi';
 
 /**
- * Tocar junto (task 094, docs/react-music.md): play a song's chords along with its recording. The
+ * Aprender (task 094, named Tocar junto until 095, docs/react-music.md): play a song's chords along with its recording. The
  * strings run across the screen and each chord arrives at the line as a block of fret numbers, with
  * the lyric line underneath. Everything is driven by the audio clock: the chart (made offline,
  * tools/playalong) only says when each chord and word happens.
@@ -92,9 +92,9 @@ export default function MusicPlayAlong({ songId }: { songId: number }) {
           <Icon name={load.kind === 'signin' ? 'lock' : 'music'} className="state__icon" />
           <h1 id="playalong-title" className="state__title">
             {load.kind === 'signin'
-              ? 'Tocar junto é para membros'
+              ? 'Aprender é para membros'
               : load.kind === 'notfound'
-                ? 'Esta música ainda não tem pauta de tocar junto.'
+                ? 'Esta música ainda não tem pauta para aprender.'
                 : 'Não foi possível carregar a pauta.'}
           </h1>
           {load.kind === 'signin' ? (
@@ -223,7 +223,7 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
         <h1 id="playalong-title" className="playalong__title">
           {data.title}
         </h1>
-        <p className="playalong__meta">Tocar junto, {Math.round(chart.bpm)} bpm</p>
+        <p className="playalong__meta">Aprender, {Math.round(chart.bpm)} bpm</p>
         <button type="button" className="btn btn--primary playalong__play" onClick={toggle} disabled={!audioUrl}>
           <Icon name={playing ? 'pause' : 'playFill'} />
           {playing ? 'Pausa' : 'Tocar'}
@@ -275,12 +275,23 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
         <i className="playalong__now" />
       </div>
 
-      <div className="playalong__lyrics">
-        <p className="playalong__section">{current.section.name}</p>
-        <p className="playalong__line" ref={sung} key={lineIndex}>
-          <Line line={current.line} timed />
-        </p>
-        <p className="playalong__line playalong__line--next">{lines[lineIndex + 1] && <Line line={lines[lineIndex + 1].line} />}</p>
+      <div className="playalong__below">
+        <div className="playalong__lyrics">
+          <p className="playalong__section">{current.section.name}</p>
+          <p className="playalong__line" ref={sung} key={lineIndex}>
+            <Line line={current.line} timed />
+          </p>
+          <p className="playalong__line playalong__line--next">{lines[lineIndex + 1] && <Line line={lines[lineIndex + 1].line} />}</p>
+        </div>
+        <div className="playalong__shapes" aria-hidden="true">
+          {[chords[Math.max(chordIndex, 0)], chords[Math.max(chordIndex, 0) + 1]].map((chord, i) => (
+            <div key={i} className={`playalong__shape${i ? ' playalong__shape--next' : ''}`}>
+              <small>{i ? 'A seguir' : 'Agora'}</small>
+              <strong>{chord?.label ?? '–'}</strong>
+              {chord && <Diagram frets={shapeOf(chord.name, instrument)} />}
+            </div>
+          ))}
+        </div>
       </div>
 
       <p className="sr-only" aria-live="polite">
@@ -357,6 +368,38 @@ function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }
         }}
       />
     </section>
+  );
+}
+
+/** A chord box: strings left to right from the lowest, five frets, the nut on top unless the shape sits higher. */
+function Diagram({ frets }: { frets?: number[] }) {
+  if (!frets) return null;
+  const played = frets.filter((f) => f > 0);
+  const base = Math.max(...played, 0) > 5 ? Math.min(...played) : 1;
+  const x = (s: number) => 14 + (s * 100) / (frets.length - 1);
+  return (
+    <svg viewBox="0 0 128 122">
+      {frets.map((_, s) => (
+        <line key={s} x1={x(s)} y1="22" x2={x(s)} y2="117" />
+      ))}
+      {[0, 1, 2, 3, 4, 5].map((f) => (
+        <line key={f} x1="14" y1={22 + f * 19} x2="114" y2={22 + f * 19} strokeWidth={f === 0 && base === 1 ? 4 : 1} />
+      ))}
+      {base > 1 && (
+        <text x="122" y="36">
+          {base}
+        </text>
+      )}
+      {frets.map((f, s) =>
+        f > 0 ? (
+          <circle key={s} cx={x(s)} cy={22 + (f - base + 0.5) * 19} r="7" />
+        ) : (
+          <text key={s} x={x(s)} y="14">
+            {f ? '×' : '○'}
+          </text>
+        ),
+      )}
+    </svg>
   );
 }
 

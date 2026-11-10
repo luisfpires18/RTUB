@@ -9,7 +9,7 @@ is retired. Shell, route table and module rules: `docs/react-portal-pilot.md`.
 | --- | --- | --- |
 | `/music` | **React** | Album grid. Visitors: public albums; members: + private + their exclusive albums; Owner: all. |
 | `/music/albums/{id}` | **React** | One album: songs, search, player, lyrics, links, videos (members), management. |
-| `/music/play/{songId}` | **React** | Tocar junto (task 094): members only, a visitor is sent to sign in. Section below. |
+| `/music/play/{songId}` | **React** | Aprender (task 094): members only, a visitor is sent to sign in. Section below. |
 | `/music/songs/{id}` | redirect | Retired Blazor album page; `302` → `/music/albums/{id}`, query kept, GET/HEAD only. |
 | `/api/music/...` | API | `src/RTUB.Web/Endpoints/MusicEndpoints.cs` (below). |
 
@@ -123,10 +123,10 @@ JSON problem; details only go to the log.
   checks used fakes / placeholder credentials: nothing was uploaded to or deleted from R2.
 - CSP unchanged: `media-src` and `frame-src` already allow the R2 endpoint, `img-src` the public host.
 
-## Tocar junto (task 094)
+## Aprender (task 094; named "Tocar junto" until 095)
 
 A member plays a song's chords along with its recording: `/music/play/{songId}`, opened from the
-"Tocar junto" button a song shows when it has a chart (`hasPlayAlong` in the album payload, always
+"Aprender" button a song shows when it has a chart (`hasPlayAlong` in the album payload, always
 `false` for visitors).
 
 - **Who:** any signed-in member who can see the song's album (the same visibility rules as the rest of

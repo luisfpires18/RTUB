@@ -478,9 +478,9 @@ function PlayAlongField({ songId, has, onChange }: { songId: number; has: boolea
 
   return (
     <fieldset className="urls playalong-upload">
-      <legend>Tocar junto</legend>
+      <legend>Aprender</legend>
       <p className="form__hint">
-        {has ? 'Esta música tem pauta de tocar junto.' : 'Esta música ainda não tem pauta de tocar junto.'} A pauta é um
+        {has ? 'Esta música tem pauta para aprender.' : 'Esta música ainda não tem pauta para aprender.'} A pauta é um
         ficheiro .json feito a partir da cifra e da gravação.
       </p>
       <div className="playalong-upload__actions">
