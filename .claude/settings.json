@@ -17,6 +17,32 @@
     ]
   },
   "enabledPlugins": {
-    "security-guidance@claude-plugins-official": true
+    "security-guidance@claude-plugins-official": true,
+    "ponytail@ponytail": true,
+    "caveman@caveman": true,
+    "context-mode@context-mode": true,
+    "humanizer@humanizer": true,
+    "genres@awesome-gamedev-agent-skills": false,
+    "disciplines@awesome-gamedev-agent-skills": false,
+    "workflows@awesome-gamedev-agent-skills": false,
+    "router@awesome-gamedev-agent-skills": false,
+    "taste-skill@local-desktop-app-uploads": true,
+    "impeccable@local-desktop-app-uploads": true,
+    "frontend-design@claude-plugins-official": true,
+    "superdesign@claude-plugins-official": false,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": false,
+    "unity@awesome-gamedev-agent-skills": false,
+    "godot@awesome-gamedev-agent-skills": false,
+    "godot-agent-kit@godot-agent-kit": false,
+    "unreal@awesome-gamedev-agent-skills": false,
+    "rpgmaker-mz@rpgmaker-mz-mcp": false,
+    "gamedev@awesome-gamedev-agent-skills": false,
+    "playwright@claude-plugins-official": false,
+    "ebitengine@awesome-gamedev-agent-skills": false,
+    "other-engines@awesome-gamedev-agent-skills": false,
+    "web-engines@awesome-gamedev-agent-skills": false,
+    "unity-perf@anthropic-plugin-directory": false,
+    "unity@anthropic-plugin-directory": false,
+    "unreal-engine-skills@anthropic-plugin-directory": false
   }
 }
