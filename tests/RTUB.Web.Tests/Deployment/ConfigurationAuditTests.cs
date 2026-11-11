@@ -465,7 +465,7 @@ public class ConfigurationAuditTests
     /// <summary>Every maintained Markdown doc: root docs, docs/ (ADRs excluded: append-only history), agents, RTUB skills.</summary>
     private static IEnumerable<(string File, string[] Lines)> DocLines()
     {
-        var files = new List<string> { "README.md", "CLAUDE.md", "STATE.md" }.Select(f => Path.Combine(Root, f))
+        var files = new List<string> { "README.md", "CLAUDE.md", ".ai/STATE.md" }.Select(f => Path.Combine(Root, f))
             .Concat(Directory.GetFiles(Path.Combine(Root, "docs"), "*.md", SearchOption.AllDirectories)
                 .Where(f => !f.Contains(Path.Combine("architecture", "adr"))))
             .Concat(Directory.GetFiles(Path.Combine(Root, ".github"), "*.md", SearchOption.AllDirectories))

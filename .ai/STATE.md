@@ -1,4 +1,4 @@
-# STATE.md
+# .ai/STATE.md
 
 Living execution state. **Read this first.** A status board, not a diary: history is in git, and
 durable detail lives in the docs linked below.
@@ -905,4 +905,4 @@ Carried (one line each; detail in git history):
 - Old work branches `chore/001`…`chore/029`, `fix/012`…`fix/029`, `perf/019`: delete when convenient.
 
 ## Next
-Owner actions above. After step 18: STATE.md → "030 complete".
+Owner actions above. After step 18: .ai/STATE.md → "030 complete".

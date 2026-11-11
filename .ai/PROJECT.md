@@ -4,12 +4,12 @@ Name: RTUB
 Repository: https://github.com/luisfpires18/rtub (public)
 Stack: ASP.NET Core on .NET 10, EF Core 10, SQLite, ASP.NET Identity, PWA with Web Push, React 19 + Vite portal; Azure hosting. Details: `CLAUDE.md` "Stack".
 Integration branch: `dev` (default). Every merge into `dev` deploys DEV. `master` is production; a `dev → master` merge-commit PR is a release (`docs/release-and-rollback.md`).
-State: the root `STATE.md` (not `.ai/STATE.md`). Where things live: `docs/architecture/system-index.md`.
+State: `.ai/STATE.md` (moved from the repository root on 2026-11-11). Where things live: `docs/architecture/system-index.md`.
 
 ## How the shared workflow maps here
 - Branch names follow `CLAUDE.md` "Git model": `<type>/<NNN>/<slug>`, `NNN` the next unused number in the global sequence.
 - Merging a task into `dev` on Codex ACCEPTED is allowed (it deploys DEV). Releases to `master`, hotfixes and `VERSION` bumps after a release need the owner's explicit request.
-- Out-of-scope findings go to `STATE.md` (Deferred), as `CLAUDE.md` "Change rules" says.
+- Out-of-scope findings go to `.ai/STATE.md` (Deferred), as `CLAUDE.md` "Change rules" says.
 
 ## Shared workflow modules
 `media` from luisfpires18/ai-workflow, for UI screenshots.

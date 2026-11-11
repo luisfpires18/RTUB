@@ -30,7 +30,7 @@ Why it is built this way: `docs/architecture/adr/0001-production-release-and-rol
 | `healthCheckPath` | unset | unset |
 | Basic auth publishing | SCM off, FTP off | SCM **on** until the publish profile is retired, FTP off |
 
-† Not created yet: owner actions, in order, in `STATE.md`. Until they exist Deploy • PROD fails before deploying anything.
+† Not created yet: owner actions, in order, in `.ai/STATE.md`. Until they exist Deploy • PROD fails before deploying anything.
 
 Both App Services and both plans are in resource group `rtub_group`, subscription *Azure for
 Students* (tenant `ipbpt.onmicrosoft.com`). DEV is on its own plan so it can never take CPU or

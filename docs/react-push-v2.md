@@ -152,7 +152,7 @@ debug otherwise). A failed delete of a gone row no longer stops the fan-out to t
 - **Chrome desktop (real FCM, #230)**: turned on from `/profile`, "Enviar notificação de teste" → `sent`, the worker
   showed "RTUB: notificação de teste" with `/profile#push`; second click within 30 s refused.
 - Not done: Android installed app, iPhone / iPad Home Screen app, and DEV with its real VAPID keys. Track them before a
-  production release (see `STATE.md`).
+  production release (see `.ai/STATE.md`).
 
 ## Startup reminder (task 080, issue #261)
 
