@@ -5,7 +5,7 @@ Traffic controller. Routing rules only. Detailed standards live in the docs link
 ## Read first
 0. The shared workflow (authorization, Codex review, merging). If it cannot be fetched, say so and stop:
    `gh api repos/luisfpires18/ai-workflow/contents/WORKFLOW.md -H "Accept: application/vnd.github.raw"` (same for `REVIEW.md`, `OWNER.md`). Then `.ai/PROJECT.md`: how it maps onto this repository, and the only skills to use.
-1. `STATE.md` — current phase, branch, task, blockers. **Always read at session start.**
+1. `.ai/STATE.md` — current phase, branch, task, blockers. **Always read at session start.**
 2. `docs/architecture/system-index.md` — where things live.
 3. Task-relevant doc from the map below. Nothing else by default.
 
@@ -20,11 +20,11 @@ Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (service
 - Verify Graphify findings against source before changing code. Never re-scan the repo to answer a scoped question.
 - Load only the skills the current task needs.
 - Caveman/concise execution: do the work, skip the narration. Report outcomes, not plans.
-- Keep `CLAUDE.md` and `STATE.md` small. New durable detail belongs in a focused doc or ADR, not here.
+- Keep `CLAUDE.md` and `.ai/STATE.md` small. New durable detail belongs in a focused doc or ADR, not here.
 
 ## Change rules
 - **Preserve behavior** unless the task explicitly changes it.
-- **No opportunistic refactoring.** Unrelated findings get one line in `STATE.md` (Deferred), not a fix.
+- **No opportunistic refactoring.** Unrelated findings get one line in `.ai/STATE.md` (Deferred), not a fix.
 - Stay inside the requested scope. Out-of-scope problems get recorded, not solved.
 - `ApplicationDbContext` is a partial class split across files — edit the right partial.
 - EF Core: one context per operation via `IDbContextFactory<ApplicationDbContext>`.

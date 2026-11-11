@@ -76,7 +76,7 @@ Admin / Owner), not from the menu.
 
 ## Cleanup and polish (after or between features)
 
-Recorded in `STATE.md` → *Deferred*; the main ones:
+Recorded in `.ai/STATE.md` → *Deferred*; the main ones:
 - (037, 039, 042, resolved) Dead code with no caller since 013-024: the Shared cards, Blazor CSS / JS went with the
   host (037), most unused services in 039, the rest (Labels / Slideshows / Logistics board-list-card services, Blazor-era
   helpers, CDN CSP sources, unused packages) in 042. Database leftovers: task 043, `docs/db-cleanup-inventory.md`.
@@ -108,7 +108,7 @@ Every React-track task prompt states, and every task report answers:
 6. **Validation:** `dotnet build`, the affected test projects (full `dotnet test` before merge), `npm run
    check:portal` + `npm run build:portal` (commit the bundle), browser check on a scratch DB copy at 375px with
    visitor / member / Leitão-Caloiro / Mod / Admin-Owner, `git diff --check`, secret scan.
-7. **Docs:** a `docs/react-<module>.md` (audit, rules, API, follow-ups), a `STATE.md` line, the `CLAUDE.md` doc table,
+7. **Docs:** a `docs/react-<module>.md` (audit, rules, API, follow-ups), a `.ai/STATE.md` line, the `CLAUDE.md` doc table,
    and this file's table.
 8. **Report:** branch + base commit, files changed, rules before/after, tests and browser results, follow-ups, git
    status, commit hash, recommendation.

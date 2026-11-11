@@ -416,7 +416,7 @@ a página"), throttled and generic failure. Labels, `aria-invalid`/`aria-describ
 are; the React DTO maps onto them. Pinned by `MigrationChainTests` (no pending model changes; the
 `Requests` columns unchanged). The real database was only read (schema, row count, max lengths): its
 3 requests fit every limit, and all dated migrations in the repo are applied except the two known
-never-run ones (STATE.md).
+never-run ones (.ai/STATE.md).
 
 The admin side (list, approve, reject, delete, and turning an approved request into an event) is the React
 `/requests` since task 031: `docs/react-requests-questions.md`.

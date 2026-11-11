@@ -244,7 +244,7 @@ public class Program
         // unit 023 removed every inline <script> block and inline on* handler attribute, and
         // unit 024 removed every inline <style> block and style="..." attribute from
         // browser-served markup. Every source in the policy is evidence-based - see
-        // ContentSecurityPolicyBuilder and STATE.md for the per-directive justification.
+        // ContentSecurityPolicyBuilder and .ai/STATE.md for the per-directive justification.
         //
         // It is emitted on HTML DOCUMENT responses only, deliberately. A CSP header served with
         // a worker script governs that worker's own execution context, and RTUB's service
