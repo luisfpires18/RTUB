@@ -130,10 +130,10 @@ All additive (no table rebuilt).
   gone on purpose: it could overwrite another person's ticks.
 - Discussion: plain text (never HTML; line breaks kept), @mentions picked from members. History: one pt-PT line per
   meaningful change, with actor and Portugal time, newest first, last 100, folded by default.
-- Attachments: files (board file types, <= 10 MB) under `logistics/{env}/cards/{id}/{random}/{name}`, outside the
-  fiscal-year Documentação tree, plus http(s) links. Distinct from the board's files and from links to other cards
-  ("Cartões ligados"). Deleting an attachment, card, list or board deletes the stored files (best effort, after the
-  rows).
+- Attachments: files (board file types, <= 10 MB) stored in the board's Documentação folder (see *Files*), plus
+  http(s) links. They show on their card, not in the board's own file list; links to other cards are "Cartões ligados".
+  Deleting an attachment, card or list deletes the stored files (best effort, after the rows); deleting a board does
+  not.
 - Deadline wording by Portuguese calendar day: "Faltam N dias" / "Falta 1 dia" / "Termina hoje" / "Atrasado N dias".
 - Every card opens for every member. Non-managers get a read view (`CardView` in `LogisticsDialogs.tsx`); workers also
   get the status buttons and live checkboxes.
@@ -141,16 +141,26 @@ All additive (no table rebuilt).
   drag and drop for mouse and "Mover..." (list + position) for touch/keyboard, cards assigned to the caller carry an
   "Atribuído a si" chip. Full screen card dialog on phones (`.lx-card-modal`, <= 599 px).
 
-## Board files
+## Files (in Documentação)
 
-- New files go to `logistics/{env}/boards/{id}/files/` (by id, so renames and the 1 September rollover change
-  nothing; outside the fiscal-year tree). Types: PDF/Word/Excel/TXT/PNG/JPG, <= 10 MB, pre-signed download URL.
-- Pre-existing files stay in `docs/{env}/{year}/Logistics/{LegacyFolder}/` and are listed on the board for every year
-  (newest first, with the year). `LegacyFolder` is the board's sanitized name at mapping time, or none when two boards
-  share it (their old files then show in Documentação only). Documentação still lists those folders, except a private
-  board's to members off its access list.
-- Files are addressed by an opaque id (`f:name`, `l:year/name`); `?name=` still works. Names lose any path; downloads
-  and deletes accept only names listed in the folder. Storage goes through `IDocumentStorageService`.
+Every Logística file is a Documentação document: one object, two views. Code: `LogisticsKanbanService.Documents.cs`.
+
+- Board files and card attachments go to `docs/{env}/{fiscal year of the upload}/Logistics/{board folder}/{name}`.
+  Types: PDF/Word/Excel/TXT/PNG/JPG, <= 10 MB, pre-signed download URL. A name already in the folder becomes
+  `name (2).ext`; nothing is overwritten (board and card files share the folder).
+- Board folder (`LogisticsBoard.LegacyFolder`, the column keeps its old name): the board's sanitized name, unique among
+  boards and among Logistics folders no board owns (a deleted board's files, a name two old boards shared); otherwise
+  `Name 2`, `Name 3`. Set when the board is created, copied or composed.
+- Renaming a board moves its folder, in every fiscal year, to the new name; card rows follow their files.
+- Delete: on the board or card, it leaves Documentação too. In Documentação (Owner), deleting a card's file also removes
+  the card's attachment row, with a history line "Anexo removido em Documentação"; deleting the folder does the same for
+  every card file in it. Deleting a board leaves its folder.
+- Startup (`MoveFilesIntoDocumentationAsync`, idempotent, best effort per file): files kept outside Documentação before
+  this (`logistics/{env}/boards/{id}/files/`, `logistics/{env}/cards/...`) and folders under an older board name move
+  into the board's folder.
+- The board lists its folder in every fiscal year, newest first, without its cards' files. Ids are opaque: `f:name` this
+  fiscal year, `l:year/name` an older one; `?name=` still works. Names lose any path; downloads and deletes accept only
+  listed names. Documentação hides a private board's folder from members off its access list.
 - Board file upload/delete is managers only; download is any viewer.
 
 ## Views: Quadro, Lista, Calendário

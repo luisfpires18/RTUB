@@ -198,6 +198,21 @@ public class Program
                         logger.LogError(ex, "Failed to map the legacy logistics columns on startup");
                     }
 
+                    // Logística files live in Documentação (104): files still kept outside it move into their board's
+                    // folder, once. Idempotent, best effort per file; never fails startup.
+                    try
+                    {
+                        var moved = await sp.GetRequiredService<ILogisticsKanbanService>().MoveFilesIntoDocumentationAsync();
+                        if (moved > 0)
+                        {
+                            logger.LogInformation("Logistics files moved into Documentação: {Moved}", moved);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to move the logistics files into Documentação on startup");
+                    }
+
                     // Initialize MemberStatus table if the migration just ran
                     // This ensures "Gestao de membros ativos" has data immediately after deployment
                     // instead of waiting for the scheduled daily update

@@ -13,8 +13,9 @@ _Last updated: 2026-11-12_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-None. Last: task 103 (PR #305, merged into `dev`): docs simplified, Blazor-migration leftovers removed, per-page
-permissions folded into each `docs/react-*.md`.
+Task 104 (`feat/104/logistics-files-in-documentation`): every Logística file (board files, card attachments) is a
+Documentação document in `Logistics/{board}`; rename moves the folder; delete on either side removes it from both;
+startup moves older files in. Not verified yet: the startup move against real R2 on DEV.
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not

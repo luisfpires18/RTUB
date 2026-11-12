@@ -154,8 +154,10 @@ public sealed class DocumentationService : IDocumentationService
         }
 
         SetAudit(user);
-        await _storage.DeleteFolderAsync(FolderPath(viewer.FiscalYear, found));
+        var path = FolderPath(viewer.FiscalYear, found);
+        await _storage.DeleteFolderAsync(path);
         _trees.Forget(YearPath(viewer.FiscalYear));
+        await DropCardFilesAsync(user, path.EndsWith('/') ? path : path + "/", folder: true);
         return EventResult<bool>.Ok(true);
     }
 
@@ -219,7 +221,36 @@ public sealed class DocumentationService : IDocumentationService
         SetAudit(user);
         await _storage.DeleteDocumentAsync(path);
         _trees.Forget(YearPath(viewer.FiscalYear));
+        await DropCardFilesAsync(user, path, folder: false);
         return EventResult<bool>.Ok(true);
+    }
+
+    /// <summary>
+    /// A Logística card file is the same object as its Documentação document (docs/react-logistics.md → Files): deleting it
+    /// here removes it from its card too, with a line in the card's history.
+    /// </summary>
+    private async Task DropCardFilesAsync(ClaimsPrincipal user, string path, bool folder)
+    {
+        await using var db = await _contexts.CreateDbContextAsync();
+        var rows = await (folder
+            ? db.LogisticsCardAttachments.Where(a => a.StoragePath != null && a.StoragePath.StartsWith(path))
+            : db.LogisticsCardAttachments.Where(a => a.StoragePath == path)).ToListAsync();
+        if (rows.Count == 0)
+        {
+            return;
+        }
+
+        var actor = DocumentationAuthorization.UserId(user);
+        foreach (var row in rows)
+        {
+            db.LogisticsCardAttachments.Remove(row);
+            db.LogisticsCardActivities.Add(new LogisticsCardActivity
+            {
+                CardId = row.CardId, ActorId = actor, Action = "attachment", Detail = $"Anexo removido em Documentação: {row.Name}",
+            });
+        }
+
+        await db.SaveChangesAsync();
     }
 
     /// <summary>Who is asking, the year asked for (validated) and the folders of that year they may see.</summary>

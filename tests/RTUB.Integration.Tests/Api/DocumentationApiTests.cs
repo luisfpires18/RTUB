@@ -573,6 +573,17 @@ public sealed class FakeDocumentStorage : IDocumentStorageService
         return Task.CompletedTask;
     }
 
+    public Task MoveDocumentAsync(string sourcePath, string targetPath)
+    {
+        if (!Objects.TryRemove(sourcePath, out var moved))
+        {
+            throw new InvalidOperationException($"No object {sourcePath}");
+        }
+
+        Put(targetPath, moved.Size, moved.ContentType);
+        return Task.CompletedTask;
+    }
+
     public Task DeleteFolderAsync(string folderPath)
     {
         var prefix = folderPath.EndsWith('/') ? folderPath : folderPath + "/";

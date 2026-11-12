@@ -17,10 +17,10 @@ order column or soft delete. Delete is a hard delete in storage; the storage ser
 `Folder`). No notifications.
 
 Other writers under `docs/`: Meetings saves ata PDFs into `Atas CV {year}`, `Atas AG {year}` or `Atas {year}`.
-Logística board files from before the board-access rework stay in `Logistics/{board}` of each year and show here as one
-folder per board (label = board name), except a private board's folder, hidden from members off its access list (Mod,
-Admin, Owner still see it). Files uploaded to a board since then live with the board
-(`logistics/{env}/boards/{id}/`) and are not in Documentação. See [react-logistics](react-logistics.md).
+Logística writes every board file and card attachment into `Logistics/{board folder}` of the upload's fiscal year; each
+board shows here as one folder (label = board name), except a private board's folder, hidden from members off its access
+list (Mod, Admin, Owner still see it). Same object in both places: deleting a card's file here also removes it from the
+card. See [react-logistics](react-logistics.md) → *Files*.
 
 The page lists the selected fiscal year (years from 2025-2026, current by default), folders in ordinal key order,
 documents by file name, search by folder and file name (client-side), folders collapse. Download opens a pre-signed URL
