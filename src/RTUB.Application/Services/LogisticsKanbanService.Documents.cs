@@ -16,6 +16,9 @@ namespace RTUB.Application.Services;
 /// - A rename moves the folder, in every fiscal year, to the new name; card rows follow their files.
 /// - Same name in a folder: "name (2).ext", never an overwrite (card and board files share the folder).
 /// - Deleting a board leaves its folder.
+/// - Moves are recoverable. A folder move copies everything, then changes the rows and the folder in one save, then
+///   deletes the sources; a failed copy changes nothing. A single file (startup) is copied, its rows repointed, its source
+///   deleted; the next start reuses a copy already made (same name and size) and removes card-file leftovers.
 /// - <see cref="MoveFilesIntoDocumentationAsync"/> (startup, idempotent) brings older files in: the boards' stable
 ///   folders (logistics/{env}/boards/{id}/files/), the card files (logistics/{env}/cards/...) and folders under an older
 ///   board name.
@@ -136,14 +139,30 @@ public sealed partial class LogisticsKanbanService
         return key;
     }
 
-    /// <summary>Moves one object into <paramref name="folder"/> (free name) and points the card rows that use it there.</summary>
-    private async Task<bool> MoveIntoAsync(ApplicationDbContext db, string source, string folder, ISet<string> taken)
+    /// <summary>
+    /// Moves one object into <paramref name="folder"/>, recoverably: copy, point the card rows at the copy, then delete the
+    /// source. Any failure leaves the source in place for the next run; a copy an interrupted run already made (same name,
+    /// same size in <paramref name="existing"/>) is reused instead of copied again, so a retry never makes "name (2)".
+    /// </summary>
+    private async Task<bool> MoveIntoAsync(ApplicationDbContext db, string source, string folder, Dictionary<string, long> existing)
     {
         try
         {
-            var target = folder + await FreeNameAsync(folder, Path.GetFileName(source), taken);
-            await _storage.CreateFolderAsync(folder);
-            await _storage.MoveDocumentAsync(source, target);
+            var name = Path.GetFileName(source);
+            var size = await _storage.GetFileSizeAsync(source);
+            string target;
+            if (existing.TryGetValue(name, out var found) && found == size)
+            {
+                target = folder + name;
+            }
+            else
+            {
+                target = folder + await FreeNameAsync(folder, name, existing.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase));
+                await _storage.CreateFolderAsync(folder);
+                await _storage.CopyDocumentAsync(source, target);
+                existing[Path.GetFileName(target)] = size;
+            }
+
             foreach (var row in await db.LogisticsCardAttachments.Where(a => a.StoragePath == source).ToListAsync())
             {
                 row.StoragePath = target;
@@ -151,15 +170,23 @@ public sealed partial class LogisticsKanbanService
             }
 
             await db.SaveChangesAsync();
+            await _storage.DeleteDocumentAsync(source);
             _trees.Forget(target);
+            _trees.Forget(source);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not move the logistics file {Path} into {Folder}", source, folder);
+            _logger.LogError(ex, "Could not move the logistics file {Path} into {Folder}; the next start tries again", source, folder);
+            Revert(db);
             return false;
         }
     }
+
+    /// <summary>Name -> size of the documents already in a folder.</summary>
+    private async Task<Dictionary<string, long>> ExistingAsync(string folder, string label) =>
+        (await ListAsync(folder, label)).GroupBy(d => d.FileName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().SizeBytes, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Removes an emptied folder marker; best effort.</summary>
     private async Task DropIfEmptyAsync(string folder)
@@ -178,31 +205,104 @@ public sealed partial class LogisticsKanbanService
         }
     }
 
-    /// <summary>Moves a board's folder, in every fiscal year, from <paramref name="source"/> to <paramref name="target"/>.</summary>
-    private async Task<int> MoveFolderAsync(ApplicationDbContext db, string source, string target, IReadOnlyList<string> years)
+    /// <summary>
+    /// Moves a board's folder, in every fiscal year, to <paramref name="target"/> as one step: every file is copied first
+    /// (a failed copy removes the copies made and changes nothing), then the card rows and the board's folder change in one
+    /// save, then the sources are deleted. A source that cannot be deleted stays in the old folder, now owned by no board
+    /// (Mod, Admin and Owner only): a duplicate, never the only copy. Returns how many files moved, or null when nothing changed.
+    /// </summary>
+    private async Task<int?> MoveFolderAsync(ApplicationDbContext db, LogisticsBoard board, string target, IReadOnlyList<string> years)
     {
-        var moved = 0;
-        foreach (var year in years)
+        var source = board.LegacyFolder!;
+        var copies = new List<(string From, string To)>();
+        var created = new List<string>();
+        try
         {
-            var from = DocsFolder(year, source);
-            var files = await ListAsync(from, source);
-            if (files.Count == 0)
+            foreach (var year in years)
             {
-                continue;
+                var files = await ListAsync(DocsFolder(year, source), source);
+                if (files.Count == 0)
+                {
+                    continue;
+                }
+
+                var to = DocsFolder(year, target);
+                var taken = (await ListAsync(to, target)).Select(d => d.FileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                created.Add(to);
+                await _storage.CreateFolderAsync(to);
+                foreach (var file in files)
+                {
+                    var copy = to + await FreeNameAsync(to, file.FileName, taken);
+                    await _storage.CopyDocumentAsync(file.FilePath, copy);
+                    copies.Add((file.FilePath, copy));
+                }
             }
 
-            var to = DocsFolder(year, target);
-            var taken = (await ListAsync(to, target)).Select(d => d.FileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            foreach (var file in files)
+            foreach (var (from, to) in copies)
             {
-                moved += await MoveIntoAsync(db, file.FilePath, to, taken) ? 1 : 0;
+                foreach (var row in await db.LogisticsCardAttachments.Where(a => a.StoragePath == from).ToListAsync())
+                {
+                    row.StoragePath = to;
+                    row.Name = Path.GetFileName(to);
+                }
             }
 
-            await DropIfEmptyAsync(from);
-            _trees.Forget(from);
+            board.LegacyFolder = target;
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not move the folder of logistics board {Board} from {From} to {To}; it keeps its old folder", board.Id, source, target);
+            Revert(db);
+            board.LegacyFolder = source;
+            foreach (var (_, to) in copies)
+            {
+                await TryDeleteAsync(to);
+            }
+
+            foreach (var folder in created)
+            {
+                await DropIfEmptyAsync(folder); // else the next try would take the empty folder for another board's
+            }
+
+            return null;
         }
 
-        return moved;
+        foreach (var (from, to) in copies)
+        {
+            await TryDeleteAsync(from);
+            _trees.Forget(to);
+        }
+
+        foreach (var year in years)
+        {
+            await DropIfEmptyAsync(DocsFolder(year, source));
+            _trees.Forget(DocsFolder(year, source));
+        }
+
+        return copies.Count;
+    }
+
+    private async Task TryDeleteAsync(string path)
+    {
+        try
+        {
+            await _storage.DeleteDocumentAsync(path);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not delete the logistics file {Path}", path);
+        }
+    }
+
+    /// <summary>Unsaved card-row changes must not ride along a later save.</summary>
+    private static void Revert(ApplicationDbContext db)
+    {
+        foreach (var entry in db.ChangeTracker.Entries<LogisticsCardAttachment>().Where(e => e.State == EntityState.Modified))
+        {
+            entry.CurrentValues.SetValues(entry.OriginalValues);
+            entry.State = EntityState.Unchanged;
+        }
     }
 
     /// <summary>After a rename: the folder follows the board's new name (no move when the name maps to the same folder).</summary>
@@ -215,14 +315,10 @@ public sealed partial class LogisticsKanbanService
 
         var years = await DocsYearsAsync();
         var target = await FolderForAsync(db, board.Id, board.Name, board.LegacyFolder, await StoredFoldersAsync(years));
-        if (string.Equals(target, board.LegacyFolder, StringComparison.Ordinal))
+        if (!string.Equals(target, board.LegacyFolder, StringComparison.Ordinal))
         {
-            return;
+            await MoveFolderAsync(db, board, target, years); // on failure the next start tries again
         }
-
-        await MoveFolderAsync(db, board.LegacyFolder, target, years);
-        board.LegacyFolder = target;
-        await db.SaveChangesAsync();
     }
 
     public async Task<int> MoveFilesIntoDocumentationAsync()
@@ -242,15 +338,14 @@ public sealed partial class LogisticsKanbanService
         {
             // The folder: the board's current name; files under an older name follow it.
             var target = await FolderForAsync(db, board.Id, board.Name, board.LegacyFolder, stored);
-            if (!string.IsNullOrEmpty(board.LegacyFolder) && !string.Equals(target, board.LegacyFolder, StringComparison.Ordinal))
-            {
-                moved += await MoveFolderAsync(db, board.LegacyFolder, target, years);
-            }
-
-            if (!string.Equals(target, board.LegacyFolder, StringComparison.Ordinal))
+            if (string.IsNullOrEmpty(board.LegacyFolder))
             {
                 board.LegacyFolder = target;
                 await db.SaveChangesAsync();
+            }
+            else if (!string.Equals(target, board.LegacyFolder, StringComparison.Ordinal))
+            {
+                moved += await MoveFolderAsync(db, board, target, years) ?? 0;
             }
 
             stored.Add(target);
@@ -266,16 +361,17 @@ public sealed partial class LogisticsKanbanService
                 continue;
             }
 
-            var folder = DocsFolder(CurrentYear, target);
-            var taken = (await ListAsync(folder, target)).Select(d => d.FileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            // Into the folder the board has now (the old one while a rename is unfinished), so the board always lists them.
+            var folder = DocsFolder(CurrentYear, board.LegacyFolder!);
+            var existing = await ExistingAsync(folder, board.LegacyFolder!);
             foreach (var path in files)
             {
-                moved += await MoveIntoAsync(db, path, folder, taken) ? 1 : 0;
+                moved += await MoveIntoAsync(db, path, folder, existing) ? 1 : 0;
             }
 
             foreach (var path in cardFiles)
             {
-                if (await MoveIntoAsync(db, path, folder, taken))
+                if (await MoveIntoAsync(db, path, folder, existing))
                 {
                     moved++;
                     await DropIfEmptyAsync(path[..(path.LastIndexOf('/') + 1)]);
@@ -285,6 +381,35 @@ public sealed partial class LogisticsKanbanService
             await DropIfEmptyAsync(boardFiles);
         }
 
+        await SweepCardLeftoversAsync(db);
         return moved;
+    }
+
+    /// <summary>
+    /// Old card files no row points at any more: a move whose copy and row update landed but whose delete failed. Nothing
+    /// shows them (the card uses the copy), so they go. Only under logistics/{env}/cards/, where only card uploads wrote.
+    /// </summary>
+    private async Task SweepCardLeftoversAsync(ApplicationDbContext db)
+    {
+        var prefix = $"logistics/{_environment.EnvironmentName}/cards/";
+        if (await _storage.ListTreeAsync(prefix) is not { Count: > 0 } objects)
+        {
+            return;
+        }
+
+        var used = (await db.LogisticsCardAttachments.Where(a => a.StoragePath != null && a.StoragePath.StartsWith(prefix))
+            .Select(a => a.StoragePath!).ToListAsync()).ToHashSet(StringComparer.Ordinal);
+        foreach (var path in objects.Select(o => o.FilePath).Where(p => !p.EndsWith('/') && !used.Contains(p)))
+        {
+            try
+            {
+                await _storage.DeleteDocumentAsync(path);
+                await DropIfEmptyAsync(path[..(path.LastIndexOf('/') + 1)]);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not remove the leftover logistics card file {Path}", path);
+            }
+        }
     }
 }

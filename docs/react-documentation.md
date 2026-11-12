@@ -19,7 +19,7 @@ order column or soft delete. Delete is a hard delete in storage; the storage ser
 Other writers under `docs/`: Meetings saves ata PDFs into `Atas CV {year}`, `Atas AG {year}` or `Atas {year}`.
 Logística writes every board file and card attachment into `Logistics/{board folder}` of the upload's fiscal year; each
 board shows here as one folder (label = board name), except a private board's folder, hidden from members off its access
-list (Mod, Admin, Owner still see it). Same object in both places: deleting a card's file here also removes it from the
+list, and a Logistics folder no board owns (Mod, Admin, Owner still see both). Same object in both places: deleting a card's file here also removes it from the
 card. See [react-logistics](react-logistics.md) → *Files*.
 
 The page lists the selected fiscal year (years from 2025-2026, current by default), folders in ordinal key order,

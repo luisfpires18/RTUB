@@ -982,10 +982,158 @@ public partial class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         card.GetProperty("activity").EnumerateArray().First().GetProperty("detail").GetString().Should().Be("Anexo removido em Documentação: foto.png");
         _factory.Storage.Objects.Keys.Should().NotContain($"docs/Test/{year}/Logistics/{name}/foto.png");
 
+        // A storage failure on delete leaves the card detached and the document in place; deleting again finishes it.
+        await Json(await mod.PostAsync($"/api/logistics/cards/{cardId}/attachments", File("convite.png", "image/png")));
+        var convite = $"docs/Test/{year}/Logistics/{name}/convite.png";
+        _factory.Storage.Fails = (op, key) => op == "delete" && key == convite;
+        try
+        {
+            (await owner.DeleteAsync($"/api/documentation/documents?fiscalYear={year}&folder={Uri.EscapeDataString($"Logistics/{name}")}&name=convite.png"))
+                .StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        }
+        finally
+        {
+            _factory.Storage.Fails = null;
+        }
+
+        (await Json(member, $"/api/logistics/cards/{cardId}")).GetProperty("attachments").GetArrayLength().Should().Be(0,
+            "the card never points at a file the failed delete may have removed");
+        _factory.Storage.Objects.Keys.Should().Contain(convite);
+        (await owner.DeleteAsync($"/api/documentation/documents?fiscalYear={year}&folder={Uri.EscapeDataString($"Logistics/{name}")}&name=convite.png"))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        _factory.Storage.Objects.Keys.Should().NotContain(convite);
+
+        // The CV atas stay with Veteranos, Tunossauros and the Magister, Logística folders or not.
+        _factory.Storage.Put($"docs/Test/{year}/Atas CV {year}/Ata CV 1.pdf", 10);
+        _factory.Services.GetRequiredService<DocumentTreeCache>().Forget($"docs/Test/{year}/");
+        (await member.GetStringAsync("/api/documentation")).Should().NotContain("Atas CV");
+        (await mod.GetStringAsync("/api/documentation")).Should().NotContain("Atas CV", "Mod is no Veterano: the CV rule is not a management right");
+        (await member.GetAsync($"/api/documentation/file?fiscalYear={year}&folder={Uri.EscapeDataString($"Atas CV {year}")}&name=Ata%20CV%201.pdf"))
+            .StatusCode.Should().Be(HttpStatusCode.NotFound);
+
         await Json(await mod.PostAsync($"/api/logistics/cards/{cardId}/attachments", File("recibo.png", "image/png")));
         (await mod.DeleteAsync($"/api/logistics/boards/{boardId}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
         _factory.Storage.Objects.Keys.Should().Contain(new[] { $"docs/Test/{year}/Logistics/{name}/plano.pdf", $"docs/Test/{year}/Logistics/{name}/recibo.png" },
             "deleting a board leaves its Documentação folder");
+        (await member.GetStringAsync("/api/documentation")).Should().NotContain(name, "a folder no board owns may hold a private board's files");
+        (await mod.GetStringAsync("/api/documentation")).Should().Contain(name, "Mod, Admin and Owner still see it");
+    }
+
+    /// <summary>
+    /// 104 (review): startup moves survive refused deletes - every file stays reachable, the card points at its copy - and
+    /// the next start finishes them without "name (2)" copies; card-file leftovers are removed.
+    /// </summary>
+    [Fact]
+    public async Task FileMoves_SurviveAStorageFailure_AndTheNextStartFinishesThem()
+    {
+        var name = $"{Tag()} Tuna";
+        var (boardId, _, cardId) = await SeedBoardAsync(name: name);
+        var old = $"{Tag()} Velho";
+        await UpdateBoardAsync(boardId, b => b.LegacyFolder = old);
+        var year = FiscalYearHelper.GetCurrentFiscalYearString();
+        var previous = $"{int.Parse(year[..4]) - 1}-{int.Parse(year[..4])}";
+        var sources = new[]
+        {
+            $"docs/Test/{previous}/Logistics/{old}/ata.pdf", $"logistics/Test/boards/{boardId}/files/orcamento.pdf", $"logistics/Test/cards/{cardId}/abc/foto.png",
+        };
+        _factory.Storage.Put(sources[0], 30);
+        _factory.Storage.Put(sources[1], 10);
+        _factory.Storage.Put(sources[2], 20, "image/png");
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.LogisticsCardAttachments.Add(new LogisticsCardAttachment
+            {
+                CardId = cardId, Kind = CardAttachmentKind.File, Name = "foto.png", StoragePath = sources[2], ContentType = "image/png", SizeBytes = 20,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        _factory.Storage.Fails = (op, key) => op == "delete" && sources.Contains(key);
+        try
+        {
+            using var scope = _factory.Services.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<ILogisticsKanbanService>().MoveFilesIntoDocumentationAsync();
+        }
+        finally
+        {
+            _factory.Storage.Fails = null;
+        }
+
+        (await BoardFolderAsync(boardId)).Should().Be(name, "every copy landed, so the folder moved");
+        _factory.Storage.Objects.Keys.Should().Contain(sources, "a refused delete keeps its source")
+            .And.Contain(new[] { $"docs/Test/{previous}/Logistics/{name}/ata.pdf", $"docs/Test/{year}/Logistics/{name}/orcamento.pdf" });
+        (await AttachmentPathAsync(cardId)).Should().Be($"docs/Test/{year}/Logistics/{name}/foto.png", "the card points at the copy");
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var service = scope.ServiceProvider.GetRequiredService<ILogisticsKanbanService>();
+            await service.MoveFilesIntoDocumentationAsync();
+            (await service.MoveFilesIntoDocumentationAsync()).Should().Be(0, "idempotent");
+        }
+
+        _factory.Storage.Objects.Keys.Should().NotContain(new[] { sources[1], sources[2] }, "the retry reuses the copy and drops the leftovers")
+            .And.NotContain(k => k.Contains($"/Logistics/{name}/") && k.Contains(" (2)"));
+        _factory.Storage.Objects.Keys.Should().Contain(sources[0], "a source left in a folder no board owns is only a duplicate");
+        (await AttachmentPathAsync(cardId)).Should().Be($"docs/Test/{year}/Logistics/{name}/foto.png");
+    }
+
+    /// <summary>
+    /// 104 (review): a rename whose copy fails changes nothing; one whose source delete fails still moves (rows and folder
+    /// in one save), and the leftover sits in a folder no board owns, which members do not see.
+    /// </summary>
+    [Fact]
+    public async Task ARenameWithStorageFailures_NeverLeavesACardPointingAtAMissingFile()
+    {
+        var name = $"{Tag()} Serenata";
+        var (boardId, _, cardId) = await SeedBoardAsync(name: name);
+        var (mod, _) = await SignInAsync("Mod");
+        var (member, _) = await SignInAsync();
+        await WithTokenAsync(mod);
+        var file = (await Json(await mod.PostAsync($"/api/logistics/cards/{cardId}/attachments", File("cartaz.png", "image/png"))))
+            .GetProperty("attachments").EnumerateArray().Single().GetProperty("id").GetInt32();
+        await Json(await mod.PostAsync($"/api/logistics/boards/{boardId}/files", File("plano.pdf")));
+        var year = FiscalYearHelper.GetCurrentFiscalYearString();
+        var source = $"docs/Test/{year}/Logistics/{name}/cartaz.png";
+        var renamed = $"{name} 2027";
+        async Task RenameAsync(string to) =>
+            (await mod.PutAsJsonAsync($"/api/logistics/boards/{boardId}", new { name = to, description = "", eventId = (int?)null }))
+                .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        _factory.Storage.Fails = (op, key) => op == "copy" && key.EndsWith("/plano.pdf");
+        try
+        {
+            await RenameAsync(renamed);
+        }
+        finally
+        {
+            _factory.Storage.Fails = null;
+        }
+
+        (await BoardFolderAsync(boardId)).Should().Be(name, "a failed copy changes nothing");
+        _factory.Storage.Objects.Keys.Should().NotContain(k => k.StartsWith($"docs/Test/{year}/Logistics/{renamed}/") && !k.EndsWith('/'),
+            "the copies already made are removed again");
+        (await Json(mod, $"/api/logistics/cards/{cardId}/attachments/{file}")).GetProperty("url").GetString().Should().Contain(source);
+
+        _factory.Storage.Fails = (op, key) => op == "delete" && key == source;
+        try
+        {
+            using var scope = _factory.Services.CreateScope(); // the next start retries the move
+            await scope.ServiceProvider.GetRequiredService<ILogisticsKanbanService>().MoveFilesIntoDocumentationAsync();
+        }
+        finally
+        {
+            _factory.Storage.Fails = null;
+        }
+
+        (await BoardFolderAsync(boardId)).Should().Be(renamed);
+        (await Json(mod, $"/api/logistics/cards/{cardId}/attachments/{file}")).GetProperty("url").GetString()
+            .Should().Contain($"docs/Test/{year}/Logistics/{renamed}/cartaz.png");
+        _factory.Storage.Objects.Keys.Should().Contain(source, "the refused delete leaves a duplicate behind");
+        var folders = (await Json(member, "/api/documentation")).GetProperty("folders").EnumerateArray().Select(f => f.GetProperty("name").GetString()).ToList();
+        folders.Should().Contain($"Logistics/{renamed}").And.NotContain($"Logistics/{name}", "no board owns the old folder now");
+        (await Json(mod, "/api/documentation")).GetProperty("folders").EnumerateArray().Select(f => f.GetProperty("name").GetString())
+            .Should().Contain($"Logistics/{name}");
     }
 
     /// <summary>104: renaming a board moves its folder in every fiscal year; card files follow; same names are kept apart.</summary>
@@ -1114,6 +1262,13 @@ public partial class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
                 .Should().Equal(new[] { "", "" }, "two boards with one folder name cannot be told apart");
             _ = done;
         }
+    }
+
+    private async Task<string?> AttachmentPathAsync(int cardId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().LogisticsCardAttachments.Where(a => a.CardId == cardId)
+            .Select(a => a.StoragePath).SingleAsync();
     }
 
     private async Task<string?> BoardFolderAsync(int id)

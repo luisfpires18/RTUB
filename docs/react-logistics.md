@@ -151,13 +151,21 @@ Every Logística file is a Documentação document: one object, two views. Code:
 - Board folder (`LogisticsBoard.LegacyFolder`, the column keeps its old name): the board's sanitized name, unique among
   boards and among Logistics folders no board owns (a deleted board's files, a name two old boards shared); otherwise
   `Name 2`, `Name 3`. Set when the board is created, copied or composed.
-- Renaming a board moves its folder, in every fiscal year, to the new name; card rows follow their files.
+- Renaming a board moves its folder, in every fiscal year, to the new name; card rows follow their files. The move is
+  one step: every file is copied first (a failed copy removes the copies and changes nothing; the next start retries),
+  then the card rows and the folder change in one save, then the sources are deleted. A source that cannot be deleted
+  stays behind as a duplicate in the old folder, which no board owns any more.
 - Delete: on the board or card, it leaves Documentação too. In Documentação (Owner), deleting a card's file also removes
   the card's attachment row, with a history line "Anexo removido em Documentação"; deleting the folder does the same for
   every card file in it. Deleting a board leaves its folder.
-- Startup (`MoveFilesIntoDocumentationAsync`, idempotent, best effort per file): files kept outside Documentação before
-  this (`logistics/{env}/boards/{id}/files/`, `logistics/{env}/cards/...`) and folders under an older board name move
-  into the board's folder.
+- Startup (`MoveFilesIntoDocumentationAsync`, idempotent): files kept outside Documentação before this
+  (`logistics/{env}/boards/{id}/files/`, `logistics/{env}/cards/...`) and folders under an older board name move into
+  the board's folder. Per file: copy, repoint the card rows, delete the source; any failure keeps the source for the next
+  start, which reuses a copy already made (same name and size) and removes card-file leftovers no row points at.
+- Privacy: in Documentação, members see a `Logistics/{folder}` only while a board they can see owns it. A folder no board
+  owns (a deleted board's, a name two old boards shared, a move's leftover) is for Mod, Admin and Owner only, since it may
+  hold a private board's files. The `Atas CV` rule (Veterano, Tunossauro, Magister; Owner) is separate and unchanged:
+  Logística folders always sit under `Logistics/`.
 - The board lists its folder in every fiscal year, newest first, without its cards' files. Ids are opaque: `f:name` this
   fiscal year, `l:year/name` an older one; `?name=` still works. Names lose any path; downloads and deletes accept only
   listed names. Documentação hides a private board's folder from members off its access list.

@@ -87,7 +87,7 @@ public interface IDocumentStorageService
     Task DeleteFolderAsync(string folderPath);
 
     /// <summary>
-    /// Moves a document to another key in the same bucket (server-side copy, then delete of the source).
+    /// Copies a document to another key in the same bucket (server-side; the source stays).
     /// </summary>
-    Task MoveDocumentAsync(string sourcePath, string targetPath);
+    Task CopyDocumentAsync(string sourcePath, string targetPath);
 }
