@@ -1,472 +1,199 @@
-# React public portal (React track, tasks 001–006)
+# React portal shell
 
-A React shell served by the existing ASP.NET Core host. It started next to the Blazor app (which kept every page
-React did not own yet); since 036 React owns every page, and **task 037 retired the Blazor host** (no `App.razor`,
-`MainLayout`, `/_blazor`, `blazor.web.js` or `RTUB.Shared`). The only other HTML page is the static `/Error`.
-Decision record:
-`docs/architecture/adr/0002-react-public-portal-pilot.md`.
-
-The React track numbers its own tasks from **001** (`feat/001/react-portal-pilot`), separately
-from the repository's global unit sequence.
-
-`dev` no longer depends on Blazor at all (037); the `master`/PROD cutover is the next `dev → master` release.
+Every page is React, served by the ASP.NET Core host. The only other HTML page is the static `/Error`
+(`wwwroot/error.html`). Decision record: `docs/architecture/adr/0002-react-public-portal-pilot.md`.
 
 ## Rules for every React module
 
-**Replacement rule.** Once a module has a reviewed React version, its Blazor UI is retired: the page
-is removed, its old route redirects to the React one when it differs, and Blazor UI tests that
-pinned the old page are removed or rewritten. Backend services and entities stay while they are
-still useful.
-
-**Testing rule.** Old tests are a behavioural reference only; never copy-paste them. React and API
-behaviour gets new tests written from scratch. Email, push, storage and other external effects run
-against fakes/stubs. Every module includes negative and security cases (refused tokens, bad input,
-anonymous callers, rate limits, what must *not* be exposed).
-
-**Database/schema rule.** A React replacement does not by itself justify a database change. DTOs and
-API contracts can be clean and new; persisted EF models and tables stay compatible with the real
-`app.db`. If a schema change looks necessary, stop and report before making it.
-
-**Wording rule.** "Migration" means EF Core/database migrations only, and developer-only technical
-context (docs, tests). Never in UI, routes, feature names, page titles or user-facing copy.
+- **Server enforces, React displays.** Every page and API enforces its own rule; a hidden button or menu link is a
+  convenience only. No business logic in React.
+- **Schema.** A UI change does not by itself justify a database change. DTOs can be new; EF models stay compatible with
+  the real `app.db`. If a schema change looks necessary, stop and report.
+- **Tests.** New API behaviour gets new tests, with negative and security cases (anonymous caller, refused token, bad
+  input, rate limits, what must *not* be exposed). Email, push and storage run against fakes.
+- **Wording.** "Migration" means EF Core migrations only, in developer context. Never in UI, routes, feature names or
+  copy.
+- **Naming.** UI text is Portuguese; code, routes, files, CSS classes, APIs and branches are English ("Novidades" on
+  screen, `/news` in the URL).
 
 ## Audience
 
-The portal is **public**: an overview of RTUB, public performances, music, the current Órgãos
-Sociais, the gallery, performance requests and, later, a public Feed. The **member area is only for
-RTUB members**: there are no public accounts - the tuna creates each member's login. Portal copy and
-layout follow that: public actions ("Pedir atuação") lead; the visitors' way in is a quiet "Login" link to
-`/login` (030; before it read "Membros" / "A minha conta" and opened `/profile`). Signed-in members get the
-member shell instead (see *Member shell*). Never present login or registration as a public feature.
-
-## Naming
-
-User-facing text is Portuguese. Code, routes, URL fragments, files, components, CSS classes, APIs,
-DTOs and branches are English: "Novidades" on screen, `/news` in the URL; "Pedidos" on screen,
-`/request` and `#request`. (Task 002 renamed the earlier `/portal/privacidade`, `/portal/perfil` and
-`/portal/pedidos`; task 004 dropped the `/portal` prefix. None had reached production.)
+The portal is public: an overview of RTUB, the agenda, music, Órgãos Sociais, gallery, news and performance requests.
+The member area is only for RTUB members: there are no public accounts, the tuna creates each login. Public actions
+("Pedir atuação") lead; visitors get a quiet "Login" link to `/login`. Never present login or registration as a public
+feature.
 
 ## Home page and navigation
 
-Home order: hero and quick facts → "Quem somos" (short, facts only) → Atuações (a pointer to the full
-agenda, with the FITAB highlight) → "Últimas novidades" (the 3 newest posts of `/news`, hidden when there are
-none; 025) → Música → Galeria → Junta-te a nós → Pedidos + member area → install the app. Nothing about news
-closes the page.
+Home order: hero and quick facts → Quem somos (facts only) → Atuações (next three events, FITAB highlight) → Últimas
+novidades (3 newest `/news` posts, hidden when none) → Música → Galeria → Junta-te a nós → Pedidos + member area →
+install the app.
 
-- **Top bar (visitors):** Atuações, Novidades (025), Música, Galeria, Órgãos Sociais; the **"Pedir atuação"**
-  call to action (the hero's primary button also goes straight to `/request`); the quiet **"Login"** link (030).
-  The phone menu has the same sections, "Pedir uma atuação" and "Login". FITAB, Junta-te and the app install
-  are never in the top bar.
-- **Top bar (signed-in members, 030):** no public sections and no "Pedir atuação"; who is signed in (avatar,
-  name, first category) linking to `/profile`, and the member menu (*Member shell*).
-- **Footer:** every home anchor (Quem somos, the five sections, Pedidos, FITAB, Junta-te a nós), then
-  Fazer um pedido, Instalar a app, Área de membros, Política de Privacidade, the contact email, the
-  social links and the build version.
-- **FITAB:** a compact highlight inside Atuações (`/#fitab`), plus a footer link. Only what is
-  certain: organised by the RTUB, yearly, tunas from home and abroad, dates announced on the RTUB's
-  social networks. No editions, dates, line-ups or schedules.
-- **Hierarquia:** not on the home page (the Leitão → Caloiro → Tuno → Magister grid is internal
-  detail). One public line in Junta-te a nós ("Percurso"). The full explanation belongs, with the
-  História, in a future public "Conhece a Tuna" page (English route `/about`); the member view stays
-  on the Blazor `/hierarchy` (members only).
-- **No invented data (005, 010):** the agenda shows the next three events from
-  `GET /api/public/events/upcoming` (read-only; the same events, fields and order `/events` already
-  shows visitors: name, date, time, location, type, cancelled) and an empty state when there are none.
-  The full agenda is the React `/events` (011, `docs/react-events.md`), from the same service. The gallery preview
-  shows the five latest **public** photos from `GET /api/gallery?public=true` (members-only photos
-  never appear on the home, signed in or not).
-- **No test or update banners (006):** the "Versão de testes" strip (005) and the service worker's
-  "Nova versão disponível! · Atualizar · Depois" prompt are retired. Updates are silent; see
-  Layout below.
+- **Top bar, visitors:** Atuações, Novidades, Música, Galeria, Órgãos Sociais, the "Pedir atuação" call to action and
+  "Login". FITAB, Junta-te and the app install are never in the top bar.
+- **Top bar, members:** no public sections; who is signed in (avatar, name, first category, links to `/profile`) and the
+  member menu.
+- **FITAB:** only what is certain (organized by RTUB, yearly, tunas from home and abroad, dates on social networks). No
+  editions, dates or line-ups.
+- **No invented data:** the agenda reads `GET /api/public/events/upcoming`; the gallery preview shows the five latest
+  public photos (`GET /api/gallery?public=true`; members-only photos never appear on the home).
+- No test or update banners. Updates are silent (see Constraints).
+- `PortalContentCoverageTests` checks that every `/#id` link in the shell exists on the home page.
 
-## Launch splash and home opening (047)
+## Launch splash and home opening
 
-The splash is static markup in `portal/index.html`: from first paint only the logo shows, on black, while the bundle
-loads. Once React has committed, `revealApp` (`App.tsx`) decides, on the first load of a browser session (so every
-PWA launch, which starts at `/`):
+The splash is static markup in `portal/index.html` (logo on black while the bundle loads). Once React has committed,
+`revealApp` (`App.tsx`) decides, on the first load of a browser session:
 
-- **`/`** plays the opening (`styles.css`, *opening*), adapted from the nextvision intro: six strings draw out from
-  the logo and are strummed, the emblem's viola and guitarra portuguesa swing in, "Boémios e Trovadores" rises,
-  a purple edge stands at the right and the curtain wipes left onto the hero, which rises in behind it. About 3 s.
-  `.intro` on `<html>` drives it; timings are the `--intro-*` properties.
-- **Any other route** keeps the short curtain lift (a deep link never waits for the opening).
-- **Later loads in the session, or `prefers-reduced-motion: reduce`:** the splash is removed at once.
+- `/` plays the opening (`styles.css`, *opening*; `.intro` on `<html>`, timings in `--intro-*`), about 3 s.
+- Any other route gets the short curtain lift (a deep link never waits).
+- Later loads in the session, or `prefers-reduced-motion: reduce`: the splash is removed at once.
 
-A click, tap or key skips the opening (and drops `.intro`, so the hero shows at once). The splash is removed when its
-last animation ends, so nothing in it may loop. Transform and opacity only; no new request (the guitars are inline SVG,
-the logo is the cached 352px WebP). Under CSP: no inline style or script, SVG presentation attributes only.
-
-## Public content coverage (task 005)
-
-Every public section of the old Blazor site and app, and where it lives now. Pinned by
-`PortalContentCoverageTests` (required sections present, one decision per row).
-
-| Section | Source | Purpose | React now | Decision |
-| --- | --- | --- | --- | --- |
-| Quem somos / Sobre | old home: `AboutUsContent` (labels) | who the RTUB is | `/#about`, short, facts only | homepage now |
-| História | old home: `HistoryContent` (`history_*` labels) | founding (1 Dec 1991), mission, identity | founding year in hero and Quem somos | future React page ("Conhece a Tuna", `/about`) |
-| Atuações / agenda | React `/events`, `/events/{id}` (011) | upcoming and past performances | `/#events`: next three events (010) + the React agenda | homepage now + navbar now; done (011, `docs/react-events.md`) |
-| Atuações anteriores, prémios, vídeos | old home: `AboutUsContent`; `/events` | track record | archive, "Prémios" and videos on `/events` (011) | navbar now; done (011); management in React (011.5-012F) |
-| FITAB | old home: `FitabContent` (`fitab_*` labels) | the RTUB's festival | `/#fitab` highlight + footer | homepage now + footer only |
-| Pedidos | React `/request` | performance requests | done (003) | homepage now + navbar now (CTA) |
-| Música | React `/music`, `/music/albums/{id}` (006) | discography, lyrics, player, videos, statistics | done (006, `docs/react-music.md`); `/#music` preview | homepage now + navbar now |
-| Galeria | React `/gallery` (009) | photos and videos | `/#gallery` latest public photos (010) + `/gallery` timeline | homepage now + navbar now; done (009, `docs/react-gallery.md`) |
-| Órgãos Sociais | React `/roles` (008) | bodies and the holders of each mandate | `/roles` (the home block was removed in 011; top bar, menu and footer link there) | navbar now; done (008) |
-| Junta-te a nós | old home: `JoinUsContent` (`join_us_*` labels) | recruiting: rehearsals, place, first step | `/#join` + footer | homepage now + footer only |
-| Hierarquia / categorias | old home: `HierarchyContent`; `/hierarchy` (members) | Leitão → Caloiro → Tuno → Magister | one "Percurso" line in Junta-te | future React page ("Conhece a Tuna"); full grid excluded from home |
-| Redes sociais | old home social grid | Facebook, Instagram, YouTube, Spotify | footer "Redes"; Spotify/YouTube in Música | footer only |
-| Destaques (slideshow) | old home carousel, public slides (`/images` admin) | curated photos | none | exclude/defer: dropped; the `/images` admin was removed in 029A (no replacement); tables go in 043 |
-| Contacto | Pedidos, footer | email | Pedidos card + footer | homepage now + footer only |
-| Política de Privacidade | React `/privacy` | legal text | done (004) | footer only (+ request form link) |
-| Área de membros / login | React `/profile`, React `/login` (007) | members-only entry | quiet "Login" header link (030), home card, footer; members: the member shell (030) | navbar now (quiet link); login done (007) |
-| Password reset, email confirmation | `/forgot-password`, `/reset-password`, `/confirm-email` | account recovery from login and emails | reached from the React `/login` and emails | exclude/defer from navigation: React pages since 036, reached from `/login` and emails (`docs/react-identity.md`) |
-| Instalar a app | React `/#app`; old `PlayStorePrompt` popup | Play Store, Home Screen | `/#app` + footer | homepage now + footer only; popups exclude/defer (STATE) |
-| Push opt-in, login popup | old home: `PushNotificationPrompt`, `LoginPopup` | member prompts | none | exclude/defer: member-facing, recorded in STATE |
-| Novidades / News | React `/news` (025) | public posts by Admin/Owner | top bar, menu, footer; home preview after Atuações | navbar now + homepage now (latest 3); `docs/react-news.md` |
-| Editable home copy | Labels admin (`/labels`, "Conteúdo") | admins edited the old home's text | React copy is static | exclude/defer: static copy kept; the `/labels` admin was removed in 029A; tables go in 043 |
-| Partilhar | `/share` (manifest `share_target`) | received shares from the OS | not linked | exclude/defer from navigation: React `/share` since 053 (removed in 036, back by the owner's decision), reached only by sharing to the installed app |
-| Calotes, MBWAY, Nerba | `/calotes`, `/mbway`, `/nerba/{id}` | internal finance pages, reachable without login | not linked | exclude/defer: not public content; access to be reviewed (STATE) |
+A click, tap or key skips it. The splash is removed when its last animation ends, so nothing in it may loop. Transform
+and opacity only, no new request (inline SVG, cached logo WebP), no inline style or script (CSP).
 
 ## Route ownership
 
-Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD only; the `/portal...`
-redirects sit next to it). Pinned by `tests/RTUB.Integration.Tests/PortalRouteTests.cs`.
+Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD only). Pinned by
+`tests/RTUB.Integration.Tests/PortalRouteTests.cs`. Members-only pages send visitors to
+`/login?returnUrl=…` (302). Each page's rules are in its `docs/react-*.md`.
 
-| Path | Class | Notes |
-| --- | --- | --- |
-| `/` | **React canonical** (004) | Public home: hero, agenda, discography, gallery, joining, Pedidos + member entry. The Blazor `Index.razor` was retired. |
-| `/privacy` | **React canonical** (004) | Privacy Policy. `portal/src/Privacy.tsx` is now the legal source (verbatim from the retired `Privacy.razor`). |
-| `/profile` | **React canonical** (004) | Members-only notice with public shortcuts; signed out → `/login?returnUrl=/profile` and back; signed in → the member's own profile and editor since 032 (header with photo, Pessoal, Informação da Tuna, Instrumentos, Notificações por email, Segurança; was the Blazor `/member/profile`), with "Terminar sessão" (`POST /auth/logout`, 012F). It is not the members' menu: the member shell is. `docs/react-member-area.md`. |
-| `/request` | **React canonical** (004) | The only public performance request form (see Request). `POST /request` → 405. |
-| `/portal` | **Redirect** → `/` | `302`, query string kept, GET/HEAD only (POST → 405). Pilot URL from tasks 001-003. |
-| `/portal/privacy` | **Redirect** → `/privacy` | Same. |
-| `/portal/profile` | **Redirect** → `/profile` | Same. |
-| `/portal/request` | **Redirect** → `/request` | Same. |
-| `/music`, `/music/albums/{id}` | **React canonical** (006) | Music area: albums, songs, player, lyrics, videos, statistics, management. `docs/react-music.md`. |
-| `/music/songs/{id}` | **Redirect** → `/music/albums/{id}` | Retired Blazor album page; `302`, query kept, GET/HEAD only. |
-| `/news` | **React canonical** (025) | Novidades: public wall of text posts, newest first; Admin/Owner write, publish and delete. `docs/react-news.md`. |
-| `/gallery` | **React canonical** (009) | Photo timeline; `?item=` opens one. `docs/react-gallery.md`. |
-| `/member/gallery` | **Redirect** → `/gallery` (015) | `302`, GET/HEAD only. Upload, tags, edit and delete are React on `/gallery`. |
-| `/events`, `/events/{id}` | **React canonical** (011) | Agenda and one event; members answer in a modal (card quick reply or the event page; `?respond=1` opens it); Admin/Owner create, edit and delete in modals (011.5). Events say *enrollment*, never *attendance* (rehearsals). `docs/react-events.md`. |
-| `/events/{id}/enrollment` | **Redirect** → `/events/{id}?respond=1` | `302`, GET/HEAD only: the answer page of the first 011 build, now a modal. The draft `/events/{id}/attendance` is 404. |
-| `/member/events` | **Redirect** → `/events` (012F) | `302`, query kept, GET/HEAD only. The Blazor bridge (011-012E) is retired; everything it did is on the React agenda and event pages, statistics included. |
-| `/events/{id}/enrollments` | **Retired** (012E) | 302 to `/events/{id}#who-title`; Admin/Owner manage answers in the React event page. |
-| `/events/{id}/discussion`, `/contacts` | **React** (013) | The event's conversation (members) and contact tracking (Mod and above, and Leitões since 049); visitors get a 302 to `/login?returnUrl=…`. No Blazor event page is left. |
-| `/roles` | **React canonical** (008, 016) | Órgãos Sociais; `?fy=` picks a mandate. RGI for members, fiscal years and assignments for Mod/Admin/Owner (016). `docs/react-governance.md`. |
-| `/member/roles` | **Redirect** → `/roles` (016) | `302`, query kept, GET/HEAD only. The Blazor bridge (008-015) is retired. |
-| `/login` | **React canonical** (007) | Members-only login; signed in → `302 /events`. See Login (007). `Login.razor` retired. |
-| `POST /auth/login`, `POST /auth/logout` | **Auth endpoints** (unchanged) | Identity cookie sign-in/out, antiforgery, per-IP limit. See Login (007). |
-| `/member/profile` | **Redirect** → `/profile` (032) | `302`, GET/HEAD only, for everyone. The Blazor profile editor (moved here in 004) is retired. |
-| `/members`, `/members/hierarchy` | **React** (017) | Directory (details, active members, birthdays) and the Padrinho → Afilhado tree, signed-in members; visitors get a 302 to sign in. `docs/react-members.md`. |
-| `/hierarchy` | **Redirect** → `/members/hierarchy` (017) | `302`, GET/HEAD only. |
-| `/members/manage` | **Redirect** → `/members` (018) | `302`, GET/HEAD only. The admin tools are on the React `/members` (Admin/Owner); `Members.razor` retired. |
-| `/leaderboard` | **React** (019) | Tabela de Classificação: XP table, details, comments; signed-in members, visitors get a 302 to sign in. `docs/react-leaderboard.md`. |
-| `/inventory` | **React** (020) | Instrumentos: list, details, Mod/Admin/Owner management with image; signed-in members, visitors get a 302 to sign in. `docs/react-inventory.md`. |
-| `/shop` | **React** (021) | Loja RTUB: products, member reservations, Mod/Admin/Owner management; signed-in members, visitors get a 302 to sign in. `docs/react-shop.md`. |
-| `/documentation` | **React** (022) | Documentação: folders per fiscal year, download, member upload, Owner folder/document management; signed-in members (Leitões refused), visitors get a 302 to sign in. `docs/react-documentation.md`. |
-| `/logistics`, `/logistics/{id}` | **React** (023) | Logística: boards, then a horizontal Kanban (lists, cards, status, labels, checklist, links, members, board files, reminders); signed-in members (Leitões too since 065; assignees tick checklists and change status), Mod/Admin/Owner manage; visitors get a 302 to sign in. `docs/react-logistics.md`. |
-| `/treasury`, `/treasury/reports/{id}`, `/treasury/calotes`, `/treasury/mbway`, `/treasury/nerba[/{eventId}]` | **React** (024) | Tesouraria: annual reports (totals, activities, transactions, receipts, PDF, history), calotes, MBWay, Nerba orders; signed-in members (Caloiros and Leitões: own calotes only), visitors get a 302 to sign in; old `/finance`, `/calotes`, `/mbway`, `/nerba` URLs 302 here. `docs/react-treasury.md`. |
-| `/rehearsals`, `/rehearsals/{id}` | **React** (014) | Ensaios: presenças (attendance), Admin/Owner management; visitors get a 302 to sign in. `docs/react-rehearsals.md`. |
-| `/members/map` | **React** (032) | Mapa de membros: members by city (geocoding cache), without a city, cities waiting; signed-in members (Leitões included), visitors get a 302 to sign in. `/member/map` 302s here. `docs/react-member-area.md`. |
-| `/hall-of-fame` | **React** (032) | The twelve records (ties, positive durations, past / not-cancelled activity); signed-in members, visitors get a 302 to sign in. `docs/react-member-area.md`. |
-| `/naipes`, `/naipes/config` | **React** (033) | Naipes: each instrument's videos and images, search, comments, plays; any member adds and edits their own, Admin / Owner manage all and the instrument settings (`/naipes/config`, a clear refusal for others). Signed-in members, visitors get a 302 to sign in. `docs/react-naipes.md`. |
-| `/requests`, `/questions` | **React** (031) | Gestão de Pedidos (members but Leitões read; Admin/Owner answer) and Perguntas aos Órgãos Sociais (members); visitors get a 302 to sign in. `docs/react-requests-questions.md`. |
-| `/meetings` | **React** (034) | Reuniões: meetings (AG / AGE, CV, Direção) by visibility, Vou / Não vou, participants, atas (edit, publish, PDF, confirmation) and meeting requests; who sees and does what is the old page's matrix, enforced by the API (one change: a draft ata only for its writers). Signed-in members (a Leitão gets "Acesso restrito"), visitors get a 302 to sign in. The Blazor page is retired. `docs/react-meetings.md`. |
-| `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db` | **React** (035) | Owner tools, **Owner only** (Admin lost `/emails` and `/notifications`): announcement emails, custom push, users and roles, audit log, database viewer, over `/api/owner/*`. Visitors get a 302 to sign in; any other member the shell with 403 and a refusal. The Blazor pages are retired. `docs/react-owner-operations.md`. |
-| `/forgot-password`, `/reset-password`, `/confirm-email` | **React** (036) | Password recovery and email confirmation, public, over `POST /api/account/*`; the pages are no-store and no-referrer and clear the token from the URL. `docs/react-identity.md`. |
-| `/Error` | **Server** (036, on purpose) | The exception handler's page: fixed static HTML (`wwwroot/error.html`) for any method, no script, no details. |
-| `/messages` | **React** (041) | Mensagens (Messaging v2): conversation list + chat (`?c=<id>`), replies, reactions, mute, read state, text only, over the preserved v1 tables; members only (visitors get a 302 to sign in). `/messages/{id}` and `/hubs/messages` (the 027 inbox) stay 404. `docs/react-messages.md` |
-| `/share` | **React** (053) | The PWA Web Share Target again (removed in 036): `manifest.webmanifest` → `share_target` sends a GET with `title`, `text`, `url`; `portal/src/Share.tsx` shows them read-only with "Copiar" and "Voltar", stores nothing. Public, GET/HEAD only (POST → 405). `docs/react-identity.md` → */share*. (`/images` and `/labels` were removed in 029A, plain 404s.) No Blazor page is left. |
-| `GET /api/announcement` | **API** (037) | The Owner's system announcement while fresh, or 204; polled by the shell. |
-| `GET /api/account/me` | **API** (002) | `AccountController`: the caller's own session summary for React. |
-| `GET /api/public/antiforgery-token` | **API** (003) | `Endpoints/PublicRequestEndpoints.cs`: token for the request form, the login and Music writes. |
-| `POST /api/public/requests` | **API** (003) | The only public request submission path. |
-| `GET /api/gallery`, `GET /api/gallery/items/{id}` | **API** (009) | Viewer-aware, read-only: visitors get public items only; `?public=true` gives anyone the visitors' view (home preview, 010). |
-| `GET /api/public/events/upcoming` | **API** (010) | Next three events for the home; anonymous, read-only, public fields only. Since 011 from `IEventAgendaService`. |
-| `/api/events/...` | **API** (011) | `Endpoints/EventEndpoints.cs`; reads viewer-aware and open; enrollment and video-play writes need the antiforgery header. |
-| `GET /api/public/governance` | **API** (008) | `?fiscalYear=`; anonymous, read-only, public fields only. |
-| `/api/music/...` | **API** (006) | `Endpoints/MusicEndpoints.cs`; reads open, every write needs the antiforgery header. |
-| `/portal/assets/*` | static files | Content-hashed Vite output (the build's folder, not a page), normal static caching. |
-| any other `/portal/*` | nobody | 404. |
+| Path | Notes |
+| --- | --- |
+| `/`, `/privacy`, `/request`, `/music`, `/music/albums/{id}`, `/news`, `/gallery`, `/shop` (read-only catalogue), `/events`, `/events/{id}`, `/roles`, `/share`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/login` | Public. `/privacy`: `portal/src/Privacy.tsx` is the legal source. `/share`: Web Share Target, GET only (`docs/react-identity.md`). |
+| `/profile` | Signed out: notice + link to `/login?returnUrl=/profile`. Signed in: own profile editor (`docs/react-member-area.md`). |
+| `/events/{id}/discussion`, `/events/{id}/contacts`, `/rehearsals[/{id}]`, `/members`, `/members/hierarchy`, `/members/map`, `/hall-of-fame`, `/leaderboard`, `/inventory`, `/music/play/{id}`, `/music/learn`, `/documentation`, `/logistics[/{id}]`, `/logistics/tasks`, `/treasury/...`, `/pending-actions`, `/requests`, `/questions`, `/naipes`, `/naipes/config`, `/meetings`, `/messages` | Members only. |
+| `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/dashboard`, `/owner/db` | Owner only (`docs/react-owner-operations.md`). Other members get the shell with a 403 refusal. |
+| `/Error` | Static server page for any method, no script, no details. |
+| `/portal/assets/*` | Content-hashed Vite output, normal static caching. Any other `/portal/*` is 404. |
 
-The shell `index.html` is served `Cache-Control: no-cache` so a deploy is picked up at once. It
-carries the enforced CSP like every HTML document (`connect-src 'self'` only since 037: no WebSocket for a Blazor
-circuit). Links between pages are plain full-page loads. No app-facing link points to `/portal` (guarded by
-`ReactSourcesAndBuild_LinkOnlyToCleanRoutes`). Unknown URLs are a plain 404 (`BlazorHostRetirementTests`).
+Old URLs kept as `302` redirects (GET/HEAD only): `/portal[/privacy\|/profile\|/request]` → same path without
+`/portal` (query kept); `/music/songs/{id}` → `/music/albums/{id}`; `/events/{id}/enrollment` → `/events/{id}?respond=1`;
+`/events/{id}/enrollments` → `/events/{id}#who-title`; `/member/events` → `/events`; `/member/gallery` → `/gallery`;
+`/member/roles` → `/roles`; `/member/profile` → `/profile`; `/member/map` → `/members/map`; `/hierarchy` →
+`/members/hierarchy`; `/members/manage` → `/members`; `/finance` → `/treasury`; `/finance/report/{id}` →
+`/treasury/reports/{id}`; `/calotes` → `/treasury/calotes` (keeps `fy`); `/mbway[/{id}]` → `/treasury/mbway`;
+`/nerba[/{id}]` → `/treasury/nerba`; `/nerba/event/{id}` → `/treasury/nerba/{id}`.
 
-**`/` side effects (task 004).** The Blazor home also showed the push-notification opt-in prompt,
-the custom login popup and the Play Store prompt, and gave signed-in members their bottom nav. None of
-that renders on the React `/`; the installed app (`start_url` `/?utm_source=pwa`) and push
-notifications without a URL now open the React home. Members reach their area through the member shell
-(030). The Blazor prompts went with `RTUB.Shared` in 037; push opt-in is the `/profile` section "Notificações push"
-since 038 (`docs/react-push-v2.md`), never prompted on load.
+Shell-level APIs: `GET /api/account/me`, `GET /api/announcement`, `GET /api/public/antiforgery-token`,
+`POST /api/public/requests`, `GET /api/public/events/upcoming`, `GET /api/public/governance`.
 
-## Before any production release
+The shell `index.html` is served `Cache-Control: no-cache` and carries the enforced CSP (`connect-src 'self'`). Links
+between pages are full page loads. No app-facing link points to `/portal` (`ReactSourcesAndBuild_LinkOnlyToCleanRoutes`).
+Unknown URLs are a plain 404.
 
-The React public shell ships with whatever `dev` holds at the next `dev → master` release. Since 010
-the agenda and the gallery preview read real data; the **static (not admin-editable) copy must still
-be accepted by the owner, or replaced, before that release.**
-
-## Layout
+## Layout and build
 
 | Path | What |
 | --- | --- |
-| `src/RTUB.Web/portal/` | Source: `index.html` (shell + launch splash), `src/*.tsx`, `styles.css`, `vite.config.ts`, `tsconfig.json`. Excluded from publish (`RTUB.csproj`). LF-only (`.gitattributes`). |
+| `src/RTUB.Web/portal/` | Source: `index.html` (shell + splash), `src/*.tsx`, `styles.css`, `vite.config.ts`. Excluded from publish (`RTUB.csproj`). LF-only (`.gitattributes`). |
 | `src/RTUB.Web/wwwroot/portal/` | **Committed** build output, published as-is. |
-| `src/RTUB.Web/package.json` | `build:portal`, `check:portal`; React 19, the Fraunces woff2 files are plain static files in `wwwroot/fonts/` since task 054 (preloaded from `index.html`; no font package). |
+| `src/RTUB.Web/package.json` | `build:portal`, `check:portal`. |
 
-Stack choices, all deliberately minimal: React 19 + Vite 6 with esbuild's
-JSX runtime (no `@vitejs/plugin-react`), no router (the server maps two paths; `main.tsx` picks the
-page once), no state or CSS library, bootstrap-icons path data inlined as SVG. React is split into
-`vendor-react-*.js` so it caches across portal releases.
+Stack, deliberately minimal: React 19 + Vite 6 with esbuild's JSX runtime (no `@vitejs/plugin-react`), no router
+(`main.tsx` picks the page once from the path), no state or CSS library, bootstrap-icons path data inlined as SVG.
+React is split into `vendor-react-*.js` so it caches across releases. Fraunces woff2 fonts are static files in
+`wwwroot/fonts/`, preloaded from `index.html`.
 
-**Why the build is committed and not rebuilt on publish:** file names are content-hashed, and the
-Web SDK globs `wwwroot` before `BeforePublish` targets run, so a publish-time rebuild that produced
-different hashes would ship a shell pointing at missing files. Committing keeps `dotnet run`,
-the test suites and the publish zip independent of Node. The cost is drift, closed by the CI check
-below. Sources are pinned to LF so the build is byte-identical on Windows and Linux.
+**Why the build is committed:** file names are content-hashed, and the Web SDK globs `wwwroot` before `BeforePublish`
+targets run, so a publish-time rebuild would ship a shell pointing at missing files. Committing keeps `dotnet run`, the
+tests and the publish zip independent of Node. CI checks for drift; LF sources keep the build byte-identical on Windows
+and Linux.
 
-## Constraints kept
+## Constraints
 
-- **CSP (unit 025) unchanged.** No inline script or style: the bundle is external module scripts,
-  React writes no style attributes, and the Fraunces fonts are self-hosted under `/portal/assets/`
-  (`font-src 'self'`; latin subset only, 67 + 82 KB). The CSP guard tests sweep the portal's own
-  chunks; only `vendor-react-*.js` is excluded, as vendored code like `wwwroot/lib` (its
-  `<style precedence>` path is never used).
-- **PWA identity unchanged.** Same `manifest.webmanifest` (id `/`, `start_url` `/?utm_source=pwa`),
-  same Apple meta, same single service-worker registration (`/js/sw-register.js`). React page
-  navigations are network-only (and the shell is `no-cache`) with the offline fallback; the hashed
-  assets stale-while-revalidate like any JS/CSS.
-- **Cache busting, no update prompt (006).** The old "Nova versão disponível" prompt made users
-  reload when a new service worker was waiting. It is gone: a new worker downloads in the background
-  and takes over once every RTUB window is closed (no `skipWaiting`, no forced reload). Freshness
-  comes from URLs, not from the worker: Vite names every script, stylesheet and font by content hash, so a deploy
-  is picked up on the next navigation. (The Blazor assets' `?v=` / `VersionedAsset` went with the host in 037; the
-  worker's `CACHE_VERSION` moved to `v2.8.0` then, which also drops the old precached `blazor.web.js`.)
-  Ceiling: the image cache is cache-first by URL, so an image replaced *at the same URL* stays stale
-  until the worker's `CACHE_VERSION` changes and it activates; publish changed images under a new
-  URL.
-- **No business logic in React, no database change.** Task 001 called only `GET /api/version`
-  (footer); 002 and 003 added the two APIs in the route table. Login is the React `/login` (007) over the
-  unchanged `POST /auth/login`, which keeps its antiforgery and rate limiting.
+- **CSP:** no inline script or style; React writes no style attributes; fonts are self-hosted (`font-src 'self'`). The
+  CSP guard tests sweep the portal chunks except `vendor-react-*.js`.
+- **PWA identity:** `manifest.webmanifest` (id `/`, `start_url` `/?utm_source=pwa`), one service-worker registration
+  (`/js/sw-register.js`). Page navigations are network-only with the offline fallback; hashed assets
+  stale-while-revalidate.
+- **No update prompt:** a new service worker installs in the background and takes over once every RTUB window is
+  closed (no `skipWaiting`, no forced reload). Freshness comes from content-hashed URLs.
+- **Image cache ceiling:** images are cache-first by URL, so an image replaced at the same URL stays stale until the
+  worker's `CACHE_VERSION` changes. Publish changed images under a new URL.
 
 ## Copy rule
 
-The current site and app are the reference for structure, tone, page inventory and facts. **Their
-sentences are never copied into the portal**: portal copy is original Portuguese.
-`PortalCopyOriginalityTests` fails if any six-word run of portal copy (text nodes and multi-word
-strings; proper names removed) appears in the seeded labels or static HTML (the Blazor pages and
-components were in the corpus until 037 removed them). The Privacy Policy is the one exception: it is legal text, carried verbatim from the retired
-`Privacy.razor`; since task 004 `portal/src/Privacy.tsx` is the only copy and the legal source.
+Portal copy is original Portuguese; sentences from the old site are never copied. `PortalCopyOriginalityTests` fails if
+any six-word run of portal copy appears in the seeded labels or static HTML. Exception: the Privacy Policy, legal text,
+whose only copy is `portal/src/Privacy.tsx`.
 
-**Institution naming.** Present-day copy (current identity, location, CTAs) says **UPB** /
-*Universidade Politécnica de Bragança*. Historical context (founding, old documents, songs, older
-screenshots or sources) keeps **IPB**. Never mass-replace; bridge only when it helps ("fundada no
-contexto do IPB, hoje UPB"). Legal text in the Privacy Policy is left as the policy states it.
+**Institution naming.** Present-day copy says **UPB** (*Universidade Politécnica de Bragança*). Historical context
+(founding, old documents, songs) keeps **IPB**. Never mass-replace; bridge only when it helps ("fundada no contexto do
+IPB, hoje UPB"). The Privacy Policy stays as written.
 
-Sources consulted for task 001: the public pages of the live site (home, `/music`, `/roles`), the
-seeded labels (`SeedData.Labels.cs`), `Roles.razor`, `Request.razor` and `EventType`. The RGI and
-the cancioneiro are member-only documents in R2 storage and were not accessed.
+## Login
 
-## Órgãos Sociais (008)
+`/login` is `portal/src/Login.tsx`. No public registration.
 
-`/roles` is React (`portal/src/Governance.tsx`) over `GET /api/public/governance`
-(`Endpoints/GovernanceEndpoints.cs` → `IGovernanceService`). The old Blazor `/roles` mixed three
-audiences; only its public view was rebuilt in 008. The RGI and the management lived on the members'
-Blazor `/member/roles` until **016 moved them to the React `/roles`** (`docs/react-governance.md`);
-`/member/roles` now redirects there.
+| Route | Behaviour |
+| --- | --- |
+| `GET /login` | Signed out: the form. Signed in: `302 /events`; `returnUrl` ignored on purpose (`/login` is also the cookie's `AccessDeniedPath`; honouring it would loop a member on a page their role cannot open). |
+| `POST /auth/login` | Username, or email when it contains `@`. Unconfirmed email → Invalid; lockout and expelled checked before the password; 5 wrong passwords → 5 min lockout; remember-me; sets `LastLoginDate`. Antiforgery form token; per-IP limit (10/window, 429). `Accept: application/json` gets `200 { redirect }` or `401 { error: Invalid/Locked/Expelled }`; plain form posts redirect to `/login?error=…`. Landing: local `returnUrl`, else `/events` (`MemberLanding`). |
+| `returnUrl` | Local only (`UrlHelper.IsLocalUrl`): `/x` yes; `//x`, `/\x`, absolute or scheme URLs → `/events`. Read case-insensitively. |
+| `POST /auth/logout` | Antiforgery form, signs out, `302 /`. |
+| Expelled member with a live cookie | The cookie validator rejects the session on every request. |
 
-| Source | Field / data | Public | Private / internal | Old public UI | React | Schema change |
-| --- | --- | --- | --- | --- | --- | --- |
-| `RoleAssignments` | `Position`, `StartYear`, `EndYear` | yes | – | yes | yes | no |
-| `RoleAssignments` | `Notes`, `CreatedBy`, audit dates, `Id`, `UserId` | no | yes | no | no | no |
-| `AspNetUsers` | `Nickname`, `FirstName`, `LastName` | yes | – | yes (nickname + full name) | yes, same | no |
-| `AspNetUsers` | `ImageUrl` (public R2 URL) | yes | – | yes (default avatar if empty) | https or same-site only, else default | no |
-| `AspNetUsers` | email, phone, birth date, address, roles, categories, ids | no | yes | no | no | no |
-| `FiscalYears` | years created by Mod/Admin | – | – | selector, all years | not read: the selector lists years with holders | no |
-| `Position` enum | 13 positions in 5 groups | yes | – | fixed layout | `GovernanceService.Structure` | no |
-| RGI (`docs/rtub_rgi.pdf`, R2) | members-only document | no | yes | members | `/roles`, members (016) | no |
+Tests: `ReactLoginTests`, `AuthAntiforgeryTests`, `LoginRateLimitTests`, `PortalRouteTests`.
 
-- **Real data (read-only, counts):** 36 fiscal years (1991-2027), 16 with holders, 124 assignments,
-  58 distinct holders; no orphan, duplicate position, note or expelled holder; nickname always set;
-  every photo is on the public R2 host or empty (41 empty → default avatar). Positions are
-  per fiscal year; there are no separate mandate/term dates.
-- **Verdict:** no schema change, no migration.
-- **Mandate shown:** `?fy=` when it has holders; otherwise the current fiscal year when it has
-  holders, else the latest one that does (in September the new year has no holders yet). The page
-  always says which (`Mandato 2025-2026`).
-- **Changed on purpose:** every holder of a position is listed (the old page showed only the first,
-  so a second Ensaiador was hidden); vacant positions read "Sem registo" instead of "N/D"; empty
-  fiscal years are no longer offered.
-- **Hierarquia:** the old `/roles` never showed it; still not shown (future "Conhece a Tuna").
-- **Follow-ups:** done in 016 (management and RGI in React, `/member/roles` retired).
+## Session
 
-## Login (007)
+`GET /api/account/me` (anonymous allowed, `no-store`) returns `{ authenticated: false }` or the caller's own
+`displayName` (nickname → first name → username), `fullName`, `avatarUrl`, category labels and `menu` (booleans from
+`MemberMenuAccess`). Never email, phone, birth date, roles, IDs or other users. React calls it once per page load
+(`getCurrentUser` in `portal/src/api.ts`); unknown or failed state falls back to the visitors' header.
 
-`/login` is React (`portal/src/Login.tsx`); the Blazor `Pages/Identity/Login.razor` is retired. The
-auth backend is unchanged: no Identity, hashing, schema or data change, no public registration.
+## Member shell
 
-| Route / endpoint | Owner | Behaviour | Decision |
-| --- | --- | --- | --- |
-| `GET /login` | Program.cs → React shell | Signed out: the form. Signed in: `302 /events`, `returnUrl` ignored on purpose (`/login` is also the cookie's `AccessDeniedPath`; honouring it would loop a member on a page their role cannot open). | React (changed) |
-| `POST /auth/login` | Program.cs | Username, or email when it contains `@`; unconfirmed email → Invalid; lockout and expelled checked before the password; wrong password → `AccessFailedAsync` (5 → 5 min lockout); remember-me; `LastLoginDate`. Antiforgery form token, per-IP limit (10/window, 429). | Keep. Adds `Accept: application/json` answers: `200 { redirect }` or `401 { error: Invalid/Locked/Expelled }`; plain form posts still redirect to `/login?error=…`. Default landing `/` → `/events`. |
-| local-only `returnUrl` | `UrlHelper.IsLocalUrl` | `/x` yes; `//x`, `/\x`, absolute or scheme URLs → `/events`. Read case-insensitively (`ReturnUrl` from the cookie handler, `returnUrl` from links). | Keep (server-side only) |
-| `POST /auth/logout` | Program.cs + the React member shell (`api.ts` `signOut`) | Antiforgery form, signs out, `302 /`. | Keep |
-| `/forgot-password`, `/reset-password`, `/confirm-email` | React (036) + `POST /api/account/*` | Recovery and confirmation; link back to `/login`. | React; same Identity calls and messages (`docs/react-identity.md`) |
-| Expelled member with a live cookie | cookie validator | Session rejected on every request, so `/login` shows the form again. | Keep |
+`portal/src/MemberShell.tsx`. The header ends with `[inbox] [profile chip] [menu]`; the menu opens one right-hand
+drawer at every width (native modal `<dialog>`, 48px rows, safe-area insets) and closes after every choice. The profile
+chip opens `/profile`; the inbox opens `/messages` with the unread badge (`portal/src/unread.ts`). Perfil and Mensagens
+are not in the menu.
 
-The page reads `?error=` for the plain-form fallback, shows field errors, a busy button and one
-banner per outcome (invalid, locked, expelled, throttled, expired token, failure). Copy is
-members-only: no public registration, access created and managed by the tuna, the portal open to
-everyone. Pinned by `ReactLoginTests`, `AuthAntiforgeryTests`, `LoginRateLimitTests` and
-`PortalRouteTests`.
+- **Groups:** Membro (Atuações, Ensaios, Música, Galeria, Novidades, Loja) · Tuna (Membros, Hierarquia, Órgãos
+  Sociais, Classificação, Hall of Fame, Naipes) · Gestão (Reuniões, Documentação, Instrumentos da Tuna, Questões,
+  Logística, Tesouraria, Pedidos) · Owner (Utilizadores, Auditoria, Base de dados).
+- **Who sees what** (`MemberMenuAccess`, links only): see [permissions](permissions.md). Removed modules (Jogos, Bets,
+  MyTuno, Imagens, Conteúdo) are never listed. `MemberShellTests` pins the list, the gating and that every link opens a
+  live route.
+- **No jump on load:** `localStorage` `rtub-member-shell` remembers a signed-in last load, so the page opens in the shell
+  while `/api/account/me` answers; the answer always wins; signing out clears it.
 
-## Session and profile (task 002)
+## Request
 
-- **Signing in is the React `/login` (007)**, over the antiforgery-protected, rate-limited
-  `POST /auth/login`; the portal sends visitors to `/login?returnUrl=/profile`. Sign-out is still
-  in the member shell (030, `api.ts` `signOut`: `POST /auth/logout` with the token from
-  `/api/public/antiforgery-token`).
-- **`GET /api/account/me`** (anonymous-allowed, `Cache-Control: no-store`, GET only) returns
-  `{ authenticated: false }` or the caller's own `displayName` (nickname → first name → username),
-  `fullName`, `avatarUrl`, category labels (`StatusHelper.GetCategoryDisplay`) and, since 030, `menu`: four
-  booleans saying which member-menu groups to show (`MemberMenuAccess`). No email, phone, birth date, role
-  list, IDs or other users. Expelled or deleted members arrive anonymous: the cookie validator rejects their
-  session on every request. Pinned by `AccountEndpointTests`.
-- React calls it once per page load (`getCurrentUser` in `portal/src/api.ts`); the header shows "Login" or the
-  member shell, and `/profile` has loading, error (retry), signed-out and signed-in states. Unknown or failed
-  session state falls back to the visitors' header ("Login").
-- Authorization is unchanged: nothing in React grants access, and a hidden menu link is a convenience only;
-  every page and API still enforces its own rules.
+`/request` is the only public request form (`portal/src/Request.tsx`). One submission path:
+`IPublicRequestService.SubmitAsync` (entity annotations, `RequestValidationService` date rules,
+`RequestService.CreateRequestAsync` which pushes to every Admin and Owner, optional date range, then the RTUB email).
+Only the API calls it. Management is `/requests` (`docs/react-requests-questions.md`).
 
-## Member shell (task 030)
+`POST /api/public/requests` (anonymous, form-encoded, dates `yyyy-MM-dd`):
 
-Signed-in members navigate with one menu (`portal/src/MemberShell.tsx`), not with `/profile`:
+- **CSRF:** antiforgery enforced (400 without a valid token); the page first calls `GET /api/public/antiforgery-token`.
+- **Rate limit:** policy `public-requests`, 5 per client IP per 60 min (`PublicRequestRateLimit` settings), fixed
+  window; 429 `application/problem+json` with `Retry-After`. Partitioned on `RemoteIpAddress`: on Azure this needs
+  forwarded headers enabled (`ASPNETCORE_FORWARDEDHEADERS_ENABLED`), otherwise every visitor shares one budget.
+- **Honeypot:** hidden `website` field; if filled, the answer looks like success and nothing is stored or sent.
+- **Validation:** server-side; `400` validation problem with camelCase field keys. Body limit 32 KB.
+- **Answers:** `200 {submitted:true}` · `400` field errors · `400` without errors = token refused · `429` · `500`
+  (generic, logged, no exception details).
 
-- **Task 044 (current):** no sidebar. The header ends with `[inbox] [profile chip] [menu]`; the menu button opens the
-  one menu in a right-hand drawer at every width (native modal `<dialog>`: Esc, focus containment, backdrop tap),
-  48px rows, safe-area insets; it closes after every choice. The profile chip links straight to `/profile`; the inbox
-  button to `/messages` with the unread badge (`portal/src/unread.ts`, `docs/react-messages.md`). **Perfil and
-  Mensagens are not in the menu** (routes and pages unchanged). The rail below (and `rtub-member-rail`) is gone.
-- ~~**Wide screens (≥ 1000px):** a rail under the header (task 030, removed in 044).~~
-- **Groups:** Membro (Atuações, Ensaios, Música, Galeria, Novidades, Loja) · Tuna
-  (Membros, Hierarquia, Órgãos Sociais, Classificação, Hall of Fame, Naipes) · Gestão (Reuniões, Documentação,
-  Instrumentos da Tuna, Questões, Logística, Tesouraria, Pedidos) · Owner
-  (Utilizadores, Auditoria, Base de dados).
-- **Who sees what** (`MemberMenuAccess`, the retired Blazor navbar's rules): Documentação, Reuniões, Questões → Admin,
-  Owner, Mod or anyone not a Leitão; Logística → every member (`logistics`, task 065: a Leitão's Gestão shows
-  Logística only); Tesouraria → Admin, Owner, Mod or Tuno (`treasury`); Pedidos, Emails,
-  Notificações → Admin; the Owner group → Owner. The rest → every member.
-- **Never listed:** the removed modules - Jogos, Bets, MyTuno (026), Imagens and Conteúdo /
-  Labels (029A). `MemberShellTests` pins the list, the gating and that every link opens a live route.
-- **No jump on load:** `localStorage` `rtub-member-shell` remembers that the last load was signed in, so a
-  member's page opens in the shell while `/api/account/me` answers; the answer always wins, and signing out
-  clears it. A visitor never waits.
+## Install guidance
 
-## Request (task 003: React replacement; legacy Blazor page retired)
+The `#app` section on `/`: Android via Google Play (`ipb.pt.rtub.app`, a TWA of this site; package matches
+`wwwroot/.well-known/assetlinks.json`); iPhone/iPad via Safari → Partilhar → Adicionar ao ecrã principal; Android
+browser and desktop via the browser's install option when offered. No promise about notifications. The installed app
+opens `start_url` and is a share target (`docs/pwa-practices.md` → *PWABuilder report card*).
 
-React `/request` is **the only public request form**. The legacy Blazor `/request` page
-(`Pages/Public/Request.razor`) and its form were removed in 003; since 004 React serves `/request`
-itself (`/portal/request` redirects there, query string kept, `302` while DEV is hybrid), and the
-Blazor navbar's "Pedidos" link points at the React form directly. There is one submission path:
-**`IPublicRequestService.SubmitAsync`** (Application layer), extracted verbatim from the retired
-page's handler: the `Request` entity's annotations, the date rules of `RequestValidationService`
-(same messages), `RequestService.CreateRequestAsync` (which still pushes to every Admin and Owner),
-`SetRequestDateRangeAsync` when an end date is given, then the RTUB email. Only the API calls it.
+## System announcement
 
-**`POST /api/public/requests`** (anonymous, form-encoded; dates `yyyy-MM-dd`):
-- **CSRF:** form-bound, so the framework enforces antiforgery (400 before the handler without a
-  valid token); the React page first calls `GET /api/public/antiforgery-token` (no-store).
-- **Rate limit:** policy `public-requests`, 5 per client IP per 60 min (`PublicRequestRateLimit`
-  settings), fixed window, no queue; 429 as `application/problem+json` with its own message and
-  `Retry-After`. The shared `OnRejected` now answers per policy; the login text is unchanged.
-  Partitioned on `RemoteIpAddress` only - on Azure this relies on forwarded headers being enabled,
-  otherwise every visitor shares one budget: **check on DEV**.
-- **Honeypot:** hidden `website` field; if filled, the answer looks like success and nothing is
-  stored or sent.
-- **Validation:** server-side through the shared service; `400` validation problem with camelCase
-  field keys. Unparseable dates are field errors too. Body limit 32 KB.
-- **Failures:** logged; the client gets a generic `500` problem, never exception details.
-- Answers: `200 {submitted:true}` · `400` field errors · `400` without errors = token refused ·
-  `429` · `500`.
+The Owner's "Anúncio de sistema" (`/owner/tracing`, `POST /api/owner/tracing/announcement`, ≤500 characters).
+`AnnouncementService` keeps only the latest one, in memory, for 5 minutes; `GET /api/announcement` (anonymous,
+`no-store`) answers `{id, message}` or 204. The shell (`SystemAnnouncement` in `App.tsx`) asks on load, every 30 s while
+visible and on coming back, and shows a dialog. The dismissed id is kept in `localStorage` (`rtub-announcement-seen`).
+Limits on purpose: up to 30 s delay, no sound (autoplay rules), one app instance holds it (scale-out would need a shared
+store).
 
-**React form** (`portal/src/Request.tsx`): the same fields and limits, client checks mirroring the
-server messages, event-type suggestions via `<datalist>` (free text, as today), optional date range,
-states for submitting, success (focused), field errors (focus to the first), refused token ("recarregue
-a página"), throttled and generic failure. Labels, `aria-invalid`/`aria-describedby`, no login needed.
+## Follow-ups
 
-### Request field audit (EF entity = snapshot = real `app.db`, read-only check)
-
-| Field | Type / limit | Blazor | React | Notes |
-| --- | --- | --- | --- | --- |
-| Id | int PK | - | - | internal |
-| Name | text, required, ≤200 | yes | yes | |
-| Email | text, required, email, ≤200 | yes | yes | |
-| Phone | text, required, ≤20 | yes | yes | |
-| EventType | text, required, ≤100 | yes | yes | free text; real rows are free descriptions, so no enum |
-| PreferredDate | date, required, not past | yes | yes | |
-| PreferredEndDate | date?, ≥ start, not past | yes | yes | only with the range option |
-| IsDateRange | bool | toggle | toggle | stored `true` only through `SetDateRange`; the API sends an end date only with the range option |
-| Location | text, required, ≤200 | yes | yes | |
-| Message | text **NOT NULL**, ≤2000 | yes | yes | empty is stored as `""` |
-| Status | int (Pending = 0) | - | - | internal, admin workflow |
-| CreatedAt/By, UpdatedAt/By | audit | - | - | internal; `CreatedBy` is null for public requests |
-
-**No database migration.** The existing `Requests` table and `Request` entity were reused as they
-are; the React DTO maps onto them. Pinned by `MigrationChainTests` (no pending model changes; the
-`Requests` columns unchanged). The real database was only read (schema, row count, max lengths): its
-3 requests fit every limit, and all dated migrations in the repo are applied except the two known
-never-run ones (.ai/STATE.md).
-
-The admin side (list, approve, reject, delete, and turning an approved request into an event) is the React
-`/requests` since task 031: `docs/react-requests-questions.md`.
-
-## Install guidance (task 002)
-
-The `#app` section on `/` (linked from the footer) shows four short routes. Android: the
-Google Play listing `https://play.google.com/store/apps/details?id=ipb.pt.rtub.app`, taken from the
-existing `PlayStorePrompt.razor`; its package matches `wwwroot/.well-known/assetlinks.json` (the
-app is a TWA of this site). iPhone/iPad: Safari → Partilhar → Adicionar ao ecrã principal. Android
-browser: Chrome menu → Instalar app / Adicionar ao ecrã principal, when offered. Computer: the
-install icon in Chrome/Edge, when offered. No promise about notifications. Manifest, service worker
-and TWA config are untouched; an installed app opens the manifest's `start_url` (`/`). Since 053 the installed
-app is a share target: sharing a link or text to RTUB from another app opens `/share` with it (manifest members and
-the PWABuilder decisions in `docs/pwa-practices.md` → *PWABuilder report card (053)*).
-
-## News / "Novidades" (025)
-
-Built in React track 025: `/news`, a public wall of text posts by Admin/Owner, with a latest-3 preview on the
-home page. Rules, API, schema and follow-ups (images, comments, per-post pages with share previews):
-`docs/react-news.md`.
-
-## System announcement (037)
-
-The Owner's "Anúncio de sistema" (`/owner/tracing`, `POST /api/owner/tracing/announcement`, ≤500 characters) used to
-reach open Blazor pages through `AnnouncementBanner` in `MainLayout` (a server push to live circuits, with a sound);
-since 036 it reached nobody. With the host retired it is a React listener: `AnnouncementService` keeps only the latest
-announcement, in memory, for **5 minutes**; `GET /api/announcement` (anonymous, `no-store`) answers `{id, message}` or
-204; the shell (`SystemAnnouncement` in `App.tsx`) asks on load, every 30 s while the page is visible and on coming
-back, and shows a dialog ("Aviso do sistema", "OK, entendido"). The dismissed id is kept in `localStorage`
-(`rtub-announcement-seen`), so a browser sees each announcement once.
-
-Different from before, on purpose: delivery takes up to 30 s instead of being instant; a page opened within the
-5 minutes still sees it (the circuit push reached only pages already open); no sound (autoplay rules); one app
-instance holds it (a scaled-out App Service would need a shared store). Visitors and members alike see it, as before.
-Pinned by `AnnouncementServiceTests`, `OwnerOperationsApiTests` and `BlazorHostRetirementTests`.
-
-## Next recommended slice
-
-Done so far: Music 006, Login 007, Órgãos Sociais 008, Gallery 009, Events 011-013 (fully React, discussion and
-contacts included). Rehearsals 014, Gallery management 015, Órgãos Sociais management 016, Members directory and hierarchy 017,
-member admin 018, classification 019, instruments inventory 020, shop 021, documentation 022, logistics 023, treasury 024. Next:
-025 Novidades (`/news`, in review: `docs/react-news.md`); the roadmap and task contract are in
-`docs/RTUB_REACT_MIGRATION_GUIDE.md`.
-
-## Next steps (outside this pilot)
-
-- A read-only public API (upcoming public events, public albums, gallery highlights) to replace the
-  illustrative content - built on the existing services, not duplicated in React.
-- A client router, once the React routes stop being a short, fixed list. (`/` ownership was decided
-  in 004; the PWA `start_url` stays `/?utm_source=pwa` and now opens the React home.)
-- Authenticated pages need a React-usable auth model; today's authorization services depend on
-  Blazor `AuthenticationState`.
+- A public "Conhece a Tuna" page (`/about`): História and the full Hierarquia explanation. Today the home has one
+  "Percurso" line in Junta-te a nós.

@@ -6,8 +6,7 @@ treasury, logistics, inventory, shop, documentation and the Owner's operations t
 
 ## Stack
 
-- **ASP.NET Core on .NET 10**: minimal-API endpoints (`/api/*`) and a few controllers. No Blazor: the host was retired
-  in task 037 (no `App.razor`, `MainLayout`, `/_blazor` or `blazor.web.js`; `RTUB.Shared` is gone).
+- **ASP.NET Core on .NET 10**: minimal-API endpoints (`/api/*`) and a few controllers.
 - **React 19 + Vite** (`src/RTUB.Web/portal/`) owns every page. The committed build (`wwwroot/portal`) is published
   as-is. The only other HTML page is the static server page `/Error` (`wwwroot/error.html`).
 - **EF Core 10 + SQLite** (WAL), migrated on startup after a pre-migration snapshot.
@@ -38,9 +37,9 @@ scripts/              release, archive, smoke and configuration-audit scripts
 docs/                 runbooks and per-module docs (start at docs/architecture/system-index.md)
 ```
 
-Removed modules stay removed: games, bets, MyTuno, images, labels and `/share` are plain 404s; their database tables
-are kept. Messages came back as **Messaging v2** (`/messages`, task 041) on the preserved v1 messaging tables, which
-must never be dropped (`docs/react-messages.md`, `docs/messages-removal.md`).
+Removed modules stay removed: games, bets, MyTuno, images and labels are plain 404s and their tables are dropped
+(`docs/db-cleanup-inventory.md`). Messaging (`/messages`) runs on the v1 messaging tables, which must never be dropped
+(`docs/react-messages.md`).
 
 ## Getting started
 
@@ -129,6 +128,7 @@ Storage and backups: [`docs/cloudflare-r2-and-database-backups.md`](docs/cloudfl
 
 - [`docs/architecture/system-index.md`](docs/architecture/system-index.md) - where things live
 - [`docs/react-portal-pilot.md`](docs/react-portal-pilot.md) - React route ownership and portal rules; per-module docs `docs/react-*.md`
+- [`docs/permissions.md`](docs/permissions.md) - who can do what on each page
 - [`docs/backend-practices.md`](docs/backend-practices.md), [`docs/pwa-practices.md`](docs/pwa-practices.md)
 - [`docs/configuration-runbook.md`](docs/configuration-runbook.md) - settings, user-secrets, Azure App Settings, VAPID keys
 - [`docs/architecture/adr/`](docs/architecture/adr/) - architecture decisions

@@ -4,7 +4,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The Logistics rules (unit 030 LOG-1, React track 023, task 065, docs/permissions/logistics.md), enforced server-side
+/// The Logistics rules (unit 030 LOG-1, React track 023, task 065, docs/react-logistics.md), enforced server-side
 /// by <c>LogisticsKanbanService</c>:
 ///
 /// - Visitors: nothing (401); the pages send them to sign in.

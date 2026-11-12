@@ -1,908 +1,142 @@
 # .ai/STATE.md
 
-Living execution state. **Read this first.** A status board, not a diary: history is in git, and
-durable detail lives in the docs linked below.
-
-_Last updated: 2026-11-07 (2.3.4 released to PROD; `dev` on 2.3.5)_
-
-## Phase
-**Task 095** (`feat/095/music-aprender`): the feature is named **Aprender** in the UI (was "Tocar junto") and the page shows the current and next chord as chord boxes ("Agora" / "A seguir").
-
-**Task 094 = Tocar junto** (`feat/094/music-play-along`, merged into `dev`). `/music/play/{songId}` (members only):
-a song's chords arrive on a string lane in time with its recording, lyric line underneath, guitarra / bandolim,
-60 / 80 / 100 % speed, section loop. Chart = validated JSON per song in the new `SongPlayAlongs` table (migration
-`AddSongPlayAlongs`, additive), `GET/PUT/DELETE /api/music/songs/{id}/playalong`, uploaded in the song edit form
-(Mod+). Charts are made offline with `tools/playalong` and reviewed by ear. Prototype song: album 4, "É Esta a
-Tuna" (chart not in the repo: upload it on DEV / PROD). Not checked: real R2 audio, real phones, the timing of the
-prototype chart by ear, bandolim chord shapes. Detail: `docs/react-music.md` → *Tocar junto*.
-
-**Release 2.3.4** (2026-11-07, PR #287, tasks 065–085): the first release with member notes (`releases/2.3.4.json`).
-`dev` is on 2.3.5 with a one-line draft in `releases/2.3.5.json` — rewrite it before the next release. Task 085
-(PR #286): login lands on `/events`, dialog selects themed. Task 083 (PR #284) and 082 (PR #283) merged and released.
-
-**Task 083 = Release notes modal** (issue #264; `feat/083/release-notes`). `releases/<VERSION>.json` (pt-PT, plain
-text) bundled by `RTUB.csproj` into the artifact; `release.sh notes-check` gates the PR into master, Deploy • PROD and
-the package. `ReleaseNotesService` + `GET/POST /api/releases/notes[/ack]` (members; receipt = `PendingActionDismissals`
-kind `release.notes`, source = version, no migration); "Nova atualização" first in the `Startup.tsx` queue; footer
-"Ver novidades da versão". Baseline = `releases/2.3.4.json` (first file). **Every release now needs its notes file**
-(docs/release-and-rollback.md → Release notes). Not checked: real iPhone / Android; DEV with `ShowPrerelease`.
-
-**Task 082 (#263)**: PR #283 merged into `dev` 2026-11-07, not released. Migration `AddPushPreferences` runs on the
-next DEV / PROD deploy.
-
-**Task 082 = Push preferences on /profile** (issue #263; `feat/082/push-preferences`). Account-wide "Escolher o que
-receber" dialog in `/profile` → Notificações push: one checkbox per `PushPreferenceCatalog` key (server is the source of
-keys, pt-PT labels, groups), `pending-actions.daily` checked + locked (Obrigatório; `PUT` refuses it), every other key
-on by default. `GET/PUT /api/push/preferences`; rows `PushPreferences` = keys **off** (migration `AddPushPreferences`,
-additive). Every factory push carries `PreferenceKey`; `PushNotificationService` drops the device push for muted
-members on every send path, after the inbox copy. Device subscription untouched. Not checked: real iPhone / Android.
-
-**Task 081 = Push preference audit** (issue #262; `docs/081/push-preference-audit`, docs only). Proposed
-per-account keys + owner decisions in `docs/push-notifications.md` → *Preference keys for #263*. Decided 2026-11-07:
-only pending-actions mandatory, optional keys on by default, mute = push only, keys separate. No code, no schema.
-
-**Task 080 (#261)**: PR #281 merged into `dev`, not released.
-
-**Task 080 = Startup notification reminder** (issue #261; `feat/080/startup-notification-modal`). Signed-in member with
-push off on this device: "Ativa as notificações" once per app opening (tab session); Reformado (`IsRetired`) once per
-account via `GET/POST /api/push/reminder[/ack]` (`PendingActionDismissals` kind `startup.push`, no migration). Shared
-startup queue (`Startup.tsx`) for #264 release notes. Not checked: real iPhone / Android, screenshots at all widths.
-
-**Task 079 (#260)**: PR #280 merged into `dev`, not released.
-
-**Task 079 = Add to Google Calendar** (issue #260; `feat/079/add-to-google-calendar`). After a new "vou" to an upcoming
-event / rehearsal (module dialogs and `/pending-actions` Próximas) an optional offer opens Google's prefilled template
-(`ctz=Europe/Lisbon`, wall-clock times, suggested duration when no end, all-day for date-only / multi-day) only on click;
-detail pages keep "Adicionar ao calendário". Frontend only, no schema change. Not checked: Google page, devices, screenshots.
-
-**Task 078 (#259)**: PR #279 merged into `dev`, not released.
-
-**Task 078 = As minhas ações pendentes 8/8** (issue #259; merged into `dev` via PR #279). Daily push
-`PendingActionsReminderService` (18:00 Portugal, catch-up 6 h): every non-expelled account counted with the page's
-`CountPendingAsync`; pending > 0 → one summary push to `/pending-actions`, 0 → nothing. Claimed per member/day in
-`PendingActionDismissals` (kind `reminder.push`; at most once), failed counts retried 3x then logged. No migration.
-Real-device tap and DEV push not checked.
-
-**Task 077 = As minhas ações pendentes 7/8** (issue #258; PR #278 merged into `dev`, not released). Galeria
-(active members): over, not cancelled events of the fiscal year with no **photo** linked by the new `GalleryMedia.EventId`
-(migration `AddGalleryMediaEventId`, additive, no FK; legacy items never title-matched; a video does not count) →
-Adicionar (gallery upload prefilled, `eventId` validated) / Não tenho (own, fiscal year). Novidades (Mod/Admin/Owner):
-weekly prompt, own draft this Portugal ISO week resolves, Agora não = week; composer asks Público / Apenas RTUB
-explicitly. Not done from #258: integrated journey screenshots, real-device PWA checks, #259 push.
-
-**Task 076 = As minhas ações pendentes 6/8** (issue #257; `feat/076/pending-actions-member-info`, not merged). System role
-Mod completes member info through `GET/PUT /api/members/{id}/info` (Cidade, Contacto, missing Leitão/Caloiro/Tuno dates,
-Padrinho; instruments via the existing endpoints, now Mod too): allow-list by contract, complete date pairs stay
-Owner/Magister, stale stamp = 409, audited. `MemberInfoRules` decides what applies by category; "Membros" queue (Mod /
-Admin / Owner) paged in SQL; `/members?info=` dialog. No schema change.
-
-**Task 075 = As minhas ações pendentes 5/8** (issue #256; PR #276 merged into `dev`, not released).
-Meetings: each body's current president (Mesa: AG/AGE; Magister: Direção; CV president: CV) creates/manages its meetings
-and writes its atas, Owner every type and sees every type, union for several, Admin alone none; a backdated meeting is
-not pushed. Rehearsals: current Ensaiador/Magister approve and refuse (durable "não foi" + push, not delete) without
-Admin. Events: they edit upcoming repertoires. Panels Reuniões (required "Criar ata" this FY; monthly "Registar"),
-Presenças por aprovar (this FY), Repertório ("Não é necessário" own). No schema change.
-
-**Task 074 = As minhas ações pendentes 4/8** (issue #255; PR #275 merged into `dev`, not released).
-Tesouraria (current 1.º/2.º Tesoureiro): required "Criar relatório" (one report per year under a lock in
-`CreateReportAsync`), then each begun event of the year: Sim = report page "Nova atividade" linked to the event
-(`Activity.EventId`), Não = shared `Event.HasNoFinances` (reopen under "Sem movimentos"). Secretaria (current Secretário):
-create last year's top-level folders missing this year, or "Agora não" for the year. Panels follow the position, writes
-the module's rule; no permission added. Migration `AddEventFinanceClassification` (additive, no FK). Secretaria not
-visually checked with real storage (local run has no R2 listing).
-
-**Task 073 = As minhas ações pendentes 3/8** (issue #254; PR #274 merged into `dev`, not released).
-Logística panel (own open cards on boards the member sees, the "As minhas tarefas" rule extracted as `WorkableCards`;
-Concluir = the board's `SetStatusAsync`) and Questões panel (own open questions; Fechar questão = `CloseAsync`, author
-only, confirmed first; `/questions?question={id}` deep link), for every member incl. Reformados. Module services run as
-the member with roles from the database. Not dismissible, no snooze. The responsive audit no longer writes (072's
-`pending-actions-answer` clicked answer buttons). No schema change.
-
-**Task 072 = As minhas ações pendentes 2/8** (issue #253; PR #273 merged into `dev`, not released). Vou /
-Não vou and Fui / Não fui answered in place on Atuações and Ensaios, through `IEnrollmentService` and the new create-only
-`IRehearsalAttendanceService.AddFirstAttendanceAsync` (unique indexes guard races; existing answers never changed).
-Past = current fiscal year from the member's admission month (PastFrom). A past event "Fui" counts at once (same row as
-"Quem foi", status reconciled); a past rehearsal "Fui" stays pending until approved. Instrument dialog only with 2+
-instruments. No schema change. Real-device PWA open.
-
-**Task 071 = As minhas ações pendentes 1/8** (issue #252; PR #272 merged into `dev`, not released). `/pending-actions`
-foundation: panels paged on their own, `IPendingActionSource`, dismissals (migration `AddPendingActionDismissals`,
-additive), active-member login landing. Docs: `docs/react-pending-actions.md`, `docs/permissions/pending-actions.md`.
-
-**Task 070 = Logística 5/5** (issue #250; PR #271 merged into `dev`, not released; closes roadmap #245
-once merged). Board views Quadro / Lista / Calendário over the same authorised cards and filters (no new endpoint),
-board summary (board-wide numbers, filtered count), filters / view / order / month / card in the address, phone
-agenda, folding filters on phones, responsive audit extended (63/63), end-to-end journey on a synthetic board. No
-schema change. Real-device PWA checks still outstanding.
-
-**Task 069 = Logística 4/5** (issue #249; PR #269 merged into `dev`, not released). Card
-reminders delivered (worker every minute; Portugal time, DST-safe; claimed per occurrence; 6 h catch-up; bounded retry;
-at-least-once), pre-069 reminders activated without replay, reminders on the card (members for themselves, managers for
-board viewers), assignment / mention pushes (never the actor), "As minhas tarefas" (`/logistics/tasks`), card deep
-links `?card=` (login keeps the query). Migration `AddLogisticsReminderDelivery` (additive). Next after review: #250.
-(068: role-free UI copy, PR #268 merged.)
-
-**Task 067 = Logística 3/5** (issue #248; PR #267 merged into `dev`, not released; completes the first
-delivery #246-#248). Private boards (access list; inaccessible = 404 everywhere, Documentação too), responsible member
-(no rights), workflow columns (column = status; legacy columns mapped once at startup, mixed ones split), stable board
-files (`logistics/{env}/boards/{id}/files/`, old per-year folders still listed), archive (read-only), duplicate
-card / board, templates (FITAB, deslocação). Migration `AddLogisticsBoardAccess` (additive). Rollback caveat: the old app
-shows private boards to everyone. Next after review: #249.
-
-**Task 066 = Logística 2/5** (issue #247; PR #266 merged into `dev`, not released). The card is a
-workspace: owner ("Atribuir a") + collaborators (assignment rows, no data rewritten), priority, version-checked field
-edits (409 + conflict choices), checklist edits one item at a time, comments with @mentions (author edits; author or
-manager deletes), a pt-PT history, and the card's own files (stable key `logistics/{env}/cards/…`) and links. One
-additive migration `AddLogisticsCardWorkspace` (N-1 safe). Next: #248. Mention notifications are phase 4 (#249).
-
-**Task 065 = Logística 1/5** (issue #246 under roadmap #245; PR #265 merged into `dev`, not released).
-Leitões read Logística (boards, card details, files); a Leitão's Gestão shows Logística only (new menu flag `logistics`;
-`logisticsAndTreasury` became `treasury`, values unchanged). Card assignees tick checklist items
-(`POST /api/logistics/cards/{id}/checklist/{index}`) and change status; everything else stays Mod/Admin/Owner. Read-only
-card view, full screen on phones. No schema change. Next: #247 (Logística 2/5) after review. Real-device PWA check open.
-
-**Released to PROD: 2.2.0** (MINOR: features; merge `44abad0c`, tag `v2.2.0`, `/api/version` verified; `master` merged back, `dev` on 2.2.1) = 053 PWABuilder manifest + `/share`, 054 performance quick wins, the `/members`
-badge wrap fix, 057 Face ID / fingerprint sign-in. One migration, `AddUserPasskeys` (additive, N-1 safe; the app takes
-its pre-migration snapshot). Rollback across 2.2.0 is a plain app rollback (2.1.8 ignores `AspNetUserPasskeys`).
-Real-device passkey check (iPhone, Android, TWA) still open.
-
-**Task 061 = Notificações RTUB + premade groups** (`feat/061/notificacoes-rtub-groups`, not merged). Every push is
-also kept in the recipient's "Notificações RTUB" conversation (renamed from "Sistema RTUB"; `NotificationInbox`, saved
-as read, link kept, push on or off; chat-message and test pushes excluded). The premade /messages groups are synced with
-every reconcile-all (midnight job, `/users` "Sincronizar estado da Tuna"): GERAL, NO ATIVO, TUNOS, LEITÕES & CALOIROS;
-every other system-made group (VETERANOS, TUNOSSAUROS, ANUNCIOS, ORGANIZAÇÃO, Órgãos Sociais) archived; expelled in
-none. No schema change. The DEV `/api/conversations*` 500 (2026-11-02, Trevor, after the DEV refresh) did not reproduce
-locally on the same code: needs the DEV log line.
-
-**Released to PROD: 2.3.0** (MINOR; PR #237, merge commit; `master` merged back, `dev` on 2.3.1) = task 058.
-
-**Task 058 = push deep links** (`feat/058/push-deep-links`, merged into `dev` and released in 2.3.0). A tapped push opens the item, not a list or
-the home page: `PushNotificationFactory` builds **relative** links to `/events/{id}`, `/events/{id}/discussion`,
-`/rehearsals/{id}`, `/meetings?meeting={id}` (new: opens the details), `/music/albums/{id}`, `/gallery?item={id}`,
-`/naipes?instrument=` (no base URL anywhere: Host-built absolute links failed the worker's same-origin check from
-`www.rtub.pt` / `azurewebsites.net` and opened `/`; also closes the 034 forged-Host push-link finding; the dead
-`GetBaseUrl` / `IHttpContextAccessor` in 11 services went with it). Worker `rtub-v2.12.0` stores the tap's target for
-60 s and `sw-register.js` follows it on load / resume (iOS Home Screen, TWA cold start). Catalogue of every push +
-the designed per-category opt-out (next task, needs a migration): `docs/push-notifications.md`. No schema change.
-Real-device tap check (iPhone Home Screen, Android TWA) open.
-Also in 058: "Novo 1º Lugar" now sends (Mondays, all-time leader vs the last one recorded in the audit log; the dead
-`RankingService.UpdateUserRankingAsync` removed); "Membro Reativado" / "1 mês até reforma" turned on
-(`MemberStatusUpdate:PushNotificationsEnabled=true`) and sent only by the scheduled daily run, never by triggers, the
-Owner sync or a member's first evaluation.
-
-**Task 059 = Mod create / edit (`feat/059/mod-create-edit-permissions`, merged into `dev`, not released).** A Mod now creates and edits events (fields + image),
-rehearsals (one, a range, edit) and news (write, publish, unpublish), shop products (edit, images) and shop reservations (see, delete). Delete (news, products), cancel,
-notices, publish and the rest stay Admin / Owner. New flags `canEdit` (events, rehearsals), `canWrite` (news), `canManageReservations` (shop);
-docs: `docs/permissions/*`, `docs/react-{events,rehearsals,news,shop}.md`. No schema change, no migration. Shop: there is still no "add a reservation for
-someone else" path (a Mod reserves for self like any member).
-
-**Task 057 = Face ID / fingerprint sign-in** (`feat/057/passkey-sign-in`, merged into `dev`, Deploy • DEV; 055/056 stay reserved for the
-perf follow-ups). WebAuthn passkeys on Identity's built-in support: enable in `/profile`, "Entrar com Face ID /
-impressão digital" on `/login`; password login unchanged. Migration `AddUserPasskeys` (additive table
-`AspNetUserPasskeys`). Real-device check on DEV still open. Detail: `docs/react-identity.md` → *Passkeys*.
-
-**054 merged to `dev`. Task 054 = performance quick wins** (`chore/054/perf-quick-wins`, from the 2026-10-29 audit; findings, numbers and the
-next two tasks in `docs/performance-gate.md` → *Task 054*). Per request: the cookie validator asks the database about the
-Admin role only when the cookie claims it (3 → 1 SELECT per signed-in request); the unread badge polls every 30 s (was
-10); `/api/account/me` carries the build version (no `/api/version` call per page) and is requested before React mounts;
-`ImagesController` retired (`/images/*` is a static file, ETag/304 from the middleware, served before authentication);
-Brotli/gzip at `Optimal`, `immutable` on `/portal/assets/*`. Service worker `rtub-v2.11.0`: cache-first for hashed
-assets, navigation preload, no `respondWith` for `/api`, `/auth`, `/hubs`, `/health`, non-GET and cross-origin
-requests; registered on `load`. Fraunces served from `wwwroot/fonts/` and preloaded (same two faces; the intro is
-untouched, owner decision); the 512 px hero logo for 1x (59 KB) with the 1024 px for 2x, the default avatar at 256 px
-(74 → 6 KB). Queries: event counts by SQL `GROUP BY`, the public preview `Take`s in SQL, the event page reuses the
-"Quem vai" rows, gallery facets only on page 1, `ToLookup` in the member-status read path, 20 `CreateDbContext()`
-sites now `await using`, one pooled `HttpClient` for WebPush, the member-status reconcile skips the boot run while the
-table has rows. Build: `PublishReadyToRun` on the linux-x64 publish; EF / Identity 10.0.14, AWSSDK 4.0.102 / 4.0.104,
-react 19.3.1, vite 6.4.5. No migration. 053 (`/share`) merged into `dev` first. Next: 055 hot paths, 056
-media variants.
-
-**053 merged to `dev`** (@ `c7b576da`, Deploy • DEV; not released). **053 PWABuilder report card.** The manifest gains the members
-that are true for RTUB: `display_override` `[standalone, minimal-ui]`, `prefer_related_applications: false`,
-`related_applications` = the Play Store TWA `ipb.pt.rtub.app` (checked against `assetlinks.json`), `edge_side_panel`
-(420 px), and **`share_target` is back** (owner's decision, reverses 036): GET `/share?title&text&url` → React
-`portal/src/Share.tsx` (read-only fields, "Copiar", "Voltar"; public, GET/HEAD, stores nothing). Skipped on purpose
-with reasons in `docs/pwa-practices.md` → *PWABuilder report card (053)*: IARC id (Owner action), scope_extensions,
-window-controls-overlay / tabbed, file / protocol handlers, widgets, note_taking, periodic / background sync stubs.
-No schema change, no migration, no `CACHE_VERSION` bump (the worker is untouched); portal rebuilt. Real-device check
-still open: share a link from Android to the installed app → `/share`. Detail: `docs/react-identity.md` → */share*.
-
-**Release 2.1.8 = 052 `/users` staff filter**: "Só Mod, Admin e Owner" (`GET /api/owner/users?staff=true`, server-side
-with search and paging). No migration. Detail: `docs/react-owner-operations.md` → */users*.
-
-**Release 2.1.7 = 051 new mandate sync** (merged into `master`; PROD deploys when `master` is pushed). Assigning 2026-2027 holders left 2025-2026 holders with their
-`Positions` and Admin / Mod (no rollover existed). `GovernanceManagementService.SyncCurrentMandateAsync` (after each
-current-year assignment + once at startup, idempotent, no migration) fixes it; PROD data fixes itself on deploy.
-Detail: `docs/react-governance.md` → *New mandate*.
-
-**Release 2.1.6 = owner stats without system actions + tracing filters**: one rule `AuditLogService.IsMemberAction`
-(not `MemberActivityStatus` / `MemberStatus`, not entries with no signed-in member) drives the `/owner/dashboard`
-movement numbers and the `/owner/tracing` "Esconder sistema" toggle (`?system=hide`); tracing filters redesigned;
-`/profile` long emails wrap at "@" / dots. No migration. Detail: `docs/react-owner-operations.md` → *System actions*.
-
-**Release 2.1.5 = profile design pass** (`/profile`): Pessoal tiles, instruments with their Naipes pictures, padrinho →
-member avatars, dated activity feed, a lone Percurso step no longer stretches; Atribuir cargo search box single border.
-`/api/me/profile` adds `instrumentPictures` + `tuna.mentorAvatarUrl` (read-only, no migration; rollback is a plain
-redeploy). Detail: `docs/react-member-area.md` → *Profile design pass*.
-
-**Release 2.1.4 = 050 Owner dashboard** (merged into `master`; PROD deploys when `master` is pushed): `/owner/dashboard`
-("Estatísticas"): sign-ins, active members, movements, uploads, plays, enrollments per Portugal day with previous-period
-change, busiest hours, top 10 lists. New table `LoginEvents` (migration `AddLoginEvents`, additive); the tracing
-"Logins" dialog reads it too (every sign-in of the range, not only each account's latest). Rollback across 2.1.4 keeps `LoginEvents`
-(additive; the N-1 app ignores it). Detail:
-`docs/react-owner-operations.md` → */owner/dashboard (task 050)*.
-
-**Released to PROD: 2.1.3 = 049 Leitão event contacts:** any member whose categories include Leitão can open
-`/events/{id}/contacts` and record / reset calls, besides Mod and above (`EventsAuthorization.CanTrackContactsAsync`,
-category read from the database). Detail: `docs/permissions/events.md`, `docs/react-events.md` → *Contacts*.
-
-**Released to PROD: 2.1.2 = 048 brown (wood) intro instruments (`607216f2`); 2.1.1 = 047 home opening** (`143f7e0a`;
-both merged straight into `master`, owner's call; `dev` synced and on 2.1.3; installed-PWA check on a real phone still
-open): a nextvision-style
-opening on `/` for the first load of a session (so every PWA launch): the logo, then strings drawn and strummed, the
-emblem's viola and guitarra portuguesa, "Boémios e Trovadores", a purple edge and a curtain wipe onto the hero, which
-rises in. Skippable; other routes keep the curtain lift; reduced motion and later loads skip it. Portal rebuilt. Detail:
-`docs/react-portal-pilot.md` → *Launch splash and home opening (047)*.
-
-**Before: #226 remediation batch 3 — F05 + F17 + F18 + F20 (uncommitted on `dev` @ 2.0.10, for review; #226 stays open).**
-F05: 58 service / repository methods with no production caller removed from interface + implementation (Product
-available / public / by-type / stats / value; 10 `IMeetingAtaService` agenda / attachment / delete / status methods and
-3 participation helpers; 7 `ISongService` play-stat methods; 6 `IUserProfileService` role / lookup helpers and the
-username lookup; 4 question helpers and 3 question repository lookups; event / rehearsal upcoming / past / by-type /
-with-repertoire; 4 audit repository conveniences; 2 push factory methods; `IRepository.ReloadAsync`) with the 21 tests
-that only covered them. About 80 scanner candidates outside those groups are kept for now (mostly storage `*Exists` /
-size / listing contracts and test-covered CRUD helpers). F17: `Toggles` (map always on), `LoginPopupOptions`,
-`UseSqlServer`, `ImageCaching:*`, `Gallery:MaxVideoSizeMB` removed (code, appsettings, manifest); now
-`deprecatedPatterns`, so both config audits flag them if they reappear (none was set in DEV / PROD on 2026-10-16). F18:
-the leaderboard table reads 5 user columns instead of the whole row (directory / hierarchy / Owner users kept: they use
-most columns). F20: Admin / Owner see "Este produto tem N reserva(s)…" before deleting a product (`reservationCount` in
-the shop list, one grouped query, null for everyone else).
-
-**#226 batch 2 committed** (`d40a6a4b`): F07 to F15 + member-details timeline. F07 vite 6.4.1 → 6.4.4 (lock only; `npm audit` 0). F08 `wwwroot/images/icons/*` removed (6 unreferenced
-copies, 402 KB). F09 `icons/rtub-logo-512.png` 427 → 61 KB and `-192.png` 79 → 15 KB (same 512 / 192 px, 256-colour PNG,
-visually identical; maskable untouched); Messages group / system avatar = `/icons/rtub-logo-352.webp` on the server too.
-F10 three dead `.account__*` rules gone, five duplicated selectors merged (the `/messages` app-screen overrides kept on
-purpose). F11 unused locals and the `globe` icon gone. F12 `useUnreadProvider`: no 10 s badge poll while `/messages` is
-open (its list feeds the badge). F13 `EventManageLazy`: the admin dialogs are their own chunk (Events 57.5 → 23.6 KB).
-F14 latest answer wins on 21 search paths (`useLatest` for list reloads, `live` flags in debounced pickers). F15 service
-worker `rtub-v2.10.0` prunes older builds of a hashed chunk when a new one is first stored. Member details show the
-`/profile` "Percurso na Tuna" (shared `TunaPath`). Detail: `docs/pwa-practices.md`, `docs/react-messages.md`.
-
-**#226 batch 1 committed** (`3fc1ea6d`): F01 + F02 + F04 + F16 + F19. F01: Documentation reads a fiscal year from ONE storage listing of `docs/{env}/{year}/`
-(`IDocumentStorageService.ListTreeAsync`, shared 30 s by `DocumentTreeCache`, dropped by every writer under `docs/`:
-Documentation, Logistics board files, Meetings ata PDFs; failures never kept) - page was 2 listings in a row + 1 per
-folder, download 3 in a row; now 1 cold / 0 warm for both. F02: Portugal time everywhere a date or clock means Portugal
-(`RTUB.Core.Helpers.PortugalTime`: `Today`, `Now`, `NextUtc`; hosted jobs run at their configured time on Portugal's
-clock, DST-safe); see *Portugal time* below. F04: old push-subscription audit entries shown and exported with
-`Endpoint` / `Auth` / `P256dh` as `[redacted]` (`AuditLogAppender.RedactStored`, read time only; rows never rewritten).
-F16: NaipeContent create / update / delete leave only the automatic audit entry ("Video Played" kept). No schema change,
-no migration, no new dependency. Detail: `docs/react-documentation.md` → *Storage round trips (#226 F01)*,
-`docs/backend-practices.md` → *Portugal time*, `docs/react-owner-operations.md` → *Names and cards (#220)*,
-`docs/react-naipes.md`.
-
-**On `dev` @ 2.0.10 (committed and pushed, not released; issues stay open until verified):**
-- #229 + #224 + #225 UI / PWA batch (`ba813521`): no sideways scroll at 320-414 px (`tests/responsive/responsive_audit.py`,
-  413/413), `/roles` heads and year panel, leaderboard levels open and the reader's own level.
-- #221 shop products in every fiscal year (`80b12d8b`): `Products.AvailableAllYears` + migration
-  `AddProductAvailableAllYears` (default 0), one rule `ProductShopService.InFiscalYear`. Detail: `docs/react-shop.md`.
-- #220 tracing names + cards and #223 hierarchy tree (`b22513c3`, 44 px touch targets `b753f561`). Detail:
-  `docs/react-owner-operations.md` → *Names and cards (#220)*, `docs/react-members.md` → *Hierarchy tree (#223)*.
-- #222 News public / members-only + #228 Music teaser removed (`66bff340`): `NewsPosts.IsPublic` + migration
-  `AddNewsPostIsPublic` (default 1). Detail: `docs/react-news.md` → *Visibility*.
-
-**Released to PROD:** 2.0.9 = P1 hotfix #230 push diagnostics (`4d950507`, merged back into `dev` @ `c4a85a70`; #230
-stays open until the affected iPhone test); 2.0.8 = P0 hotfix #227 members-only events (`71db8b7e`, `Events.IsPublic`);
-2.0.7 / 2.0.6 push subscription UX; 2.0.5 = units 001-046 (incl. 043 DB cleanup, 044 / 044B member status, 045
-performance gate, 046 new logo). PROD rollback across 043 = full restore of the pre-migration backup
-(`docs/db-cleanup-inventory.md`). 044B reconciles every member daily: members with no activity in 6 months are reformed
-(`docs/member-activity-status.md`).
-
-**Portugal time (#226 F02, the rule):** PROD runs on UTC (no `TZ` / `WEBSITE_TIME_ZONE`). "Today", fiscal year, ages,
-past / future of events, rehearsals and meetings, push "hoje / amanhã", "Gerado em" stamps and the hosted jobs' clock
-times use `PortugalTime` with the injected `TimeProvider`. Stored technical timestamps (audit, `CreatedAt`, tokens,
-cache) stay UTC. Database backup keeps its documented UTC time. Left on purpose: seed data; lenient upper-bound
-validations (date of birth / admission year / request date / album year, server date ≤ Portugal date); dead paths
-(`EventRepository` / `RehearsalRepository` upcoming-past, `Report.IsCurrentFiscalYear`,
-`ApplicationUserExtensions.GetYearsAsTuno` - #226 F05); `MemberStatusService` months (UTC, month granularity).
-
-**042 merged to `dev`** (@ `593b1d63`). **042 cleanup audit:** code with no caller removed, **no schema change, no migration, no data touched**: Labels /
-Slideshows services + repositories (tables stay), `ILogistics{Board,List,Card}Service` + their repositories (the board
-folder sanitizer moved unchanged into `LogisticsKanbanService`), Blazor-era `PaginationHelper`, `SortableTableHelper`,
-`DateTimeExtensions`, `DatabaseFacadeExtensions`, `NaipeContentFormModel`, `ReservationModel`,
-`ApplicationUser.SelectedCategory` (`[NotMapped]`), and their tests; CSP `script-src` / `style-src` now `'self'` only
-(cdnjs / unpkg unused since 032); the `Microsoft.AspNetCore.Identity.UI` package (only its `IEmailSender` was used, now
-`RTUB.Application.Interfaces.IEmailSender`), which shipped 187 unused Bootstrap / jQuery files under `/Identity/*`, so the
-package guard floor is 200 wwwroot files (was 400; a healthy publish has 260); unused package refs (`AutoFixture`, test
-`AWSSDK.Core` / `MockQueryable.Moq` / `Moq`), npm `cropperjs` / `sharp`; `wwwroot/images/hierarchy/*`,
-`wwwroot/uploads/events/.gitkeep`. Database leftovers for **task 043**: `docs/db-cleanup-inventory.md`. Messaging tables
-untouched.
-
-**041 merged to `dev`** (@ `55dbf279`). **041 Messaging v2:** React `/messages` (list + chat, `?c=<id>`, "Mensagens" in the member menu) over
-`/api/conversations*` + `/api/messages/{id}/reactions` (`MessagingService`) on the **preserved v1 tables, no schema change,
-no migration**: participants only (Admin / Owner no special access), text only (1-2000, no attachments), replies (v1
-`ReplyToMessageId` + snippet), one reaction per member from 👍 ❤️ 😂 😮 😢 🙏, mute (`ConversationUserSettings`, no push
-while muted), unread / read (`ReadBy`), "Sistema RTUB" read-only, v1 announcement-sender rule, archived hidden, chats with
-a deleted / expelled member closed. Push "Nova mensagem" without the text. Tracing: `MessageReaction` added to the audit
-exclusions + targeted `RedactedProperties` in `AuditLogAppender`. `/messages/{id}` and `/hubs/messages` stay 404.
-Polling (10 s chat / 30 s list), no SignalR. Detail and follow-ups: `docs/react-messages.md`.
-
-**040 merged to `dev`** (@ `467d30d3`). **040:** members map basemap CARTO `dark_all` (now "API KEY REQUIRED") → OpenStreetMap standard
-tiles (no key; CSS-darkened tile pane); CSP `img-src` `*.basemaps.cartocdn.com` → `tile.openstreetmap.org`. Config
-audit: DEV `WEBSITE_RUN_FROM_PACKAGE` optional (intentionally absent on rtub-dev), PROD still required `1`; runbook
-notes `.local/config-audit/` is generated / never committed. No schema or data change. Detail: `docs/react-member-area.md`.
-
-**039 merged to `dev`** (@ `0200f1b1`).
-
-**039 Post-Blazor cleanup + configuration audit:** docs and agent instructions rewritten for the React-only stack
-(`README.md`, `.github/copilot-instructions.md`, `.github/agents/*`, `docs/frontend-practices.md`; Blazor / `RTUB.Shared`
-/ IDrive leftovers fixed elsewhere). **Messaging tables are preserved for Messaging v2: the planned
-`DropMessagesConversations` contract task is cancelled** (`docs/messages-removal.md`); the Games / Bets / MyTuno
-contract task stays, without them. Dead code removed (build-proven, no caller): the `Microsoft.AspNetCore.SignalR.Client`
-package; the `IBrowserFile` upload parameters and helpers of `IPostService` / `ICommentService` (`RTUB.Application` has
-no Blazor type left); `INaipeAuthorizationService` (`AuthenticationState`), `INaipeConfigService`,
-`ITransactionFilterService`, `IDebtService`, `IMemberPositionService`, `IEnrollmentFilterService`,
-`IUserRoleQueryService` (+ tests, two DTOs, DI lines); dead `IDrive:*` test settings. **Configuration audit:**
-`scripts/config/required-settings.json` (every setting per environment), `audit-local-user-secrets.ps1`,
-`audit-azure-app-settings.ps1` (read-only, redacted: length + SHA-256 prefix only; DEV/PROD match / differ checks),
-`generate-vapid-keys.ps1`; outputs in the git-ignored `.local/config-audit/`, templates placeholder-only. Runbook:
-`docs/configuration-runbook.md`; tests `ConfigurationAuditTests`. No behaviour change, no schema change, no migration.
-
-**038 merged to `dev`** (@ `1885d507`). **038 Push v2:** `/profile` owns push: section "Notificações push" (after the email one), per device, capability
-detection only, no prompt on load, permission and subscription only from a click; states unsupported (with the
-iPhone / iPad Home Screen hint outside an installed app), disabled, not configured, worker not ready, blocked, off, on,
-unknown to the server ("Corrigir subscrição"), stale key / expired ("Ativar novamente"), error; "Desativar em todos os
-dispositivos". `PushController` is replaced by `PushEndpoints` (`/api/push/{status,check,subscribe,unsubscribe}`):
-signed-in only, no-store, `X-CSRF-TOKEN` on every POST, **own subscriptions only** (the old unsubscribe deleted any
-endpoint), endpoint / key validation (`PushSubscriptionRules`: https on a browser push service, no IP; P-256 key, 16-byte
-auth), `replaces` for a same-device endpoint swap. The dead `/api/push/broadcast` and `/api/push/send-to-selected`
-(still open to Admin) are gone; custom push stays on the Owner's `/notifications`. Service worker: push handler without
-the iOS user-agent check and the vibrate pattern, same-origin `notificationTarget()`, no app-badge clearing, rotation
-re-sends with `replaces` + token instead of calling unsubscribe (which opted the member out); `sw-register.js` stays
-the only registration. Removed: `push-notifications.js`, `pwa-helper.js`, the `rtub-push-*` localStorage flags.
-Backend storage kept: `PushSubscriptions`, `PushNotificationsOptedOut` (now: set when the last device is turned off),
-every sender. No schema change. **Real devices:** Edge desktop checked end to end locally (subscribe, an Owner push
-delivered and shown, unsubscribe, reload); **Android installed app, iPhone / iPad Home Screen app and DEV not checked:
-required before a production release.** Detail: `docs/react-push-v2.md`.
-
-**037 merged to `dev`** (@ `5e147945`). **037 Blazor host retired:** 0 Blazor pages (036) and now no host: `App.razor`, `_Imports.razor`, `MainLayout`,
-`Components/*` (incl. `AnnouncementBanner`, `ReconnectModal`, `VersionedAsset`, the dead `Portal/*`),
-`MapRazorComponents` / `AddRazorComponents` / `AddInteractiveServerComponents`, the circuit log filter, the SignalR
-`HubOptions`, `AuthenticationStateProvider`, the `/_blazor/initializers` shim, `Interop/*`, `AdminRefreshService`,
-`ProfilePictureUpdateService`, every Blazor stylesheet (`wwwroot/css` except `error.css` / `offline.css`), every Blazor
-script (`wwwroot/js` except `sw-register.js`, `offline.js` and, for Push v2, `push-notifications.js` / `pwa-helper.js`,
-removed by 038)
-and `wwwroot/lib` (Bootstrap, Bootstrap Icons, Cropper.js) are gone. **`/_blazor` and `blazor.web.js` are 404.**
-**`RTUB.Shared` and `RTUB.Shared.Tests` are removed** (only `RTUB.Web` referenced it; out of the solution; `bunit` and
-the two `Microsoft.AspNetCore.Components.*` package versions dropped). CSP `connect-src` is `'self'` only (the per-request
-ws:/wss: source was for the circuit). Service worker `v2.8.0`: no Blazor precache entry, no `/_blazor` exclusion;
-offline, install and push unchanged; manifest still has no `share_target`. **System announcement restored as a React
-listener** (option B): `AnnouncementService` keeps the latest one in memory for 5 minutes, `GET /api/announcement`
-(anonymous, no-store), the shell polls every 30 s while visible and shows a dialog once per browser; the Owner page and
-`POST /api/owner/tracing/announcement` unchanged. Intentional changes: up to 30 s late instead of instant, a page opened
-within 5 minutes still sees it, no sound, no Bootstrap / Blazor CSS anywhere. No schema change, no migration. Detail:
-`docs/react-portal-pilot.md` → *System announcement*; tests `BlazorHostRetirementTests`, `AnnouncementServiceTests`.
-
-**036 merged to `dev`** (@ `3f7cc98d`). **036 Identity + /share:** `/forgot-password`, `/reset-password` and `/confirm-email` are React (public), over
-`POST /api/account/{forgot-password,reset-password,confirm-email}` (`AccountRecoveryService`: same Identity calls,
-token handling and messages; antiforgery; no-store). The pages are `no-store` and `no-referrer`, and the token is cleared
-from the URL, never stored, never logged and never echoed. `/Error` is a **server-owned static page on purpose**
-(`wwwroot/error.html`, any method, no script, no details). `/share` and the manifest `share_target` are **removed**
-(404). Intentional changes: a failed reset email answers the same neutral sentence (it used to surface the error page),
-and an invalid or expired reset token is now said in Portuguese. **0 Blazor pages left** (5 before); the host itself was
-retired by 037. No schema change. Detail: `docs/react-identity.md`.
-
-**035 merged to `dev`** (@ `05f1f55e`). **035 Owner tools:** `/emails`, `/notifications`, `/users`, `/owner/tracing` and `/owner/db` are React, over the
-Owner-only `/api/owner/*` (`OwnerEndpoints` gate + `OwnerOperationsService` over the old email / push / audit / DB
-services). **All five are Owner only: Admin lost `/emails` and `/notifications` (product decision).** Visitors 302 / 401,
-every other member 403 (refusal page). New safeguards: the server checks `DELETE ALL`, the SELECT / DML rules, and a
-confirmation flag for DB changes; the React page asks to confirm sends, role changes and DB changes. Retired: the five
-Blazor pages, `EmailRecipientsPreview`, `UserCard`, `TracingCard`, `LoginStatisticsButton`, `SyncMemberStatusButton`,
-`user-card.css`, `tracing-card.css` and their tests. **5 Blazor routes left** (`/share`, the three Identity pages,
-`/Error`; 10 before). No schema change. Detail: `docs/react-owner-operations.md`.
-
-**034 merged to `dev`** (PR #218, @ `ad1a3ba6`; written as an unverified cloud patch). **034 Reuniões:** `/meetings` is React (`/api/meetings*`, `MeetingBoardService` + `MeetingAccess` over the old meeting,
-request, participation and ata services: push, email and the ata PDF into Documentação unchanged); signed-in members, a
-Leitão gets "Acesso restrito". Who sees and does what is the old page's effective matrix, now enforced by the API (the
-old services checked nothing). **The only permission change is A1:** a draft ata is only for whoever may write it (any
-reader of the meeting could open it before). Also changed on purpose: validation and lengths enforced server-side (the
-old forms never ran theirs), editing a cancelled meeting keeps it cancelled, a non-CV meeting keeps no Tuno
-representative, duplicate email addresses are sent once, the email preview is sandboxed, search runs in memory.
-Retired: `Meetings.razor`, `MeetingCard`, `MeetingRequestCard`, `MeetingParticipationModal`, `meeting-card.css` and their
-bUnit tests; the Blazor "Gestão → Reuniões" link is a full navigation. **10 Blazor routes left** (11 before). No schema
-change. Detail: `docs/react-meetings.md`.
-
-**033 merged to `dev`** (PR #217, @ `38eff81`): `/naipes` and `/naipes/config` are React: `docs/react-naipes.md`.
-**032 merged to `dev`** (PR #216): `/profile` is the member's own profile editor; `/members/map` and `/hall-of-fame` are
-React; push opt-in / opt-out is back in `/profile` since 038: `docs/react-member-area.md`.
-
-**031 merged to `dev`** (@ `cf70eee3`, CI green after two fixes: `QuestionRepository.AddAsync` re-inserted the users,
-and a route test still read the deleted `Requests.razor`). `/requests` and `/questions` are React:
-`docs/react-requests-questions.md`.
-
-**030 merged to `dev`** (@ `fad2afa2`). **Members' navigation is now the React member shell** (`MemberShell.tsx`):
-a collapsible rail on wide screens, a right-hand drawer on phones / the installed app. Visitors' header: public
-sections, "Pedir atuação", "Login" (never "Membros" / "A minha conta"). Members' header: no "Pedir atuação", their
-identity + the menu. `/profile` stopped being the member hub (and is the profile editor since 032). `/api/account/me` gains `menu`
-(four booleans, `MemberMenuAccess`, the Blazor navbar's rules; hides links only). Removed modules stay out of the menu.
-No schema change. Detail: `docs/react-portal-pilot.md` → *Member shell*.
-
-**029A merged to `dev`** (@ `8aa97451`, CI green). **Images and Labels admin removed (UI only):** `/images` (slideshows) and `/labels` (site texts) are plain 404s (no replacement; `/images` needs an explicit
-404 endpoint in `Program.cs`, else `ImagesController`'s catch-all answers 400; `/images/<file>` still served); the
-Operações "Imagens" and "Conteúdo" items, `LabelCard`, `SlideshowCard` and their CSS are gone. **Leaderboard story is now
-temporary code-backed text** (`LeaderboardService.Story`, the seeded label's text; owner decides the final text later):
-no `ILabelService` dependency, `PUT /api/leaderboard/story`, `canEditStory` and the React "Editar" dialog removed, so
-nobody edits it. **No migration, schema unchanged.** (042) The services, repositories and their tests are gone; the
-`Labels` / `Slideshows` tables, entities, DbSets and seed go in task 043 (`docs/db-cleanup-inventory.md`).
-
-**027 merged to `dev`** (@ `77487805`). **Messages /
-Conversas removed from the app (Phase A):** `/messages`, `/messages/{id}` and `/hubs/messages` are plain 404s (no
-replacement); the inbox, `MessagesHub`, the user-menu "Mensagens" item and unread badges, "Sync Chat" on `/users`, the PWA
-"Mensagens" shortcut, the service worker's `/messages` fallback and app-icon badge, message JS/CSS and every messaging
-service are gone. **Push still sends but no longer writes an in-app copy** (the "Sistema RTUB" inbox, ~99% of the
-`Messages` rows): members without push now see those notifications nowhere in the app. **No migration, schema unchanged**
-(`has-pending-model-changes`: none): `Conversations`, `Messages`, `MessageReactions`, `ConversationUserSettings` keep their
-data, unread and unwritten, until the contract task. No R2 objects involved. Backup ZIP (outside the repo, code only, no
-message data): `F:\Workspace\Backups\RTUB\027-messages\RTUB-027-messages-e5a30a9a.zip`. Detail: `docs/messages-removal.md`.
-
-**026 merged to `dev`** (@ `e5a30a9a`): Games / Bets / MyTuno removed from the app the same way (Option A); their 15
-tables and `AspNetUsers.FidelisBalance` stay. Backup: `F:\Workspace\Backups\RTUB\026-games-bets-mytuno\RTUB-026-games-bets-mytuno-03f18c1d.zip`. Detail: `docs/games-bets-mytuno-removal.md`.
-Roadmap and the task contract: `docs/RTUB_REACT_MIGRATION_GUIDE.md`.
-
-**React track 001-025: merged to `dev`** (last: 025 @ `03f18c1d`). React owns
-`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/roles`, `/gallery`, `/events…`, `/rehearsals…`, `/members`,
-`/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics…`, `/treasury…` and `/news`;
-the old Blazor URLs 302 to them (`Program.cs`). No schema change in 006-024; 025 added `NewsPosts` (`AddNewsPosts`).
-Per-module rules, APIs and data audits: `docs/react-*.md` (table in `CLAUDE.md`).
-
-**Also merged:** `fix/006-ci-red-after-music`, `fix/030/ios-pwa-media-association` (iPhone DEV check still open),
-unit 030 (production release pipeline, PR #203). `master` is at `2.0.4`; `dev`'s `VERSION` is `2.0.5`.
-
-## Where things are
-| Topic | Doc |
-| --- | --- |
-| Branch model, versions, releasing, archive, rollback, hotfix, database rules and restore | `docs/release-and-rollback.md` |
-| DEV/PROD matrix, workflows, packaging, run-from-package, OIDC, setting names, smoke | `docs/ci-cd-and-azure-environments.md` |
-| Why | `docs/architecture/adr/0001-production-release-and-rollback.md` |
-| R2, daily backups, DEV refresh (029), storage ownership | `docs/cloudflare-r2-and-database-backups.md` |
-
-## Unit 030 - what changed
-- **Workflows** (Actions sidebar): **CI • Build & Test** · **Deploy • DEV** · **Deploy • PROD** ·
-  **Rollback • PROD** · **Database • Refresh DEV from PROD** (029 internals untouched - name only).
-  One `dotnet publish` (`.github/actions/package-release`), one deploy+smoke
-  (`.github/actions/deploy-and-verify`). No publish profile anywhere.
-- **Versions:** root `VERSION` = `2.0.0`, strict SemVer, stamped into every build;
-  `GET /api/version` → `{version, commit}`. DEV reports `<VERSION>-dev.<run>` (`2.0.0-dev.<run>`
-  until 2.0.0 ships; after every release `dev`'s `VERSION` moves to the next unreleased version).
-- **Build once / immutable:** a master commit → one zip → guards on the zip → private Azure Blob
-  archive `releases/<version>/` (create-only; a version never maps to other bytes or another commit)
-  → read back → deployed → smoke must see that version AND commit. Rollback • PROD redeploys an
-  archived version and never builds. No automatic rollback.
-- **Database:** `PreMigrationSnapshot` before `MigrateAsync` (online backup, validated, newest 5,
-  fails closed); N-1 expand/contract rule; Rollback • PROD refuses a target that does not know the
-  live release's migrations unless `allow_newer_schema`. No automatic DB rollback.
-- **LOG-1 fixed:** one rule, `LogisticsAuthorization.CanManage` = Admin or Mod, used by both Logistics
-  pages and re-checked in every mutating handler. Mod now has Admin's Logistics capabilities;
-  Member/other roles cannot create, edit, delete, move or finish anything - including the empty-state
-  create buttons and the JS-invokable `OnCardMoved` (now throws, and drag-and-drop is never
-  initialised for them). Reminders stay open to every member. Mod gains nothing outside Logistics.
-
-## Validation (030)
-- `dotnet build --configuration Release`: 0 warnings, 0 errors.
-- `dotnet test` (all five suites): **4855 total, 0 failed, 4789 succeeded, 66 skipped** on Windows
-  (the 6 bash self-tests run on Linux CI → 60 skipped there). Net **+61** on 4794: +36 Logistics bUnit,
-  +4 Logistics integration, +7 version, +1 `/api/version`, +6 snapshot, +17 workflow contract,
-  −10 placebo tests that asserted string literals.
-- Red-before-green by mutation: Logistics rule without Mod / drag guard removed (9 red, bUnit;
-  2 red, integration); raw `File.Copy` instead of the online backup (WAL rows lost → red); archive
-  accepting duplicates (2 red); zip guard without backslash / arch checks (2 red); workflow
-  mutations (3 red). All restored and green.
-- Script self-tests: `release.sh` 48 checks, `release-archive.sh` 18 (fake `az`; refuses to run unless
-  the fake wins on `PATH`), `smoke-azure.sh` 13. Workflow YAML parsed; all 38 `run:` bodies `bash -n`.
-- Live, read-only: `smoke-azure.sh` passes against DEV and (legacy mode) PROD, and fails when told to
-  expect a commit that is not deployed.
-
-## Owner actions - in this order
-Written 2026-09-22, before the first release; `master` has since shipped up to `2.0.4`, so the release steps
-(14-16) have run at least once. Check the rest against Azure/GitHub before relying on this list. Items 1-11 do
-not touch the running production app; 12 restarts it.
-
-1. Review, commit, PR `chore/030/production-release-pipeline` → `dev`, merge. **Deploy • DEV** runs the
-   new path: check it is green and `https://rtub-dev.azurewebsites.net/api/version` shows
-   `2.0.0-dev.<n>` and the commit; check a Mod account on a DEV Logistics board.
-2. Azure: user-assigned managed identity **`rtub-prod-deploy`** in `rtub_group`.
-3. Federated credential **`github-production-env`** on it: issuer
-   `https://token.actions.githubusercontent.com`, subject
-   `repo:luisfpires18/RTUB:environment:production`, audience `api://AzureADTokenExchange`.
-4. Role **Website Contributor** for it, scope = the **`rtub` site resource only**.
-5. Storage account for the archive (globally unique name): StorageV2, Standard_LRS, Italy North,
-   TLS 1.2, HTTPS only, **public blob access off, shared-key access off**.
-6. Container **`releases`** (private) - control plane: `az storage container-rm create`.
-7. Time-based **immutability policy, 180 days**, on `releases` (start unlocked).
-8. Role **Storage Blob Data Contributor** for `rtub-prod-deploy`, scope = the **`releases` container**.
-9. GitHub: environment **`production`**, deployment branches = **`master` only**, no reviewers, no
-   secrets.
-10. Variables on `production`: `AZURE_CLIENT_ID` (of `rtub-prod-deploy`), `AZURE_TENANT_ID`,
-    `AZURE_SUBSCRIPTION_ID`, `RELEASE_STORAGE_ACCOUNT` (the account from 5).
-11. Ruleset on `master` and `dev`: block force pushes and deletions. (Optional: require *Build & Test*
-    on PRs into `master`; optional: restrict `development` to `dev`.)
-12. **Enable Always On** on `rtub` (restarts it). Next day, confirm `rtub-db/database/current.db` is
-    fresh.
-13. Archive the running pre-030 build as **1.0.0** - `docs/release-and-rollback.md` → *One-time:
-    archive the running pre-030 build as 1.0.0* (read-only on production).
-14. PR `dev → master` (checks: *Build & Test*, *VERSION is bumped*), merge with **Create a merge
-    commit** → **Deploy • PROD** releases **2.0.0** (still extract mode). If it stops before deploying
-    (login, role, variable), production is untouched: fix, then *Re-run failed jobs*.
-15. Check `https://rtub.azurewebsites.net/api/version` = `2.0.0` + the merge commit.
-16. **Merge `master` back into `dev`, then bump `dev`'s `VERSION` to `2.0.1`** (or `2.1.0` / `3.0.0` if
-    the next release is already known to be MINOR / MAJOR) before other work merges. DEV then
-    reports `2.0.1-dev.<run>` - never `2.0.0-dev.<run>`, which SemVer ranks below the released 2.0.0.
-17. **Run-from-package cutover, part 1** - in a quiet window, set **`WEBSITE_RUN_FROM_PACKAGE=1`** on
-    `rtub`. This restarts the app with no package stored yet, so it may be down until step 18
-    finishes: start step 18 straight away.
-18. **Run-from-package cutover, part 2** - redeploy the archived 2.0.0:
-    `gh workflow run rollback-prod.yml --ref master -f version=2.0.0 -f confirm=2.0.0`. It stores and
-    mounts the package; its smoke test must pass. (The first real use of Rollback • PROD.)
-19. Retire basic auth: delete repo secret **`AZURE_WEBAPP_PUBLISH_PROFILE`**; set `rtub`
-    `basicPublishingCredentialsPolicies/scm` **allow=false** (FTP is already off). Optionally reset the
-    publish profile first.
-20. Delete the dead **`IDrive__*`** app settings on `rtub` (unit 027 finding).
-21. GitHub Copilot coding agent (not a checked-in file; it is the `dynamic/copilot-swe-agent/copilot`
-    workflow): profile → **Copilot settings → Cloud agent → Policies → Repository access → No
-    repositories**. Then delete the **`copilot`** environment. `copilot/*` branches are leftovers;
-    delete when convenient. `.github/copilot-instructions.md` stays - `CLAUDE.md` routes to it as the
-    general conventions doc.
-22. **CodeQL is not running today.** The "CodeQL" sidebar entry is one failed run (2026-01-06, branch
-    `copilot/fix-code-analysis-error`) of a file that never reached `dev` or `master`; code-scanning
-    default setup is *not configured*. To keep CodeQL: Settings → Code security → Code scanning →
-    CodeQL analysis → **Set up → Default**. Deleting that one old run clears the dead entry.
-
-## Blocking the first production release
-Nothing in the repository. Owner actions **2-10** must exist first - without them Deploy • PROD stops
-at "Refuse without a release archive" or at the Azure login, before anything is deployed. **12**
-(backups actually running) and **13** (a 1.0.0 to roll back to) are strongly recommended before
-**14**. The first release ships units 001-030 together (dev is 29 merges ahead of master) but no new
-migration: production's newest migration is already dev's newest.
-
-## Deferred - recorded, not fixed
-Raised by 094: the integration test hosts run `PendingActionsReminderService` (enabled by default, nothing turns it off in tests), so a full `dotnet test` between 18:00 and 24:00 Portugal time can fail 3 `NewsApiTests` ("Push.Invocations to be empty"; seen 2026-11-09 23:35-23:45, twice; the class passes alone). Wall-clock dependent; fix = disable the worker in the test factories.
-Raised by 068 (UI text names no system roles): the server 403 title in `NewsEndpoints.cs` ("Só Admin ou Owner gerem as Novidades.") still names roles; the portal shows its own message instead, so it only reaches API callers. Not in the 068 scope.
-Raised by the 058 push audit (`docs/push-notifications.md` → *Does it send?*): "Presença recusada" never sends (`CancelAttendanceAsync` has no caller); leaderboard comment / like push failures are swallowed with no log; discussion pushes stop at the event start (UTC compare).
-`AspNetUsers.ExperiencePoints` / `Level` have no writer (their only one, `UpdateUserRankingAsync`, never ran and was removed in 058); the leaderboard computes XP per request. Candidate for the DB cleanup list.
-Raised by 054 (performance audit; the full table is `docs/performance-gate.md` → *Task 054 → Deferred findings*): the hot
-read paths (messaging unread / list / thread query shapes and a `Messages(ConversationId, Id)` index, `/api/members`
-full-entity load + per-keystroke search, leaderboard recompute per request, `/profile` ≈ 14 queries, meetings loaded
-with `int.MaxValue`, hall of fame, rehearsals season window, naipes / questions count projections, admin lists in
-memory); the write path (push fan-out inline in requests with back-off sleeps, the audited save's second transaction,
-inline member-status reconcile, bulk email in-request); gallery thumbnails + dimensions and avatar variants (schema);
-CSS split per area; route-chunk preload; `MapStaticAssets` / build-time precompression; a client router (owner: measure
-first); cached cookie validation (owner: declined); `.Date.Date` range compares and the `AuditLogs.Action` /
-`PushSubscriptions.Endpoint` indexes; `IMemoryCache` `SizeLimit` for the cached PDFs; a metric-matched font fallback
-(no measured metrics). Owner actions: Always On on PROD (cold start after idle); HTTP/2 check on both App Services.
-Raised by 053: `www.rtub.pt` serves the whole app as a second origin with no redirect to `rtub.pt` (a second
-installed-app identity and duplicate content; decide a 301 to the apex); `iarc_rating_id` needs the IARC certificate
-from Play Console (App content → Content rating) - one manifest line once the Owner has it; `portal/index.html`
-`theme-color` is `#000000` while the manifest says `#3F2A86` (pre-existing, untouched).
-- `RoleManagementService.PromoteUserForPositionAsync` keeps an existing Mod as Mod when the member (no longer a Caloiro) takes an Admin seat; fix by hand or rework the rule.
-Raised by 047: `icons.tsx` `apple` lists the same path twice, so React warns about a duplicate `key` (dev build only).
-Raised by #226 (final audit; batches 1-3 above): still open F03 avatar thumbnails and F06 DEV VAPID settings (Owner
-action). F05 leftovers: ~80 interface methods with no production caller outside the batch-3 groups (storage `*ExistsAsync`
-/ `GetFileSizeAsync` / `ListFoldersAsync` / `ListSubfoldersAsync`, Activity / Album / Enrollment / FiscalYear / Report /
-RoleAssignment / Transaction / Song CRUD helpers, most with tests) - a later, per-service pass. Batch 2 leftovers: `icons/rtub-logo-maskable-512.png` (260 KB) left as is
-(palette compression visibly changed it); on `/messages` the badge follows the list's 30 s poll instead of 10 s. Batch 1
-leftovers: the tracing search still matches redacted values in old stored changes (Owner only; the values are never
-shown); Documentation shows a file written straight to R2 (not through the app) after at most 30 s.
-Raised by #220 / #223: names resolved at read time are not searchable (1.1 % of rows on the DEV copy - accepted); the
-hierarchy path bar takes two rows at 320 px. (Old push keys in the log: hidden at read time by #226 F04; NaipeContent
-double entries: removed by #226 F16; tracing delete button: 44 px since `b753f561`.)
-Raised by #221: a shop reservation snapshots no product name or price and is deleted with its product (cascade);
-`ProductShopService.InFiscalYear` ends a year at 31 Aug 23:59:59 (sub-second gap) and compares UTC `CreatedAt` with
-local-calendar bounds.
-Raised by #229: iOS Safari native date / time controls and the `black-translucent` status-bar inset not checked on a
-real iPhone (Playwright WebKit not installed; CSS is defensive); inline text links in lists (`.archive-row__name`,
-`.door__mail`) are 24-26 px tall (WCAG inline exception); 12 leaderboard level rows on phones are long but readable.
-Raised by #230: PROD App Service has no persisted application logs (no `*_default_docker.log`), so push warnings are visible only in the live log stream; `WebPush` 1.0.13 sends legacy `aesgcm` / `Authorization: WebPush` (move to RFC 8291/8292 only if an iPhone test push comes back `rejected`); 5xx from a push service is not retried; DEV (`rtub-dev`) has no VAPID settings, so push is "not-configured" there. (#226 F06: still missing on 2026-10-16.)
-Raised by hotfix 2026-10-14 (agenda Portugal date): resolved by #226 F02 (see *Portugal time* in Phase).
-Raised by 045 (performance gate; detail in `docs/performance-gate.md` → *Deferred*): avatar thumbnails (600px WebP shown at 32-72px), favicon / default-avatar / icon PNG weight, contrast of three small labels (Home `.record img` aspect ratio fixed in 046).
-Raised by 042 (cleanup audit; DB leftovers in `docs/db-cleanup-inventory.md`):
-- (043, written, not applied) drop the 15 game tables + `AspNetUsers.FidelisBalance`, `Labels`, `Slideshows`. Still open:
-  `PostMedia` / `CommentImages` row counts on production (write-dead since 013, read only by delete clean-up).
-- Kept on purpose: the old-URL 302s in `Program.cs` (bookmarks, emails, installed apps; comments still say "while DEV is
-  hybrid"); the service worker's `/hubs/` never-cache prefix (a worker change forces every client to update); npm
-  `bootstrap-icons` (path-data source for `icons.tsx`, not bundled); config bound but unread (`LoginPopupOptions`,
-  `Toggles`, `UseSqlServer`, `ImageCaching:*`, `Gallery:MaxVideoSizeMB`: flagged `unused` by the 039 audit, Azure
-  settings first); method-level leftovers (`ApplicationUserExtensions.GetYearsAsTuno` / `HasBeenTunoForYears` /
-  `IsTunossauro` / `IsVeterano`, `QueryableExtensions.Paginate`: tests only).
-- `npm audit`: 5 high (vite 6 and its `nanoid` / `picomatch` / `postcss` / `source-map-js`), build-time only, pre-existing.
-- `MessagesRollbackSafetyTests` drops the messaging tables only inside its throwaway test database (never a real one) to
-  prove nothing else touches them; test-only, kept.
-
-037 deleted every `RTUB.Shared` component, the Blazor CSS and JS and `wwwroot/lib`: older entries below that name one of
-them (no-caller cards and badges, `kanban.css` and friends, `familyTree.js`, `home.js`, `scrollSpy.js`,
-`profilePictureRefresh.js`, `roleBadge.js`, the Blazor prompts, `wwwroot/lib/cropperjs`, `.member-avatar-small`) are
-resolved by that deletion.
-
-Raised by 041 (Messaging v2; detail in `docs/react-messages.md` → *Follow-ups*):
-- Group membership frozen at v1's last auto-sync (no group creation / member management, no default-group sync).
-- No live updates (polling), no unread badge in the menu, no pin / archive UI; push fan-out inline and sequential.
-- `/owner/db` can still SELECT the messaging tables (Owner raw DB tool, as before): decide whether to block them.
-
-Raised by 039 (post-Blazor cleanup + configuration audit):
-- Live Azure audit not run in 039 (the `az` MFA session had expired): run `scripts/config/audit-azure-app-settings.ps1`
-  after `az login` and act on its warnings (VAPID on DEV/PROD, `IDrive__*` on `rtub`, DEV/PROD shared values).
-- Local user-secrets still hold six dead `IDrive:*` keys (the local audit flags them); remove by hand.
-- Committed but unread settings: `Gallery:MaxVideoSizeMB` (the code reads `GalleryMedia:MaxVideoSize`, bytes),
-  `ImageCaching:*`, `UseSqlServer`, `LoginPopup:*` (`LoginPopupOptions` bound, nothing shows it). Left as is.
-- (042) `ILogistics{Board,List,Card}Service`, `ILabelService` / `ISlideshowService` removed. Still no caller, kept
-  (method-level): `MimeTypeHelper.GetMediaMimeType`, the unused `IQuestionService` / `IRequestService` methods (031).
-- `wwwroot/images/icons/*` has no in-repo reference (old-design logo copies); kept, untouched by 046 (`apple-touch-icon-180x180.png` removed in 046). Was: kept (served by convention or to
-  installed apps). (042) `wwwroot/images/hierarchy/*` (only the Blazor hierarchy page used them) removed.
-- Branch name `feat/039-post-blazor-config-audit` reuses number 039 (an old `chore/039/ui-management-dense-screens`
-  branch exists), as the task asked.
-
-Raised by 038 (Push v2; detail in `docs/react-push-v2.md` → *Follow-ups*):
-- **Before a production release:** check push on an Android installed app, an iPhone / iPad Home Screen app and DEV
-  (real VAPID keys): turn on, receive one notification, turn off, reload. Only Edge desktop was checked (locally).
-- A browser on a push service outside `PushSubscriptionRules.PushServiceHosts` is refused: add its host if one appears.
-- `PushNotificationService` still news up `WebPushClient` (no send tests); no `CancellationToken` in the push API.
-- Existing rows keep their old validation-free data; a bad one only fails to send (404/410 deletes it as before).
-
-Raised by 037 (Blazor host retirement):
-- (039, resolved) Copilot / agent instructions and `docs/frontend-practices.md` describe the React stack; the
-  SignalR client package and the Blazor-era `RTUB.Application` signatures are gone. (042) `ILabelService` removed.
-- (resolved in 038) `push-notifications.js` and `pwa-helper.js` were removed with the React push client.
-- The system announcement lives in one app instance's memory (fine for one App Service instance; a shared store if it
-  scales out) and plays no sound.
-- `NoStylesheet_SetsOverflowHiddenOnTheViewportRoot` now guards only `error.css` / `offline.css`; the React
-  `styles.css` is not in its sweep.
-- Many code comments still say "was the Blazor …": history, left as is.
-
-Raised by 036 (Identity + /share; detail in `docs/react-identity.md` → *Deferred*):
-- (resolved in 037) The Blazor host is retired and the system announcement is a React listener.
-- forgot-password and reset-password have no rate limit (as before). `/confirm-email` has no link generator in the app.
-
-Raised by 035 (Owner tools; detail in `docs/react-owner-operations.md` → *Deferred*):
-- (resolved in 037) The system announcement (`/owner/tracing`) is shown by the React shell (`GET /api/announcement`).
-- No guard against the Owner demoting themselves / the last Owner (as before). `/owner/db` shows `AspNetUsers` secrets
-  columns to the Owner (as before). Announcement emails send synchronously (no live progress).
-- No caller left: `LockStatusBadge`, `LoginStatusBadge`, `RoleBadge` (+ tests, `roleBadge.js`), `MemberCardLite`,
-  `.subscriber-list--h*` (dynamic-style-classes.css), `.member-avatar-small` (meetings.css).
-
-Raised by 034 (Reuniões; detail in `docs/react-meetings.md` → *Deferred*):
-- Kept as before, decide: the fiscal-year filter ends at midnight on 31 August (a meeting later that day shows only under
-  "Todos os anos"); Owner does not see CV / Direção meetings or requests unless its own rule allows (A3); the requests
-  section is the Veterano / Magister rule for every type, so some approvers and Direção proposers cannot see their
-  requests (A4); the Direção branch of `CanCreateMeetingType` stays unreachable (A6).
-- `Meeting.DelegatedAtaWriterMemberId` is never set; ata attachments and ata delete have no UI (as before).
-- A published Direção ata PDF goes to Documentação `Atas {FY}`, which `DocumentationAuthorization.CanSeeFolder` leaves
-  open to every non-Leitão (only `Atas CV` / `Atas AG` are restricted), as before 034: decide whether to restrict it.
-- Notification links (meeting custom push, request reminder; also Events' notices and the old meeting services) are
-  built from the request's Host header while `AllowedHosts` is `*`: a manager forging Host could point members' push
-  links elsewhere. Same as before 034; fix app-wide (real `AllowedHosts`, or one configured base URL).
-- Shared `.modal__head` / `.modal__title` (portal `styles.css`) now let a long dialog title wrap instead of squeezing the
-  close button (found on `/meetings`; every React dialog benefits).
-- `css/4-pages/meetings.css` stays: its `.member-avatar-small` (32px, imported last) still sizes the avatars in the
-  `/users` dialogs; its other selectors (and all of `request-card.css`, `question-card.css`, `4-pages/questions.css`,
-  `.request-admin-overlay`, the grid classes in `enrollment-card.css`, `.modal-info-section*` / `.modal-section-*` in
-  `profile-components.css`) have no markup user left.
-- No caller left: Shared `EnrollmentCard` and `StatusBadge` (+ bUnit tests); `DateBadge` only through the dead `EventCard`.
-
-Raised by 033 (Naipes):
-- "Remover imagem" on `/naipes/config` leaves the R2 object behind (as before).
-- No caller left, still registered: `INaipeAuthorizationService` / `NaipeAuthorizationService`, `INaipeConfigService` /
-  `NaipeConfigService`. `.modal-info-section--danger` (`dynamic-style-classes.css`) had no user even before.
-- Naipes media are public-read R2 objects (as the Gallery's): members-only means "not listed", not "not reachable".
-
-Raised by 032 (profile, members map, Hall of Fame):
-- The map lists expelled accounts (and the Hall of Fame counts every account), as before: decide whether to leave them out.
-- (resolved in 038) Push opt-in / opt-out is the `/profile` section "Notificações push".
-- (042, resolved) CSP `script-src` / `style-src` are `'self'` only.
-- No caller left: `wwwroot/js/profilePictureRefresh.js` + `ProfilePictureUpdateService` (still wired in `MainLayout`),
-  `wwwroot/lib/cropperjs`; profile / rank / timeline selectors in the Blazor CSS.
-- `CachedGeocodingService` creates a DbContext per lookup without disposing it.
-- `UserProfileService.UpdateProfilePictureAsync` deletes the old image before the upload succeeds (kept as is).
-
-Raised by 031 (Pedidos and Perguntas):
-- Members (not only Admin) read requesters' email and phone, as before; decide whether to narrow it.
-- Unused now, left in place: `IQuestionService.GetAllOrgaoSocialMembersAsync` / `HasOrgaoSocialPosition` /
-  `GetMembersWithPositionAsync` / `CanAnswerAsync`, `IRequestService.GetPendingRequestsAsync`; most of
-  `css/3-components/request-card.css`, `question-card.css` and `css/4-pages/questions.css` (the few selectors Meetings /
-  Naipes used have no user since 034).
-
-Raised by 030 (member shell):
-- `/naipes/config` is not in the member menu (reached from `/naipes` → "Configurar" since 033); decide. (`/members/map` is, since 032.)
-- The Blazor pages keep their own navbar (`MainLayout`), so a member moving between React and Blazor pages sees two
-  different menus until those pages are React.
-- No JS test runner in the repo: the shell's browser behaviour (drawer, rail, overflow) was checked by hand with a
-  scratch Playwright script; `MemberShellTests` pins the source contract only.
-
-Raised by 029A (Images / Labels admin removal, UI only):
-- (043, written, not applied) `Labels`/`Slideshows` dropped by migration with their entities, DbSets and seed; services,
-  repositories and their tests went in 042 (`docs/db-cleanup-inventory.md`).
-  Any production edits to the `ranking_story` label are no longer shown; copy them out first if wanted.
-- `ImageUploadManager` (Shared, + bUnit tests) has no caller since `Slideshows.razor` went.
-- Slideshow images in R2 (upload category `slideshows`) are left in place, unused.
-
-Raised by 027 (Messages / Conversas removal, Phase A):
-- (039) **No contract task for messaging:** `Conversations`, `Messages`, `MessageReactions`, `ConversationUserSettings`
-  and their entities/configs/DbSets are preserved, never dropped; Messaging v2 will audit and evolve them
-  (`docs/messages-removal.md`).
-- Now unused, left in place: `window.appBadge` (`pwa-helper.js`); the `/hubs/` never-cache prefix in `service-worker.js`
-  (harmless, pinned by `ServiceWorkerReliabilityTests`).
-- The Play Store (TWA) app may carry the old "Mensagens" shortcut until it is rebuilt from the manifest; it opens a 404.
-- DEV after a refresh holds production's messages unsanitized (`DatabaseSanitizer` skips them); Messaging v2 decides.
-
-Raised by 026 (Games / Bets / MyTuno removal):
-- Task 043 (never the messaging tables, since 039), only after the release carrying 026 is live in production: drop
-  the 15 game tables and `AspNetUsers.FidelisBalance` (written in 043, not applied: `RemoveRetiredGamesLabelsSlideshowsSchema`
-  + `RemoveFidelisBalanceFromApplicationUser`), delete the kept
-  entities/configs/DbSets; take a production DB backup first; that release may be MAJOR. Exact list:
-  `docs/games-bets-mytuno-removal.md`.
-- R2 objects left in place, public-read and unused: `images/{env}/bets/`, `images/{env}/bet-comments/`,
-  `item-configs/{env}/images/`.
-- Now unused (their only users were game pages), left for the dead-code cleanup: `window.isMobileDevice`
-  (`pwa-helper.js`); 77 classes in `css/9-overrides/inline-style-utilities.css`, `u-cursor-default`,
-  `u-cursor-not-allowed`, `u-fill-pct--smooth` (`dynamic-style-classes.css`) and `.hp-bar-fill` (`rank-card.css`).
-- Any `Games__*` / `MyTunoScaling__*` app settings on `rtub` / `rtub-dev` are now dead (not checked; none in the repo).
-- `deploy-prod.yml` comment "npm and NuGet code runs here": npm no longer runs in the build (workflow left untouched).
-
-Raised by React track 025 (Novidades):
-- No images, comments, reactions, pinned posts or per-post page with share previews yet (`docs/react-news.md`).
-- `AddNewsPosts` is the React track's first schema change; the next PROD release runs it (additive, N-1 safe).
-
-Accepted after the 018-024 audit (2026-10-05):
-- Treasury: deleting a draft report that a `NerbaOrders.ReportId` row still references (ON DELETE RESTRICT) rolls back
-  correctly but answers 500; it should answer 409 with a message.
-- Members: every signed-in member, Leitões included, sees other members' email and phone in "Detalhes" (as the old
-  page did; `docs/react-members.md`). Decide whether Leitões keep that.
-- (037 / 039 / 042, resolved) Dead code with no caller: Shared `ReportCard`, `TransactionCard`, `MbwayTransferCard`,
-  `NerbaOrderCard`, `ReservationCard`, `FolderCard`, `DocumentCard`, `BoardCard`, `LeaderboardCard`, `LeaderboardCommentItem`,
-  `InstrumentCircle`, `AvatarCard`, `EventCard`; services `ITransactionFilterService`, `IDebtService`,
-  `ILogistics{Board,List,Card}Service`, `IMemberPositionService`, `IUserRoleQueryService`, `IEnrollmentFilterService`;
-  CSS `kanban.css`, `folder-card.css`, `document-card.css`, `avatar-card.css`, `instrument-circle.css`,
-  `music.css`, `song-card.css`, `audio-player.css`; JS `familyTree.js`, `home.js`, `scrollSpy.js`.
-- Real R2 still unchecked (local runs have placeholder storage): Music audio, Gallery upload, Inventory/Shop images,
-  Documentation upload/download, Logistics board files, Treasury receipts and PDF. Check on DEV.
-
-Raised by React track 024 (Tesouraria):
-- Receipts are public-read R2 objects (anyone with the URL opens them); private objects + pre-signed links need a storage change.
-- `ReportPdfService` caches by `Report.UpdatedAt` (transaction edits do not touch it): PDF up to 1 h stale.
-- `ReportCard`, `TransactionCard`, `MbwayTransferCard`, `NerbaOrderCard` (Shared), `ITransactionFilterService`, `IDebtService` have no page caller.
-- 14 local `Transactions` rows have no activity and appear nowhere.
-- Local run: ports 58869/58870 now fall in a Windows excluded port range; use another port.
-
-Raised by React track 023 (Logística):
-- `LogisticsCardReminders` are stored but no job sends them (pre-existing); build delivery or drop the feature.
-- (037 / 042, resolved) `BoardCard`, `kanban.css` (037) and `ILogistics{Board,List,Card}Service` + tests (042) are gone.
-
-Raised by React track 022 (Documentação):
-- `FolderCard`/`DocumentCard` (Shared, + bUnit tests) and `css/3-components/folder-card.css`/`document-card.css` have no page caller.
-- React `/roles` probes `GET /api/governance/manage`, logging a 403 console error for members without management rights.
-
-Raised by React track 021 (Loja):
-- `ReservationCard` (Shared) has no caller; "Público (não membros)" never reached visitors (shop is members-only).
-
-Raised by React track 020 (Instrumentos):
-- Deleting an instrument leaves its thumbnail in R2; `InstrumentCircle` (Shared) has no caller.
-
-Raised by React track 019 (Classificação):
-- `LeaderboardCard` and `LeaderboardCommentItem` (Shared) have no caller since `Leaderboard.razor` went.
-- `XpSettings` and `RankingConfiguration` both bind `Ranking`; equal level+XP keep SQLite's unordered users order.
-
-Raised by React track 018 (Member admin):
-- `IMemberPositionService`, `IUserRoleQueryService` and the shared `AvatarCard` have no caller since `Members.razor` went.
-- Owner can delete their own account from the tools (as before).
-
-Raised by React track 017 (Members):
-- (018) `/members/manage` retired; its tools are on the React `/members`.
-- `wwwroot/js/familyTree.js` (still loaded by `MainLayout`) and `.family-tree-*` in `css/1-base/mobile.css` are unused.
-- Hall of Fame and the member map are still Blazor ((019) classification is React).
-
-Raised by React track 013 (Events):
-- Global CSS for the retired `PostCard`, `CommentItem` and the PostComposer mention dropdown
-  (`wwwroot/css/3-components/*`) is unused now; `PostMedia` upload code in `PostService` has no caller left.
-
-Raised by React track 012F (Events):
-- `IEnrollmentFilterService` / `EnrollmentFilterService` are registered but unused since the Blazor enrollments
-  page went (012E); not removed here.
-- Local runs read `ConnectionStrings:SqliteConnection` (not `DefaultConnection`); point it at a scratch copy before
-  any browser check, or the run (and its `MemberStatusUpdateBackgroundService`) writes to `src/RTUB.Web/app.db`.
-- `EventCard` is only referenced by the dead `AboutUsContent` (Components/Portal, dead since 004).
-
-Raised by React track 011 (Events):
-- A local run without `Cloudflare:R2:PublicUrl` leaves the R2 origin out of the CSP, so event images and
-  videos are blocked locally only (DEV/PROD have the setting).
-- (012F) `/member/events` retired; (013) discussion and contacts are React: no Blazor event page left.
-
-Raised by React track 009 (Gallery):
-- Gallery files are `PublicRead` in the public R2 bucket: members-only means "not listed", not
-  "not reachable" by a leaked URL. Private objects + signed URLs would be a storage change.
-- (015) Gallery management is React; Owner now inherits Admin there.
-
-Raised by React track 008 (Órgãos Sociais):
-- (016) Management and the RGI are React on `/roles`; `/member/roles` redirects. Owner now inherits Admin there.
-
-Raised by React track 007 (Login):
-- `POST /auth/login` reports Locked/Expelled before checking the password, so those states are
-  visible to anyone who knows a username (pre-existing; kept to preserve behaviour).
-- (030, resolved) Sign-out: in the member shell (rail / drawer) and on `/profile`.
-
-Raised by 006 (shell banners):
-- (post-024, resolved) `VERSION` CRLF on Windows checkouts: `.gitattributes` pins `VERSION text eol=lf`.
-- Portal `index.html` loads `/js/sw-register.js` unversioned (stale-while-revalidate), so one visit after a
-  deploy can still run the old script.
-
-Raised by React track 006 (Music):
-- `AlbumAccesses` holds 18 stale rows for album 12 (not exclusive); ignored by the rules, not deleted.
-- Retired-Music leftovers still loaded globally: `css/3-components/music.css`, `song-card.css`,
-  `audio-player.css`, and the PWA-queue half of `pwaMediaSession.js`/`MediaSessionInterop`.
-- Play cooldown is per app instance (in-memory); a scaled-out App Service would need a shared cache.
-
-Raised by React track 005 (content audit):
-- (024, resolved) `/calotes`, `/mbway`, `/nerba` were open to visitors; they now 302 to the members-only React
-  `/treasury…` pages and the API refuses visitors (401) and non-treasury members (403).
-- (029A, resolved) The old home's text (Labels, `/labels`) stays static in React; the `/labels` admin is gone.
-- (029A, resolved) The public slideshow is dropped; the `/images` admin is gone.
-
-Raised by React track 004 (React `/`):
-- The Blazor home was the only place rendering `PushNotificationPrompt`, `LoginPopup` and
-  `PlayStorePrompt`; since 004 nothing shows them (the PWA `start_url` now opens React `/`). Decide
-  whether they move to the React shell or a Blazor layout.
-- Dead since 004 (only `Index.razor` used them): `Components/Portal/*` (AboutUs, JoinUs, History,
-  Hierarchy, Fitab, PortalSectionNav), `wwwroot/js/home.js`, `scrollSpy.js`, the homepage CSS,
-  `PortalContentStyleTests`, `LoginPopupOptions`.
-- Email templates' `PreferencesLink`/`ProfileUrl` (`…/profile`) now land on the React member entry,
-  one tap from the Blazor editor at `/member/profile`.
-
-Raised by React track 001-003 (portal pilot):
-- CI • Build & Test has no Node step for the portal bundle (command in `docs/react-portal-pilot.md`).
-- Before the next `dev → master` release the owner must accept (or replace) the React home's artwork
-  gallery tiles and static copy. (005: banner is pre-release only; no invented agenda dates.)
-- `public-requests` rate limit partitions on `RemoteIpAddress`: confirm forwarded headers on DEV/PROD.
-- Real `app.db`: 8 non-dated IDs in `__EFMigrationsHistory` (seen read-only in task 003; unexplained).
-- The Phase text below predates units 032-038 and the 2026-09-30 UI rollback; not rewritten here.
-- Windows-only local test noise: an ignored `src/RTUB.Web/publish/` output, when present, fails 5 guard
-  tests that sweep `src/` on disk. CI is unaffected.
-- (027, resolved) `MessagesHubTests` order-dependent failure: the class went with Messages.
-- A local run without `Cloudflare:R2:*` settings returns 500 on storage-backed Blazor pages (`/events`,
-  `/music`, `/gallery`, `/roles`; `/` is React since 004); the integration tests' placeholder values
-  avoid it.
-
-Raised by fix/030 (iOS media association):
-- `MainLayout` `<HeadContent>` repeats `mobile-web-app-capable`, `apple-mobile-web-app-capable` and
-  `apple-mobile-web-app-status-bar-style` from `App.razor` (identical values, harmless).
-
-Raised by 030:
-- `UpdateCardStatusEnumValues` and `NerbaOrderEventRequired` migration classes have no `[Migration]`
-  attribute, so EF has never run them anywhere. Both hold destructive SQL; do not "fix" them by adding
-  the attribute without deciding what they should do.
-- `refresh-dev-database.yml` uses concurrency group `refresh-dev-database`, Deploy • DEV uses
-  `deploy-dev`: a push to `dev` during a refresh can deploy mid-refresh. Also still pins
-  `checkout@v4`/`setup-dotnet@v4`. Left byte-identical by instruction.
-- (023) Logistics is React; the API refuses Leitões on every board (the old board page did not).
-- `development` environment has no deployment branch policy.
-- (039, resolved) `README.md` rewritten: `isEmptyDb`, the stale IDrive keys and "Production Configuration" removed.
-Carried (one line each; detail in git history):
-- Security: `UseHttpsRedirection` skipped outside Development (now redundant, forwarded headers are
-  on); login `OnRejected` is global; 429 on a form POST is a bare text page; `UpdateSecurityStampAsync`
-  on role change is a forced logout; `ValidationInterval` default 30 min; COOP/COEP/CORP not set;
-  unused `X-CSRF-TOKEN` antiforgery header; dead `POST /api/push/broadcast|send-to-selected`.
-- Password-policy hardening skipped by owner decision (2026-09-21).
-- `LastLoginDate` means "last authenticated activity"; `IsInRoleAsync` pair is 2 SELECTs.
-- Dependencies: Microsoft 10.0.11 → 10.0.12 (unblocks `MockQueryable.Moq` 10.0.12); AWSSDK train;
-  QuestPDF 2026.x major. (042) Dead `AWSSDK.Core` refs removed from Web.Tests / Integration.Tests (Application.Tests uses
-  Amazon types directly, kept).
-- `xUnit1051` suppressed; MTP telemetry (`TESTINGPLATFORM_TELEMETRY_OPTOUT=1` to opt out).
-- Push: `WebPushClient` newed up (untestable sends); two service-worker registration paths;
-  unbounded broadcast; `PushNotificationsManager` parked on `window`.
-- Dead/orphaned front-end bits: `rtub.carousel.js`, rare-tab animation;
-  `Profile.razor` overflow intent unimplemented; `.no-scroll` loses scroll position.
-- (026, resolved) Payload: `wwwroot/sprites` (~180 MB of the ~230 MB zip) and `wwwroot/sound` went with MyTuno.
-- `.deployment` (`SCM_DO_BUILD_DURING_DEPLOYMENT=true`) is inert.
-- Owner Storage Maintenance page (029 contract) not built.
+Living execution state. **Read this first.** A status board, not a diary: history is in git and GitHub, durable detail
+in the docs `CLAUDE.md` links. Overwrite stale entries.
+
+_Last updated: 2026-11-12_
+
+## Release state
+- `master` (PROD): **2.3.7**. `dev`: **2.3.8** (unreleased).
+- On `dev`, not released: Aprender / play-along (094, 095, 097: `SongPlayAlongs` table, migration `AddSongPlayAlongs`,
+  additive), the ai-workflow adoption (100), `STATE.md` moved to `.ai/` (101), web preset settings (102), docs cleanup
+  (103).
+- Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
+
+## Current
+None. Last: task 103 (PR #305, merged into `dev`): docs simplified, Blazor-migration leftovers removed, per-page
+permissions folded into each `docs/react-*.md`.
+
+## Not verified yet
+- Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not
+  in the repo, upload it on DEV/PROD), bandolim and cavaquinho chord shapes.
+- Release notes modal on a real iPhone / Android, and on DEV with `ShowPrerelease`.
+- Push on an Android installed app, an iPhone/iPad Home Screen app and DEV (only Edge desktop was checked).
+- Real R2 on DEV for every storage-backed module (local runs use placeholder storage).
+- iOS Safari native date/time controls and the `black-translucent` status-bar inset on a real iPhone.
+
+## Owner actions (status unknown: check Azure/GitHub first)
+- Always On on PROD (cold start after idle); HTTP/2 on both App Services.
+- DEV (`rtub-dev`) has no VAPID settings, so push is "not-configured" there.
+- Run `scripts/config/audit-azure-app-settings.ps1` after `az login` and act on its warnings; delete dead `IDrive__*`,
+  `Games__*`, `MyTunoScaling__*` app settings. Local user-secrets may still hold dead `IDrive:*` keys.
+- Retire basic auth: delete repo secret `AZURE_WEBAPP_PUBLISH_PROFILE`; `rtub` `basicPublishingCredentialsPolicies/scm`
+  allow=false.
+- Copilot coding agent: Repository access → No repositories; delete the `copilot` environment and `copilot/*` branches.
+- CodeQL is not configured (Settings → Code security → Code scanning → Default), if wanted.
+- Rulesets on `master` and `dev`: block force pushes and deletions; `development` environment has no branch policy.
+- `iarc_rating_id` for the manifest needs the IARC certificate from Play Console.
 - After a DEV refresh, keep `DevelopmentDataReset__Enabled` off on `rtub-dev`.
-- iPhone installed-PWA check on `/music` still needs a real device (DEV URL is fine).
-- GitGuardian: historical incidents stay historical; mark them by hand.
 - Old work branches `chore/001`…`chore/029`, `fix/012`…`fix/029`, `perf/019`: delete when convenient.
 
+## Deferred (recorded, not fixed)
+
+**Tests**
+- Integration test hosts run `PendingActionsReminderService`, so a full `dotnet test` between 18:00 and 24:00 Portugal
+  time can fail 3 `NewsApiTests` ("Push.Invocations to be empty"). Fix: disable the worker in the test factories.
+- `NoStylesheet_SetsOverflowHiddenOnTheViewportRoot` sweeps only `error.css` / `offline.css`, not the portal
+  `styles.css`.
+- Windows-only: an ignored `src/RTUB.Web/publish/` output, when present, fails guard tests that sweep `src/`.
+- No JS test runner: the member shell's browser behaviour is checked by hand; `MemberShellTests` pins source only.
+
+**Security and privacy**
+- Notification links are built from the request Host header while `AllowedHosts` is `*`: a manager forging Host could
+  point push links elsewhere. Fix app-wide (real `AllowedHosts`, or one configured base URL).
+- `www.rtub.pt` serves the app as a second origin with no redirect to `rtub.pt` (second installed-app identity,
+  duplicate content): decide a 301 to the apex.
+- Gallery, Naipes and receipt files are public-read R2 objects: members-only means "not listed", not "not reachable".
+  Private objects + pre-signed URLs would be a storage change.
+- forgot-password / reset-password have no rate limit; `/confirm-email` has no link generator in the app.
+- `POST /auth/login` reports Locked/Expelled before checking the password (kept to preserve behaviour).
+- No guard against the Owner demoting themselves or the last Owner; Owner can delete their own account.
+- `/owner/db` shows `AspNetUsers` secret columns and can SELECT the messaging tables (Owner only): decide.
+- Decide: members (not only Admin) read requesters' email and phone; Leitões see other members' email and phone.
+- Carried: `UseHttpsRedirection` skipped outside Development (redundant, forwarded headers on); login `OnRejected` is
+  global; 429 on a form POST is a bare text page; role change forces logout (`UpdateSecurityStampAsync`);
+  `ValidationInterval` 30 min; COOP/COEP/CORP not set; dead `POST /api/push/broadcast|send-to-selected`. Password-policy
+  hardening skipped by owner decision.
+- `public-requests` rate limit partitions on `RemoteIpAddress`: confirm forwarded headers on DEV/PROD.
+
+**Push**
+- "Presença recusada" never sends (`CancelAttendanceAsync` has no caller); leaderboard comment/like push failures are
+  swallowed with no log; discussion pushes stop at the event start (UTC compare).
+- `PushNotificationService` news up `WebPushClient` (no send tests); no `CancellationToken`; 5xx from a push service is
+  not retried; fan-out runs inline in requests. `WebPush` 1.0.13 sends legacy `aesgcm` (move to RFC 8291/8292 only if
+  an iPhone test push comes back `rejected`).
+- A browser on a push service outside `PushSubscriptionRules.PushServiceHosts` is refused: add its host if one appears.
+- PROD App Service has no persisted application logs; push warnings show only in the live log stream.
+
+**Product decisions**
+- Reuniões: the fiscal-year filter ends at midnight on 31 August; Owner limits on CV/Direção; requests-section gate;
+  unreachable Direção branch of `CanCreateMeetingType`; `Meeting.DelegatedAtaWriterMemberId` never set; no UI for ata
+  attachments or delete; a published Direção ata PDF lands in `Atas {FY}`, open to every non-Leitão
+  (`docs/react-meetings.md`).
+- Messaging v2: group membership frozen at v1's last auto-sync; polling only; no pin/archive UI. DEV after a refresh
+  holds production's messages unsanitized (`DatabaseSanitizer` skips them).
+- Members map lists expelled accounts; Hall of Fame counts every account.
+- `/naipes/config` is not in the member menu (reached from `/naipes`).
+- Novidades: no images, comments, reactions, pinned posts or per-post share pages.
+- `RoleManagementService.PromoteUserForPositionAsync` keeps an existing Mod as Mod when the member takes an Admin seat.
+- Owner Storage Maintenance page not built.
+
+**Bugs and small fixes**
+- Treasury: deleting a draft report still referenced by `NerbaOrders.ReportId` answers 500; should be 409.
+- `ReportPdfService` caches by `Report.UpdatedAt` (transaction edits do not touch it): PDF up to 1 h stale.
+- Shop: a reservation snapshots no product name or price and is deleted with its product; `InFiscalYear` compares UTC
+  `CreatedAt` with local-calendar bounds.
+- Deleting an instrument leaves its thumbnail in R2; "Remover imagem" on `/naipes/config` leaves the R2 object.
+- `CachedGeocodingService` creates a DbContext per lookup without disposing it.
+- `UserProfileService.UpdateProfilePictureAsync` deletes the old image before the upload succeeds.
+- `NewsEndpoints.cs` 403 title names system roles (API callers only; the portal shows its own message).
+- React `/roles` probes `GET /api/governance/manage`, logging a 403 console error for members without rights.
+- `icons.tsx` `apple` lists the same path twice (duplicate `key` warning, dev build only).
+- `portal/index.html` `theme-color` is `#000000`; the manifest says `#3F2A86`.
+- Portal `index.html` loads `/js/sw-register.js` unversioned: one visit after a deploy can run the old script.
+- `XpSettings` and `RankingConfiguration` both bind `Ranking`; equal level+XP keep SQLite's unordered order.
+- Play cooldown and the system announcement live in one app instance's memory (a scale-out needs a shared store).
+
+**Performance** (`docs/performance-gate.md`)
+- Hot reads: messaging unread/list/thread shapes and a `Messages(ConversationId, Id)` index, `/api/members` full load,
+  leaderboard recompute per request, `/profile` ≈ 14 queries, meetings loaded with `int.MaxValue`, `AuditLogs.Action` /
+  `PushSubscriptions.Endpoint` indexes, `.Date.Date` range compares.
+- Writes in-request: push fan-out with back-off sleeps, audited save's second transaction, member-status reconcile, bulk
+  email.
+- Avatar and gallery thumbnails (schema), CSS split per area, route-chunk preload, static asset precompression,
+  `IMemoryCache` `SizeLimit` for cached PDFs.
+
+**Dead code and config**
+- `AspNetUsers.ExperiencePoints` / `Level` have no writer (the leaderboard computes XP per request): DB cleanup candidate.
+- `PostMedia` / `CommentImages`: production row counts needed before dropping (`docs/db-cleanup-inventory.md`).
+- ~80 interface methods with no production caller (storage `*ExistsAsync` / `GetFileSizeAsync` / `ListFoldersAsync`,
+  CRUD helpers); `IRequestService.GetPendingRequestsAsync`; `MimeTypeHelper.GetMediaMimeType`;
+  `ApplicationUserExtensions.GetYearsAsTuno` and friends (tests only).
+- Committed but unread settings: `Gallery:MaxVideoSizeMB` (code reads `GalleryMedia:MaxVideoSize`), `ImageCaching:*`,
+  `UseSqlServer`.
+- Kept on purpose: the old-URL 302s in `Program.cs`; npm `bootstrap-icons` (path-data source for `icons.tsx`).
+- `wwwroot/images/icons/*` has no in-repo reference (old logo copies).
+
+**Tooling and dependencies**
+- `npm audit`: 5 high in vite 6 dependencies (build time only).
+- Dependencies to bump: Microsoft 10.0.x train (unblocks `MockQueryable.Moq`), AWSSDK, QuestPDF 2026.x major.
+- `xUnit1051` suppressed.
+- `refresh-dev-database.yml` and Deploy • DEV use different concurrency groups (a push during a refresh can deploy
+  mid-refresh); pinned `checkout@v4` / `setup-dotnet@v4`.
+- `.deployment` (`SCM_DO_BUILD_DURING_DEPLOYMENT=true`) is inert; `deploy-prod.yml` comment says npm runs in the build
+  (it does not).
+- Local runs read `ConnectionStrings:SqliteConnection`; point it at a scratch copy or the run writes to
+  `src/RTUB.Web/app.db`. A local run without `Cloudflare:R2:PublicUrl` blocks R2 images in the CSP (local only).
+- GitGuardian: historical incidents stay historical; mark them by hand.
+- `scripts/test-twa-config.sh` points at docs that never existed (`docs/URGENT-TWA-SETUP-INSTRUCTIONS.md`,
+  `docs/twa-configuration-guide.md`).
+
 ## Next
-Owner actions above. After step 18: .ai/STATE.md → "030 complete".
+Owner decides the next task (GitHub Issues).
