@@ -1,457 +1,278 @@
-# React Events (`/events`, React track 011)
+# React Events (`/events`)
 
-`/events` is a React agenda (`portal/src/Events.tsx`) and `/events/{id}` one event
-(`EventDetail.tsx`). A member answers (Vou / Não vou) in a **modal** (`EventDialogs.tsx`), from a card's
-quick reply or the event page, never on a page of its own. Admin/Owner **create, edit and delete**
-events in React modals on the agenda (011.5), and manage the **image, cancel / reactivate and email /
-push notices** there too (012A, `IEventAdminService`). Everything reads a thin, viewer-aware API
-(`Endpoints/EventEndpoints.cs` → `IEventAgendaService`). **Events is React-owned (012F):** the members'
-Blazor `/member/events` (the old `Events.razor`, kept as a bridge in 011-012E) is retired and redirects to
-`/events`. **Since 013 Events is fully React:** the discussion and contact tracking moved too, and no Blazor
-event page is left. DEV only; no schema change.
+`/events` is the React agenda (`src/RTUB.Web/portal/src/Events.tsx`); `/events/{id}` is one event (`EventDetail.tsx`).
+Members answer (Vou / Não vou) in a modal (`EventDialogs.tsx`), from a card's quick reply or the event page. Admin and
+Owner create, edit, delete, manage the image, cancel or reactivate, and send notices in modals on the same pages.
 
-**Terminology.** Events use *enrollment* (Inscrições): `EventEnrollment*`, `eventsApi.getEnrollment` /
-`saveEnrollment`, `/api/events/{id}/enrollment`. *Attendance* (Presenças) belongs to rehearsals and is not
-used here. Participants: **"Quem vai"** before and during an event, **"Quem foi"** once it is over (the
-counts follow: Vão / Não vão, Foram / Não foram).
+Code: `Endpoints/EventEndpoints.cs` → `IEventAgendaService` (reads), `IEventAdminService` (Admin/Owner writes),
+`Services/EventAgendaService.cs` (visibility), `Helpers/EventsAuthorization.cs`, `Services/EventRepertoireAdminService.cs`,
+`Services/EventDiscussionBoardService.cs`, `Services/EventContactsAdminService.cs`, `Services/CloudflareEventVideoStorageService.cs`
+(`IEventVideoStorageService`).
 
-**Routes.** `/events` and `/events/{id}` are React. `?respond=1` on an event opens the answer modal. `/events/{id}/enrollment` - the answer page of the first 011 build, which
-reached DEV - is a temporary `302` to `/events/{id}?respond=1`; the draft `/events/{id}/attendance` never
-reached `dev` and is not served (404). `/events/{id}/enrollments` - the members' Blazor list of everyone's
-answers with its admin tools - is retired since 012E: a `302` to `/events/{id}#who-title` ("Quem vai / Quem
-foi", with the Admin/Owner manager). The member's own history is the "Onde estiveste" modal on `/events` (the page `/events/my-enrollments` was removed in 044).
-`/member/events` is a `302` to `/events` with its query kept (012F), so Requests' "criar atuação"
-(`?openModal=true&name=&location=&date=&description=`, now sent straight to `/events`) still opens the React
-create form, prefilled, for Admin/Owner; anyone else just gets the agenda.
+**Terminology.** Events use *enrollment* (inscrição): `EventEnrollment*`, `/api/events/{id}/enrollment`. Attendance
+(presença) belongs to rehearsals. Participants are "Quem vai" before and during an event and "Quem foi" once it is over
+(counts: Vão / Não vão, Foram / Não foram).
 
-| Route | Owner after 013 |
+## Routes
+
+| Route | Notes |
 | --- | --- |
-| `/events`, `/events/{id}` | React |
-| `/events/{id}/enrollment` | 302 → `/events/{id}?respond=1` |
-| `/events/{id}/enrollments` | 302 → `/events/{id}#who-title` |
-| `/member/events` | 302 → `/events` (query kept) |
-| `/events/{id}/discussion` (members), `/events/{id}/contacts` (Mod and above, and Leitões since 049) | React (013); a visitor gets a 302 to `/login?returnUrl=…` |
+| `/events`, `/events/{id}` | React. `?respond=1` opens the answer modal. `?repertoire=1` opens the repertoire editor once. |
+| `/events/{id}/enrollment` | `302` to `/events/{id}?respond=1` |
+| `/events/{id}/enrollments` | `302` to `/events/{id}#who-title` |
+| `/member/events` | `302` to `/events`, query kept. Requests' "criar atuação" (`?openModal=true&name=&location=&date=&description=`) opens the prefilled create form for Admin/Owner; others see the agenda. |
+| `/events/my-enrollments` | Removed. "Onde estiveste" on `/events` replaces it. |
+| `/events/{id}/discussion` | Members. A visitor gets `302` to `/login?returnUrl=…`. |
+| `/events/{id}/contacts` | Mod and above, and Leitões (049). A visitor gets `302` to login. |
 
-## Audit (real `app.db`, read-only on a scratch copy, aggregates only)
+## Data
 
-| Table / entity | Field | Type, limit, null | Real data | Old Blazor UI | React | Visibility | Schema change |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `Events` | `Name`, `Location` | text ≤200, required | 57 rows; max 65 / 54 chars | card, details | card, page | public | no |
-| `Events` | `Date`, `EndDate` | datetime; datetime? | 2025-09 → 2026-10; 5 upcoming; 10 multi-day, 0 same-day/invalid end; 11 at midnight (= no time) | card, filters | dates as local text; time only when set; end only when a later day | public | no |
-| `Events` | `Type` | int (`EventType`, 11 values) | 9 types used; Atuação 30, Festival 8 | filter, details | tag, filter | public | no |
-| `Events` | `IsCancelled`, `CancellationReason` | bool; text ≤1000 | 9 cancelled, 8 with a reason | badge (all); reason in member details | badge (all); reason members only | public / members | no |
-| `Events` | `Description` | text ≤2000, NOT NULL | 23 non-empty, max 462 | member details modal, past search | member section, member search | members | no |
-| `Events` | `ImageUrl` | text? | 13 set, all on the public R2 host | card image | hero, https/same-site only; set / replaced / removed by Admin/Owner (012A) | public | no |
-| `Events` | `CreatedBy/At`, `UpdatedBy/At` | audit | - | - | never sent | internal | no |
-| `Enrollments` | `UserId`, `EventId`, `WillAttend` | text; int; bool | 1085 (769 going, 316 not); 0 duplicates, 0 orphans, 0 on cancelled events | counts, lists, own badge | own answer; going / not-going counts | own row + counts: members | no |
-| `Enrollments` | `Instrument`, `OtherInstruments` | int?; text? | 924 with an instrument | lists, instrument counters | own answer; "Quem vai" (going only) | members | no |
-| `Enrollments` | `Notes` | text?, no limit | 67 set, max 144 | lists (all members) | own answer; "Quem vai" (all members, as before); ≤1000 on write | members | no |
-| `Enrollments` | `EnrolledAt`, `CategoryAtEvent` | datetime; int? | snapshot on 246 | lists, statistics | not sent; still written by `EnrollmentService` | internal | no |
-| `Trophies` | `Name`, `EventId` | text ≤200 | 8 on 4 festivals, max 23 chars | "Prémios" modal (all) | "Prémios" modal (agenda + event page), by name; managed there by Admin/Owner (012B) | public (names); ids for Admin/Owner only | no |
-| `EventVideos` | `Url`, `Title`, `MimeType`, `SortOrder` | text ≤2048; ≤200?; ≤100 | 4 mp4 on 1 event, public R2 host, all titled | videos modal (all), upload by members | player + list (all) by `SortOrder`; managed by Admin/Owner on the event page (012C) | public | no |
-| `EventVideos` | `SizeBytes`, `CreatedByUserId` | long; text | - | delete rights | never sent | internal | no |
-| `EventRepertoires` | `SongId`, `DisplayOrder`, `RepertoireDate` | int; int 1-1000; date | 43 rows on 7 events; 13 on a later day; 4 songs in private albums | member modal (titles per day) | member section, titles per day; managed by Admin/Owner on the event page (012D) | members | no |
-| `Discussions` / `Posts` | per event | - | 9 discussions | member count + page | member count + link | members | no |
-| `EventContacts` | contact tracking | - | 0 rows | `/events/{id}/contacts` (members) | `/events/{id}/contacts` (013) | Mod and above, Leitões (049) | no |
+No schema change in the current rules. Key columns that constrain changes:
 
-**Verdict: no schema change, no migration.** Nothing persisted was added, renamed or removed.
+- `Events`: `Name`, `Location` (required, ≤200), `Date`, `EndDate`, `Type` (`EventType`), `IsCancelled`,
+  `CancellationReason` (≤1000), `Description` (≤2000), `ImageUrl` (absolute public R2 URL, https or same-site only),
+  `IsPublic` (migration `AddEventIsPublic`, column default `1`; the EF model has no default, so the app always writes its own value).
+- `Enrollments`: `UserId`, `EventId` (unique together), `WillAttend`, `Instrument`, `OtherInstruments`, `Notes` (≤1000 on write),
+  `EnrolledAt`, `CategoryAtEvent` (snapshot).
+- `Trophies`: `Name` (≤200), `EventId`.
+- `EventVideos`: `Url` (≤2048), `Title` (≤200), `MimeType` (≤100), `SizeBytes`, `SortOrder`, `CreatedByUserId`.
+- `EventRepertoires`: `SongId`, `DisplayOrder` (1-1000 per day), `RepertoireDate`. Unique (`EventId`, `SongId`). Songs come from Music; titles only.
+- `Discussions`, `Posts`, `Comments`, `Transportations`, `TransportationPassengers`, `PostMedia`, `CommentImages`. `PostMedia` and `CommentImages` are not written.
+- `EventContacts`: `EventId`, `UserId` (a member), `IsContacted`, `WillAttend` (bool?), `Notes` (≤500), `ContactedAt`, `ContactedBy`.
 
-## Visibility and permissions (server-side, `EventAgendaService` + `EventsAuthorization`)
+Deleting an event cascades enrollments, trophies, video rows, repertoire, discussion and contacts. Video files stay in R2.
 
-Roles inherit: Owner includes Admin, Admin includes Mod (`EventsAuthorization`).
+## Visibility
 
-**Public / members-only events (#227, P0 hotfix).** `Events.IsPublic` (bool, migration `AddEventIsPublic`: column
-default `1`, so every existing row and anything N-1 inserts after a rollback stays public; the EF model has no
-default, so the app always writes its own value). New events are public unless Admin/Owner tick **"Privado (só
-membros)"** on the create/edit form (`EventInput.MembersOnly`, `bool?`: on create absent / false = public, true =
-members only; on update true / false set it and **absent keeps the event's current visibility**, so an edit can
-never declassify a private event by omission). The
-rule lives in one place, `EventAgendaService.VisibleTo`, applied in the query: a signed-in member sees every
-event, anyone else only public ones. A visitor therefore never receives a members-only event from `GET
-/api/events` (upcoming and archive), `GET /api/events/{id}` (404, same as a missing event) or `POST
-/api/events/videos/{id}/plays` (404); the home preview `GET /api/public/events/upcoming` is public-only for
-everyone. Every other event endpoint already refuses visitors (401). Members get `membersOnly: true` on the
-summary and a "Só membros" tag on the card, archive row and event page. Push: the new-event broadcast and notices go
-only to push subscriptions, which only signed-in members can create (`/api/push` requires one), so no visitor is
-told about a members-only event; emails go to members only, as before.
+- `Events.IsPublic`. On create, events are public unless Admin/Owner tick "Privado (só membros)" (`EventInput.MembersOnly`, `bool?`).
+  On update, an absent `MembersOnly` keeps the current visibility, so an edit never makes a private event public by omission.
+- One rule, in `EventAgendaService.VisibleTo`: a signed-in member sees every event; anyone else sees public events only.
+- A visitor gets `404` for a members-only `GET /api/events/{id}` and `POST /api/events/videos/{id}/plays`, and never receives it from `GET /api/events`.
+  The home preview `GET /api/public/events/upcoming` is public-only for everyone.
+- Push (new-event broadcast, notices) reaches only push subscriptions, which only signed-in members can create. Emails go to members only.
+- Summary carries `membersOnly: true`; cards, archive rows and the event page show "Só membros".
+- Visitor sees: name, dates, time, location, type, cancelled flag, image, trophies, videos, season. The `member` part is `null`.
+- Member also sees: description, cancellation reason, own answer, counts, repertoire, and **Quem vai**: name, full name, avatar,
+  category (or MAGISTER), instrument and note of each answerer, grouped as members going, Leitões, not going.
+- Never user ids, emails or phone numbers in the agenda or event API.
+- Visitor search does not match descriptions, because descriptions are member-only text.
 
-- **Visitor:** name, dates, time, location, type, cancelled, image, trophies, videos, season. No
-  description, cancellation reason, counts, repertoire, answers, user ids or notes; the `member`
-  parts are `null`. Same set the old public page showed.
-- **Signed-in member:** adds the description, the cancellation reason, their own answer, the counts,
-  the repertoire and **Quem vai**: name, full name, avatar, category (or MAGISTER), instrument and
-  note of everyone who answered, grouped as members going / Leitões / not going (the same the old
-  members' list showed every member). Never user ids, emails or phones.
-- **Answering:** any signed-in member, own row only. Open (not cancelled, last day not passed): Vou /
-  Não vou, an instrument from their own instruments (primary preselected; every instrument for a
-  Leitão with none), an optional note. Past: only someone who went may withdraw. Cancelled: nothing.
-  Writes go through `IEnrollmentService`, so its push notifications, category snapshot and retirement
-  update are unchanged.
-- **Management:** Admin or Owner (was `IsInRole("Admin")` only) - the React create/edit/delete, image,
-  cancel / reactivate and notices, prizes, videos, repertoire and other members' answers, and the remaining
-  `/member/events` tools. Mod and Member get 403 from the API, except **create / edit / image** (059): Mod and above
-  (`EventsAuthorization.CanEdit`, `canEdit` in the agenda DTO, which also carries the type list); delete stays Admin / Owner. Contact tracking (`/events/{id}/contacts`): Mod
-  and above (was Admin or Mod), plus any member whose categories include Leitão (049; read from the database),
-  linked from the React event page's member panel since 012E. The agenda shows
-  the controls only when the API says `canManage`; the server enforces it on every write. Statistics
-  (`GET /api/events/stats`, 012F): any signed-in member, as before.
+## Permissions
 
-## Create, edit, delete (Admin/Owner, 011.5) - audited against the old page
+Roles inherit: Owner includes Admin, Admin includes Mod (`EventsAuthorization`). Visitors get `401` on write endpoints; signed-in
+users without the right get `403`. The agenda shows controls only when the API says `canManage` or `canEdit`. The server enforces every write.
 
-| | Old Blazor page | React now |
-| --- | --- | --- |
-| Fields | name, date + time (default 19:00) or a date range without time, location, type, description, optional cropped image | same, except the image |
-| Rules | entity annotations: name and location required ≤200, description ≤2000, end not before start | same, server-side, as field errors |
-| Create | `EventService.CreateEventAsync`, then a push broadcast of the new event to everyone | same calls (push to a fake in tests; no VAPID keys outside DEV/PROD) |
-| Edit | `UpdateEventAsync` (or `UpdateEventWithImageAsync` when a new image was cropped) | `UpdateEventAsync`; image, cancellation and answers kept |
-| Delete | `DeleteEventAsync`: deletes the image from R2 and **hard-deletes** the row; the database cascades enrollments, trophies, video rows, repertoire, discussion and contacts (video files stay in R2) | same call, behind a confirm modal naming the event and what goes with it |
-| Delete with NERBA orders | FK `RESTRICT`: unhandled error | refused, `409` "tem encomendas NERBA" (1 real event has orders) |
-| Image | optional; picked file ≤10 MB, cropped 3:2 to WebP; stored at `images/{env}/events/{name}_{timestamp}.webp`; replacing deletes the old object; no remove | see below (012A) |
-| Cancel / reactivate | separate actions | see below (012A) |
+| Who | What |
+| --- | --- |
+| Visitor | Public agenda only. No descriptions, counts, repertoire, enrollments. |
+| Any signed-in member | Member view, Quem vai, own enrollment, statistics. |
+| Active member on `/pending-actions` | First answer to own unanswered events (see Pending actions). |
+| Mod and above; members with Leitão category (049) | Contacts list (`/events/{id}/contacts`): read, record and reset calls. |
+| Mod, Admin, Owner | Create and edit an event, fields and image (`EventsAuthorization.CanEdit`, `canEdit` in the agenda DTO; the DTO also carries the type list). |
+| Admin, Owner | Delete, cancel / reactivate, notices, prizes, videos, repertoire, add or remove anyone's enrollment, pin and lock discussion posts. |
+| Owner only | Delete anyone's discussion post or comment. Admin does not. |
+| Current Ensaiador or Magister (position, not role; 075) | Repertoire of an upcoming, not cancelled event (`EventDetailDto.CanManageRepertoire`). Nothing else. |
 
-## Image, cancel / reactivate, notices (Admin/Owner, 012A) - audited against the old page
+Mod gets 403 for delete, prizes, videos, repertoire and enrollments.
 
-| | Old Blazor `/member/events` | React now |
-| --- | --- | --- |
-| Who | `IsInRole("Admin")`, buttons hidden only | Admin or Owner, enforced in `EventAdminService` (401 visitor, 403 Member/Mod); antiforgery on every write |
-| Image | crop 3:2 → WebP 0.85 (source ≤10 MB); saved with the event, or on create; old image deleted on replace | form section **Imagem**: pick (image, ≤10 MB), crop 3:2 (the Music `Cropper`, now with a ratio) → WebP, JPEG where the browser cannot encode WebP; preview before saving. Uploaded after the details save (`POST /{id}/image` → existing `SetEventImageAsync`: same key convention, old image deleted). Server: WebP/JPEG/PNG by type **and** first bytes, ≤5 MB. If only the image fails, the dialog stays open as an edit of the saved event, so a retry never creates it twice |
-| Remove image | not offered | new: **Remover imagem** → `DELETE /{id}/image` (`RemoveEventImageAsync`: deletes what this environment owns, then clears `ImageUrl`) |
-| Cancel | upcoming, not cancelled; reason required; **deletes every enrollment**; optional cancellation email to confirmed + subscribed members | same rules, now server-side (past or already cancelled: 409); reason ≤1000; the modal says inscrições are deleted; the email opt-in shows its count; an email failure never undoes the cancellation (shown as a warning) |
-| Reactivate | one click, no confirm, no notice; enrollments not restored | confirm modal saying exactly that; cancelled upcoming events only |
-| Email notice | upcoming, not cancelled; "Nova atuação" or "Lembrete" template; confirmed + subscribed members; the email service's per-event rate limit | same; the rate-limit text reaches the modal |
-| Push notice | message ≤500 (title = event name); active push subscribers, optionally Leitões and Caloiros only; audited `PushNotificationSent` | same, same audit |
-| Before sending | recipient names listed | counts only (`GET /{id}/notices`), then **Enviar…** → "Enviar a N membros? Sim, enviar"; any change goes back a step |
-| Cancelled events | badge; no answers | unchanged: `Cancelada` on card and page, reason for members; answers 409 |
+## Answering
 
-Emails link to `/events`, as before. Sends run inside the request, as in the Blazor circuit. Tests replace
-email, push and storage with recording fakes: nothing is sent or written to R2.
+- Any signed-in member answers for their own row only.
+- Open (not cancelled, last day not passed): Vou / Não vou, an instrument from their own instruments (primary preselected; a Leitão with none gets every instrument), an optional note.
+  A "Não vou" answer stores no instrument.
+- Past: only someone who went may withdraw (`DELETE /api/events/{id}/enrollment`). Cancelled: nothing.
+- Writes go through `IEnrollmentService`, so push notifications, the category snapshot and the activity status update still run.
+- Editing someone else's answer is not offered. Admin/Owner add and remove through the manager (see Participants).
 
-## Prizes (Admin/Owner, 012B) - audited against the old page
+## Agenda and event page
 
-The `Trophies` table: `Id`, `Name` (required, ≤200), `EventId` (FK, cascade on event delete) and the
-audit columns (`CreatedAt/By`, `UpdatedAt/By`, filled by the context). No type, order or category column:
-a prize is a name on one event. Writes go through the existing `TrophyService`; no storage, email or push.
+- **Agenda:** upcoming date cards (the whole card opens the event). Members get a quick-reply pill ("Responder", or "Vais" / "Não vais"
+  once answered) and the confirmed count. Admin/Owner get edit and delete on every card and archive row, **aviso** (not on cancelled dates),
+  **cancelar / reativar** on upcoming cards, and **Adicionar atuação** in the header. Header also has **Prémios**, and for members **Onde estiveste**
+  and **Estatísticas**. Archive by season, with search (name, place; description for members) and type and "Só com vídeos" filters kept in the URL.
+  Upcoming dates are never hidden by the season filter; filters apply to the archive.
+- **Event page:** back link; **Prémios** (when the event has prizes, or for Admin/Owner on any past festival); hero with image and facts;
+  cancellation notice; about; Repertório; **Quem vai / Quem foi**; Vídeos. Members get a side panel (first on a phone) with their answer and
+  "Responder", the counts, and links to Quem vai, Quem foi and the discussion. Admin/Owner get **Enviar aviso** and **Cancelar atuação / Reativar** in the top bar (upcoming only).
+- **Quem vai / Quem foi:** avatar tiles (round photo, nickname, category, instrument, note in small italics). Members going first, then Leitões,
+  then "Não vão / Não foram" folded.
+- **Modals:** the shared native `<dialog>` (`Dialog.tsx`, also used by Music): focus stays inside, Esc closes. The answer modal is two large choices,
+  the instrument when going, a folded note, Cancelar / Guardar. The page or card refreshes in place after saving.
 
-| | Old Blazor `/member/events` | React now |
-| --- | --- | --- |
-| Who | buttons inside `AuthorizeView Roles="Admin,Owner"`; the service itself checked nothing | Admin or Owner, enforced in `EventAdminService` (401 visitor, 403 Member/Mod); antiforgery on every write |
-| Where | a prizes button on **past Festival** cards → per-event modal with Adicionar / Editar / Eliminar (members saw it read-only) | the event page's **Prémios** modal: Admin/Owner get the event's prizes with rename and delete in place, and an add field on a past festival (`CanManagePrizes`); the button also shows for them on a past festival with no prize yet |
-| Add | past festivals only (the only cards with the button); name not trimmed; errors swallowed | past festivals only, now server-side (409 otherwise; a festival is past once its last day is over); name trimmed, required, ≤200, shown as a field error |
-| Edit / delete | rename (name only); hard delete after a confirm | same; an inline confirm; a prize id only counts under its own event; existing prizes stay editable on any event |
-| Order | by name | by name (current culture), then id, everywhere |
-| Read | everyone, per event; members' "Prémios por Evento" statistics | unchanged: names in every summary (visitors included), history modal on the agenda and the event page |
+## Create, edit, delete
 
-Every write answers the event's prizes; the page refreshes behind, so a first prize shows the Prémios
-button and the history, and deleting the last one removes it for everyone but Admin/Owner (who keep the
-button on a past festival to add again). Duplicate names are allowed, as before.
+- Fields: name, date and time (time default 19:00) or a date range without time, location, type, description, optional image.
+- Rules: name and location required, ≤200; description ≤2000; end not before start. The server returns field errors.
+- Create: `POST /api/events`, then push broadcast of the new event to subscribers.
+- Edit: `PUT /api/events/{id}`. Image, cancellation and answers are kept.
+- Delete: hard delete behind a confirm modal that names the event and what goes with it. Refused with `409 events:in-use` when NERBA orders exist (FK restrict).
 
-## Videos (Admin/Owner, 012C) - audited against the old page
+## Image, cancel, reactivate, notices
 
-`EventVideos`: `EventId`, `Url` (≤2048, the public R2 URL), `Title` (≤200, optional), `MimeType` (≤100),
-`SizeBytes`, `SortOrder`, `CreatedByUserId`, audit columns; FK cascade on event delete. No thumbnail
-column. Storage: `IEventVideoStorageService`, key `events/{env}/videos/{eventId}_{timestamp}_{file}`,
-public-read; delete only removes objects this environment owns (a DEV copy never deletes from the
-production bucket) and a storage failure is logged, the row still goes.
+- **Image:** pick (≤10 MB), crop 3:2 to WebP (JPEG where the browser cannot encode WebP), preview, then upload after the details save
+  (`POST /api/events/{id}/image`). Key convention `images/{env}/events/{name}_{timestamp}.webp`; replacing deletes the old object.
+  Server accepts WebP, JPEG or PNG by type and first bytes, ≤5 MB. If only the image fails, the dialog stays open as an edit of the saved event,
+  so a retry never creates the event twice. **Remover imagem** calls `DELETE /api/events/{id}/image`, which deletes what this environment owns, then clears `ImageUrl`.
+- **Cancel:** upcoming, not already cancelled; reason required, ≤1000. Deletes every enrollment. Optional email to confirmed and subscribed members.
+  Past or already cancelled: `409`. The modal says enrollments are deleted; the email opt-in shows its count. An email failure never undoes the cancellation; it returns a warning.
+- **Reactivate:** cancelled upcoming events only. Confirm modal says enrollments are not restored.
+- **Email notice:** upcoming, not cancelled; "Nova atuação" or "Lembrete" template; confirmed and subscribed members; the email service's per-event rate limit.
+  Emails link to `/events`. Sends run inside the request.
+- **Push notice:** message ≤500, title = event name; active push subscribers, optionally Leitões and Caloiros only; audited as `PushNotificationSent`.
+- Counts come first (`GET /api/events/{id}/notices`), then **Enviar…** → "Enviar a N membros? Sim, enviar". Any change goes back a step.
 
-| | Old Blazor `/member/events` | React now |
-| --- | --- | --- |
-| Who | **upload: any signed-in member**; rename / delete: the uploader or Admin/Owner; reorder: Admin/Owner (drag-and-drop) | **Admin or Owner** for all of it, enforced in `EventAdminService` (401 visitor, 403 Member/Mod); antiforgery on every write. Members no longer upload (this task's rule); see Changed on purpose |
-| Where | videos button on past cards → modal (upload, list, rename, delete, drag) | event page: **Gerir vídeos** in the Vídeos section (shown to Admin/Owner on a past event, or on any event that has videos) → modal |
-| Upload | past events (only those cards had the button); `video/*`, ≤100 MB, title required; `EventService.AddVideoAsync` (storage key above, next sort position, push to every other member); errors swallowed | same rules, now server-side: past event (409 otherwise), a `video/*` type or a known extension (.mp4 .mov .m4v .webm .3gp .mkv .avi), 1 B-100 MB, title required ≤200; same `AddVideoAsync`, so the same key, position and push. A storage failure answers 500 and leaves no row |
-| Rename | title; blank clears it | same (`UpdateVideoTitleAsync`) |
-| Reorder | drag-and-drop | Subir / Descer buttons; the server takes the whole order once (`UpdateVideoOrderAsync`) and refuses a stale or partial one |
-| Delete | storage then row (`DeleteVideoAsync`), no confirm | same call, inline confirm |
-| Watch | everyone; plays audited | unchanged: the event page player, `POST /api/events/videos/{id}/plays` |
+## Prizes
 
-Every write answers the event's videos (id and title only); the page refreshes behind, so a first video
-shows the section and deleting the last one leaves Admin/Owner an empty state (visitors no section).
-The upload is one request with a spinner ("A enviar…"); no byte progress.
+- `Trophies`: a prize is a name on one event (no type, order or category column).
+- Add: past festivals only (a festival is past once its last day is over), `409` otherwise. Name trimmed, required, ≤200.
+- Edit and delete: a prize id counts only under its own event. Existing prizes stay editable on any event. Delete asks inline.
+- Duplicate names are allowed.
+- Order: by name (current culture), then id.
+- Read: names in every summary, visitors included. The Prémios modal shows the history. Festivals without prizes are left out.
+- Every write returns the event's prizes; the page refreshes, so deleting the last prize removes the button for everyone except Admin/Owner.
 
-## Repertoire (Admin/Owner, 012D) - audited against the old page
+## Videos
 
-`EventRepertoires`: `EventId`, `SongId` (FKs, cascade), `DisplayOrder` (1-1000, per day), `RepertoireDate`
-(date only), audit columns. Indexes: (EventId, DisplayOrder) and a **unique (EventId, SongId)**, so a song
-can appear once per event, whichever day. Songs come from Music (`Songs` → `Albums`); no lyrics or audio
-in the repertoire, titles only. No song is created here.
+- Admin and Owner only: upload, rename, reorder, delete. Members can watch. Plays are audited (`POST /api/events/videos/{id}/plays`).
+- Upload: past events only (`409` otherwise). Type `video/*` or extension `.mp4 .mov .m4v .webm .3gp .mkv .avi`. 1 B to 100 MB. Title required, ≤200.
+  Storage key `events/{env}/videos/{eventId}_{timestamp}_{file}`, public-read, through `IEventVideoStorageService`. Next sort position. Push to every other member.
+  A storage failure answers `500` and leaves no row. One request with a spinner; no byte progress.
+- Rename: blank clears the title.
+- Reorder: Subir / Descer buttons. The server takes the whole order once (`UpdateVideoOrderAsync`) and refuses a stale or partial one.
+- Delete: stored object first, then row. Only objects this environment owns are deleted, so a DEV copy never touches the production bucket.
+  A storage failure is logged; the row still goes.
+- Where: Vídeos section on the event page. Admin/Owner see **Gerir vídeos** on a past event, or on any event that has videos.
 
-| | Old Blazor modal (`RepertoireModal`, from `/member/events`) | React now |
-| --- | --- | --- |
-| Who | everyone read it; add / remove / reorder / clear a day behind `IsAdmin` (= Admin or Owner) in the UI only | Admin or Owner, enforced in `EventRepertoireAdminService` (401 visitor, 403 Member/Mod); antiforgery on every write |
-| Where | repertoire button on every card → modal | event page: **Gerir repertório** in the Repertório section (any event; the section shows for Admin/Owner even when empty) → modal |
-| Days | tabs: the days that have songs, or the event's days when none has | tabs: the event's days plus any other day that already has songs (so a multi-day event's empty days can be filled) |
-| Add | a select of every song (all albums, de-duplicated by title), minus the day's songs; appended after the day's last (max + 1); a song already on another day hit the unique index and failed silently | a title search (accents and case ignored, prefix first, 20 at a time) of the songs Music shows the caller (the Owner every album; others not exclusive albums they are not listed on), minus every song already in the event or with the same title (case and accents ignored; the old select listed each title once); appended the same way; a duplicate is refused up front with a field error |
-| Reorder | drag-and-drop (per day) | Subir / Descer; the server takes the day's whole order (`UpdateRepertoireOrderAsync`) and refuses a stale or partial one |
-| Remove | one song; clear a day (confirm) | same (`RemoveSongFromRepertoireAsync`, `RemoveRepertoireDayAsync`); clearing asks first |
-| Read | members (the modal) | unchanged: the members' Repertório section, titles per day; visitors none |
+## Repertoire
 
-Every write answers the whole repertoire; the page refreshes behind, so a first song shows the section to
-members and clearing the last leaves them none (Admin/Owner keep an empty state with the button).
+- Admin/Owner manage any event. The current Ensaiador or Magister manages an upcoming, not cancelled one (`CanManageRepertoire`).
+  `?repertoire=1` opens the editor.
+- Members see the Repertório section (titles per day). Visitors see none.
+- Tabs: the event's days, plus any other day that already has songs, so empty days of a multi-day event can be filled.
+- Song picker: `GET /api/events/{id}/repertoire/songs?q=`. Title search, accents and case ignored, prefix matches first, 20 at a time.
+  Offers the songs Music shows the caller (the Owner sees every album; others do not see exclusive albums they are not listed on).
+  Excludes songs already in the event or with the same title. A duplicate is refused with a field error.
+- Add: appended after the day's last song. Remove one song, or clear a day (confirm).
+- Reorder: Subir / Descer. The server takes the day's whole order (`UpdateRepertoireOrderAsync`) and refuses a stale or partial one.
+- Clearing the last song leaves Admin/Owner an empty state with the button; members see no section.
+- No song is created here, and no lyrics or audio.
 
-## Participants and "Onde estiveste" (012E, 044) - audited against the old pages
+## Participants and "Onde estiveste"
 
-`Enrollments`: `UserId`, `EventId` (unique together), `WillAttend`, `Instrument` (enum, optional),
-`OtherInstruments` (text), `Notes` (text), `EnrolledAt`, `CategoryAtEvent` (snapshot), audit columns. Events
-use *enrollment* / *inscrição*; *attendance* / *presença* stays with rehearsals.
+- Admin/Owner: **Gerir inscrições** → **Inscrever um membro**. Search by nickname or name (accents ignored, 20 at a time) over members who have not answered and are not expelled.
+  Added as going with their primary instrument, no notification. Refused: a duplicate, a member who already answered, a cancelled event.
+  The picker sends user ids to Admin/Owner only.
+- Remove any answer (inline confirm). The manager sends no notification.
+- Members change their own answer in the answer modal.
+- **Onde estiveste** (member modal on `/events`): last 10 (or all) past, not cancelled events, Foste / Não foste, participation share.
+  Built on `GET /api/events` (own answers only). Its "Próximas datas" answers stay on the agenda and event page.
 
-| | Old Blazor | React now |
-| --- | --- | --- |
-| Everyone's answers | `/events/{id}/enrollments` (any member): going members / Leitões / not going, search, instrument counters; also a modal in `/member/events` | the event page's "Quem vai / Quem foi" for members (unchanged); visitors none; the Blazor page redirects there |
-| Add a member | Admin/Owner: name search over **every** user not answered yet; added as going with their primary instrument, `skipNotification`; an existing answer was silently overwritten to going | Admin/Owner (server-side) **Gerir inscrições** → "Inscrever um membro": search by nickname or name (accents ignored, 20 at a time) over members who have not answered and are **not expelled**; same going + primary instrument + no notification (`IEnrollmentService`); a duplicate is refused; a cancelled event takes none (the answer modal already refused them) |
-| Remove an answer | Admin/Owner any; a member their own (trash on the list) | Admin/Owner any, in the manager (inline confirm); a member changes their own in the answer modal (withdrawing from a past event they went to, as in 011) |
-| Edit someone else's answer | not offered | not offered |
-| "Minhas Inscrições" | `/member/events` modal: the last 10 (or all) past, not cancelled events, Foi / Não foi (no answer = Não foi), participation share, search | the "Onde estiveste" modal on `/events` (044; was the page `/events/my-enrollments`): the last 10 (or all) past, not cancelled events, Foste / Não foste, the share; built on `GET /api/events` (own answers only). The "Próximas datas" answers and the search of the old page went with it (answering stays on the agenda and the event page) |
+## Statistics
 
-The picker sends user ids and display fields to Admin/Owner only; no email or phone anywhere. No
-notification is sent by the manager (as before). Contacts (`/events/{id}/contacts`, Mod and above; Leitões too since 049) lost its
-only link with the Blazor participants page and is linked from the event page's member panel instead.
+- `GET /api/events/stats?from=&to=`, any signed-in member, modal **Estatísticas**. Default range: current season (1 Sep to 31 Aug), by the event's first day.
+- Only "vou" answers count, split into already done (before today) and still to come.
+- Share is over the range's past, not cancelled events.
+- Category filter: Tunos (incl. Veteranos and Tunossauros) / Caloiros / Leitões. Search by name.
+- Names, avatar and categories only. No user ids, emails or notes. `400` when `to` is before `from`.
 
-## Retiring `/member/events` (012F) - audit of what it still had
+## Discussion (members)
 
-| Feature | Where (before 012F) | React already | Action |
-| --- | --- | --- | --- |
-| Agenda lists, fiscal-year / type / "com vídeos" filters, search, pagination | `/member/events` | yes, `/events` (season, type, "Só com vídeos", search) | deleted |
-| Create / edit / delete (details-only edit, "Adicionar Atuação") | page header, cards, mobile nav | yes (011.5) | deleted |
-| "Criar atuação" from an approved request (`/requests` → `?openModal=true&...`) | create modal, prefilled | no | **moved**: Requests opens `/events` with the same query; the React form reads it (Admin/Owner) |
-| Answer buttons (Vou / Não vou / remover) | cards → `/events/{id}?respond=1` | yes (011) | deleted |
-| Details modal (read-only) | cards | yes, the event page | deleted |
-| Repertoire modal (read-only, `RepertoireModal`) | cards | yes, Repertório section (012D) | deleted, component too |
-| Videos modal (read-only player) | past cards | yes, Vídeos section (012C) | deleted |
-| "Prémios" statistics (prizes per festival) | header button, mobile nav | yes, the agenda's Prémios modal (011) | deleted (`IEventStatisticsService`, `TrophyStatsByEvent`) |
-| "Estatísticas de inscrições" (members) | header button (`EnrollmentStatisticsButton`) | no | **moved**: agenda "Estatísticas" modal (members), `GET /api/events/stats` |
-| Discussion link | cards → `/events/{id}/discussion` | yes, event page member panel | deleted (bridge kept) |
-| Contacts | not on this page | event page (Mod+ and Leitões, 012E / 049) | bridge kept |
-| "Área de membros" (agenda header), "Abrir a área de membros" (`/profile`) | React links to it | - | replaced: agenda → **Estatísticas**; profile → **Agenda de atuações**, plus **Terminar sessão** |
+- One discussion per event. Posts: title optional (a blank title takes the first 60 characters of the text; 3-120 when given), body ≤5000,
+  `LastActivityAt`, `IsEdited`, `IsPinned`, `IsLocked`, `IsDeleted` (soft delete), `MentionsJson`. Comments: flat under a post, ≤2000, soft delete.
+- Lifts: a driver offers seats on a post (`VehicleDescription` ≤200, `TotalSeats` 2-20, `Notes` ≤500) with passengers.
+- Any member reads, posts, comments and offers a lift. Edit: author (post, comment, own lift). Delete: author, or Owner for anyone's.
+- Pin and lock: Admin or Owner. Locked post: no new comments (`400` with the reason).
+- Seat passengers: the driver or Admin/Owner. A passenger may leave. Expelled members are not offered.
+- Order: pinned first, then latest activity. Comments oldest first.
+- Mentions `@username` resolve and push (`MentionService`). Highlighted in the text; no autocomplete.
+- Notifications: new post → push to members going to an upcoming event; comment → post author and earlier commenters; mentions.
+- Not offered: post media, search, pagination. Today a discussion holds at most a few posts.
+- Every write answers the whole conversation.
+- Code: `Services/EventDiscussionBoardService.cs`.
 
-Statistics, as the old modal: any signed-in member; the range defaults to the current season (1 Sep - 31 Aug)
-by the event's first day; only "vou" answers count, split into already done (before today) and still to come;
-the share is over the range's past, not cancelled events; category filter Tunos (incl. Veteranos and
-Tunossauros) / Caloiros / Leitões; search by name. Names, avatar and categories only - no user ids, emails or
-notes. Read-only, no schema change. Not kept: pagination (a grid of ~100 tiles) and the explicit "Carregar"
-button (it reloads when both dates are set).
+## Contacts
 
-Removed as dead with it: `MemberEvents.razor` (+ its CSS and bUnit tests), `RepertoireModal`,
-`EnrollmentStatisticsButton` (+ tests), `IEventStatisticsService`, `IEventFilterService`, `IEventUrlService`,
-`IEnrollmentStatisticsService` and their implementations (no other caller). `EventCard` stays (the dead
-`AboutUsContent` still references it).
+- Read and write: Mod and above, and any Leitão (category read from the database). Server-side, antiforgery on every write.
+- Listed: every member who is not expelled. Order: contacted newest first, then by name.
+- Record a call: `WillAttend` (yes, no, or undecided) and notes ≤500. An answer creates the member's enrollment (primary instrument, no notification) or flips an existing one.
+- Repor clears the call and deletes the member's enrollment. The confirm says so.
+- Phone shown is the member's `PhoneNumber`. Never public. Linked from the event page's member panel.
 
-## Discussion (members, 013) - audited against the old Blazor page
+## Pending actions
 
-Tables: `Discussions` (one per event, `EventId`), `Posts` (`Title` required 3-120, `Body` required ≥3 and no
-length limit in the table, `LastActivityAt`, `IsEdited`, `IsPinned`, `IsLocked`, `IsDeleted` soft delete,
-`MentionsJson` ≤2000), `Comments` (flat under a post: `Body` ≥1, `IsEdited`, `IsDeleted`, `MentionsJson`),
-`Transportations` (a lift offer on a post: `VehicleDescription` ≤200, `TotalSeats` 2-20, `Notes` ≤500) with
-`TransportationPassengers`, and `PostMedia` / `CommentImages`. Event-only (other modules have their own comment
-tables). Real data (aggregates): 9 discussions, 11 posts (3 deleted, 1 pinned, 0 locked), 11 comments, 5 lifts
-with 27 passengers, 0 media, 0 comment images; longest post 109 characters. No likes, reactions or replies
-beyond one level of comments exist, so none are invented.
+`/pending-actions` answers a member's own unanswered events in place ([react-pending-actions](react-pending-actions.md)), through
+`IEnrollmentService.CreateEnrollmentAsync`, create-only. Members may give a **first** answer to a past event of the current fiscal year
+(Fui / Não fui). The event page still lets only someone who went withdraw. A "Fui" is the same enrollment an Admin adds in "Quem foi":
+it counts as a performance and in XP at once, and the activity status is reconciled. Existing answers are never changed from there.
 
-| | Old Blazor `/events/{id}/discussion` | React now |
-| --- | --- | --- |
-| Who | `[Authorize]` page; every rule below only **hidden in the UI** (the services checked nothing) | the same rules **enforced server-side** in `EventDiscussionBoardService`; antiforgery on every write |
-| Read, post, comment, offer a lift | any signed-in member | same |
-| Edit | the author (post, comment, own lift) | same |
-| Delete | the author; **the Owner** anyone's (Admin did not) | same (soft delete, as before) |
-| Pin / lock | Admin (Owner only through Admin) | Admin or Owner |
-| Seat passengers | the driver or Admin; a passenger may leave | the driver or Admin/Owner; a passenger may leave; expelled members not offered |
-| Locked post | no new comments | same (400 with the reason) |
-| Order | pinned first, then latest activity; comments oldest first | same |
-| Title | required (3-120) in a modal | optional: a blank title is taken from the start of the text (≤60 characters) and not shown twice |
-| Limits | none on the text | post ≤5000, comment ≤2000 (longest real post: 109) |
-| Mentions | `@username` resolved and pushed (`MentionService`) | same calls; highlighted in the text; no autocomplete |
-| Notifications | new post → push to members going to an upcoming event; comment → post author and earlier commenters; mentions | unchanged (the same `PostService` / `CommentService`); tests use a push fake |
-| Media | video upload on a post (0 used) | not offered (would write to R2); existing media would not show (there is none) |
-| Search, pagination | search box, 20 per page | none: ≤6 posts per event today (`ponytail` note in the service) |
-| Past / cancelled events | no difference | no difference |
-| Audit | none | none |
+## Calendário: "Adicionar ao Google Calendar"
 
-UX: one feed, not a table. A composer always on top ("Escreve uma nota para a atuação…", Publicar, Ctrl/⌘+Enter)
-with a **Mensagem / Oferecer boleia** toggle; avatar-led post cards (nickname, category badge, "há 5 min" /
-"ontem, 21:10" / "19 de março, 18:39", "editado"), pinned posts outlined, lifts as a card with a seats pill and
-passenger chips; comments threaded under each post with an inline reply box; actions are quiet text buttons
-and deletes confirm inline. Empty state: "Ainda não há mensagens nesta atuação. Deixa uma nota, combina
-detalhes ou partilha uma dúvida." Every write answers the whole conversation (no optimistic append needed).
+Shared by events, rehearsals and `/pending-actions`. `portal/src/calendar.ts` builds the link; `CalendarOffer.tsx` shows it.
 
-## Contacts (Mod and above, 013; Leitões, 049) - audited against the old Blazor page
-
-`EventContacts`: `EventId`, `UserId` (a member, not an outside contact), `IsContacted`, `WillAttend` (bool?),
-`Notes` ≤500, `ContactedAt`, `ContactedBy`. 0 rows today. The phone shown is the member's `PhoneNumber`. Never public.
-
-| | Old Blazor `/events/{id}/contacts` | React now |
-| --- | --- | --- |
-| Read | **any signed-in member** (every user's phone number) | **Mod and above only** (`CanTrackContacts`, as the event page's link already was) - changed on purpose; since 049 also any Leitão (`CanTrackContactsAsync`, category from the database) |
-| Write | Mod and above (UI only) | Mod and above and Leitões (049), server-side; antiforgery |
-| Listed | every user | every member who is not expelled - changed on purpose |
-| Record a call | Vai / Não vai / Indeciso + notes; an answer creates the member's enrollment (primary instrument, no notification) or flips an existing one | same calls (`IEventContactService`, `IEnrollmentService`) |
-| Repor | clears the call **and deletes the member's enrollment** | same, and the confirm says so |
-| Order | contacted newest first; the rest by name | same |
+- **When:** right after the server saves a member's **new** "vou" to an upcoming, not cancelled activity. Also on the event dialog, the rehearsal dialog,
+  and a "Vou" under Próximas on `/pending-actions`. Never after "não", a past "Fui", a failed save, a page load, or re-saving a "vou" that was already a "vou".
+- **Later:** an upcoming detail page shows "Adicionar ao calendário" to whoever is going, so "Agora não" is reversible.
+- **Copy:** events "Inscrição guardada."; rehearsals "Presença registada, pendente de aprovação." Help text: "Confirma em Guardar no Google Calendar.
+  Alterações ou cancelamentos na RTUB não atualizam esta cópia automaticamente." RTUB never says the item was added; it cannot see Google.
+- **Link:** Google's template `https://calendar.google.com/calendar/render?action=TEMPLATE` with `text`, `dates`, `ctz=Europe/Lisbon`, `location`,
+  and `details` = the item's RTUB page plus the independent-copy note. The RTUB page base comes from `Calendar:PublicOrigin`, sent to signed-in members by `/api/account/me`.
+  Never `location.origin` or the request Host. Not configured, or not an absolute https origin, means no RTUB link.
+  No notes, participants, descriptions, tokens or user data. No OAuth, no Calendar API; RTUB writes nothing to Google.
+- **Times:** RTUB's Portugal wall clock. Google applies the zone, so summer and winter time and devices in other zones are right.
+- **Dates:** rehearsal `start`–`end`; an end not after the start ends the next day (21:00 to 00:00). An event with a time and no end gets a
+  **suggested** duration (1 h to 4 h, default 2 h), labelled as a suggestion. An event with no time, or spanning several days, is an all-day entry through its last day (end exclusive).
+- **Opening:** only from the member's click (`target=_blank`, `noopener noreferrer`). "Copiar o link" (or "abrir o link" when copying fails) is the fallback for installed apps that block it.
+  Closing, Esc or "Agora não" leaves the answer saved. Nothing is retried or re-sent.
+- **Tests:** `npm run check:calendar` (in `src/RTUB.Web`) and `tests/RTUB.Web.Tests/ReactPortal/CalendarOfferPortalTests.cs`.
 
 ## API
 
+Writes need `X-CSRF-TOKEN`. Outcomes: `400` with `errors.<field>` for bad input, `409` for wrong state, `404` for ids outside the event.
+
 | Endpoint | Who | Notes |
 | --- | --- | --- |
-| `GET /api/public/events/upcoming` | anyone | Home preview (010), now from the same service; next 3, no ids. |
+| `GET /api/public/events/upcoming` | anyone | Home preview: next 3, no ids. |
 | `GET /api/events` | anyone | `{ isMember, canManage, upcoming, past }`; `no-store`. |
-| `GET /api/events/stats?from=&to=` | member | "Estatísticas de inscrições" (012F): `{ from, to, pastEvents, members: [{ name, fullName, avatarUrl, categories, groups, went, going }] }`; default current season; 400 `errors.to` when `to` < `from`; 401 signed out. |
-| `GET /api/events/{id}/discussion` | member | `{ canModerate, posts: [{ id, title, body, author{name, fullName, avatarUrl, badge}, createdAt, lastActivityAt, edited, pinned, locked, mine, canEdit, canDelete, canComment, comments[], transport{vehicle, totalSeats, notes, canManage, passengers[{id, member, mine, canRemove}]} }] }` (013); no user id, email or phone. |
-| `POST /api/events/{id}/discussion/posts`, `PUT`/`DELETE …/posts/{postId}` | member (edit: author; delete: author or Owner) | `{ title, body }`; every write answers the conversation; 400 field errors. |
+| `GET /api/events/stats?from=&to=` | member | Statistics (see above). |
+| `GET /api/events/{id}` | anyone | One event with videos; `member` section for members; `404` if missing or members-only for a visitor. |
+| `GET /api/events/{id}/enrollment` | member | `401` signed out, `404` missing. |
+| `PUT /api/events/{id}/enrollment` | member | `{ willAttend, instrument, notes }`; `409` closed. |
+| `DELETE /api/events/{id}/enrollment` | member | Withdraw from a past event; `409` otherwise. |
+| `POST /api/events/videos/{id}/plays` | anyone | Audits a play. |
+| `GET /api/events/{id}/discussion` | member | `{ canModerate, posts: [...] }`; no user ids, emails or phones. |
+| `POST /api/events/{id}/discussion/posts`; `PUT`/`DELETE …/posts/{postId}` | member | `{ title, body }`; edit by author; delete by author or Owner. Answers the conversation. |
 | `PUT /api/events/{id}/discussion/posts/{postId}/flags` | Admin/Owner | `{ pinned, locked }`. |
-| `POST …/posts/{postId}/comments`, `PUT`/`DELETE …/discussion/comments/{commentId}` | member (author; delete also Owner) | `{ body }`; 400 on a locked post. |
-| `POST /api/events/{id}/discussion/transport`, `PUT …/posts/{postId}/transport` | member (edit: the driver) | `{ vehicle, seats, notes }`; seats 2-20 and not below the passengers. |
-| `GET …/posts/{postId}/passengers/members?q=`, `POST …/passengers`, `DELETE …/passengers/{passengerId}` | the driver or Admin/Owner (a passenger may remove themselves) | user ids only to those who may seat people. |
-| `GET /api/events/{id}/contacts`, `PUT`/`DELETE /api/events/{id}/contacts/{userId}` | Mod and above, Leitões (049) | `{ contacted, notContacted }` rows with phone; `PUT { willAttend, notes }` (≤500) records the call and syncs the enrollment; `DELETE` resets (and removes the enrollment). |
-| `GET /api/events/{id}` | anyone | One event + videos; `member` section (reason, repertoire, Quem vai) for members; 404 if missing. |
-| `GET /api/events/{id}/enrollment` | member | 401 signed out, 404 missing. |
-| `PUT /api/events/{id}/enrollment` | member | `{ willAttend, instrument, notes }`; `X-CSRF-TOKEN`; 400 field errors, 409 closed. |
-| `DELETE /api/events/{id}/enrollment` | member | Withdraw from a past event; `X-CSRF-TOKEN`; 409 otherwise. |
-| `POST /api/events/videos/{id}/plays` | anyone | Audits a play (`EventVideo` / `Played`, as before); `X-CSRF-TOKEN`. |
-| `GET /api/events/{id}/edit` | Admin/Owner | The edit form's values; 401 / 403 otherwise. |
-| `POST /api/events` | Admin/Owner | `{ name, date, time, endDate, location, type, description }`; `X-CSRF-TOKEN`; `201` with the agenda card; 400 field errors; push broadcast. |
-| `PUT /api/events/{id}` | Admin/Owner | Same body; `X-CSRF-TOKEN`; `200` with the card. |
-| `DELETE /api/events/{id}` | Admin/Owner | `X-CSRF-TOKEN`; `204`; `409 events:in-use` with NERBA orders. |
-| `POST /api/events/{id}/image` | Admin/Owner | multipart `image` (WebP/JPEG/PNG, ≤5 MB); `X-CSRF-TOKEN`; `204`; 400 `errors.image`. |
-| `DELETE /api/events/{id}/image` | Admin/Owner | `X-CSRF-TOKEN`; `204`. |
-| `POST /api/events/{id}/cancel` | Admin/Owner | `{ reason, notifyByEmail }`; `X-CSRF-TOKEN`; `200 { sent, failed, warning }`; 400 `errors.reason`; 409 past or already cancelled. |
-| `POST /api/events/{id}/reactivate` | Admin/Owner | `X-CSRF-TOKEN`; `204`; 409 unless cancelled and upcoming. |
-| `GET /api/events/{id}/notices` | Admin/Owner | Audience counts only (email, push, push Leitões e Caloiros). |
-| `GET /api/events/{id}/prizes` | Admin/Owner | `[{ id, name }]` in display order (012B). |
-| `POST /api/events/{id}/prizes` | Admin/Owner | `{ name }`; `X-CSRF-TOKEN`; `200` the event's prizes; 400 `errors.name`; 409 unless a past festival. |
-| `PUT /api/events/{id}/prizes/{prizeId}` | Admin/Owner | `{ name }`; `X-CSRF-TOKEN`; `200` the prizes; 404 if the prize is not this event's. |
-| `DELETE /api/events/{id}/prizes/{prizeId}` | Admin/Owner | `X-CSRF-TOKEN`; `200` the prizes left; 404 as above. |
-| `GET /api/events/{id}/videos` | Admin/Owner | `[{ id, title }]` in play order (012C). |
-| `POST /api/events/{id}/videos` | Admin/Owner | multipart `file` (≤100 MB) + `title`; `X-CSRF-TOKEN`; `200` the videos; 400 `errors.file` / `errors.title`; 409 unless past. |
-| `PUT /api/events/{id}/videos/{videoId}` | Admin/Owner | `{ title }` (blank clears); `X-CSRF-TOKEN`; `200` the videos; 404 if not this event's. |
-| `POST /api/events/{id}/videos/reorder` | Admin/Owner | `{ videoIds }`, every id once; `X-CSRF-TOKEN`; `200`; 400 `errors.videoIds` when stale. |
-| `DELETE /api/events/{id}/videos/{videoId}` | Admin/Owner | `X-CSRF-TOKEN`; `200` the videos left (stored file deleted as before). |
-| `GET /api/events/{id}/repertoire` | Admin/Owner | `{ days: [{ date, items: [{ id, title }] }] }` (012D). |
-| `GET /api/events/{id}/repertoire/songs?q=` | Admin/Owner | Up to 20 `{ id, title, album }` the caller may add. |
-| `POST /api/events/{id}/repertoire` | Admin/Owner | `{ songId, date }`; `X-CSRF-TOKEN`; `200` the repertoire; 400 `errors.songId` (unknown, hidden or already in the event) / `errors.date`. |
-| `POST /api/events/{id}/repertoire/reorder` | Admin/Owner | `{ date, itemIds }`, the day's every row once; `X-CSRF-TOKEN`; 400 `errors.itemIds` when stale. |
-| `DELETE /api/events/{id}/repertoire/{itemId}` | Admin/Owner | `X-CSRF-TOKEN`; `200`; 404 if not this event's. |
-| `DELETE /api/events/{id}/repertoire/days/{date}` | Admin/Owner | Clears one day; `X-CSRF-TOKEN`; `200`. |
-| `GET /api/events/{id}/enrollments` | Admin/Owner | `{ canAdd, going, leitoes, notGoing }`, each `{ id, participant }` ("Quem vai" fields) (012E). |
-| `GET /api/events/{id}/enrollments/members?q=` | Admin/Owner | Up to 20 `{ id, name, fullName, avatarUrl }`: not answered, not expelled. |
-| `POST /api/events/{id}/enrollments` | Admin/Owner | `{ userId }`; going, primary instrument, no notification; `X-CSRF-TOKEN`; 400 `errors.userId`; 409 cancelled. |
-| `DELETE /api/events/{id}/enrollments/{enrollmentId}` | Admin/Owner | `X-CSRF-TOKEN`; `200` the list; 404 if not this event's. |
-| `POST /api/events/{id}/notices` | Admin/Owner | `{ channel: "email", kind: "new" or "reminder" }` or `{ channel: "push", message, onlyLeitoesAndCaloiros }`; `X-CSRF-TOKEN`; `200 { sent, failed, warning }`; 400 field errors (`notice` for an empty audience or the email rate limit); 409 past or cancelled. |
+| `POST …/posts/{postId}/comments`; `PUT`/`DELETE …/discussion/comments/{commentId}` | member | `{ body }`; `400` on a locked post. Delete also by Owner. |
+| `POST /api/events/{id}/discussion/transport`; `PUT …/posts/{postId}/transport` | member | `{ vehicle, seats, notes }`; edit by the driver. |
+| `GET …/posts/{postId}/passengers/members?q=`; `POST …/passengers`; `DELETE …/passengers/{passengerId}` | driver or Admin/Owner; a passenger may remove self | User ids only to people who may seat others. |
+| `GET /api/events/{id}/contacts`; `PUT`/`DELETE /api/events/{id}/contacts/{userId}` | Mod and above, Leitões | `PUT { willAttend, notes }` records the call and syncs the enrollment; `DELETE` resets it and removes the enrollment. |
+| `GET /api/events/{id}/edit` | Admin/Owner | Edit form values. |
+| `POST /api/events` | Admin/Owner | `{ name, date, time, endDate, location, type, description, membersOnly }`; `201` with the card; push broadcast. |
+| `PUT /api/events/{id}` | Admin/Owner | Same body; `200` with the card. |
+| `DELETE /api/events/{id}` | Admin/Owner | `204`; `409 events:in-use` with NERBA orders. |
+| `POST /api/events/{id}/image` | Admin/Owner | Multipart `image`; `204`. |
+| `DELETE /api/events/{id}/image` | Admin/Owner | `204`. |
+| `POST /api/events/{id}/cancel` | Admin/Owner | `{ reason, notifyByEmail }`; `200 { sent, failed, warning }`. |
+| `POST /api/events/{id}/reactivate` | Admin/Owner | `204`; `409` unless cancelled and upcoming. |
+| `GET /api/events/{id}/notices` | Admin/Owner | Audience counts only. |
+| `POST /api/events/{id}/notices` | Admin/Owner | `{ channel: "email", kind: "new" or "reminder" }` or `{ channel: "push", message, onlyLeitoesAndCaloiros }`; `200 { sent, failed, warning }`; `409` past or cancelled. |
+| `GET /api/events/{id}/prizes`; `POST`; `PUT /{prizeId}`; `DELETE /{prizeId}` | Admin/Owner | `[{ id, name }]`; writes answer the prizes. `409` unless a past festival on add. |
+| `GET /api/events/{id}/videos`; `POST` (multipart `file` + `title`); `PUT /{videoId}`; `POST /reorder` (`{ videoIds }`); `DELETE /{videoId}` | Admin/Owner | `POST` `409` unless past. Reorder `400` when stale. |
+| `GET /api/events/{id}/repertoire`; `GET …/songs?q=`; `POST` (`{ songId, date }`); `POST …/reorder` (`{ date, itemIds }`); `DELETE /{itemId}`; `DELETE /days/{date}` | Admin/Owner | Songs: up to 20 `{ id, title, album }`. |
+| `GET /api/events/{id}/enrollments` | Admin/Owner | `{ canAdd, going, leitoes, notGoing }`, each `{ id, participant }`. |
+| `GET /api/events/{id}/enrollments/members?q=` | Admin/Owner | Up to 20 members, not answered, not expelled. |
+| `POST /api/events/{id}/enrollments` | Admin/Owner | `{ userId }`; going, primary instrument, no notification; `409` cancelled. |
+| `DELETE /api/events/{id}/enrollments/{enrollmentId}` | Admin/Owner | `200` the list. |
 
-Order: upcoming by date then id, past newest first then id. A multi-day event stays upcoming until
-its last day. "Today" is the calendar date in Portugal (`PortugalTime.Today`, Europe/Lisbon via the injected
-`TimeProvider`), never the server's zone (Azure is UTC); stored event dates are local and are not converted. Seasons run September-August. Images and videos are absolute public R2 URLs
-(https or same-site only); no object key or credential is sent. The only uploads are the Admin/Owner event
-image (012A) and videos (012C), through the existing storage services.
-
-## UI
-
-- **Agenda:** upcoming date cards (the whole card opens the event); signed-in members get a quick-reply
-  pill on each open date ("Responder", or "Vais" / "Não vais" once answered) that opens the answer
-  modal in place, plus the confirmed count; no participant action on cards. Admin/Owner get small
-  edit / delete buttons on every card and archive row, plus **aviso** (bell, not on cancelled dates) and
-  **cancelar / reativar** on upcoming cards, and **Adicionar atuação** in the header; all are modals and
-  the list refreshes in place. Header: **Prémios** (modal with the prize
-  history), and for members **Onde estiveste** and **Estatísticas** (modal, 012F). Archive by season with search (name, place; description for
-  members), season, type and "Só com vídeos" filters kept in the URL.
-- **Event page:** back link and **Prémios** (top right, when the event won any - or, for Admin/Owner, on
-  any past festival: its prizes, editable by them, then the history) → hero with image, facts → cancellation notice → about → Repertório → **Quem vai / Quem foi**
-  → vídeos. Members get a side panel (first on a phone): their answer and "Responder" (the modal), the
-  counts, and links to Quem vai / Quem foi and the discussion. Admin/Owner get **Enviar aviso** and
-  **Cancelar atuação / Reativar** in the top bar (upcoming only). No link to the Blazor management pages.
-- **Quem vai / Quem foi:** avatar-led tiles (a large round photo, then nickname, category and
-  instrument, the note in small italics), members going, then Leitões, then "Não vão / Não foram"
-  folded.
-- **Modals:** the shared native `<dialog>` (`Dialog.tsx`, also used by Music): focus kept inside, Esc
-  closes. The answer modal is two large choices, the instrument when going, a folded note, Cancelar /
-  Guardar; the page or card refreshes in place after saving.
-
-## Changed on purpose
-
-- Upcoming dates are never hidden by the season filter (the old page defaulted to the current
-  fiscal year for both lists); filters apply to the archive.
-- Festivals without prizes are left out of "Prémios"; the old modal listed them with 0.
-- A "não vou" answer no longer stores an instrument (the old form could; nothing read it).
-- Visitors' search no longer matches descriptions (it was an oracle on member-only text).
-- 012C: only Admin/Owner upload, rename, reorder and delete event videos (members could upload and
-  manage their own on the old page). Existing videos keep their uploader; nothing was deleted.
-- 012D: the repertoire song picker follows Music's album rule (the old select listed every song, exclusive
-  albums included); a song already in the event on another day is refused with a message instead of
-  failing silently; a multi-day event's days are all offered.
-- 012E: the "Inscrever um membro" picker leaves out expelled members, refuses a member who already
-  answered (the old page overwrote the answer to going) and refuses cancelled events; a member no longer
-  deletes their own upcoming answer from a list (they change it in the answer modal).
-
-## Old Blazor UI
-
-- Retired from `/events`: the public page, its anonymous branches and the enrolment modal. The page
-  itself is `/member/events`; its "Vou / Não vou / remover" buttons open the React answer modal
-  (`/events/{id}?respond=1`).
-- Retired in the 011 follow-ups: the React answer page (`EventEnrollment.tsx`, now a modal), the
-  "Prémios" band (now a button + modal), and every link from the React event page to the Blazor
-  management (011.5).
-- Retired in 012F: `/member/events` itself (see Retiring `/member/events`).
-- Retired in 013: `Pages/Activities/EventDiscussion.razor` and `EventContacts.razor` (+ CSS), the shared
-  `PostCard`, `PostComposer` and `CommentItem` (only used there; `CommentComposer` stays for `/questions`),
-  `IEventDiscussionService`, `IEventAuthorizationService` and `TransportationService.GetAllMembersAsync`. No Blazor
-  component routes anything under `/events`.
-- History of the bridge, 012A-012E: its image picker and cropper, the cancel / reactivate buttons and the email and push notice modals
-  were removed in 012A (the shared `EventCard` shows those buttons only when a page wires them), so each
-  of these has one way to do it: the React agenda. Its edit form still saves details and still
-  announces a new event by push, as before. 012B removed its per-event prizes button and modal (add /
-  edit / delete): prizes are managed only in the React Prémios modal. 012C removed its video upload,
-  rename, delete and drag-and-drop reorder; its videos modal only lists and plays them. 012D made the
-  shared `RepertoireModal` (used only there) read-only: no add, remove, reorder or clear-day. 012E removed
-  its participants modal, its "Participantes" buttons and "Minhas Inscrições" (and the `MyEnrollmentsButton`
-  component), and retired the Blazor `/events/{id}/enrollments` page.
+Order: upcoming by date then id; past newest first then id. A multi-day event stays upcoming until its last day.
+"Today" is the calendar date in Portugal (`PortugalTime.Today`, Europe/Lisbon via the injected `TimeProvider`), never the server zone (Azure is UTC).
+Stored event dates are local and are not converted. Seasons run September to August. Images and videos are absolute public R2 URLs.
+No object key or credential is sent. The only uploads are the event image and videos, through the existing storage services.
 
 ## Follow-ups
 
-- Discussion: no post media upload, no mention autocomplete, no search/pagination (see the audit); add them if
-  members ask. Global CSS for the retired `PostCard` / `CommentItem` / mention dropdown is now unused.
-- The `/member/events` and old redirects are 302 while DEV is hybrid; make them 301 (or drop them) at the PROD
-  cutover.
-- Notices are sent inside the HTTP request, as the Blazor circuit did; a much larger audience would want
-  a background job.
-- Deleting an event leaves its video files in R2 (the rows go, as before).
-- Event images and videos are `PublicRead` objects: never listed beyond what visitors see, but
-  reachable by URL (same as Gallery). Private storage would need signed URLs.
-
-## As minhas ações pendentes (072)
-
-`/pending-actions` answers a member's own **unanswered** events in place (docs/react-pending-actions.md → Answers), through
-`IEnrollmentService.CreateEnrollmentAsync`, create-only. New on purpose: a member may now give a **first** answer to a
-past event of the current fiscal year (Fui / Não fui; the event page still only lets someone who went withdraw). A
-"Fui" is the same Enrollment an Admin adds in "Quem foi": it counts as a performance and in XP at once, and the member's
-activity status is reconciled. Answers already given are never changed from there.
-
-## Repertoire by the Ensaiador / Magister (075)
-
-`EventDetailDto.CanManageRepertoire`: Admin / Owner for any event, the current Ensaiador / Magister for an upcoming, not
-cancelled one; the event page's repertoire button follows it. `/events/{id}?repertoire=1` opens the editor once (from
-"As minhas ações pendentes" → Repertório).
-
-## Calendário: "Adicionar ao Google Calendar" (task 079, issue #260)
-
-Shared by events, rehearsals and `/pending-actions` (`portal/src/calendar.ts` builds the link, `CalendarOffer.tsx` shows it).
-
-- **When**: right after the server saved the member's **new** "vou" to an **upcoming**, not cancelled activity (event
-  dialog on `/events` and `/events/{id}`, rehearsal dialog on `/rehearsals` and `/rehearsals/{id}`, and a "Vou" under
-  Próximas on `/pending-actions`, which then reads the module's own answer to get the details). Never after a "não", a
-  past "Fui", a failed save, a page load, or editing a "vou" that was already a "vou".
-- **Copy**: events "Inscrição guardada."; rehearsals "Presença registada, pendente de aprovação." (the calendar never
-  approves anything). Help: "Confirma em Guardar no Google Calendar. Alterações ou cancelamentos na RTUB não atualizam
-  esta cópia automaticamente." RTUB never says it was added: it cannot see Google.
-- **Later**: an upcoming detail page shows "Adicionar ao calendário" to whoever is going (so "Agora não" is reversible).
-- **Link**: Google's documented template `https://calendar.google.com/calendar/render?action=TEMPLATE` (fixed
-  destination) with `text`, `dates`, `ctz=Europe/Lisbon`, `location`, `details` = the item's RTUB page
-  (built from the configured `Calendar:PublicOrigin`, sent to signed-in members by `/api/account/me`; never
-  `location.origin` or the request Host, so an alternate or untrusted host never ends up in the copy; not configured or
-  not an absolute https origin = no RTUB link) and the independent-copy note. Times are RTUB's Portugal wall
-  clock; Google applies the zone, so summer / winter and a device in another zone are right. No notes, participants,
-  descriptions, tokens or user data. No OAuth, no Calendar API, nothing written by RTUB.
-- **Dates**: rehearsal `start`–`end`, an end not after the start ends the next day (21:00–00:00); an event with a time and
-  no end: a **suggested** duration the member picks (1 h to 4 h, default 2 h), labelled as a suggestion; an event with no
-  time, or spanning several days, is an all-day entry through its last day (end exclusive).
-- Opening happens only from the member's click on a link (`target=_blank`, `noopener noreferrer`); "Copiar o link" (or
-  "abrir o link" when copying fails) is the fallback for installed apps that block it. Closing / Esc / "Agora não"
-  leaves the answer saved; nothing is retried or re-sent.
-- Checks: `npm run check:calendar` (builder: winter, summer, midnight, month / year rollover, all-day, multi-day,
-  encoding), `CalendarOfferPortalTests`. Not checked: the Google page itself (needs a Google sign-in), installed-app
-  behaviour on iPhone / Android, screenshots.
+- Discussion: no post media upload, no mention autocomplete, no search or pagination. Add them if members ask.
+- `/member/events` and the old redirects are `302` while DEV is hybrid. Make them `301`, or drop them, at the PROD cutover.
+- Notices are sent inside the HTTP request. A much larger audience would need a background job.
+- Deleting an event leaves its video files in R2.
+- Event images and videos are `PublicRead` objects: reachable by URL, though never listed beyond what visitors see. Private storage would need signed URLs.

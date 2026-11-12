@@ -17,7 +17,7 @@ namespace RTUB.Application.Services;
 // Upcoming/past is each module's own rule (events: last day before today in Portugal; rehearsals: day before today), so
 // an event in progress or later today is still "Próximas", as on its page. Answers are written through the module's
 // domain service, create-only (docs/react-pending-actions.md → Answers). Not dismissible: an answer, not a "não",
-// resolves the row. Active members only (docs/permissions/pending-actions.md).
+// resolves the row. Active members only (docs/react-pending-actions.md).
 
 internal static class AttendanceFilters
 {

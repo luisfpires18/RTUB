@@ -540,7 +540,7 @@ public class Program
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
         // members-only ones that 302 visitors to sign in). /Error is a static server page; nothing else renders HTML
-        // (task 037 retired the Blazor host). Retired Blazor URLs 302 to their React page further down. Current list: docs/RTUB_REACT_MIGRATION_GUIDE.md.
+        // (task 037 retired the Blazor host). Retired Blazor URLs 302 to their React page further down. Current list: docs/react-portal-pilot.md.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
         var portalShell = new StaticFileOptions

@@ -5,8 +5,7 @@ description: RTUB-specific Web Push facts — the WebPushOptions/VAPID contract 
 
 # RTUB Web Push
 
-Verified against the current implementation. Non-obvious things that are easy to break.
-Read the linked file when you need the detail.
+Non-obvious things that are easy to break. Read the linked file when you need the detail.
 
 ## Shape of the subsystem
 
@@ -14,113 +13,109 @@ Read the linked file when you need the detail.
 | --- | --- |
 | Config/VAPID options | `src/RTUB.Application/Configuration/WebPushOptions.cs` |
 | Send + subscribe logic | `src/RTUB.Application/Services/PushNotificationService.cs` |
-| Notification text/URL/tag builders | `src/RTUB.Application/Factories/PushNotificationFactory.cs` (all pt-PT copy; relative links to the item, no base URL, task 058). Catalogue: `docs/push-notifications.md` |
+| Notification text/URL/tag builders | `src/RTUB.Application/Factories/PushNotificationFactory.cs` (all pt-PT copy; relative links to the item, no base URL). Catalogue and rules: `docs/push-notifications.md` |
 | Persistence | `src/RTUB.Application/Repositories/PushSubscriptionRepository.cs`, `src/RTUB.Core/Entities/PushSubscription.cs` |
-| HTTP endpoints | `src/RTUB.Web/Endpoints/PushEndpoints.cs` (`/api/push/{status,check,subscribe,unsubscribe,test}`, task 038 / #230; own subscriptions only, X-CSRF-TOKEN, no-store) + `Helpers/PushSubscriptionRules.cs` (endpoint host allowlist, key lengths) |
-| Browser client | `src/RTUB.Web/portal/src/push.ts` + `Profile.tsx` `PushSection` (React `/profile`, task 038) |
-| SW push handlers | `src/RTUB.Web/wwwroot/service-worker.js` — the `push`, `notificationclick` and `pushsubscriptionchange` listeners |
-| Opt-in UI | `/profile` → "Notificações push" (no prompt on load). Detail: `docs/react-push-v2.md` |
-| DI | `ServiceCollectionExtensions.AddPushNotificationServices` (all three registrations are **scoped**) |
+| HTTP endpoints | `src/RTUB.Web/Endpoints/PushEndpoints.cs` + `Helpers/PushSubscriptionRules.cs` (endpoint host allowlist, key lengths). Routes, states, test push, preferences: `docs/react-push-v2.md` |
+| Browser client | `src/RTUB.Web/portal/src/push.ts` + `Profile.tsx` `PushSection` (React `/profile`) |
+| SW push handlers | `src/RTUB.Web/wwwroot/service-worker.js`: `push`, `notificationclick`, `pushsubscriptionchange` (behavior in `docs/react-push-v2.md` → *Service worker*) |
+| DI | `ServiceCollectionExtensions.AddPushNotificationServices` (all three registrations are scoped) |
 
-Library is `WebPush-NetCore`. `IPushNotificationService` is called from most domain services, several
-routable pages, and the reminder/notification background services in `src/RTUB.Application/Services/`
-(`ActivityReminder`, `CalotesNotification`, `PendingRequestReminder`, `QuestionNotification`,
-`RehearsalApprovalReminder`, `WeeklyNotification`). Notification copy comes from `IPushNotificationFactory` —
-add new notification types there rather than building `SendPushNotificationDto` inline.
+Library is `WebPush-NetCore`. `IPushNotificationService` is called from most domain services, several routable pages,
+and the reminder/notification background services in `src/RTUB.Application/Services/` (`ActivityReminder`,
+`CalotesNotification`, `PendingRequestReminder`, `QuestionNotification`, `RehearsalApprovalReminder`,
+`WeeklyNotification`). Add new notification types to `IPushNotificationFactory` rather than building
+`SendPushNotificationDto` inline.
 
 ## Configuration and secrets
 
-`WebPushOptions` binds section `"WebPush"`. `appsettings.json` carries **only** `Enabled: true` —
-`VapidSubject`, `VapidPublicKey`, `VapidPrivateKey` are supplied per-environment (env vars / user-secrets)
-and are never committed. `appsettings.Production.json` has no `WebPush` section at all, so production
-depends entirely on externally-supplied VAPID values. Never write a real key into the repo, and never
-return `VapidPrivateKey` to a client — only `GetVapidPublicKey()` crosses that boundary.
+`WebPushOptions` binds section `"WebPush"`. `appsettings.json` carries only `Enabled: true`; `VapidSubject`,
+`VapidPublicKey`, `VapidPrivateKey` are supplied per environment (env vars / user-secrets) and never committed.
+`appsettings.Production.json` has no `WebPush` section, so production depends entirely on externally supplied VAPID
+values. Never write a real key into the repo, and never return `VapidPrivateKey` to a client: only
+`GetVapidPublicKey()` crosses that boundary.
 
 Two independent gates, easy to confuse:
-- `WebPush:Enabled` — feature flag for **non-Owner** users:   `PushEndpoints.HasAccess` (`IsInRole("Owner") || options.Enabled`), so Owners bypass the flag.
-- `WebPushOptions.IsConfigured()` — all three VAPID values non-blank. Sends are skipped when false.
+- `WebPush:Enabled`: feature flag for non-Owner users: `PushEndpoints.HasAccess` (`IsInRole("Owner") || options.Enabled`),
+  so Owners bypass the flag.
+- `WebPushOptions.IsConfigured()`: all three VAPID values non-blank. Sends are skipped when false.
 
 `IsConfigured()` only checks non-blankness. `SetVapidDetails` is called in the constructor inside a
-`try/catch (ArgumentException)` that logs a warning and continues, so a **malformed** key yields
-`IsConfigured() == true` with a client that can never send. If pushes silently do nothing, check for the
-startup warning "Invalid VAPID configuration" before suspecting subscriptions.
+`try/catch (ArgumentException)` that logs a warning and continues, so a malformed key yields `IsConfigured() == true`
+with a client that can never send. If pushes silently do nothing, check for the startup warning "Invalid VAPID
+configuration" before suspecting subscriptions.
 
-## Opt-out flag (server only since 038)
+## Opt-out flag (server only)
 
-`ApplicationUser.PushNotificationsOptedOut`: cleared on subscribe, set when an unsubscribe leaves the member **no**
+`ApplicationUser.PushNotificationsOptedOut`: cleared on subscribe, set when an unsubscribe leaves the member no
 subscription. Only the service worker's `pushsubscriptionchange` handler reads it (it does not re-create a subscription
-for a member who turned push off). There is no client-side flag any more: the React client never re-subscribes
-without a click, so the old `rtub-push-*` localStorage keys and the 30-minute health check are gone.
+for a member who turned push off). No client-side flag: the React client never re-subscribes without a click.
 
 ## Delivery semantics
 
-- **Every push is also kept in /messages (task 061; 027 had stopped it).** `SendToUserAsync`,
-  `SendToSelectedUsersAsync` and `BroadcastAsync` first call `NotificationInbox.KeepAsync`: title + body + link as a
-  system message in each recipient's "Notificações RTUB" conversation (renamed from "Sistema RTUB"), saved as read
-  (no unread badge), for every recipient whether or not they have push or VAPID is configured; a broadcast goes to
-  every non-expelled account. Not copied: chat-message pushes (`SendPushNotificationDto.KeepInInbox = false`) and the
-  `/profile` test push (`SendTestAsync`). The inbox is given only by the host constructor (`IHttpClientFactory`
-  overload); the test constructors have none. A failed copy is logged and never fails the push.
-- `404 NotFound` / `410 Gone` from the push service ⇒ subscription is deleted immediately
-  (`SendNotificationWithResultAsync`). This is why the client re-syncs on every health check: the server
-  may have dropped a record the browser still holds.
-- Retries: 3 attempts over transient `HttpRequestException`/`IOException`/`SocketException` (checked
-  through the whole inner-exception chain) with 2^n backoff; `429` backs off 3^n. Every other exception
-  returns false without retry.
-- Send options are fixed at `TTL 86400` and header `Urgency: high` — the high urgency is what makes iOS
-  and Android wake the device instead of batching. Don't lower it casually.
-- Fan-out differs per method: `BroadcastAsync` uses unbounded `Task.WhenAll`; `SendToSelectedUsersAsync`
-  is deliberately **sequential** so failures are attributable and push services don't rate-limit.
-- `SendToSelectedUsersAsync` loads **all** active subscriptions and filters in memory
-  (`GetAllActiveAsync().Where(...)`) — fine at RTUB's size, but know it before adding callers in a loop.
-- No method on `IPushNotificationService` takes a `CancellationToken`, so background services cannot
-  cancel an in-flight send.
+- Every push is also kept in /messages. `SendToUserAsync`, `SendToSelectedUsersAsync` and `BroadcastAsync` first call
+  `NotificationInbox.KeepAsync`: title + body + link as a system message in each recipient's "Notificações RTUB"
+  conversation, saved as read (no unread badge), for every recipient whether or not they have push or VAPID is
+  configured; a broadcast goes to every non-expelled account. Not copied: chat-message pushes
+  (`SendPushNotificationDto.KeepInInbox = false`) and the `/profile` test push (`SendTestAsync`). The inbox is given
+  only by the host constructor (`IHttpClientFactory` overload); the test constructors have none. A failed copy is
+  logged and never fails the push.
+- `404 NotFound` / `410 Gone` from the push service deletes the subscription immediately
+  (`SendNotificationWithResultAsync`): the server may drop a record the browser still holds, which `/profile` shows as
+  `unregistered`.
+- Retries: 3 attempts over transient `HttpRequestException`/`IOException`/`SocketException` (checked through the whole
+  inner-exception chain) with 2^n backoff; `429` backs off 3^n. Every other exception returns false without retry.
+- Send options are fixed at `TTL 86400` and header `Urgency: high`: the high urgency is what makes iOS and Android wake
+  the device instead of batching. Do not lower it casually.
+- Fan-out: `BroadcastAsync` uses unbounded `Task.WhenAll`; `SendToSelectedUsersAsync` is deliberately sequential so
+  failures are attributable and push services do not rate-limit.
+- `SendToSelectedUsersAsync` loads all active subscriptions and filters in memory (`GetAllActiveAsync().Where(...)`):
+  fine at RTUB's size, but know it before adding callers in a loop.
+- No method on `IPushNotificationService` takes a `CancellationToken`, so background services cannot cancel an
+  in-flight send.
+- Every send returns a `PushSendResult` (`sent` = push service 2xx, never "shown"). Accepted by the push service is no
+  proof of display: verify on a real device with `/profile` → "Enviar notificação de teste".
+- The per-account preference filter (`PushNotificationService.MutedAsync`) runs after the inbox copy:
+  `docs/push-notifications.md` → *Preference keys*.
 
 ## Key encoding
 
-`PushNotificationService.NormalizeBase64Url` converts `+`→`-`, `/`→`_`, strips `=` before storing.
-Browsers disagree (some Android send standard base64), and inconsistent storage created duplicate
-subscription rows. On the client, always send `subscription.toJSON()` — the manual
-`arrayBufferToBase64` helper is marked deprecated precisely because its `+/=` output caused silent
-delivery failures on some Android devices.
+`PushNotificationService.NormalizeBase64Url` converts `+`→`-`, `/`→`_` and strips `=` before storing. Browsers disagree
+(some Android send standard base64), and inconsistent storage created duplicate subscription rows. On the client, always
+send `subscription.toJSON()`; the manual `arrayBufferToBase64` helper is marked deprecated because its `+/=` output
+caused silent delivery failures on some Android devices.
 
-## Platform notes (038)
+## Platform notes
 
-- **Unique tag per notification**: the SW appends `-<timestamp>`; `data.baseTag` keeps the original for click routing.
-- **No user-agent checks anywhere** (038 removed the iOS sniff and the Android-only `vibrate`; platform defaults apply).
-- **`showNotification` inside `waitUntil`**, nothing else in the push handler (iOS kills the SW quickly).
-- **Permission first in the click** (`turnOn` in `push.ts`), before any network call; iOS/iPadOS offer push only in a
-  Home Screen app (the UI says so when `PushManager` is missing outside standalone).
-- **`pushsubscriptionchange`**: re-sends the new subscription to `/api/push/subscribe` with `replaces` = old endpoint and
-  an antiforgery token fetched in the SW; never calls unsubscribe (that used to opt the member out).
-- **Single SW registration**: `wwwroot/js/sw-register.js`; the React client only adopts it.
-- Real-device status: Edge desktop verified end to end locally; Android PWA / iOS Home Screen / DEV still to check.
+- Unique tag per notification: the SW appends `-<timestamp>`; `data.baseTag` keeps the original for click routing.
+- No user-agent checks anywhere; platform defaults apply to vibration.
+- `showNotification` inside `waitUntil`, nothing else in the push handler (iOS kills the SW quickly).
+- Permission first in the click (`turnOn` in `push.ts`), before any network call; iOS/iPadOS offer push only in a Home
+  Screen app (the UI says so when `PushManager` is missing outside standalone).
+- `pushsubscriptionchange` re-sends the new subscription to `/api/push/subscribe` with `replaces` = old endpoint and an
+  antiforgery token fetched in the SW; it never calls unsubscribe.
+- Single SW registration: `wwwroot/js/sw-register.js`; the React client only adopts it.
+- Real-device status: Edge desktop verified end to end; Android PWA / iOS Home Screen / DEV still to check.
 
 ## Auth coupling
 
 Every push endpoint answers 401 to visitors (`RequireMember` filter) and resolves the user from
-`ClaimTypes.NameIdentifier`. All client fetches use `credentials: 'include'` — including the ones inside
-the service worker. Push subscription cannot work for an anonymous visitor, and any change to auth
-cookie scope or SameSite affects the SW's `pushsubscriptionchange` re-subscribe.
+`ClaimTypes.NameIdentifier`. All client fetches use `credentials: 'include'`, including the ones inside the service
+worker. Push subscription cannot work for an anonymous visitor, and any change to auth cookie scope or SameSite affects
+the SW's `pushsubscriptionchange` re-subscribe.
 
-## Tests and what they don't cover
+## Tests
 
-`tests/RTUB.Application.Tests/` — `Services/PushNotificationServiceTests.cs`, `Factories/PushNotificationFactoryTests.cs`;
-`RTUB.Integration.Tests/Api/PushApiTests.cs`; `RTUB.Web.Tests/ReactPortal/PushV2SourceTests.cs`; `RTUB.Core.Tests/Entities/PushSubscriptionTests.cs`.
-
-Since #230 every send returns a `PushSendResult` (`sent` = push service 2xx, never "shown"), and
-`Services/PushDeliveryTests.cs` drives the real WebPush request through the **internal** constructor's `HttpClient`
-over a fake handler (2xx, 404/410 cleanup, 4xx/5xx kept, retries). The public constructor still news up
-`WebPushClient`. Accepted by the push service is still no proof of display: verify on a real device with
-`/profile` → "Enviar notificação de teste" (`POST /api/push/test`, own endpoint only, 30 s cooldown).
+`tests/RTUB.Application.Tests/`: `Services/PushNotificationServiceTests.cs`, `Factories/PushNotificationFactoryTests.cs`,
+`Services/PushDeliveryTests.cs` (drives the real WebPush request through the internal constructor's `HttpClient` over a
+fake handler: 2xx, 404/410 cleanup, 4xx/5xx kept, retries; the public constructor still news up `WebPushClient`);
+`RTUB.Integration.Tests/Api/PushApiTests.cs`; `RTUB.Web.Tests/ReactPortal/PushV2SourceTests.cs`;
+`RTUB.Core.Tests/Entities/PushSubscriptionTests.cs`.
 
 ## Known debt
 
-- `WebPush` 1.0.13 speaks legacy `aesgcm` + `Authorization: WebPush`; WebKit still accepts it. Move to RFC 8291/8292
-  only with evidence (a `rejected` test push on an iPhone).
-- No `CancellationToken` anywhere in the push API; `BroadcastAsync` fan-out is unbounded.
+- Legacy `aesgcm` encoding and unbounded fan-out: `docs/react-push-v2.md` → *Follow-ups*.
 - PROD App Service has no persisted application logs, so the push warnings are only visible in the log stream.
 
-Logging convention: push logs identify users by **username/nickname**, never by user ID
-(`subscription.User?.Nickname ?? subscription.User?.FirstName`, falling back to `"unknown"`) — which is
-why `GetByUserIdAsync`/`GetAllActiveAsync` `.Include(s => s.User)`. Keep that when adding log lines.
+Logging convention: push logs identify users by username/nickname, never by user ID
+(`subscription.User?.Nickname ?? subscription.User?.FirstName`, falling back to `"unknown"`), which is why
+`GetByUserIdAsync`/`GetAllActiveAsync` `.Include(s => s.User)`. Keep that when adding log lines.

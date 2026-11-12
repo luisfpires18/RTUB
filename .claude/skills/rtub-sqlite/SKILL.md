@@ -5,8 +5,7 @@ description: RTUB-specific SQLite + EF Core facts — the IDbContextFactory/repo
 
 # RTUB SQLite / EF Core
 
-Facts that are non-obvious from the code and easy to get wrong. Everything here was verified
-against the current implementation. Read the linked file when you need the detail.
+Facts that are non-obvious from the code and easy to get wrong. Read the linked file when you need the detail.
 
 ## Data access contract
 
@@ -74,9 +73,9 @@ dotnet ef migrations add <Name> --project src/RTUB.Web
   `app.Environment.EnvironmentName != "Test"` and only when `GetPendingMigrationsAsync()` is
   non-empty.
 - Before migrating a database that already has migration history, `Program.cs` calls
-  `PreMigrationSnapshot.Take` (`src/RTUB.Application/Services/PreMigrationSnapshot.cs`): online
-  backup → `journal_mode=DELETE` → validated → `<db dir>/backups/pre-migration/`, newest 5 kept.
-  It **throws** when it cannot, which aborts startup before anything is migrated. Do not catch it.
+  `PreMigrationSnapshot.Take` (`src/RTUB.Application/Services/PreMigrationSnapshot.cs`). It **throws** when it
+  cannot, which aborts startup before anything is migrated. Do not catch it. Details:
+  `docs/release-and-rollback.md` (Pre-migration snapshot).
 - Every migration must work with the previous production release (N-1, expand/contract): an app
   rollback never changes the schema. Rule and restore procedure: `docs/release-and-rollback.md`.
 - Only classes carrying `[Migration("…")]` are migrations. `UpdateCardStatusEnumValues` and
@@ -109,10 +108,9 @@ Full detail lives in `docs/cloudflare-r2-and-database-backups.md` — read it be
 of this. The load-bearing points:
 
 - WAL means a file copy of `app.db` + `-wal` + `-shm` is **not** a valid backup. Snapshots use
-  `SqliteConnection.BackupDatabase()` (online backup API), validated with `PRAGMA quick_check`,
-  a schema-object count, and a size ratio against the live file, then promoted to `current.db`
-  in a private R2 bucket only after upload succeeds. Two generations, current and previous.
-  See `src/RTUB.Application/Services/DatabaseBackupBackgroundService.cs` and
+  `SqliteConnection.BackupDatabase()` (online backup API), validated, then promoted to `current.db` in a
+  private R2 bucket only after upload succeeds (two generations). See
+  `src/RTUB.Application/Services/DatabaseBackupBackgroundService.cs` and
   `src/RTUB.Application/Configuration/DatabaseBackupOptions.cs`.
 - Backups are `Enabled = false` by default so non-production never writes to the bucket.
 - Restore: stop the App Service, replace `app.db`, and delete stale `app.db-wal` / `app.db-shm`
