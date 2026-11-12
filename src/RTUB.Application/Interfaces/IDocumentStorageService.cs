@@ -90,4 +90,9 @@ public interface IDocumentStorageService
     /// Copies a document to another key in the same bucket (server-side; the source stays).
     /// </summary>
     Task CopyDocumentAsync(string sourcePath, string targetPath);
+
+    /// <summary>
+    /// The document's ETag (its content hash for a single-part upload, kept by a server-side copy); null when it is missing.
+    /// </summary>
+    Task<string?> GetDocumentETagAsync(string documentPath);
 }

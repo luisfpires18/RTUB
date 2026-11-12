@@ -161,7 +161,8 @@ Every Logística file is a Documentação document: one object, two views. Code:
 - Startup (`MoveFilesIntoDocumentationAsync`, idempotent): files kept outside Documentação before this
   (`logistics/{env}/boards/{id}/files/`, `logistics/{env}/cards/...`) and folders under an older board name move into
   the board's folder. Per file: copy, repoint the card rows, delete the source; any failure keeps the source for the next
-  start, which reuses a copy already made (same name and size) and removes card-file leftovers no row points at.
+  start, which reuses a copy already made only when name, size and ETag (content) match - a member's other file of that
+  name is never taken for it - and removes card-file leftovers no row points at.
 - Privacy: in Documentação, members see a `Logistics/{folder}` only while a board they can see owns it. A folder no board
   owns (a deleted board's, a name two old boards shared, a move's leftover) is for Mod, Admin and Owner only, since it may
   hold a private board's files. The `Atas CV` rule (Veterano, Tunossauro, Magister; Owner) is separate and unchanged:
