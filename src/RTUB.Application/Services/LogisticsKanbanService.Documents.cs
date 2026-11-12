@@ -153,8 +153,7 @@ public sealed partial class LogisticsKanbanService
             var size = await _storage.GetFileSizeAsync(source);
             string target;
             if (existing.TryGetValue(name, out var found) && found == size
-                && await _storage.GetDocumentETagAsync(folder + name) is { Length: > 0 } copyTag
-                && copyTag == await _storage.GetDocumentETagAsync(source))
+                && SameETag(await _storage.GetDocumentETagAsync(folder + name), await _storage.GetDocumentETagAsync(source)))
             {
                 target = folder + name;
             }
@@ -185,6 +184,10 @@ public sealed partial class LogisticsKanbanService
             return false;
         }
     }
+
+    /// <summary>Two ETags for the same content: quotes and hex case aside; a missing one never matches.</summary>
+    public static bool SameETag(string? a, string? b) =>
+        a?.Trim().Trim('"') is { Length: > 0 } x && b?.Trim().Trim('"') is { Length: > 0 } y && string.Equals(x, y, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Name -> size of the documents already in a folder.</summary>
     private async Task<Dictionary<string, long>> ExistingAsync(string folder, string label) =>

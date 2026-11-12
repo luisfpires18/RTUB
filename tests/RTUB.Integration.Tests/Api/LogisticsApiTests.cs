@@ -1118,6 +1118,36 @@ public partial class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
             .And.NotContain(source);
     }
 
+    /// <summary>105 (review): ETags compare without quotes and hex case; a missing one never matches.</summary>
+    [Theory]
+    [InlineData("\"ABC123\"", "abc123", true)]
+    [InlineData("abc123", "ABC123", true)]
+    [InlineData("abc123", "abc124", false)]
+    [InlineData(null, "abc123", false)]
+    [InlineData("\"\"", "\"\"", false)]
+    public void ETags_CompareWithoutQuotesOrCase(string? a, string? b, bool same) =>
+        LogisticsKanbanService.SameETag(a, b).Should().Be(same);
+
+    /// <summary>105 (review): a retry reuses its earlier copy when only the ETag's casing differs (no "name (2)").</summary>
+    [Fact]
+    public async Task ARetriedMove_ReusesItsCopy_WhateverTheETagCasing()
+    {
+        var name = $"{Tag()} Ronda";
+        var (boardId, _, _) = await SeedBoardAsync(name: name);
+        await UpdateBoardAsync(boardId, b => b.LegacyFolder = name);
+        var year = FiscalYearHelper.GetCurrentFiscalYearString();
+        var source = $"logistics/Test/boards/{boardId}/files/plano.pdf";
+        _factory.Storage.Put(source, 10, etag: "abcdef");
+        _factory.Storage.Put($"docs/Test/{year}/Logistics/{name}/plano.pdf", 10, etag: "\"ABCDEF\""); // the earlier run's copy, as R2 reports it
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ILogisticsKanbanService>().MoveFilesIntoDocumentationAsync();
+        }
+
+        _factory.Storage.Objects.Keys.Should().NotContain(source).And.NotContain($"docs/Test/{year}/Logistics/{name}/plano (2).pdf");
+    }
+
     /// <summary>
     /// 104 (review): a rename whose copy fails changes nothing; one whose source delete fails still moves (rows and folder
     /// in one save), and the leftover sits in a folder no board owns, which members do not see.
