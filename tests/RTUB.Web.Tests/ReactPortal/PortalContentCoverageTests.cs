@@ -39,21 +39,6 @@ public class PortalContentCoverageTests
             .Should().BeEmpty("a footer, menu or shortcut link to /#id needs that id on the home page");
     }
 
-    private static List<string[]> CoverageRows()
-    {
-        var doc = File.ReadAllText(Path.Combine(GetProjectRoot(), "docs", "react-portal-pilot.md"));
-        var start = doc.IndexOf("## Public content coverage", StringComparison.Ordinal);
-        start.Should().BeGreaterThanOrEqualTo(0, "the coverage section must exist");
-        var end = doc.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
-        var section = end < 0 ? doc[start..] : doc[start..end];
-
-        return section.Split('\n')
-            .Select(line => line.Trim())
-            .Where(line => line.StartsWith('|') && !line.StartsWith("| ---") && !line.StartsWith("| Section"))
-            .Select(line => line.Trim('|').Split('|').Select(cell => cell.Trim()).ToArray())
-            .ToList();
-    }
-
     private static string GetProjectRoot()
     {
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
