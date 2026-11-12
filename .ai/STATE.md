@@ -13,7 +13,8 @@ _Last updated: 2026-11-12_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-None. Last: task 104 (PR #306, merged into `dev`): every Logística file (board files, card attachments) is a
+None. Last: task 105 (PR #307, merged into `dev`): a retried file move reuses an earlier copy only when its ETag
+matches. Before it, task 104 (PR #306): every Logística file (board files, card attachments) is a
 Documentação document in `Logistics/{board}`; rename moves the folder; delete on either side removes it from both;
 startup moves older files in; folders no board owns are Mod/Admin/Owner only. Owner check on DEV: the startup move
 against real R2, an image on a card showing in Documentação, a delete there leaving the card.
