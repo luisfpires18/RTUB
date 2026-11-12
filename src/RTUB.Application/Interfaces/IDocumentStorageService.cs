@@ -85,4 +85,9 @@ public interface IDocumentStorageService
     /// </summary>
     /// <param name="folderPath">The full path to the folder to delete</param>
     Task DeleteFolderAsync(string folderPath);
+
+    /// <summary>
+    /// Copies a document to another key in the same bucket (server-side; the source stays).
+    /// </summary>
+    Task CopyDocumentAsync(string sourcePath, string targetPath);
 }

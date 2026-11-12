@@ -330,6 +330,12 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         return await GetObjectSizeAsync(documentPath);
     }
 
+    public async Task CopyDocumentAsync(string sourcePath, string targetPath)
+    {
+        await CopyObjectAsync(sourcePath, targetPath);
+        await CreateAuditLogAsync("Created", Path.GetFileName(targetPath), $"Copied from {sourcePath} to {targetPath}");
+    }
+
     public async Task DeleteDocumentAsync(string documentPath)
     {
         try

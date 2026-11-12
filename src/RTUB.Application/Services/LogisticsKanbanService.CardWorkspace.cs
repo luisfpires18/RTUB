@@ -256,7 +256,7 @@ public sealed partial class LogisticsKanbanService
 
     // ---------------------------------------------------------------- the card's own files and links
 
-    /// <summary>Owner, collaborators and managers attach: the board files' types and 10 MB limit; a stable key per card.</summary>
+    /// <summary>Owner, collaborators and managers attach: the board files' types and 10 MB limit; stored in the board's Documentação folder.</summary>
     public async Task<EventResult<LogisticsCardDetailDto>> UploadAttachmentAsync(int cardId, LogisticsFileUpload upload, ClaimsPrincipal user)
     {
         var name = SafeFileName(upload.FileName);
@@ -290,7 +290,8 @@ public sealed partial class LogisticsKanbanService
         }
 
         _audit.SetUser(user.Identity?.Name, access.UserId);
-        var path = await _storage.UploadDocumentAsync(CardFolder(cardId), name, upload.Content, upload.ContentType);
+        var path = await StoreInDocumentationAsync(access.Board, name, upload.Content, upload.ContentType);
+        name = Path.GetFileName(path);
         var result = await ChangeCardAsync(cardId, user, assignedMayChange: true, async (db, c, a) =>
         {
             if (await db.LogisticsCardAttachments.CountAsync(x => x.CardId == c.Id) >= MaxAttachments)
@@ -406,12 +407,6 @@ public sealed partial class LogisticsKanbanService
         return result;
     }
 
-    /// <summary>
-    /// A card's files: a stable key outside the fiscal-year Documentação tree (logistics/{env}/cards/{id}/{random}/name),
-    /// so they never move with the year and never show in Documentação; the random segment keeps same-named files apart.
-    /// </summary>
-    private string CardFolder(int cardId) => $"logistics/{_environment.EnvironmentName}/cards/{cardId}/{Guid.NewGuid():N}/";
-
     private static async Task<List<string>> AttachmentPathsAsync(ApplicationDbContext db, Expression<Func<LogisticsCard, bool>> cards)
     {
         var ids = db.LogisticsCards.Where(cards).Select(c => c.Id);
@@ -426,6 +421,7 @@ public sealed partial class LogisticsKanbanService
             try
             {
                 await _storage.DeleteDocumentAsync(path);
+                _trees.Forget(path);
             }
             catch (Exception ex)
             {

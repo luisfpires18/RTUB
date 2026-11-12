@@ -64,6 +64,18 @@ public class DocumentationApiTests : IClassFixture<DocumentationApiFactory>
         Storage.Put(Key("Logistics/Jantar", "orcamento.xlsx"), 99);
         Storage.Put(Key("Logistics/Arraial", "lista.csv"), 5);
         Storage.Put(Key("Vazia"), 0);
+
+        // 104: members see a Logistics folder only while a board they see owns it.
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        foreach (var name in new[] { "Jantar", "Arraial" }.Where(n => !db.LogisticsBoards.Any(b => b.LegacyFolder == n)))
+        {
+            var board = LogisticsBoard.Create(name);
+            board.LegacyFolder = name;
+            db.LogisticsBoards.Add(board);
+        }
+
+        db.SaveChanges();
     }
 
     [Fact]
@@ -567,9 +579,33 @@ public sealed class FakeDocumentStorage : IDocumentStorageService
     public Task<long> GetFileSizeAsync(string documentPath) =>
         Task.FromResult(Objects.TryGetValue(documentPath, out var o) ? o.Size : 0);
 
+    /// <summary>Set by a test: a write ("copy" or "delete") on a matching key throws, like an R2 outage.</summary>
+    public Func<string, string, bool>? Fails;
+
+    private void Check(string operation, string key)
+    {
+        if (Fails?.Invoke(operation, key) == true)
+        {
+            throw new InvalidOperationException($"Storage {operation} failed for {key}");
+        }
+    }
+
     public Task DeleteDocumentAsync(string documentPath)
     {
+        Check("delete", documentPath);
         Objects.TryRemove(documentPath, out _);
+        return Task.CompletedTask;
+    }
+
+    public Task CopyDocumentAsync(string sourcePath, string targetPath)
+    {
+        Check("copy", sourcePath);
+        if (!Objects.TryGetValue(sourcePath, out var source))
+        {
+            throw new InvalidOperationException($"No object {sourcePath}");
+        }
+
+        Put(targetPath, source.Size, source.ContentType);
         return Task.CompletedTask;
     }
 

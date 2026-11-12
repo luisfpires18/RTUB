@@ -154,7 +154,9 @@ public sealed class DocumentationService : IDocumentationService
         }
 
         SetAudit(user);
-        await _storage.DeleteFolderAsync(FolderPath(viewer.FiscalYear, found));
+        var path = FolderPath(viewer.FiscalYear, found);
+        await DropCardFilesAsync(user, path.EndsWith('/') ? path : path + "/", folder: true); // rows first, as for a document
+        await _storage.DeleteFolderAsync(path);
         _trees.Forget(YearPath(viewer.FiscalYear));
         return EventResult<bool>.Ok(true);
     }
@@ -216,10 +218,41 @@ public sealed class DocumentationService : IDocumentationService
             return EventResult<bool>.Fail(EventResultStatus.NotFound);
         }
 
+        // The card rows go first: a storage failure then leaves a document no card points at (delete again), never a card
+        // pointing at a deleted file; a failed save deletes nothing.
         SetAudit(user);
+        await DropCardFilesAsync(user, path, folder: false);
         await _storage.DeleteDocumentAsync(path);
         _trees.Forget(YearPath(viewer.FiscalYear));
         return EventResult<bool>.Ok(true);
+    }
+
+    /// <summary>
+    /// A Logística card file is the same object as its Documentação document (docs/react-logistics.md → Files): deleting it
+    /// here removes it from its card too, with a line in the card's history.
+    /// </summary>
+    private async Task DropCardFilesAsync(ClaimsPrincipal user, string path, bool folder)
+    {
+        await using var db = await _contexts.CreateDbContextAsync();
+        var rows = await (folder
+            ? db.LogisticsCardAttachments.Where(a => a.StoragePath != null && a.StoragePath.StartsWith(path))
+            : db.LogisticsCardAttachments.Where(a => a.StoragePath == path)).ToListAsync();
+        if (rows.Count == 0)
+        {
+            return;
+        }
+
+        var actor = DocumentationAuthorization.UserId(user);
+        foreach (var row in rows)
+        {
+            db.LogisticsCardAttachments.Remove(row);
+            db.LogisticsCardActivities.Add(new LogisticsCardActivity
+            {
+                CardId = row.CardId, ActorId = actor, Action = "attachment", Detail = $"Anexo removido em Documentação: {row.Name}",
+            });
+        }
+
+        await db.SaveChangesAsync();
     }
 
     /// <summary>Who is asking, the year asked for (validated) and the folders of that year they may see.</summary>
@@ -276,13 +309,18 @@ public sealed class DocumentationService : IDocumentationService
         // Fail closed: a folder is hidden if any private board the caller may not see could own it - by its resolved
         // LegacyFolder or by its current sanitised name (unresolved boards, and boards that share a folder name with
         // another board, whose LegacyFolder is ""), compared case-insensitively.
+        // 104: a Logistics folder no board owns (a deleted board's, a name two old boards shared, a folder a rename has
+        // not finished moving) is for Mod, Admin and Owner only: it may hold a private board's files.
         var hidden = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        HashSet<string>? open = null;
         if (!LogisticsAuthorization.CanManage(user))
         {
             var boards = await db.LogisticsBoards.AsNoTracking()
-                .Where(b => b.Visibility == BoardVisibility.Private && !b.Members.Any(m => m.UserId == id))
-                .Select(b => new { b.Name, b.LegacyFolder }).ToListAsync();
-            foreach (var b in boards)
+                .Select(b => new { b.Name, b.LegacyFolder, Open = b.Visibility != BoardVisibility.Private || b.Members.Any(m => m.UserId == id) })
+                .ToListAsync();
+            open = boards.Where(b => b.Open && !string.IsNullOrEmpty(b.LegacyFolder))
+                .Select(b => $"{Logistics}/{b.LegacyFolder}").ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var b in boards.Where(b => !b.Open))
             {
                 foreach (var folder in new[] { b.LegacyFolder, LogisticsKanbanService.SanitizePathComponent(b.Name) }.Where(f => !string.IsNullOrEmpty(f)))
                 {
@@ -291,8 +329,11 @@ public sealed class DocumentationService : IDocumentationService
             }
         }
 
+        bool Visible(string folder) => !folder.StartsWith($"{Logistics}/", StringComparison.OrdinalIgnoreCase)
+            || open is null || (open.Contains(folder) && !hidden.Contains(folder));
+
         return (null, new Viewer(isOwner, DocumentationAuthorization.CanManage(user), years, selected,
-            folders.Where(f => DocumentationAuthorization.CanSeeFolder(member, isOwner, f.Name) && !hidden.Contains(f.Name)).ToList(), tree));
+            folders.Where(f => DocumentationAuthorization.CanSeeFolder(member, isOwner, f.Name) && Visible(f.Name)).ToList(), tree));
     }
 
     private static string? Folder(Viewer viewer, string? folder) =>

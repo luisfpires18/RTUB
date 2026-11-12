@@ -63,4 +63,7 @@ public interface ILogisticsKanbanService
     Task<EventResult<LogisticsFileDto>> UploadFileAsync(int boardId, LogisticsFileUpload upload, ClaimsPrincipal user);
     Task<EventResult<DocumentLinkDto>> GetFileAsync(int boardId, string? fileId, ClaimsPrincipal user);
     Task<EventResult<bool>> DeleteFileAsync(int boardId, string? fileId, ClaimsPrincipal user);
+
+    /// <summary>Startup, idempotent: moves Logística files kept outside Documentação into their board's folder. Returns how many moved.</summary>
+    Task<int> MoveFilesIntoDocumentationAsync();
 }
