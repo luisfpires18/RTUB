@@ -18,7 +18,7 @@ namespace RTUB.Application.Services;
 /// - Deleting a board leaves its folder.
 /// - Moves are recoverable. A folder move copies everything, then changes the rows and the folder in one save, then
 ///   deletes the sources; a failed copy changes nothing. A single file (startup) is copied, its rows repointed, its source
-///   deleted; the next start reuses a copy already made (same name and size) and removes card-file leftovers.
+///   deleted; the next start reuses a copy already made (same name, size and ETag) and removes card-file leftovers.
 /// - <see cref="MoveFilesIntoDocumentationAsync"/> (startup, idempotent) brings older files in: the boards' stable
 ///   folders (logistics/{env}/boards/{id}/files/), the card files (logistics/{env}/cards/...) and folders under an older
 ///   board name.
@@ -141,8 +141,9 @@ public sealed partial class LogisticsKanbanService
 
     /// <summary>
     /// Moves one object into <paramref name="folder"/>, recoverably: copy, point the card rows at the copy, then delete the
-    /// source. Any failure leaves the source in place for the next run; a copy an interrupted run already made (same name,
-    /// same size in <paramref name="existing"/>) is reused instead of copied again, so a retry never makes "name (2)".
+    /// source. Any failure leaves the source in place for the next run. A copy an interrupted run already made is reused
+    /// only when it is provably the same content (same name, size and ETag): a different file of that name, uploaded there
+    /// meanwhile by a member, is never taken for it - the source then gets its own "name (2)" copy.
     /// </summary>
     private async Task<bool> MoveIntoAsync(ApplicationDbContext db, string source, string folder, Dictionary<string, long> existing)
     {
@@ -151,7 +152,9 @@ public sealed partial class LogisticsKanbanService
             var name = Path.GetFileName(source);
             var size = await _storage.GetFileSizeAsync(source);
             string target;
-            if (existing.TryGetValue(name, out var found) && found == size)
+            if (existing.TryGetValue(name, out var found) && found == size
+                && await _storage.GetDocumentETagAsync(folder + name) is { Length: > 0 } copyTag
+                && copyTag == await _storage.GetDocumentETagAsync(source))
             {
                 target = folder + name;
             }

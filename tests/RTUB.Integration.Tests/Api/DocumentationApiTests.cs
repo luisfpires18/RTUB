@@ -478,14 +478,15 @@ public sealed class DocumentationApiFactory : TestWebApplicationFactory
 /// </summary>
 public sealed class FakeDocumentStorage : IDocumentStorageService
 {
-    public sealed record StoredObject(long Size, string ContentType);
+    /// <summary>ETag: a fresh value per upload (different content), kept by a copy (same content).</summary>
+    public sealed record StoredObject(long Size, string ContentType, string ETag = "");
 
     public ConcurrentDictionary<string, StoredObject> Objects { get; } = new();
 
     /// <summary>Seeds an object; a key ending in "/" is a folder marker. Parent folder markers are added too.</summary>
-    public void Put(string key, long size, string contentType = "application/pdf")
+    public void Put(string key, long size, string contentType = "application/pdf", string? etag = null)
     {
-        Objects[key] = new StoredObject(size, contentType);
+        Objects[key] = new StoredObject(size, contentType, etag ?? Guid.NewGuid().ToString("N"));
         for (var i = key.IndexOf('/', "docs/".Length); i > 0 && i < key.Length - 1; i = key.IndexOf('/', i + 1))
         {
             Objects.TryAdd(key[..(i + 1)], new StoredObject(0, "application/x-directory"));
@@ -605,9 +606,12 @@ public sealed class FakeDocumentStorage : IDocumentStorageService
             throw new InvalidOperationException($"No object {sourcePath}");
         }
 
-        Put(targetPath, source.Size, source.ContentType);
+        Put(targetPath, source.Size, source.ContentType, source.ETag);
         return Task.CompletedTask;
     }
+
+    public Task<string?> GetDocumentETagAsync(string documentPath) =>
+        Task.FromResult(Objects.TryGetValue(documentPath, out var o) ? o.ETag : null);
 
     public Task DeleteFolderAsync(string folderPath)
     {

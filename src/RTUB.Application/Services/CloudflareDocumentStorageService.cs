@@ -330,6 +330,18 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         return await GetObjectSizeAsync(documentPath);
     }
 
+    public async Task<string?> GetDocumentETagAsync(string documentPath)
+    {
+        try
+        {
+            return (await _s3Client.GetObjectMetadataAsync(new GetObjectMetadataRequest { BucketName = _bucketName, Key = documentPath })).ETag;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
     public async Task CopyDocumentAsync(string sourcePath, string targetPath)
     {
         await CopyObjectAsync(sourcePath, targetPath);

@@ -1079,6 +1079,46 @@ public partial class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
     }
 
     /// <summary>
+    /// 105 (security review): a retry reuses only a copy with the source's content. A member's different file of the same
+    /// name and size, put in the board's folder between two starts, is never taken for it, kept untouched, and the source
+    /// gets its own "name (2)" copy before it is deleted.
+    /// </summary>
+    [Fact]
+    public async Task ARetriedMove_NeverTakesAPlantedSameSizeFileForItsCopy()
+    {
+        var name = $"{Tag()} Cortejo";
+        var (boardId, _, _) = await SeedBoardAsync(name: name);
+        await UpdateBoardAsync(boardId, b => b.LegacyFolder = name);
+        var year = FiscalYearHelper.GetCurrentFiscalYearString();
+        var source = $"logistics/Test/boards/{boardId}/files/orcamento.pdf";
+        var copy = $"docs/Test/{year}/Logistics/{name}/orcamento.pdf";
+        _factory.Storage.Put(source, 10);
+
+        _factory.Storage.Fails = (op, key) => op == "delete" && key == source;
+        try
+        {
+            using var scope = _factory.Services.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<ILogisticsKanbanService>().MoveFilesIntoDocumentationAsync();
+        }
+        finally
+        {
+            _factory.Storage.Fails = null;
+        }
+
+        _factory.Storage.Objects.Keys.Should().Contain(new[] { source, copy });
+        _factory.Storage.Put(copy, 10, etag: "planted"); // same name, same size, other content
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ILogisticsKanbanService>().MoveFilesIntoDocumentationAsync();
+        }
+
+        _factory.Storage.Objects[copy].ETag.Should().Be("planted", "the member's file is left as it is");
+        _factory.Storage.Objects.Keys.Should().Contain($"docs/Test/{year}/Logistics/{name}/orcamento (2).pdf", "the source got its own copy")
+            .And.NotContain(source);
+    }
+
+    /// <summary>
     /// 104 (review): a rename whose copy fails changes nothing; one whose source delete fails still moves (rows and folder
     /// in one save), and the leftover sits in a folder no board owns, which members do not see.
     /// </summary>
