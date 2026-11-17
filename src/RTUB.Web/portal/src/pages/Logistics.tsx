@@ -6,9 +6,10 @@ import { Icon } from '../components/icons';
 import { Menu } from './LogisticsBoard';
 import { MemberPicker, PersonChip } from '../components/LogisticsDialogs';
 import { TemplateDialog } from '../components/LogisticsTemplates';
-import { day, logisticsApi, problem, type Assignee, type BoardInput, type BoardSummary, type Boards, type LogisticsEvent, type Visibility } from '../data/logisticsApi';
-import { loginTo } from '../data/musicApi';
+import { logisticsApi, problem, type Assignee, type BoardInput, type BoardSummary, type Boards, type LogisticsEvent, type Visibility } from '../data/logisticsApi';
 
+import { day } from '../data/format';
+import { Notice, RetryNotice, SignInNotice } from '../components/Notice';
 type Tab = 'active' | 'completed' | 'archived';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'active', label: 'Ativos' },
@@ -97,24 +98,11 @@ export default function Logistics() {
       </header>
 
       {boards === 'signin' ? (
-        <div className="notice" role="status">
-          <p>A logística é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.logistics)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.logistics}>A logística é da área de membros.</SignInNotice>
       ) : boards === 'forbidden' ? (
-        <div className="notice" role="status">
-          <p>Não tem acesso à logística.</p>
-        </div>
+        <Notice>Não tem acesso à logística.</Notice>
       ) : boards === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir os quadros agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={load}>Não conseguimos abrir os quadros agora.</RetryNotice>
       ) : !data ? (
         <Loading label="A carregar os quadros…" />
       ) : (

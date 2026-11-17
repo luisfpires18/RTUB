@@ -6,7 +6,7 @@ import { ActiveMembersDialog, BirthdaysDialog, MemberDialog, MemberFace } from '
 import { MemberBadge } from '../components/MemberBadge';
 import { ConfirmAction, MemberFormDialog, MemberInfoDialog, NicknameDialog } from '../components/MemberManage';
 import { memberAdminApi, membersApi, type ActiveMember, type Directory, type DirectoryFilters, type MemberCard, type MemberDetail } from '../data/membersApi';
-import { loginTo } from '../data/musicApi';
+import { RetryNotice, SignInNotice } from '../components/Notice';
 
 const CATEGORIES = [
   { value: 'Leitao', label: 'Leitão' },
@@ -136,20 +136,9 @@ export default function Members() {
       </header>
 
       {directory === 'signin' ? (
-        <div className="notice" role="status">
-          <p>A lista de membros é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.members)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.members}>A lista de membros é da área de membros.</SignInNotice>
       ) : directory === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir a lista de membros agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setFilters({ ...filters })}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={() => setFilters({ ...filters })}>Não conseguimos abrir a lista de membros agora.</RetryNotice>
       ) : (
         <>
           <div className="events-tools members-tools" role="search">

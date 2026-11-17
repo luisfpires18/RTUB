@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 
-const out = await build({ entryPoints: [new URL('../src/data/calendar.ts', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')], bundle: false, write: false, format: 'esm' });
+const out = await build({ entryPoints: [new URL('../src/data/calendar.ts', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')], bundle: true, write: false, format: 'esm' });
 const { calendarDates, googleCalendarUrl } = await import(`data:text/javascript,${encodeURIComponent(out.outputFiles[0].text)}`);
 const base = { title: 'RTUB · Serenata & Festa #1', location: 'Sé de Bragança', path: '/events/12', end: null, endDate: null };
 // winter timed, suggested 2h

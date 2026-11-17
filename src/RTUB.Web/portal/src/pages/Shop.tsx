@@ -5,9 +5,11 @@ import { Cropper } from '../components/Cropper';
 import { Dialog } from '../components/Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { loginTo } from '../data/musicApi';
 import { MemberBadge } from '../components/MemberBadge';
 import { PromotionsSection } from '../components/ShopPromotions';
+import { euros } from '../data/format';
+import { outcomeText } from '../data/api';
+import { RetryNotice, SignInNotice } from '../components/Notice';
 
 // /api/shop: visitors receive a public-only catalogue; members retain their existing actions.
 
@@ -116,22 +118,13 @@ const CROP_TEXT = {
   note: 'Os produtos aparecem sempre em quadrado.',
 };
 
-const euros = (n: number) => `${n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 const when = (iso: string) => {
   const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : `${iso}Z`);
   return `${d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para esta ação.'
-      : o.kind === 'notfound'
-        ? 'Já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tem permissão para esta ação.', notfound: 'Já não existe.' });
 
 type Open =
   | { kind: 'detail' | 'reserve' | 'mine' | 'reservations' | 'delete'; product: Product }
@@ -194,20 +187,9 @@ export default function ShopPage() {
       </header>
 
       {shop === 'signin' ? (
-        <div className="notice" role="status">
-          <p>A loja é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.shop)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.shop}>A loja é da área de membros.</SignInNotice>
       ) : shop === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir a loja agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={load}>Não conseguimos abrir a loja agora.</RetryNotice>
       ) : !data ? (
         <Loading label="A carregar os produtos…" />
       ) : (

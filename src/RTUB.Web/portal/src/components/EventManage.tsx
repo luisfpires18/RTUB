@@ -23,6 +23,7 @@ import {
   type Outcome,
 } from '../data/eventsApi';
 import { Icon } from './icons';
+import { today } from '../data/format';
 
 // Admin/Owner event management on the React agenda: create, edit, delete (011.5); the image,
 // cancel / reactivate and email / push notices (012A). The server enforces who may do it; these
@@ -47,11 +48,6 @@ const failure = (o: Outcome<unknown>, what: string) =>
       : o.kind === 'closed'
         ? 'Esta atuação já passou ou mudou entretanto. Recarregue a página.'
         : `Não foi possível ${what}. Tente outra vez daqui a pouco.`;
-
-const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 
 type Form = EventInput & { multiDay: boolean };
 

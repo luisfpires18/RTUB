@@ -1,3 +1,4 @@
+import { pad } from './format';
 // "Adicionar ao Google Calendar" (task 079, issue #260; docs/react-events.md → Calendário). One deterministic link
 // builder for events and rehearsals: Google's documented prefilled template
 // (https://calendar.google.com/calendar/render?action=TEMPLATE), with RTUB's own wall-clock times and ctz=Europe/Lisbon,
@@ -22,8 +23,6 @@ export type CalendarActivity = {
   /** The item's RTUB path, e.g. /events/12 (made absolute with the configured public origin, never the browser's). */
   path: string;
 };
-
-const pad = (n: number) => String(n).padStart(2, '0');
 
 /** yyyy-MM-dd + days, as a calendar date (UTC arithmetic on the date only: no zone involved). */
 export function addDays(date: string, days: number): string {

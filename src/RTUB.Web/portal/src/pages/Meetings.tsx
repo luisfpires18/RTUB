@@ -31,7 +31,7 @@ import {
   type MeetingRequest,
   type MeetingRequestPage,
 } from '../data/meetingsApi';
-import { loginTo } from '../data/musicApi';
+import { RetryNotice, SignInNotice } from '../components/Notice';
 
 export const MEETING_PAGE_SIZES = [6, 12, 18, 24];
 const REQUEST_PAGE_SIZES = [4, 8, 12, 16, 20];
@@ -229,20 +229,9 @@ export default function Meetings() {
       )}
 
       {board === 'signin' ? (
-        <div className="notice" role="status">
-          <p>As reuniões são da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.meetings)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.meetings}>As reuniões são da área de membros.</SignInNotice>
       ) : board === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir as reuniões agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={reload}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={reload}>Não conseguimos abrir as reuniões agora.</RetryNotice>
       ) : !data ? (
         <Loading label="A carregar as reuniões…" />
       ) : (
@@ -851,12 +840,7 @@ function RequestsSection({
       {data === undefined ? (
         <Loading label="A carregar os pedidos…" />
       ) : data === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir os pedidos agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={reload}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={reload}>Não conseguimos abrir os pedidos agora.</RetryNotice>
       ) : data.items.length === 0 ? (
         <div className="mtg-empty">
           <Icon name="inbox" className="mtg-empty__icon" />

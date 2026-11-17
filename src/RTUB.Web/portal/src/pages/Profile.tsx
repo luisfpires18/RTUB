@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode, type Ref } from 'react';
-import { getCurrentUser } from '../data/api';
+import { getCurrentUser, outcomeText } from '../data/api';
 import { Loading, useCurrentUser } from '../components/App';
 import { loginToProfile, portal } from '../data/content';
 import { Cropper } from '../components/Cropper';
@@ -14,6 +14,7 @@ import { SignOutButton } from '../components/MemberShell';
 import { passkeyApi, passkeysSupported, type MyPasskey } from '../data/passkey';
 import { PushPreferencesDialog } from '../components/PushPreferences';
 import { readPush, sendTest, turnOff, turnOn, type PushResult, type PushState } from '../data/push';
+import { Notice, RetryNotice } from '../components/Notice';
 
 /**
  * /profile - the members-only corner of a public portal. RTUB has no public accounts: the tuna creates its members'
@@ -42,12 +43,7 @@ export default function Profile() {
       </header>
 
       {failed ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos confirmar a sessão agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={retry}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={retry}>Não conseguimos confirmar a sessão agora.</RetryNotice>
       ) : !user ? (
         <SessionSkeleton />
       ) : user.authenticated ? (
@@ -81,11 +77,7 @@ function SessionSkeleton() {
 // ---------- signed in: the profile editor ----------
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'signin'
-      ? 'A sessão terminou. Entra outra vez.'
-      : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what);
 
 function MyProfilePage() {
   const [profile, setProfile] = useState<MyProfile | 'failed'>();
@@ -98,9 +90,7 @@ function MyProfilePage() {
   if (profile === undefined) return <Loading label="A carregar o perfil…" />;
   if (profile === 'failed') {
     return (
-      <div className="notice" role="status">
-        <p>Não foi possível carregar o perfil. Tenta outra vez daqui a pouco.</p>
-      </div>
+      <Notice>Não foi possível carregar o perfil. Tenta outra vez daqui a pouco.</Notice>
     );
   }
 

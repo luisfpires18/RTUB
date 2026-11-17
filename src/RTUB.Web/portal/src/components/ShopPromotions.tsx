@@ -3,6 +3,8 @@ import { Dialog } from './Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
+import { euros } from '../data/format';
+import { outcomeText } from '../data/api';
 
 // /api/shop/promotions: bundle offers ("3 CDs por 20 € em vez de 30 €"). Visitors see offers made of public products,
 // members all of them; Mod, Admin and Owner create, edit and delete. The server decides and validates everything.
@@ -22,18 +24,8 @@ const api = {
   products: () => call<{ products: ProductChoice[] }>('GET', '/api/shop?fiscalYear='),
 };
 
-const euros = (n: number) => `${n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-
 const problem = (o: Outcome<unknown>) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para esta ação.'
-      : o.kind === 'notfound'
-        ? 'Esta promoção já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : 'Não foi possível concluir. Tenta outra vez daqui a pouco.';
+  outcomeText(o, 'concluir', { forbidden: 'Não tem permissão para esta ação.', notfound: 'Esta promoção já não existe.' });
 
 type Open = { kind: 'form'; promo?: Promo } | { kind: 'delete'; promo: Promo };
 

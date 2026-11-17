@@ -12,22 +12,15 @@ import {
   type Outcome,
 } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { loginTo } from '../data/musicApi';
 import { MemberBadge, badgeKind } from '../components/MemberBadge';
+import { outcomeText } from '../data/api';
+import { Notice, SignInNotice } from '../components/Notice';
 
 const BODY_MAX = 5000;
 const COMMENT_MAX = 2000;
 
 const problem = (o: Outcome<unknown>) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tens permissão para isto.'
-      : o.kind === 'notfound'
-        ? 'Isto já não existe. Recarrega a página.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : 'Não foi possível guardar. Tenta outra vez daqui a pouco.';
+  outcomeText(o, 'guardar', { forbidden: 'Não tens permissão para isto.', notfound: 'Isto já não existe. Recarrega a página.' });
 
 /** "agora", "há 5 min", "há 3 h", "ontem, 21:10", then "12 de outubro, 21:10" (and the year when it is not this one). */
 export function when(iso: string, now = new Date()) {
@@ -126,9 +119,7 @@ export default function EventDiscussion({ eventId }: { eventId: number }) {
           <Icon name="arrow" />
           Agenda
         </a>
-        <div className="notice" role="status">
-          <p>Esta atuação não existe ou já foi apagada.</p>
-        </div>
+        <Notice>Esta atuação não existe ou já foi apagada.</Notice>
       </section>
     );
   }
@@ -151,17 +142,9 @@ export default function EventDiscussion({ eventId }: { eventId: number }) {
       {talk === undefined ? (
         <Loading label="A carregar a conversa…" />
       ) : talk === 'signin' ? (
-        <div className="notice" role="status">
-          <p>A discussão é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(`/events/${eventId}/discussion`)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={`/events/${eventId}/discussion`}>A discussão é da área de membros.</SignInNotice>
       ) : talk === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir a conversa agora. Tenta outra vez daqui a pouco.</p>
-        </div>
+        <Notice>Não conseguimos abrir a conversa agora. Tenta outra vez daqui a pouco.</Notice>
       ) : (
         <Feed eventId={eventId} talk={talk} onChange={setTalk} />
       )}

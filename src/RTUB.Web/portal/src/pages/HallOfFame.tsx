@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Loading } from '../components/App';
 import { portal } from '../data/content';
-import { Icon } from '../components/icons';
 import { MemberFace } from '../components/MemberDialogs';
 import { memberAreaApi, type FameRecord, type HallOfFame as Fame } from '../data/memberAreaApi';
-import { loginTo } from '../data/musicApi';
+import { Notice, SignInNotice } from '../components/Notice';
 
 /**
  * /hall-of-fame. The tuna's twelve records, as the server computes them
@@ -34,17 +33,9 @@ export default function HallOfFame() {
       {fame === undefined ? (
         <Loading label="A calcular os recordes…" />
       ) : fame === 'signin' ? (
-        <div className="notice" role="status">
-          <p>O Hall of Fame é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.hallOfFame)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.hallOfFame}>O Hall of Fame é da área de membros.</SignInNotice>
       ) : fame === null ? (
-        <div className="notice" role="status">
-          <p>Não foi possível carregar os recordes. Tenta outra vez daqui a pouco.</p>
-        </div>
+        <Notice>Não foi possível carregar os recordes. Tenta outra vez daqui a pouco.</Notice>
       ) : (
         <ol className="fame-grid">
           {fame.categories.map((c) => (

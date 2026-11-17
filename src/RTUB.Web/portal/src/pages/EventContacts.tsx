@@ -5,11 +5,10 @@ import { portal } from '../data/content';
 import { dateLabel, eventsApi, type EventContactRow, type EventContacts as Contacts, type EventSummary } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { when } from './EventDiscussion';
-import { loginTo } from '../data/musicApi';
+import { fold } from '../data/format';
+import { Notice, SignInNotice } from '../components/Notice';
 
 const NOTES_MAX = 500;
-
-const fold = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 const answers = [
   { value: true, label: 'Vai', icon: 'check', className: 'choice__option--yes' },
@@ -64,9 +63,7 @@ export default function EventContacts({ eventId }: { eventId: number }) {
           <Icon name="arrow" />
           Agenda
         </a>
-        <div className="notice" role="status">
-          <p>Esta atuação não existe ou já foi apagada.</p>
-        </div>
+        <Notice>Esta atuação não existe ou já foi apagada.</Notice>
       </section>
     );
   }
@@ -145,13 +142,7 @@ export default function EventContacts({ eventId }: { eventId: number }) {
       {list === undefined ? (
         <Loading label="A carregar os contactos…" />
       ) : list === 'signin' ? (
-        <div className="notice" role="status">
-          <p>Os contactos são da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(`/events/${eventId}/contacts`)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={`/events/${eventId}/contacts`}>Os contactos são da área de membros.</SignInNotice>
       ) : list === 'forbidden' ? (
         <div className="notice" role="status">
           <p>Não tem acesso aos contactos desta atuação.</p>
@@ -160,9 +151,7 @@ export default function EventContacts({ eventId }: { eventId: number }) {
           </a>
         </div>
       ) : list === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir os contactos agora. Tenta outra vez daqui a pouco.</p>
-        </div>
+        <Notice>Não conseguimos abrir os contactos agora. Tenta outra vez daqui a pouco.</Notice>
       ) : (
         <>
           <div className="events-tools" role="search">

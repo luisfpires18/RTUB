@@ -1,4 +1,5 @@
 import { call } from './eventsApi';
+import { pad } from './format';
 
 // /api/meetings (Endpoints/MeetingEndpoints.cs, task 034). Signed-in members only; a Leitão is refused everything
 // (403) and a meeting the member does not see is a 404. The server decides every rule (MeetingBoardService): the
@@ -304,7 +305,6 @@ function parts(value: string): Parts | null {
   return { y: Number(match[1]), m: Number(match[2]), d: Number(match[3]), hh: match[4] ?? '00', mm: match[5] ?? '00' };
 }
 
-const pad = (n: number) => String(n).padStart(2, '0');
 // The calendar weekday of a date (UTC arithmetic on the date alone, so the reader's zone plays no part).
 const weekdayIndex = (p: Parts) => new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay();
 

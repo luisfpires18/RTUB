@@ -5,9 +5,10 @@ import { Dialog } from '../components/Dialog';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { MemberFace } from '../components/MemberDialogs';
-import { loginTo } from '../data/musicApi';
 import { naipesApi, type NaipeBoard, type NaipeComment, type NaipeItem } from '../data/naipesApi';
 import { MemberBadge } from '../components/MemberBadge';
+import { outcomeText } from '../data/api';
+import { Notice, SignInNotice } from '../components/Notice';
 
 const PAGE_SIZES = [10, 20, 30, 40, 50];
 const MAX_VIDEO = 100 * 1024 * 1024;
@@ -18,15 +19,7 @@ const VIDEO_ACCEPT = 'video/mp4,video/quicktime,video/webm,video/3gpp,.mp4,.m4v,
 const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Só quem adicionou este conteúdo o pode alterar.'
-      : o.kind === 'notfound'
-        ? 'Este conteúdo já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Só quem adicionou este conteúdo o pode alterar.', notfound: 'Este conteúdo já não existe.' });
 
 type Editing = { kind: 'new'; isVideo: boolean } | { kind: 'edit'; item: NaipeItem };
 
@@ -121,17 +114,9 @@ export default function Naipes() {
       {board === undefined ? (
         <Loading label="A carregar os naipes…" />
       ) : board === 'signin' ? (
-        <div className="notice" role="status">
-          <p>Os naipes são da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.naipes)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.naipes}>Os naipes são da área de membros.</SignInNotice>
       ) : board === null ? (
-        <div className="notice" role="status">
-          <p>Não foi possível carregar os naipes. Tenta outra vez daqui a pouco.</p>
-        </div>
+        <Notice>Não foi possível carregar os naipes. Tenta outra vez daqui a pouco.</Notice>
       ) : (
         <>
           {board.instruments.length === 0 ? (

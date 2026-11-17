@@ -3,9 +3,10 @@ import { Loading } from '../components/App';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
-import { euros, matches, problem, treasuryApi, type ReportSummary, type Reports } from '../data/treasuryApi';
+import { matches, problem, treasuryApi, type ReportSummary, type Reports } from '../data/treasuryApi';
 import { Confirm, Refusal, SaveFooter, TreasuryTabs } from '../components/TreasuryUi';
 
+import { euros } from '../data/format';
 /**
  * /treasury - Tesouraria. Treasury members: the annual reports, newest first,
  * with income, expenses and balance, search and PDF. Admin, Owner and treasury-team Mods create a report; Owner and the

@@ -2,12 +2,11 @@ import { useEffect, useId, useState, type ReactNode } from 'react';
 import { portal } from '../data/content';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { loginTo } from '../data/musicApi';
 import { treasuryApi, type Person } from '../data/treasuryApi';
+import { DEFAULT_AVATAR } from '../data/membersApi';
+import { Notice, RetryNotice, SignInNotice } from './Notice';
 
 // Shared pieces of the React /treasury pages (React track 024).
-
-export const DEFAULT_AVATAR = '/images/default-avatar.webp';
 
 /** The four Tesouraria areas, as the old report page's buttons ("Ver Calotes", "Ver MBWAY", "Nerba"). */
 export function TreasuryTabs({ current, fiscalYear }: { current: 'reports' | 'calotes' | 'mbway' | 'nerba'; fiscalYear?: string }) {
@@ -32,13 +31,7 @@ export function TreasuryTabs({ current, fiscalYear }: { current: 'reports' | 'ca
 export function Refusal({ state, path, onRetry }: { state: 'signin' | 'forbidden' | 'failed' | 'missing'; path: string; onRetry: () => void }) {
   if (state === 'signin') {
     return (
-      <div className="notice" role="status">
-        <p>A tesouraria é da área de membros.</p>
-        <a className="btn btn--primary btn--sm" href={loginTo(path)}>
-          <Icon name="login" />
-          Entrar
-        </a>
-      </div>
+      <SignInNotice path={path}>A tesouraria é da área de membros.</SignInNotice>
     );
   }
   if (state === 'forbidden') {
@@ -53,18 +46,11 @@ export function Refusal({ state, path, onRetry }: { state: 'signin' | 'forbidden
   }
   if (state === 'missing') {
     return (
-      <div className="notice" role="status">
-        <p>Isto não existe ou já foi apagado.</p>
-      </div>
+      <Notice>Isto não existe ou já foi apagado.</Notice>
     );
   }
   return (
-    <div className="notice" role="status">
-      <p>Não conseguimos abrir a tesouraria agora.</p>
-      <button type="button" className="btn btn--ghost btn--sm" onClick={onRetry}>
-        Tentar novamente
-      </button>
-    </div>
+    <RetryNotice onRetry={onRetry}>Não conseguimos abrir a tesouraria agora.</RetryNotice>
   );
 }
 

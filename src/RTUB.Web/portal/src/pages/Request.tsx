@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type Rea
 import { submitRequest, type FieldErrors, type RequestForm } from '../data/api';
 import { contactEmail, portal } from '../data/content';
 import { Icon } from '../components/icons';
+import { today } from '../data/format';
 
 // Suggestions only: the event type stays free text.
 const examples = ['Serenata', 'Casamento', 'Batizado', 'Aniversário', 'Arraial', 'Arruada', 'Convívio', 'Missa', 'Festival'];
@@ -27,11 +28,6 @@ const hints: FieldErrors = {
 };
 
 type Banner = 'invalid' | 'expired' | 'throttled' | 'failed' | null;
-
-const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 
 /**
  * Mirrors the server rules (Request entity annotations + RequestValidationService) so most mistakes

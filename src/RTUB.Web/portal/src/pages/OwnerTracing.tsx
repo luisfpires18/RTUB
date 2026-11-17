@@ -5,6 +5,7 @@ import { Icon } from '../components/icons';
 import { ConfirmDialog } from '../components/MusicUi';
 import { auditQuery, dateTime, ENTITY_LABELS, entityLabel, ownerApi, ownerProblem, type AuditEntry, type AuditFilter, type AuditFilters, type Logins } from '../data/ownerApi';
 import { Flash, matches, OwnerPage, OwnerPager, SearchBox, useOwnerLoad } from '../components/OwnerUi';
+import { pad } from '../data/format';
 
 const EMPTY: AuditFilter = { user: '', excludeUser: '', entityType: '', action: '', critical: false, hideSystem: false, q: '', page: 1, pageSize: 20 };
 const NO_TEXT = { q: '', user: '', excludeUser: '' };
@@ -14,11 +15,10 @@ const CONFIRMATION = 'DELETE ALL';
 const primaryName = (e: AuditEntry) =>
   e.currentDisplayName || e.entityDisplayName || (e.entityId !== null ? `${entityLabel(e.entityType)} #${e.entityId}` : entityLabel(e.entityType));
 
-const two = (n: number) => String(n).padStart(2, '0');
 /** dd/MM/yyyy HH:mm in the reader's time zone. */
 const stamp = (iso: string) => {
   const d = new Date(iso);
-  return `${two(d.getDate())}/${two(d.getMonth() + 1)}/${d.getFullYear()} ${two(d.getHours())}:${two(d.getMinutes())}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 const actionTone = (action: string) =>
@@ -289,7 +289,6 @@ export default function OwnerTracing() {
   );
 }
 
-/** A filter list: each option submits the raw value; <c>text</c> only changes the words shown. */
 /** A member field that suggests usernames as you type (native datalist: no list of 100 options to scroll). */
 function UserField({
   id,

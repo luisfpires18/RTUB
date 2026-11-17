@@ -14,26 +14,13 @@ import {
   type RehearsalSummary,
 } from '../data/rehearsalsApi';
 import { MemberBadge, badgeKind } from './MemberBadge';
+import { fold, today } from '../data/format';
+import { outcomeText } from '../data/api';
 
 const NOTES_MAX = 500;
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tens permissão para isto.'
-      : o.kind === 'notfound'
-        ? 'Este ensaio já não existe.'
-        : o.kind === 'closed'
-          ? 'Este ensaio já não permite isto. Recarrega a página.'
-          : o.kind === 'signin'
-            ? 'A sessão terminou. Entra outra vez.'
-            : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
-
-const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+  outcomeText(o, what, { forbidden: 'Não tens permissão para isto.', notfound: 'Este ensaio já não existe.', closed: 'Este ensaio já não permite isto. Recarrega a página.' });
 
 export function RehearsalLine({ rehearsal }: { rehearsal: RehearsalSummary }) {
   return (
@@ -508,8 +495,6 @@ export function NoticeDialog({ rehearsal, onClose }: { rehearsal: RehearsalSumma
 }
 
 // ---------- statistics and the member's own record ----------
-
-const fold = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /**
  * "Estatísticas de presenças": for the dates chosen (the current season by default),

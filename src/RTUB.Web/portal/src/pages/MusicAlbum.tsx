@@ -4,7 +4,8 @@ import { Icon } from '../components/icons';
 import { normalize, SongForm } from '../components/MusicForms';
 import { MusicPlayer, type NowPlaying } from '../components/MusicPlayer';
 import { Badge, ConfirmDialog, Dialog, IconButton, plays } from '../components/MusicUi';
-import { loginTo, MAX_VIDEO_BYTES, musicApi, type AlbumDetail, type Lyrics, type MusicLink, type Song, type Video } from '../data/musicApi';
+import { MAX_VIDEO_BYTES, musicApi, type AlbumDetail, type Lyrics, type MusicLink, type Song, type Video } from '../data/musicApi';
+import { loginTo } from '../data/content';
 
 type Load = { kind: 'loading' } | { kind: 'ok'; data: AlbumDetail } | { kind: 'signin' } | { kind: 'notfound' } | { kind: 'failed' };
 

@@ -15,6 +15,7 @@ import {
   type Option,
 } from '../data/membersApi';
 import { MemberBadge } from './MemberBadge';
+import { outcomeText } from '../data/api';
 
 // The member admin tools. Admin and Owner; Owner also deletes
 // regular members and, with the current Magister, changes complete dates. The server decides and validates
@@ -30,15 +31,7 @@ const MIN_YEAR = 1990;
 const LOCKED_HINT = 'Data fechada: só o Magister deste ano a corrige.';
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para esta ação.'
-      : o.kind === 'notfound'
-        ? 'Este membro já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tem permissão para esta ação.', notfound: 'Este membro já não existe.' });
 
 /** As UsernameHelper.NormalizeUsername: lower case, no accents, letters and digits only. */
 export const username = (nickname: string) =>

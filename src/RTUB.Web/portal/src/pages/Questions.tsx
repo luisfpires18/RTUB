@@ -4,8 +4,9 @@ import { Dialog } from '../components/Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { MemberFace } from '../components/MemberDialogs';
-import { loginTo } from '../data/musicApi';
 import { MemberBadge } from '../components/MemberBadge';
+import { outcomeText } from '../data/api';
+import { RetryNotice, SignInNotice } from '../components/Notice';
 
 // /api/questions (task 031, Endpoints/QuestionEndpoints.cs). Dates are UTC.
 type Status = 'unanswered' | 'answered' | 'inDiscussion' | 'closed';
@@ -69,15 +70,7 @@ const stamp = (iso: string) =>
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para esta ação.'
-      : o.kind === 'notfound'
-        ? 'Esta pergunta já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tem permissão para esta ação.', notfound: 'Esta pergunta já não existe.' });
 
 /**
  * /questions - Perguntas aos Órgãos Sociais. Any signed-in member asks a question to
@@ -132,20 +125,9 @@ export default function Questions() {
       </header>
 
       {session === 'signin' ? (
-        <div className="notice" role="status">
-          <p>As perguntas são da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo('/questions')}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={'/questions'}>As perguntas são da área de membros.</SignInNotice>
       ) : session === 'failed' ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir as perguntas agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => location.reload()}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={() => location.reload()}>Não conseguimos abrir as perguntas agora.</RetryNotice>
       ) : !session ? (
         <Loading label="A carregar as perguntas…" />
       ) : (

@@ -4,23 +4,16 @@ import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { loginTo } from '../data/musicApi';
 import { naipesApi, type NaipeSetting } from '../data/naipesApi';
 import { MemberBadge } from '../components/MemberBadge';
+import { outcomeText } from '../data/api';
+import { Notice, SignInNotice } from '../components/Notice';
 
 const MAX_PICTURE = 5 * 1024 * 1024;
 const PICTURE_ACCEPT = 'image/jpeg,image/png,image/webp';
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para alterar os instrumentos dos naipes.'
-      : o.kind === 'notfound'
-        ? 'Este instrumento já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tem permissão para alterar os instrumentos dos naipes.', notfound: 'Este instrumento já não existe.' });
 
 /**
  * /naipes/config. Admin and Owner choose which instruments /naipes shows, their order
@@ -55,13 +48,7 @@ export default function NaipesConfig() {
       {settings === undefined ? (
         <Loading label="A carregar os instrumentos…" />
       ) : settings === 'signin' ? (
-        <div className="notice" role="status">
-          <p>A configuração dos naipes é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.naipesConfig)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.naipesConfig}>A configuração dos naipes é da área de membros.</SignInNotice>
       ) : settings === 'forbidden' ? (
         <div className="notice" role="status">
           <p>Não tem permissão para configurar os naipes. Os vídeos e as imagens continuam todos na página dos naipes.</p>
@@ -71,9 +58,7 @@ export default function NaipesConfig() {
           </a>
         </div>
       ) : settings === null ? (
-        <div className="notice" role="status">
-          <p>Não foi possível carregar os instrumentos. Tenta outra vez daqui a pouco.</p>
-        </div>
+        <Notice>Não foi possível carregar os instrumentos. Tenta outra vez daqui a pouco.</Notice>
       ) : (
         <>
           <p className="note">Ordem mais baixa primeiro. Um instrumento oculto sai da página dos naipes, mas o conteúdo dele fica guardado.</p>

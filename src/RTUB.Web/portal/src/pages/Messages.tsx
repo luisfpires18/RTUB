@@ -6,8 +6,9 @@ import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { MemberFace } from '../components/MemberDialogs';
 import { ConfirmDialog } from '../components/MusicUi';
-import { loginTo } from '../data/musicApi';
 import { publishUnread, useUnreadProvider } from '../data/unread';
+import { outcomeText } from '../data/api';
+import { Notice, SignInNotice } from '../components/Notice';
 
 // /api/conversations + /api/messages (task 041, Endpoints/MessagingEndpoints.cs): Messaging v2 over the preserved v1
 // tables. The server decides every rule (MessagingService): a conversation the member is not in is a 404, and
@@ -86,15 +87,7 @@ const dayLabel = (iso: string) => {
 };
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não podes escrever nesta conversa.'
-      : o.kind === 'notfound'
-        ? 'Esta conversa ou mensagem já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não podes escrever nesta conversa.', notfound: 'Esta conversa ou mensagem já não existe.' });
 
 /** Only "Notificações RTUB" wears the app logo (the one the portal header uses); groups a plain chat icon, people their photo. */
 const RTUB_LOGO = '/icons/rtub-logo-352.webp';
@@ -175,17 +168,9 @@ export default function Messages() {
       {list === undefined ? (
         <Loading label="A carregar as conversas…" />
       ) : list === 'signin' ? (
-        <div className="notice" role="status">
-          <p>As mensagens são da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.messages)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.messages}>As mensagens são da área de membros.</SignInNotice>
       ) : list === 'failed' ? (
-        <div className="notice" role="status">
-          <p>Não foi possível carregar as conversas. Tenta outra vez daqui a pouco.</p>
-        </div>
+        <Notice>Não foi possível carregar as conversas. Tenta outra vez daqui a pouco.</Notice>
       ) : (
         <div className="chat">
           <aside className="chat-list" aria-label="Conversas">

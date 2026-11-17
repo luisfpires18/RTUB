@@ -2,8 +2,8 @@ import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Loading } from './App';
 import type { Outcome } from '../data/eventsApi';
 import { Icon, type IconName } from './icons';
-import { loginTo } from '../data/musicApi';
 import { portal } from '../data/content';
+import { Notice, SignInNotice } from './Notice';
 
 /** What an Owner page shows: the data, a sign-in prompt, the refusal, or a failure (null). */
 export type Loaded<T> = T | 'signin' | 'forbidden' | null | undefined;
@@ -92,17 +92,9 @@ export function OwnerPage<T>({
       {state === undefined ? (
         <Loading label={loadingLabel} />
       ) : state === 'signin' ? (
-        <div className="notice" role="status">
-          <p>Esta página é reservada ao Owner. Entra primeiro.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(path)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={path}>Esta página é reservada ao Owner. Entra primeiro.</SignInNotice>
       ) : state === null ? (
-        <div className="notice" role="status">
-          <p>Não foi possível carregar esta página. Tenta outra vez daqui a pouco.</p>
-        </div>
+        <Notice>Não foi possível carregar esta página. Tenta outra vez daqui a pouco.</Notice>
       ) : (
         children(state)
       )}

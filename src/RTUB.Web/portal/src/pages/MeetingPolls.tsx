@@ -5,7 +5,6 @@ import { Dialog } from '../components/Dialog';
 import { ConfirmDialog, problem, typeClass } from '../components/MeetingDialogs';
 import { MEETING_PAGE_SIZES, Pager } from './Meetings';
 import { Icon, type IconName } from '../components/icons';
-import { loginTo } from '../data/musicApi';
 import {
   longDateTime,
   meetingsApi,
@@ -13,6 +12,7 @@ import {
   type MeetingPollAudienceOption,
   type MeetingPollBoard,
 } from '../data/meetingsApi';
+import { SignInNotice } from '../components/Notice';
 
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 12;
@@ -116,13 +116,7 @@ export default function MeetingPolls() {
       {board === undefined ? (
         <Loading label="A carregar as votações…" />
       ) : board === 'signin' ? (
-        <div className="notice" role="status">
-          <p>As votações são da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.meetingPolls + location.search)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.meetingPolls + location.search}>As votações são da área de membros.</SignInNotice>
       ) : !data ? null : (
         <>
           {linked !== null && (

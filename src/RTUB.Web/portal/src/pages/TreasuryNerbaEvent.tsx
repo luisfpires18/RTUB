@@ -3,9 +3,10 @@ import { Loading } from '../components/App';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
-import { day, euros, isoDay, matches, problem, treasuryApi, type NerbaOrder, type NerbaOrders } from '../data/treasuryApi';
+import { isoDay, matches, problem, treasuryApi, type NerbaOrder, type NerbaOrders } from '../data/treasuryApi';
 import { Confirm, Field, Refusal, SaveFooter } from '../components/TreasuryUi';
 
+import { day, euros } from '../data/format';
 type Sort = 'item' | 'type' | 'stock' | 'pricePerUnit' | 'total';
 const COLUMNS: { key: Sort; label: string; numeric?: boolean }[] = [
   { key: 'item', label: 'Item' },

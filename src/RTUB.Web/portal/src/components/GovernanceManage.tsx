@@ -3,6 +3,8 @@ import { ExternalLink, Loading } from './App';
 import { Dialog } from './Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
+import { DEFAULT_AVATAR } from '../data/membersApi';
+import { outcomeText } from '../data/api';
 
 // Órgãos Sociais for members. The RGI for Member, Mod, Admin and
 // Owner; fiscal years and position assignments for Mod, Admin and Owner. The server decides and validates everything
@@ -14,8 +16,6 @@ export type ManageBody = { name: string; positions: ManagePosition[] };
 export type Manage = { fiscalYears: string[]; fiscalYear: string | null; availableStartYears: number[]; bodies: ManageBody[] };
 type Candidate = { id: string; displayName: string; fullName: string | null; avatarUrl: string | null };
 
-const DEFAULT_AVATAR = '/images/default-avatar.webp';
-
 export const governanceApi = {
   manage: (fiscalYear?: string) => call<Manage>('GET', `/api/governance/manage${fiscalYear ? `?fiscalYear=${encodeURIComponent(fiscalYear)}` : ''}`),
   members: (q: string) => call<Candidate[]>('GET', `/api/governance/members?q=${encodeURIComponent(q)}`),
@@ -26,15 +26,7 @@ export const governanceApi = {
 };
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para gerir os órgãos sociais.'
-      : o.kind === 'notfound'
-        ? 'Este cargo já não está atribuído.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tem permissão para gerir os órgãos sociais.', notfound: 'Este cargo já não está atribuído.' });
 
 /** Regulamentos Gerais Internos: the PDF in R2 through a short-lived link, as on the old page. */
 export function RgiDialog({ onClose }: { onClose: () => void }) {

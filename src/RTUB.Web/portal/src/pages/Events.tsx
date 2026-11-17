@@ -14,6 +14,8 @@ import {
   type EventSummary,
 } from '../data/eventsApi';
 import { Icon } from '../components/icons';
+import { fold } from '../data/format';
+import { RetryNotice } from '../components/Notice';
 
 type Filters = { season: string; type: string; q: string; videos: boolean };
 
@@ -53,8 +55,6 @@ function takeCreatePrefill() {
 
 // Read once per page load, at module scope: a render React discards (Suspense) must not lose it.
 let pendingPrefill = takeCreatePrefill();
-
-const fold = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /** The archive filters, all client-side: the agenda is small and already filtered by the server for the caller. */
 export function filterPast(past: EventSummary[], f: Filters) {
@@ -179,12 +179,7 @@ export default function Events() {
       {agenda === undefined ? (
         <Loading label="A carregar a agenda…" />
       ) : agenda === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir a agenda neste momento.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => load()}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={() => load()}>Não conseguimos abrir a agenda neste momento.</RetryNotice>
       ) : (
         <>
           <section className="events-block" aria-labelledby="upcoming-title">

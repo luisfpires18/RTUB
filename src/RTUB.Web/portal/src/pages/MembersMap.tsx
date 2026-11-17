@@ -7,7 +7,7 @@ import { Icon } from '../components/icons';
 import { MemberFace } from '../components/MemberDialogs';
 import { memberAreaApi, type MapCity, type MemberMap, type Person } from '../data/memberAreaApi';
 import { DEFAULT_AVATAR } from '../data/membersApi';
-import { loginTo } from '../data/musicApi';
+import { Notice, SignInNotice } from '../components/Notice';
 
 // Leaflet ships in this page's own chunk (vendor-leaflet), so no other page loads it.
 const PORTUGAL: L.LatLngTuple = [39.5, -8.0];
@@ -53,17 +53,9 @@ export default function MembersMap() {
       {map === undefined ? (
         <Loading label="A carregar o mapa…" />
       ) : map === 'signin' ? (
-        <div className="notice" role="status">
-          <p>O mapa de membros é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.membersMap)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.membersMap}>O mapa de membros é da área de membros.</SignInNotice>
       ) : map === null ? (
-        <div className="notice" role="status">
-          <p>Não foi possível carregar o mapa. Tenta outra vez daqui a pouco.</p>
-        </div>
+        <Notice>Não foi possível carregar o mapa. Tenta outra vez daqui a pouco.</Notice>
       ) : (
         <>
           <LeafletMap cities={map.cities} focus={focus} />

@@ -3,31 +3,11 @@ import { Loading } from './App';
 import { Dialog } from './Dialog';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
-import { MemberPicker, PersonChip, size } from './LogisticsDialogs';
-import {
-  day,
-  FREQUENCY,
-  logisticsApi,
-  PRIORITY,
-  problem,
-  STATUS,
-  uploadAttachment,
-  type Board,
-  type Card,
-  type CardActivity,
-  type CardAttachment,
-  type CardComment,
-  type CardDetail,
-  type Frequency,
-  type MemberOption,
-  type Priority,
-  type Reminder,
-  type Status,
-} from '../data/logisticsApi';
+import { MemberPicker, PersonChip, size, FieldError } from './LogisticsDialogs';
+import { FREQUENCY, logisticsApi, PRIORITY, problem, STATUS, uploadAttachment, type Board, type Card, type CardActivity, type CardAttachment, type CardComment, type CardDetail, type Frequency, type MemberOption, type Priority, type Reminder, type Status, STATUSES, PRIORITIES_LOW_FIRST } from '../data/logisticsApi';
 import { DEFAULT_AVATAR } from '../data/membersApi';
+import { day, lisbonToday } from '../data/format';
 
-const STATUSES: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
-const PRIORITIES: Priority[] = ['Low', 'Normal', 'High', 'Urgent'];
 const MAX_FILE = 10 * 1024 * 1024;
 const FILE_TYPES = [
   'application/pdf',
@@ -57,8 +37,6 @@ const same = (a: Draft, b: Draft) =>
   a.title === b.title && a.description === b.description && a.priority === b.priority && a.startDate === b.startDate && a.dueDate === b.dueDate &&
   (a.owner?.id ?? '') === (b.owner?.id ?? '');
 
-/** Today in Portugal, "yyyy-mm-dd". */
-const lisbonToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lisbon' }).format(new Date());
 
 /** "Faltam 3 dias", "Falta 1 dia", "Termina hoje", "Atrasado 2 dias" against the Portuguese calendar day; nothing once done. */
 export function deadline(due: string | null, status: Status): { text: string; tone: 'late' | 'soon' | 'ok' } | null {
@@ -74,13 +52,6 @@ const at = (iso: string) =>
   new Intl.DateTimeFormat('pt-PT', { timeZone: 'Europe/Lisbon', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(
     new Date(iso),
   );
-
-const Err = ({ text }: { text?: string }) =>
-  text ? (
-    <p className="form__error" role="alert">
-      {text}
-    </p>
-  ) : null;
 
 const Section = ({ id, title, extra, children }: { id: string; title: string; extra?: ReactNode; children: ReactNode }) => (
   <section className="lx-detail__section" aria-labelledby={id}>
@@ -306,7 +277,7 @@ export function CardWorkspace({
             </div>
           </div>
         )}
-        <Err text={errors.form} />
+        <FieldError text={errors.form} />
 
         <form id={`${fid}-form`} className="lx-ws__grid" onSubmit={save} noValidate>
           <div className="lx-ws__main">
@@ -315,13 +286,13 @@ export function CardWorkspace({
                 <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
                   <label htmlFor={`${fid}-title`}>Título</label>
                   <input id={`${fid}-title`} type="text" maxLength={200} value={draft.title} onChange={(e) => set({ title: e.target.value })} />
-                  <Err text={errors.title} />
+                  <FieldError text={errors.title} />
                 </div>
                 <div className={errors.description ? 'form__field form__field--error' : 'form__field'}>
                   <label htmlFor={`${fid}-desc`}>Detalhes</label>
                   <textarea id={`${fid}-desc`} rows={5} maxLength={2000} value={draft.description} onChange={(e) => set({ description: e.target.value })} />
                   <small className="note">{draft.description.length}/2000</small>
-                  <Err text={errors.description} />
+                  <FieldError text={errors.description} />
                 </div>
               </>
             ) : (
@@ -361,7 +332,7 @@ export function CardWorkspace({
                   {STATUS[card.status].label} · {STATUS[card.status].name}
                 </p>
               )}
-              <Err text={errors.status} />
+              <FieldError text={errors.status} />
             </Section>
 
             <div className="lx-ws__facts">
@@ -370,7 +341,7 @@ export function CardWorkspace({
                 {detail.canWork ? (
                   <span className="control control--select control--sm">
                     <select id={`${fid}-prio`} value={draft.priority} onChange={(e) => set({ priority: e.target.value as Priority })}>
-                      {PRIORITIES.map((p) => (
+                      {PRIORITIES_LOW_FIRST.map((p) => (
                         <option key={p} value={p}>
                           {PRIORITY[p]}
                         </option>
@@ -382,7 +353,7 @@ export function CardWorkspace({
                     {PRIORITY[card.priority]}
                   </p>
                 )}
-                <Err text={errors.priority} />
+                <FieldError text={errors.priority} />
               </div>
               <div className={errors.startDate ? 'form__field form__field--error' : 'form__field'}>
                 <label htmlFor={`${fid}-start`}>Início</label>
@@ -393,7 +364,7 @@ export function CardWorkspace({
                     {day(card.startDate) || '—'}
                   </p>
                 )}
-                <Err text={errors.startDate} />
+                <FieldError text={errors.startDate} />
               </div>
               <div className={errors.dueDate ? 'form__field form__field--error' : 'form__field'}>
                 <label htmlFor={`${fid}-due`}>Prazo</label>
@@ -404,7 +375,7 @@ export function CardWorkspace({
                     {day(card.dueDate) || '—'}
                   </p>
                 )}
-                <Err text={errors.dueDate} />
+                <FieldError text={errors.dueDate} />
               </div>
             </div>
 
@@ -511,7 +482,7 @@ function Checklist({ detail, busy, errors, apply }: { detail: CardDetail; busy?:
           </ul>
         </>
       )}
-      <Err text={errors.items} />
+      <FieldError text={errors.items} />
       {detail.canWork && (
         <div className="lx-inline">
           <input
@@ -529,7 +500,7 @@ function Checklist({ detail, busy, errors, apply }: { detail: CardDetail; busy?:
           </button>
         </div>
       )}
-      <Err text={errors.task} />
+      <FieldError text={errors.task} />
     </Section>
   );
 }
@@ -715,7 +686,7 @@ function Attachments({
           </div>
         </div>
       )}
-      <Err text={error ?? errors.attachments ?? errors.url ?? errors.name} />
+      <FieldError text={error ?? errors.attachments ?? errors.url ?? errors.name} />
       {board.files.length > 0 && (
         <details className="lx-ws__board-files">
           <summary>Ficheiros do quadro ({board.files.length}): partilhados por todos os cartões</summary>
@@ -825,7 +796,7 @@ function Discussion({ boardId, detail, apply, busy, errors }: { boardId: number;
                       ))}
                   </p>
                 )}
-                <Err text={errors[`comment-${c.id}`]} />
+                <FieldError text={errors[`comment-${c.id}`]} />
               </div>
             </li>
           ))}
@@ -870,7 +841,7 @@ function Discussion({ boardId, detail, apply, busy, errors }: { boardId: number;
               Comentar
             </button>
           </div>
-          <Err text={errors.body ?? errors.mentionUserIds} />
+          <FieldError text={errors.body ?? errors.mentionUserIds} />
         </div>
       )}
     </Section>
@@ -918,7 +889,7 @@ function People({
         ) : (
           <p className="note">Sem responsável.</p>
         )}
-        <Err text={errors.assignedToUserId} />
+        <FieldError text={errors.assignedToUserId} />
       </div>
       <div className="form__field">
         <span className="form__label">Colaboradores</span>
@@ -949,7 +920,7 @@ function People({
             onPick={(m) => apply(logisticsApi.assign(cardId, m.id), 'userId', 'adicionar o colaborador')}
           />
         )}
-        <Err text={errors.userId} />
+        <FieldError text={errors.userId} />
       </div>
     </Section>
   );
@@ -997,7 +968,7 @@ function Labels({ detail, apply, errors }: { detail: CardDetail; apply: Apply; e
           </button>
         </div>
       )}
-      <Err text={errors.labels} />
+      <FieldError text={errors.labels} />
     </Section>
   );
 }
@@ -1053,12 +1024,11 @@ function LinkedCards({ detail, board, apply, errors }: { detail: CardDetail; boa
           </button>
         </div>
       )}
-      <Err text={errors.cardIds} />
+      <FieldError text={errors.cardIds} />
     </Section>
   );
 }
 
-/** Who did what and when, newest first (Portugal time); folded by default. */
 /** Tomorrow at 10:00, Portugal time, as a datetime-local value. */
 const tomorrowAtTen = () => {
   const d = new Date(`${lisbonToday()}T00:00:00Z`);
@@ -1175,12 +1145,12 @@ function Reminders({
                   ))}
                 </select>
               </span>
-              <Err text={errors.frequency} />
+              <FieldError text={errors.frequency} />
             </div>
             <div className={errors.nextReminderDate ? 'form__field form__field--error' : 'form__field'}>
               <label htmlFor={`${id}-at`}>{draft.frequency === 'OneTime' ? 'Quando' : 'A partir de'}</label>
               <input id={`${id}-at`} type="datetime-local" value={draft.at} onChange={(e) => setDraft({ ...draft, at: e.target.value })} />
-              <Err text={errors.nextReminderDate} />
+              <FieldError text={errors.nextReminderDate} />
             </div>
           </div>
           {detail.canManage && !draft.personal ? (
@@ -1207,12 +1177,12 @@ function Reminders({
                 exclude={draft.people.map((p) => p.id)}
                 onPick={(m) => setDraft({ ...draft, people: [...draft.people, m] })}
               />
-              <Err text={errors.userIds} />
+              <FieldError text={errors.userIds} />
             </div>
           ) : (
             <p className="note">Hora de Portugal. Chega-te como notificação e fica em Notificações RTUB.</p>
           )}
-          <Err text={errors.reminder || errors.form} />
+          <FieldError text={errors.reminder || errors.form} />
           <div className="lx-inline">
             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setDraft(undefined)}>
               Cancelar
@@ -1235,7 +1205,7 @@ function Reminders({
               {detail.canManage ? 'Novo lembrete' : 'Lembrar-me'}
             </button>
           )}
-          <Err text={errors.reminder} />
+          <FieldError text={errors.reminder} />
         </>
       )}
     </Section>

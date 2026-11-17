@@ -54,6 +54,9 @@ export const portal = {
   share: '/share',
 } as const;
 
+/** The sign-in page, coming back to `path` afterwards. */
+export const loginTo = (path: string) => `/login?returnUrl=${encodeURIComponent(path)}`;
+
 /** Sign in, then come back to the React profile. */
 export const loginToProfile = `${portal.login}?returnUrl=${encodeURIComponent(portal.profile)}`;
 

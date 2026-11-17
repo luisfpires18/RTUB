@@ -4,6 +4,7 @@ import { portal } from '../data/content';
 import { Icon, type IconName } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { unreadLabel, useUnread } from '../data/unread';
+import { DEFAULT_AVATAR } from '../data/membersApi';
 
 /**
  * The signed-in member shell (task 030, reshaped in 044): the header carries [inbox] [profile] [menu] on the right, and
@@ -209,8 +210,6 @@ export function MemberInbox() {
     </a>
   );
 }
-
-const DEFAULT_AVATAR = '/images/default-avatar.webp';
 
 /** Header category: the member's first category as the shared badge, its own control between the inbox and the profile. */
 export function MemberCategory({ member }: { member: Member }) {

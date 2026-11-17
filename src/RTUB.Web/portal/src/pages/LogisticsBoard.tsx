@@ -1,14 +1,13 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { Loading } from '../components/App';
 import { Icon } from '../components/icons';
-import { day, logisticsApi, PRIORITY, problem, STATUS, type Board, type Card, type List, type Priority, type Status } from '../data/logisticsApi';
+import { logisticsApi, PRIORITY, problem, STATUS, type Board, type Card, type List, type Priority, type Status, STATUSES, PRIORITIES_URGENT_FIRST } from '../data/logisticsApi';
 import { CardWorkspace, deadline } from '../components/LogisticsCard';
 import { DeleteListDialog, ConfirmDialog, CreateCardDialog, FilesDialog, ListDialog, MoveCardDialog } from '../components/LogisticsDialogs';
-import { CalendarView, isLate, lisbonToday, ListView, sortRows, Summary, type Row, type Sort } from '../components/LogisticsViews';
-import { loginTo } from '../data/musicApi';
+import { CalendarView, isLate, ListView, sortRows, Summary, type Row, type Sort } from '../components/LogisticsViews';
 
-const STATUSES: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
-const PRIORITIES: Priority[] = ['Urgent', 'High', 'Normal', 'Low'];
+import { day, lisbonToday } from '../data/format';
+import { loginTo } from '../data/content';
 type View = 'board' | 'list' | 'calendar';
 type Due = '' | 'late' | 'soon' | 'none';
 const VIEWS: { key: View; label: string; icon: 'kanban' | 'listOl' | 'calendar' }[] = [
@@ -41,7 +40,7 @@ const readUrl = (): UrlState => {
     status: pick<Status | ''>('status', ['', ...STATUSES], ''),
     label: p.get('label') ?? '',
     who: ((w) => (w === 'person' ? entryPerson() : w))(pick('who', ['', 'mine', 'none', 'person'], '')),
-    prio: pick<Priority | ''>('prio', ['', ...PRIORITIES], ''),
+    prio: pick<Priority | ''>('prio', ['', ...PRIORITIES_URGENT_FIRST], ''),
     due: pick<Due>('due', ['', 'late', 'soon', 'none'], ''),
     sort: pick<Sort>('sort', ['due', 'priority', 'status', 'title'], 'due'),
     month: /^\d{4}-(0[1-9]|1[0-2])$/.test(p.get('month') ?? '') ? p.get('month')! : lisbonToday().slice(0, 7),
@@ -498,7 +497,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
             <span className="sr-only">Prioridade</span>
             <select id={ids.prio} value={prio} onChange={(e) => setPrio(e.target.value as Priority | '')}>
               <option value="">Qualquer prioridade</option>
-              {PRIORITIES.map((p) => (
+              {PRIORITIES_URGENT_FIRST.map((p) => (
                 <option key={p} value={p}>
                   {PRIORITY[p]}
                 </option>

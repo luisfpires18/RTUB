@@ -3,10 +3,10 @@ import { useEffect, useId, useState } from 'react';
 import { Loading } from '../components/App';
 import { dateLabel, weekday, type MemberOption, type Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { loginTo } from '../data/musicApi';
 import { CancelDialog, NoticeDialog, PresenceDialog, PresencePill, RehearsalFormDialog } from '../components/RehearsalDialogs';
 import { rehearsalsApi, type Attendee, type InstrumentCount, type RehearsalDetail as Detail } from '../data/rehearsalsApi';
 import { MemberBadge, badgeKind } from '../components/MemberBadge';
+import { loginTo } from '../data/content';
 
 /**
  * /rehearsals/{id} - one rehearsal (React track 014): its details, the member's own presença and everyone's

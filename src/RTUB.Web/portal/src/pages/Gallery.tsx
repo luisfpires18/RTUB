@@ -3,6 +3,7 @@ import { getGallery, getGalleryItem, type GalleryFilters, type GalleryItem, type
 import { Loading, useLatest } from '../components/App';
 import { EditDialog, UploadDialog, type UploadEvent } from '../components/GalleryManage';
 import { Icon } from '../components/icons';
+import { RetryNotice } from '../components/Notice';
 
 const monthName = (month: number) =>
   new Intl.DateTimeFormat('pt-PT', { month: 'long' }).format(new Date(2000, month - 1, 1));
@@ -161,12 +162,7 @@ export default function Gallery() {
       )}
 
       {failed && !loadingMore ? (
-        <div className="notice" role="status">
-          <p>Não foi possível carregar a galeria agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => load(1, filters)}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={() => load(1, filters)}>Não foi possível carregar a galeria agora.</RetryNotice>
       ) : !data ? (
         <Loading label="A carregar a galeria…" />
       ) : items.length === 0 ? (

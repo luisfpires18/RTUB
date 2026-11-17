@@ -3,22 +3,10 @@ import { Loading } from '../components/App';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
-import {
-  day,
-  euros,
-  isoDay,
-  matches,
-  problem,
-  today,
-  treasuryApi,
-  type Activity,
-  type History,
-  type ReportEvent,
-  type Report,
-  type Transaction,
-} from '../data/treasuryApi';
+import { isoDay, matches, problem, treasuryApi, type Activity, type History, type ReportEvent, type Report, type Transaction } from '../data/treasuryApi';
 import { Confirm, Field, Refusal, SaveFooter, TreasuryTabs } from '../components/TreasuryUi';
 
+import { day, euros, today } from '../data/format';
 const PAGE = 10;
 
 /** "04/10/2026" or "04/10/2026 - 06/10/2026", as the old activity badge. */

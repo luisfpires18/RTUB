@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { Loading } from '../components/App';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
-import { day, euros, problem, treasuryApi, type Nerba, type NerbaSummary } from '../data/treasuryApi';
+import { problem, treasuryApi, type Nerba, type NerbaSummary } from '../data/treasuryApi';
 import { Confirm, Refusal, TreasuryTabs } from '../components/TreasuryUi';
 
+import { day, euros } from '../data/format';
 /**
  * /treasury/nerba - Encomendas Nerba. Treasury members:
  * the Nerba events, upcoming (nearest first) then past (latest first), with item count and total. Mod, Admin and Owner

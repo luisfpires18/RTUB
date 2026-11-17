@@ -3,6 +3,7 @@ import { portal } from '../data/content';
 import { Icon, type IconName } from '../components/icons';
 import { ownerApi, type Dashboard, type DashboardRank, type DashboardSeries } from '../data/ownerApi';
 import { OwnerPage, useOwnerLoad } from '../components/OwnerUi';
+import { lisbonToday } from '../data/format';
 
 const RANGES = [
   { days: 7, label: '7 dias' },
@@ -64,8 +65,6 @@ const PAGE_LABELS: Record<string, string> = {
 
 const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
-/** Today on Portugal's calendar, yyyy-MM-dd (the server buckets by Portugal day too). */
-const portugalToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lisbon' }).format(new Date());
 
 const addDays = (day: string, n: number) => {
   const d = new Date(`${day}T00:00:00Z`);
@@ -89,7 +88,7 @@ const number = (n: number) => new Intl.NumberFormat('pt-PT').format(n);
  */
 export default function OwnerDashboard() {
   const [days, setDays] = useState<number>(30);
-  const to = portugalToday();
+  const to = lisbonToday();
   const from = addDays(to, 1 - days);
   const [state] = useOwnerLoad(() => ownerApi.dashboard(from, to), [from, to]);
   const [metric, setMetric] = useState('signIns');

@@ -15,8 +15,10 @@ present-tense rules, old-URL redirects moved out of `Program.cs` into `Extension
 methods with no production caller removed (with their tests). No behaviour change.
 Task 111 (`chore/111/portal-folders`, on top of 110): phase 2, `portal/src` split into `pages/`, `components/`, `data/`
 (moves and import paths only; layout rule in `docs/frontend-practices.md` → *Layout*).
-Planned next phases (one branch each): 3 shared UI pieces (notice,
-avatar, tabs, euro/date formatting); 4 split portal files over 300 lines and `styles.css` per area; 5 split C# files
+Task 112 (`chore/112/shared-ui`, on top of 111): phase 3, shared pieces. `components/Notice.tsx` (Notice,
+SignInNotice, RetryNotice: same markup), `data/format.ts`, `queryString` + `outcomeText` in `data/api.ts`, `loginTo`
+in `data/content.ts`; one copy of `DEFAULT_AVATAR`, the Logística status/priority lists and the antiforgery token.
+Planned next phases (one branch each): 4 split portal files over 300 lines and `styles.css` per area; 5 split C# files
 over 300 lines; 6 test files (lowest priority).
 
 ## Not verified yet
@@ -42,6 +44,12 @@ over 300 lines; 6 test files (lowest priority).
 - Old work branches `chore/001`…`chore/029`, `fix/012`…`fix/029`, `perf/019`: delete when convenient.
 
 ## Deferred (recorded, not fixed)
+
+**Portal (left after phase 3)**
+- `data/musicApi.ts` keeps its own `call` and `Outcome` (adds `title`, `unavailable`); merging it into `data/api.ts`
+  changes every music page's error handling.
+- `EventManage`, `GalleryManage` and `MeetingDialogs` keep their own error sentences (formal "Tente"/"Entre", other
+  rules); 17 notices with their own buttons stay hand-written. Tabs (4) and avatar images differ in class and size.
 
 **Tests**
 - Integration test hosts run `PendingActionsReminderService`, so a full `dotnet test` between 18:00 and 24:00 Portugal

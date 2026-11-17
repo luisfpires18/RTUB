@@ -4,7 +4,8 @@ import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { loginTo } from '../data/musicApi';
+import { outcomeText } from '../data/api';
+import { Notice, RetryNotice, SignInNotice } from '../components/Notice';
 
 // /api/documentation (Endpoints/DocumentationEndpoints.cs, React track 022). Signed-in members only, Leitões refused;
 // Owner manages. The server decides every rule (DocumentationService); hiding a button here is only a convenience.
@@ -43,15 +44,7 @@ const api = {
 };
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para gerir pastas e documentos.'
-      : o.kind === 'notfound'
-        ? 'Este documento ou pasta já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tem permissão para gerir pastas e documentos.', notfound: 'Este documento ou pasta já não existe.' });
 
 const fileSize = (bytes: number) =>
   bytes < 1024
@@ -139,24 +132,11 @@ export default function Documentation() {
       </header>
 
       {docs === 'signin' ? (
-        <div className="notice" role="status">
-          <p>A documentação é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.documentation)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.documentation}>A documentação é da área de membros.</SignInNotice>
       ) : docs === 'forbidden' ? (
-        <div className="notice" role="status">
-          <p>A documentação ainda não está disponível para Leitões.</p>
-        </div>
+        <Notice>A documentação ainda não está disponível para Leitões.</Notice>
       ) : docs === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir a documentação agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => load()}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={() => load()}>Não conseguimos abrir a documentação agora.</RetryNotice>
       ) : !data ? (
         <Loading label="A carregar a documentação…" />
       ) : (

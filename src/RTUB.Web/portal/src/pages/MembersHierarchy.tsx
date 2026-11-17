@@ -4,7 +4,7 @@ import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { MemberFace } from '../components/MemberDialogs';
 import { membersApi, type TreeNode } from '../data/membersApi';
-import { loginTo } from '../data/musicApi';
+import { RetryNotice, SignInNotice } from '../components/Notice';
 
 /**
  * /members/hierarchy - Hierarquia (React track 017; #223 tree). Signed-in members only. The Padrinho → Afilhado family
@@ -91,20 +91,9 @@ export default function MembersHierarchy() {
       {tree === undefined ? (
         <Loading label="A carregar a hierarquia…" />
       ) : tree === 'signin' ? (
-        <div className="notice" role="status">
-          <p>A hierarquia é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.membersHierarchy)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.membersHierarchy}>A hierarquia é da área de membros.</SignInNotice>
       ) : tree === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir a hierarquia agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={load}>Não conseguimos abrir a hierarquia agora.</RetryNotice>
       ) : tree.length === 0 ? (
         <p className="note">Nenhum membro encontrado.</p>
       ) : (

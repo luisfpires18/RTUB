@@ -4,6 +4,7 @@ import type { GalleryItem, GalleryPerson } from '../data/api';
 import { Dialog } from './Dialog';
 import { antiforgeryToken, call, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
+import { today } from '../data/format';
 
 // Gallery management. Any signed-in member uploads; the
 // uploader, Admin or Owner edit and delete. The server decides and validates everything (GalleryManagementService).
@@ -23,11 +24,6 @@ const galleryApi = {
   update: (id: number, form: Form) =>
     call<GalleryItem>('PUT', `/api/gallery/items/${id}`, { title: form.title, date: form.date, membersOnly: form.membersOnly, personIds: form.people.map((p) => p.id) }),
   remove: (id: number) => call<void>('DELETE', `/api/gallery/items/${id}`),
-};
-
-const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 const problem = (o: Outcome<unknown>, what: string) =>

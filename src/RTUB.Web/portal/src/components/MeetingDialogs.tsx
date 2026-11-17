@@ -24,6 +24,7 @@ import {
   type MeetingRequest,
 } from '../data/meetingsApi';
 import { MemberBadge, badgeKind } from './MemberBadge';
+import { DEFAULT_AVATAR } from '../data/membersApi';
 
 // The /meetings dialogs (task 034): details, create / edit, "Vou / Não vou", participants, email, push, cancel,
 // proposals and request details. Texts are the old page's; every rule is the server's.
@@ -37,7 +38,6 @@ const MAX_REASON = 1000;
 const MAX_PUSH = 500;
 const MAX_SUBJECT = 300;
 const MAX_EMAIL_BODY = 10000;
-const DEFAULT_AVATAR = '/images/default-avatar.webp';
 
 /** One sentence for a refused or failed call. */
 export const problem = (o: Outcome<unknown>, what: string) =>

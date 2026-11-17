@@ -3,9 +3,11 @@ import { Loading } from '../components/App';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
-import { day, euros, isoDay, matches, problem, treasuryApi, type Calotes, type DebtGroup, type Person } from '../data/treasuryApi';
-import { Confirm, DEFAULT_AVATAR, Field, MemberPicker, PersonChip, Refusal, SaveFooter, TreasuryTabs } from '../components/TreasuryUi';
+import { isoDay, matches, problem, treasuryApi, type Calotes, type DebtGroup, type Person } from '../data/treasuryApi';
+import { Confirm, Field, MemberPicker, PersonChip, Refusal, SaveFooter, TreasuryTabs } from '../components/TreasuryUi';
 
+import { day, euros } from '../data/format';
+import { DEFAULT_AVATAR } from '../data/membersApi';
 type Debt = DebtGroup['debts'][number];
 
 /** Managers get member ids; everyone else sees one group (their own) or reads only, so the position is enough. */

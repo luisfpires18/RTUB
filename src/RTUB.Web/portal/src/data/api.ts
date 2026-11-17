@@ -322,6 +322,19 @@ export type Outcome<T> =
   | { kind: 'conflict' }
   | { kind: 'failed' };
 
+/**
+ * The sentence a page shows when a call did not work. `what` finishes "Não foi possível …" ("guardar", "apagar a
+ * pasta"); `messages` holds the area's own words for a kind (forbidden, notfound, closed, conflict, ...). A form
+ * error shows the server's first field message.
+ */
+export function outcomeText(o: Outcome<unknown>, what: string, messages: Partial<Record<Outcome<unknown>['kind'], string>> = {}) {
+  const own = messages[o.kind];
+  if (own !== undefined) return own;
+  if (o.kind === 'invalid') return Object.values(o.errors)[0];
+  if (o.kind === 'signin') return 'A sessão terminou. Entra outra vez.';
+  return `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+}
+
 let token: Promise<string> | null = null;
 
 /** One antiforgery token per page load (it is bound to the session). */
@@ -337,6 +350,14 @@ export function antiforgeryToken(refresh = false): Promise<string> {
   }
   return token;
 }
+
+/** { q: 'ana', page: '' } → "?q=ana" (empty values left out); "" when nothing is left. */
+export const queryString = (params: Record<string, string>) => {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) p.set(k, v);
+  const s = p.toString();
+  return s ? `?${s}` : '';
+};
 
 export async function call<T>(method: string, url: string, body?: unknown, retried = false): Promise<Outcome<T>> {
   try {

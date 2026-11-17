@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Icon } from './icons';
 import { deadline } from './LogisticsCard';
-import { day, PRIORITY, STATUS, type Card, type List, type Priority, type Status } from '../data/logisticsApi';
+import { PRIORITY, STATUS, type Card, type List, type Priority, type Status, PRIORITIES_URGENT_FIRST, STATUSES } from '../data/logisticsApi';
+import { day, lisbonToday } from '../data/format';
 
 /**
  * Task 070 (issue #250): the board's list and calendar views and the summary they share with the Kanban. Every view
@@ -14,12 +15,9 @@ export type Row = { card: Card; list: List };
 export type Sort = 'due' | 'priority' | 'status' | 'title';
 
 /** Today in Portugal, "yyyy-mm-dd" (deadlines are Portuguese calendar days). */
-export const lisbonToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lisbon' }).format(new Date());
 const dueDay = (c: Card) => c.dueDate?.slice(0, 10) ?? null;
 export const isLate = (c: Card, today = lisbonToday()) => c.status !== 'Done' && !!dueDay(c) && dueDay(c)! < today;
 
-const PRIORITY_ORDER: Priority[] = ['Urgent', 'High', 'Normal', 'Low'];
-const STATUS_ORDER: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
 const pt = new Intl.Collator('pt-PT', { sensitivity: 'base' });
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -28,8 +26,8 @@ export function sortRows(rows: Row[], sort: Sort): Row[] {
   const by: Record<Sort, (a: Row, b: Row) => number> = {
     // Undated last; ties by title.
     due: (a, b) => (dueDay(a.card) ?? '9999').localeCompare(dueDay(b.card) ?? '9999') || byTitle(a, b),
-    priority: (a, b) => PRIORITY_ORDER.indexOf(a.card.priority) - PRIORITY_ORDER.indexOf(b.card.priority) || byTitle(a, b),
-    status: (a, b) => STATUS_ORDER.indexOf(a.card.status) - STATUS_ORDER.indexOf(b.card.status) || byTitle(a, b),
+    priority: (a, b) => PRIORITIES_URGENT_FIRST.indexOf(a.card.priority) - PRIORITIES_URGENT_FIRST.indexOf(b.card.priority) || byTitle(a, b),
+    status: (a, b) => STATUSES.indexOf(a.card.status) - STATUSES.indexOf(b.card.status) || byTitle(a, b),
     title: byTitle,
   };
   return [...rows].sort(by[sort]);

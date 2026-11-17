@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Loading } from '../components/App';
-import { newsDate, type NewsFeed, type NewsPost } from '../data/api';
+import { newsDate, type NewsFeed, type NewsPost, outcomeText } from '../data/api';
 import { Dialog } from '../components/Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { MemberBadge } from '../components/MemberBadge';
+import { RetryNotice } from '../components/Notice';
 
 // /api/news (Endpoints/NewsEndpoints.cs, React track 025). Everyone, visitors included, reads published posts; Admin and
 // Owner also see drafts and write. The server decides every rule (NewsService); hiding a button here is only a convenience.
@@ -31,15 +32,7 @@ const TITLE_MAX = 150;
 const BODY_MAX = 5000;
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para gerir as Novidades.'
-      : o.kind === 'notfound'
-        ? 'Esta publicação já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tem permissão para gerir as Novidades.', notfound: 'Esta publicação já não existe.' });
 
 /**
  * /news - Novidades (React track 025): the RTUB's public wall of text posts, newest first, signed "RTUB". Admin and
@@ -139,12 +132,7 @@ export default function News() {
       {feed === undefined ? (
         <Loading label="A carregar as novidades…" />
       ) : feed === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir as novidades agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => load()}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={() => load()}>Não conseguimos abrir as novidades agora.</RetryNotice>
       ) : (
         <div className="talk">
           {feed.signedIn && (

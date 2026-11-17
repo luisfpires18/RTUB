@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { Loading } from '../components/App';
 import { Icon } from '../components/icons';
 import { deadline } from '../components/LogisticsCard';
-import { cardUrl, day, logisticsApi, PRIORITY, STATUS, type MyTask, type MyTasks } from '../data/logisticsApi';
-import { loginTo } from '../data/musicApi';
+import { cardUrl, logisticsApi, PRIORITY, STATUS, type MyTask, type MyTasks } from '../data/logisticsApi';
+import { day, lisbonToday } from '../data/format';
+import { Notice, RetryNotice, SignInNotice } from '../components/Notice';
 
 type Filter = 'open' | 'late' | 'soon' | 'blocked' | 'unowned' | 'done';
 
 /** Today in Portugal, "yyyy-mm-dd". */
-const lisbonToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lisbon' }).format(new Date());
 const daysTo = (due: string) => Math.round((Date.parse(due.slice(0, 10)) - Date.parse(lisbonToday())) / 86_400_000);
 
 const FILTERS: { key: Filter; label: string; test: (t: MyTask) => boolean; managers?: boolean }[] = [
@@ -67,24 +67,11 @@ export default function LogisticsTasks() {
       </header>
 
       {data === 'signin' ? (
-        <div className="notice" role="status">
-          <p>A logística é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo('/logistics/tasks')}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={'/logistics/tasks'}>A logística é da área de membros.</SignInNotice>
       ) : data === 'forbidden' ? (
-        <div className="notice" role="status">
-          <p>Não tens acesso à logística.</p>
-        </div>
+        <Notice>Não tens acesso à logística.</Notice>
       ) : data === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir as tuas tarefas agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => (setData(undefined), load())}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={() => (setData(undefined), load())}>Não conseguimos abrir as tuas tarefas agora.</RetryNotice>
       ) : !tasks ? (
         <Loading label="A carregar as tarefas…" />
       ) : (

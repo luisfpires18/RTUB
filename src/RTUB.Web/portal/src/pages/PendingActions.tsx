@@ -6,7 +6,6 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 
 import { Loading } from '../components/App';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
-import { loginTo } from '../data/musicApi';
 import {
   pendingActionsApi,
   type ActionButton,
@@ -17,6 +16,7 @@ import {
   type Panel,
   type PendingActions as Data,
 } from '../data/pendingActionsApi';
+import { SignInNotice } from '../components/Notice';
 
 const CATEGORIES: { key: Category | 'all'; label: string }[] = [
   { key: 'all', label: 'Tudo' },
@@ -135,13 +135,7 @@ export default function PendingActions() {
       </header>
 
       {data === 'signin' ? (
-        <div className="notice" role="status">
-          <p>As ações pendentes são da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo('/pending-actions')}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={'/pending-actions'}>As ações pendentes são da área de membros.</SignInNotice>
       ) : data === null ? (
         <div className="notice" role="alert">
           <p>Não conseguimos abrir as tuas ações pendentes agora.</p>

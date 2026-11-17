@@ -2,11 +2,10 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { Loading } from '../components/App';
 import { dateLabel, dayOf, monthShort, weekday } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { loginTo } from '../data/musicApi';
 import { MyPresencesDialog, PresenceDialog, PresencePill, RangeDialog, RehearsalFormDialog, StatsDialog } from '../components/RehearsalDialogs';
 import { rehearsalsApi, type RehearsalAgenda, type RehearsalSummary } from '../data/rehearsalsApi';
-
-const fold = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+import { fold } from '../data/format';
+import { RetryNotice, SignInNotice } from '../components/Notice';
 
 /** The season (September-August) a day falls in, as the server names it. */
 const seasonOf = (d: Date) => {
@@ -105,20 +104,9 @@ export default function Rehearsals() {
       {agenda === undefined ? (
         <Loading label="A carregar os ensaios…" />
       ) : agenda === 'signin' ? (
-        <div className="notice" role="status">
-          <p>Os ensaios são da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo('/rehearsals')}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={'/rehearsals'}>Os ensaios são da área de membros.</SignInNotice>
       ) : agenda === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir os ensaios agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => load()}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={() => load()}>Não conseguimos abrir os ensaios agora.</RetryNotice>
       ) : (
         <>
           <section className="events-block" aria-labelledby="next-title">

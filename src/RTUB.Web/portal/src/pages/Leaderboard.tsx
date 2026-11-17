@@ -5,8 +5,9 @@ import { Dialog } from '../components/Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { MemberFace } from '../components/MemberDialogs';
-import { loginTo } from '../data/musicApi';
 import { MemberBadge } from '../components/MemberBadge';
+import { queryString, outcomeText } from '../data/api';
+import { RetryNotice, SignInNotice } from '../components/Notice';
 
 // /api/leaderboard (Endpoints/LeaderboardEndpoints.cs, React track 019). Signed-in members only; the server decides
 // every rule (LeaderboardService). Hiding a button here is only a convenience.
@@ -49,17 +50,11 @@ type Comment = {
   likedBy: string[];
 };
 
-const query = (params: Record<string, string>) => {
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v) p.set(k, v);
-  const s = p.toString();
-  return s ? `?${s}` : '';
-};
 const member = (id: string) => `/api/leaderboard/members/${encodeURIComponent(id)}`;
 
 const api = {
-  table: (fiscalYear: string, q: string) => call<Table>('GET', `/api/leaderboard${query({ fiscalYear, q })}`),
-  member: (id: string, fiscalYear: string) => call<MemberDetail>('GET', `${member(id)}${query({ fiscalYear })}`),
+  table: (fiscalYear: string, q: string) => call<Table>('GET', `/api/leaderboard${queryString({ fiscalYear, q })}`),
+  member: (id: string, fiscalYear: string) => call<MemberDetail>('GET', `${member(id)}${queryString({ fiscalYear })}`),
   comments: (id: string) => call<Comment[]>('GET', `${member(id)}/comments`),
   comment: (id: string, text: string) => call<Comment[]>('POST', `${member(id)}/comments`, { text }),
   like: (commentId: number) => call<{ liked: boolean }>('POST', `/api/leaderboard/comments/${commentId}/like`),
@@ -71,15 +66,7 @@ const PAGE = 20;
 const medal = (position: number) => ['🥇', '🥈', '🥉'][position - 1] ?? String(position);
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para esta ação.'
-      : o.kind === 'notfound'
-        ? 'Já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tem permissão para esta ação.', notfound: 'Já não existe.' });
 
 /** As the old comments: "agora", minutes, hours, days, then the date. The server's times are UTC. */
 export function ago(iso: string, now = Date.now()) {
@@ -143,20 +130,9 @@ export default function Leaderboard() {
       </header>
 
       {table === 'signin' ? (
-        <div className="notice" role="status">
-          <p>A classificação é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.leaderboard)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.leaderboard}>A classificação é da área de membros.</SignInNotice>
       ) : table === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir a classificação agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={load}>Não conseguimos abrir a classificação agora.</RetryNotice>
       ) : !data ? (
         <Loading label="A carregar a classificação…" />
       ) : (

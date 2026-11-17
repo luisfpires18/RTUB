@@ -7,6 +7,7 @@ import { portal } from '../data/content';
 import { dateLabel, eventsApi, timeLabel, yearOf, type EventEnrollment, type EventStats, type EventSummary } from '../data/eventsApi';
 import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
+import { fold } from '../data/format';
 
 const NOTES_MAX = 1000;
 
@@ -341,8 +342,6 @@ export function PrizesDialog({
 }
 
 // ---------- statistics (members, 012F) ----------
-
-const fold = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /**
  * "Estatísticas de inscrições" (was the /member/events modal): for the dates chosen (the current season

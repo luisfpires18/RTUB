@@ -1,6 +1,8 @@
 // Typed client for /api/music (React track 006, Endpoints/MusicEndpoints.cs). The server decides
 // what the caller may see and do; `permissions` only spares people buttons that would be refused.
 
+import { antiforgeryToken } from './api';
+
 export type MusicPermissions = {
   isMember: boolean;
   canManage: boolean;
@@ -124,22 +126,6 @@ export type Outcome<T> =
   | { kind: 'notfound'; unavailable: boolean }
   | { kind: 'failed'; title?: string };
 
-let token: Promise<string> | null = null;
-
-/** One antiforgery token per page load (it is bound to the signed-in session). */
-function antiforgeryToken(refresh = false): Promise<string> {
-  if (!token || refresh) {
-    token = fetch('/api/public/antiforgery-token', { credentials: 'same-origin' })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((t: { token: string }) => t.token)
-      .catch((e) => {
-        token = null;
-        throw e;
-      });
-  }
-  return token;
-}
-
 async function call<T>(method: string, url: string, body?: unknown, retried = false): Promise<Outcome<T>> {
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
@@ -236,6 +222,3 @@ export const musicApi = {
 };
 
 export const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
-
-/** The members' login, coming back to `path` afterwards. */
-export const loginTo = (path: string) => `/login?returnUrl=${encodeURIComponent(path)}`;

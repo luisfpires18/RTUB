@@ -2,9 +2,8 @@ import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'reac
 import { Dialog } from './Dialog';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
-import { logisticsApi, problem, STATUS, type Board, type Card, type List, type MemberOption, type Status } from '../data/logisticsApi';
+import { logisticsApi, problem, STATUS, type Board, type Card, type List, type MemberOption, type Status, STATUSES } from '../data/logisticsApi';
 
-const STATUSES: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
 import { DEFAULT_AVATAR } from '../data/membersApi';
 
 const MAX_FILE = 10 * 1024 * 1024;
@@ -33,7 +32,8 @@ const Footer = ({ onClose, busy, form, label, disabled }: { onClose: () => void;
   </>
 );
 
-const Error = ({ text }: { text?: string }) =>
+/** A field's error message under it, or nothing. */
+export const FieldError = ({ text }: { text?: string }) =>
   text ? (
     <p className="form__error" role="alert">
       {text}
@@ -172,7 +172,6 @@ export function ConfirmDialog({
   );
 }
 
-/** "Criar lista" / "Renomear lista". New lists go last, as before. */
 /**
  * A column: name and (task 067) state - every card in the column has it. Changing a column's state changes its cards'
  * status at once (the dialog says how many).
@@ -198,7 +197,7 @@ export function ListDialog({ boardId, list, onClose, onSaved }: { boardId: numbe
         <div className={error ? 'form__field form__field--error' : 'form__field'}>
           <label htmlFor={`${fid}-name`}>Nome da coluna</label>
           <input id={`${fid}-name`} type="text" maxLength={100} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-          <Error text={error} />
+          <FieldError text={error} />
         </div>
         <fieldset className="form__field">
           <legend>Estado dos cartões nesta coluna</legend>
@@ -278,7 +277,7 @@ export function DeleteListDialog({ board, list, onClose, onDone }: { board: Boar
             <small className="note">E ficam com o estado dessa coluna.</small>
           </div>
         ))}
-      <Error text={error} />
+      <FieldError text={error} />
     </Dialog>
   );
 }
@@ -303,16 +302,16 @@ export function CreateCardDialog({ boardId, list, onClose, onCreated }: { boardI
   return (
     <Dialog title={`Novo cartão · ${list.name}`} onClose={onClose} footer={<Footer onClose={onClose} busy={busy} form={`${fid}-form`} label="Criar" disabled={!title.trim()} />}>
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        <Error text={errors.form} />
+        <FieldError text={errors.form} />
         <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
           <label htmlFor={`${fid}-title`}>Título</label>
           <input id={`${fid}-title`} type="text" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
-          <Error text={errors.title} />
+          <FieldError text={errors.title} />
         </div>
         <div className={errors.description ? 'form__field form__field--error' : 'form__field'}>
           <label htmlFor={`${fid}-desc`}>Descrição (opcional)</label>
           <textarea id={`${fid}-desc`} rows={3} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
-          <Error text={errors.description} />
+          <FieldError text={errors.description} />
         </div>
         <div className="form__field">
           <span className="form__label">Atribuir a (opcional)</span>
@@ -321,7 +320,7 @@ export function CreateCardDialog({ boardId, list, onClose, onCreated }: { boardI
           ) : (
             <MemberPicker label="Atribuir a" boardId={boardId} onPick={setAssignee} />
           )}
-          <Error text={errors.assignedToUserId} />
+          <FieldError text={errors.assignedToUserId} />
         </div>
       </form>
     </Dialog>

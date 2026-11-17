@@ -13,8 +13,8 @@ import {
   type ManagePosition,
 } from '../components/GovernanceManage';
 import { Icon } from '../components/icons';
-
-const DEFAULT_AVATAR = '/images/default-avatar.webp';
+import { DEFAULT_AVATAR } from '../data/membersApi';
+import { Notice, RetryNotice } from '../components/Notice';
 
 /** ?fy=2024-2025 keeps a mandate shareable. */
 const yearFromUrl = () => new URLSearchParams(location.search).get('fy') ?? undefined;
@@ -131,18 +131,11 @@ export default function Governance() {
       )}
 
       {failed && !manage ? (
-        <div className="notice" role="status">
-          <p>Não foi possível carregar os órgãos sociais agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => load(year)}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={() => load(year)}>Não foi possível carregar os órgãos sociais agora.</RetryNotice>
       ) : !shown || (signedIn && manage === undefined) ? (
         <Loading label="A carregar os órgãos sociais…" />
       ) : !shown.fiscalYear ? (
-        <div className="notice" role="status">
-          <p>{canManage ? 'Ainda não há anos letivos. Adiciona o primeiro.' : 'Ainda não há órgãos sociais registados.'}</p>
-        </div>
+        <Notice>{canManage ? 'Ainda não há anos letivos. Adiciona o primeiro.' : 'Ainda não há órgãos sociais registados.'}</Notice>
       ) : (
         <>
           <h2 className="governance-page__mandate">Mandato {shown.fiscalYear}</h2>

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Loading } from '../components/App';
 import { Icon } from '../components/icons';
-import { loginTo, musicApi, type PlayAlong, type PlayAlongLine, type PlayAlongSection } from '../data/musicApi';
+import { musicApi, type PlayAlong, type PlayAlongLine, type PlayAlongSection } from '../data/musicApi';
+import { loginTo } from '../data/content';
 
 /**
  * Aprender (task 094, named Tocar junto until 095, docs/react-music.md): play a song's chords along with its recording. The

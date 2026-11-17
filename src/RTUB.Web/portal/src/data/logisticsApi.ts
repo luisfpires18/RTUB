@@ -1,5 +1,6 @@
-import { antiforgeryToken } from './api';
+import { antiforgeryToken, queryString, outcomeText } from './api';
 import { call, type Outcome } from './eventsApi';
+import { day } from './format';
 
 // /api/logistics (Endpoints/LogisticsEndpoints.cs, React track 023). Signed-in members read (Leitões too since 065);
 // assignees tick checklists and change status; Mod, Admin and Owner manage. The server decides every rule
@@ -156,13 +157,6 @@ export type CardInput = {
   version: number;
 };
 
-const q = (params: Record<string, string>) => {
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v) p.set(k, v);
-  const s = p.toString();
-  return s ? `?${s}` : '';
-};
-
 export type BoardInput = {
   name: string;
   description: string;
@@ -177,10 +171,10 @@ export type ComposeCard = { title: string; description: string; priority: Priori
 export type ComposeInput = { board: BoardInput; lists: { name: string; state: Status; cards: ComposeCard[] }[] };
 
 export const logisticsApi = {
-  boards: (search: string) => call<Boards>('GET', `/api/logistics${q({ q: search })}`),
-  events: (search: string) => call<LogisticsEvent[]>('GET', `/api/logistics/events${q({ q: search })}`),
+  boards: (search: string) => call<Boards>('GET', `/api/logistics${queryString({ q: search })}`),
+  events: (search: string) => call<LogisticsEvent[]>('GET', `/api/logistics/events${queryString({ q: search })}`),
   /** With `boardId`: only members who may see that board (task 067). */
-  members: (search: string, boardId?: number) => call<MemberOption[]>('GET', `/api/logistics/members${q({ q: search, boardId: boardId ? String(boardId) : '' })}`),
+  members: (search: string, boardId?: number) => call<MemberOption[]>('GET', `/api/logistics/members${queryString({ q: search, boardId: boardId ? String(boardId) : '' })}`),
   createBoard: (input: BoardInput) => call<BoardSummary>('POST', '/api/logistics/boards', input),
   updateBoard: (id: number, input: BoardInput) => call<BoardSummary>('PUT', `/api/logistics/boards/${id}`, input),
   setBoardState: (id: number, completed: boolean) => call<BoardSummary>('POST', `/api/logistics/boards/${id}/state`, { completed }),
@@ -197,7 +191,7 @@ export const logisticsApi = {
   renameList: (id: number, name: string, state: Status) => call<List>('PUT', `/api/logistics/lists/${id}`, { name, state }),
   moveList: (id: number, position: number) => call<void>('POST', `/api/logistics/lists/${id}/move`, { position }),
   /** A column with cards needs `moveTo` (another column of the board); its cards take that column's state. */
-  removeList: (id: number, moveTo?: number) => call<void>('DELETE', `/api/logistics/lists/${id}${q({ moveTo: moveTo ? String(moveTo) : '' })}`),
+  removeList: (id: number, moveTo?: number) => call<void>('DELETE', `/api/logistics/lists/${id}${queryString({ moveTo: moveTo ? String(moveTo) : '' })}`),
 
   createCard: (listId: number, input: { title: string; description: string; assignedToUserId: string | null }) =>
     call<CardDetail>('POST', `/api/logistics/lists/${listId}/cards`, input),
@@ -211,7 +205,7 @@ export const logisticsApi = {
   renameItem: (id: number, index: number, expected: string, task: string) =>
     call<CardDetail>('PUT', `/api/logistics/cards/${id}/checklist/${index}`, { expected, task }),
   removeItem: (id: number, index: number, expected: string) =>
-    call<CardDetail>('DELETE', `/api/logistics/cards/${id}/checklist/${index}${q({ task: expected })}`),
+    call<CardDetail>('DELETE', `/api/logistics/cards/${id}/checklist/${index}${queryString({ task: expected })}`),
   /** One item's tick (assignees too); `task` must still be the item's text. */
   toggleItem: (id: number, index: number, task: string, done: boolean) =>
     call<CardDetail>('POST', `/api/logistics/cards/${id}/checklist/${index}`, { task, done }),
@@ -234,13 +228,13 @@ export const logisticsApi = {
     call<CardDetail>('PUT', `/api/logistics/cards/${cardId}/reminders/${id}`, input),
   removeReminder: (cardId: number, id: number) => call<CardDetail>('DELETE', `/api/logistics/cards/${cardId}/reminders/${id}`),
   myTasks: () => call<MyTasks>('GET', '/api/logistics/my-tasks'),
-  file: (boardId: number, id: string) => call<{ url: string }>('GET', `/api/logistics/boards/${boardId}/files${q({ file: id })}`),
+  file: (boardId: number, id: string) => call<{ url: string }>('GET', `/api/logistics/boards/${boardId}/files${queryString({ file: id })}`),
   upload: (boardId: number, file: File) => {
     const form = new FormData();
     form.append('file', file, file.name);
     return call<BoardFile>('POST', `/api/logistics/boards/${boardId}/files`, form);
   },
-  removeFile: (boardId: number, id: string) => call<void>('DELETE', `/api/logistics/boards/${boardId}/files${q({ file: id })}`),
+  removeFile: (boardId: number, id: string) => call<void>('DELETE', `/api/logistics/boards/${boardId}/files${queryString({ file: id })}`),
 };
 
 export const STATUS: Record<Status, { label: string; name: string }> = {
@@ -252,28 +246,23 @@ export const STATUS: Record<Status, { label: string; name: string }> = {
 
 export const PRIORITY: Record<Priority, string> = { Low: 'Baixa', Normal: 'Normal', High: 'Alta', Urgent: 'Urgente' };
 
+/** Card states in board order. */
+export const STATUSES: Status[] = ['Todo', 'InProgress', 'Blocked', 'Done'];
+
+/** Priorities for pickers, lowest first. */
+export const PRIORITIES_LOW_FIRST: Priority[] = ['Low', 'Normal', 'High', 'Urgent'];
+
+/** Priorities for filters and sorting, most urgent first. */
+export const PRIORITIES_URGENT_FIRST: Priority[] = ['Urgent', 'High', 'Normal', 'Low'];
+
 export const FREQUENCY: Record<Frequency, string> = { OneTime: 'Uma vez', Daily: 'Todos os dias', Weekly: 'Todas as semanas' };
 
 /** A card on its board: the board page opens it from ?card= (task 069; pushes link here too). */
 export const cardUrl = (boardId: number, cardId: number) => `/logistics/${boardId}?card=${cardId}`;
 
 export const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'conflict'
-    ? 'O cartão foi alterado por outra pessoa entretanto.'
-    : o.kind === 'closed'
-      ? 'Está arquivado: só leitura.'
-    : o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para fazer isto.'
-      : o.kind === 'notfound'
-        ? 'Isto já não existe. Recarrega a página.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { conflict: 'O cartão foi alterado por outra pessoa entretanto.', closed: 'Está arquivado: só leitura.', forbidden: 'Não tem permissão para fazer isto.', notfound: 'Isto já não existe. Recarrega a página.' });
 
-/** "2026-10-04T00:00:00" → "04/10/2026". */
-export const day = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '');
 
 /**
  * A card file (task 066), through XHR so the upload reports its progress. Same outcomes as `call`; a refused antiforgery

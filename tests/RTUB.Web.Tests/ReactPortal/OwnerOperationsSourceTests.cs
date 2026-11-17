@@ -132,7 +132,7 @@ public class OwnerOperationsSourceTests
         order.Select(m => card.IndexOf(m, StringComparison.Ordinal)).Should().BeInAscendingOrder().And.NotContain(-1);
         card.Should().Contain("owner-log--critical").And.NotContain("ID: ");
         tracing.Should().NotContain("`ID: ${");
-        tracing.Should().Contain("${two(d.getDate())}/${two(d.getMonth() + 1)}/${d.getFullYear()} ${two(d.getHours())}:${two(d.getMinutes())}");
+        tracing.Should().Contain("${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}");
 
         var details = tracing[tracing.IndexOf("function DetailsDialog", StringComparison.Ordinal)..tracing.IndexOf("function DeleteDialog", StringComparison.Ordinal)];
         foreach (var raw in new[] { "entry.entityType}", "entry.entityId ??", "entry.entityDisplayName ||", "entry.currentDisplayName}", "entry.userName ??",

@@ -5,8 +5,9 @@ import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { loginTo } from '../data/musicApi';
 import { MemberBadge } from '../components/MemberBadge';
+import { queryString, outcomeText } from '../data/api';
+import { RetryNotice, SignInNotice } from '../components/Notice';
 
 // /api/inventory (Endpoints/InventoryEndpoints.cs, React track 020). Signed-in members only; Mod, Admin and Owner
 // manage. The server decides every rule (InstrumentInventoryService); hiding a button here is only a convenience.
@@ -49,15 +50,8 @@ type Input = {
   maintenanceNotes: string;
 };
 
-const query = (params: Record<string, string>) => {
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v) p.set(k, v);
-  const s = p.toString();
-  return s ? `?${s}` : '';
-};
-
 const api = {
-  list: (q: string, category: string, condition: string) => call<List>('GET', `/api/inventory${query({ q, category, condition })}`),
+  list: (q: string, category: string, condition: string) => call<List>('GET', `/api/inventory${queryString({ q, category, condition })}`),
   get: (id: number) => call<Detail>('GET', `/api/inventory/${id}`),
   create: (input: Input) => call<{ id: number }>('POST', '/api/inventory', input),
   update: (id: number, input: Input) => call<Detail>('PUT', `/api/inventory/${id}`, input),
@@ -80,15 +74,7 @@ const CROP_TEXT = {
 };
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para gerir os instrumentos.'
-      : o.kind === 'notfound'
-        ? 'Este instrumento já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tem permissão para gerir os instrumentos.', notfound: 'Este instrumento já não existe.' });
 
 const conditionClass = (c: string) => `inventory-condition inventory-condition--${c.toLowerCase()}`;
 
@@ -159,20 +145,9 @@ export default function Inventory() {
       </header>
 
       {list === 'signin' ? (
-        <div className="notice" role="status">
-          <p>O inventário é da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.inventory)}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={portal.inventory}>O inventário é da área de membros.</SignInNotice>
       ) : list === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir o inventário agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={load}>Não conseguimos abrir o inventário agora.</RetryNotice>
       ) : !data ? (
         <Loading label="A carregar os instrumentos…" />
       ) : (

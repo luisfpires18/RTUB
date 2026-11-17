@@ -4,7 +4,8 @@ import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { loginTo } from '../data/musicApi';
+import { outcomeText } from '../data/api';
+import { RetryNotice, SignInNotice } from '../components/Notice';
 
 // /api/requests (task 031, Endpoints/RequestAdminEndpoints.cs). Dates are yyyy-MM-dd; createdAt is UTC.
 type Status = 'pending' | 'analysing' | 'confirmed' | 'rejected';
@@ -55,15 +56,7 @@ const submitted = (iso: string) =>
   new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : `${iso}Z`).toLocaleString('pt-PT', { dateStyle: 'medium', timeStyle: 'short' });
 
 const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tem permissão para esta ação.'
-      : o.kind === 'notfound'
-        ? 'Este pedido já não existe.'
-        : o.kind === 'signin'
-          ? 'A sessão terminou. Entra outra vez.'
-          : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tem permissão para esta ação.', notfound: 'Este pedido já não existe.' });
 
 /**
  * /requests - Gestão de Pedidos. The performance requests sent through the public
@@ -113,13 +106,7 @@ export default function Requests() {
       </header>
 
       {data === 'signin' ? (
-        <div className="notice" role="status">
-          <p>Os pedidos são da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo('/requests')}>
-            <Icon name="login" />
-            Entrar
-          </a>
-        </div>
+        <SignInNotice path={'/requests'}>Os pedidos são da área de membros.</SignInNotice>
       ) : data === 'forbidden' ? (
         <div className="notice" role="status">
           <p>Os pedidos de atuação não estão disponíveis para a tua categoria.</p>
@@ -128,12 +115,7 @@ export default function Requests() {
           </a>
         </div>
       ) : data === null ? (
-        <div className="notice" role="status">
-          <p>Não conseguimos abrir os pedidos agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={load}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice onRetry={load}>Não conseguimos abrir os pedidos agora.</RetryNotice>
       ) : !list ? (
         <Loading label="A carregar os pedidos…" />
       ) : (

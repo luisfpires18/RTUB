@@ -25,8 +25,9 @@ Code a beginner can read: one job per file, no file over 300 lines.
 ## Basics
 
 - The server is the authority. Every permission is checked by the `/api/*` endpoint; the UI only hides what the API refuses.
-- Reuse before writing: look in `components/` (`Dialog.tsx`, `icons.tsx`, the `*Ui.tsx` helpers), `data/` and the
-  `styles.css` classes and variables before adding a component, a request or a style. One stylesheet (`portal/src/styles.css`); no inline styles where a class will do.
+- Reuse before writing: look in `components/` (`Dialog.tsx`, `Notice.tsx`, `icons.tsx`, the `*Ui.tsx` helpers),
+  `data/` (`api.ts`: `call`, `queryString`, `outcomeText`; `format.ts`: euros, dates, search folding; `content.ts`:
+  paths and `loginTo`) and the `styles.css` classes and variables before adding a component, a request or a style. One stylesheet (`portal/src/styles.css`); no inline styles where a class will do.
 - Every user-facing string is Portuguese (pt-PT).
 - Check every change at phone width (about 375 px) and in the installed app: tap targets large enough, dialogs scroll inside themselves.
 - No sideways page scroll, never masked. At 320-414 px the document is never wider than the viewport. Fix the

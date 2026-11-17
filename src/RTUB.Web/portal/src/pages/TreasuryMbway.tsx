@@ -3,9 +3,10 @@ import { Loading } from '../components/App';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
-import { day, euros, isoDay, matches, problem, today, treasuryApi, type Person, type Transfer, type Transfers } from '../data/treasuryApi';
+import { isoDay, matches, problem, treasuryApi, type Person, type Transfer, type Transfers } from '../data/treasuryApi';
 import { Confirm, Field, MemberPicker, PersonChip, Refusal, SaveFooter, TreasuryTabs } from '../components/TreasuryUi';
 
+import { day, euros, today } from '../data/format';
 const PAGE = 12;
 
 /**

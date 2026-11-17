@@ -3,7 +3,7 @@ import { Loading } from './App';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { AccessFields, EventField } from '../pages/Logistics';
-import { logisticsApi, PRIORITY, problem, STATUS, type LogisticsEvent, type Priority, type Template, type Visibility } from '../data/logisticsApi';
+import { logisticsApi, PRIORITY, problem, STATUS, type LogisticsEvent, type Priority, type Template, type Visibility, PRIORITIES_LOW_FIRST } from '../data/logisticsApi';
 
 type Person = { id: string; name: string; avatar: string | null };
 type Draft = { include: boolean; title: string; priority: Priority; dueDate: string; checklist: string };
@@ -14,8 +14,6 @@ const plus = (anchor: string, days: number) => {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 };
-
-const PRIORITIES: Priority[] = ['Low', 'Normal', 'High', 'Urgent'];
 
 /**
  * "A partir de modelo" (task 067, managers): pick Organizar FITAB or Preparar deslocação/atuação, anchor the deadlines
@@ -189,7 +187,7 @@ export function TemplateDialog({ onClose }: { onClose: () => void }) {
                           <label>
                             <span>Prioridade</span>
                             <select value={d.priority} disabled={!d.include} onChange={(e) => set(i, { priority: e.target.value as Priority })}>
-                              {PRIORITIES.map((p) => (
+                              {PRIORITIES_LOW_FIRST.map((p) => (
                                 <option key={p} value={p}>
                                   {PRIORITY[p]}
                                 </option>

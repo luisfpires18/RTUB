@@ -1,4 +1,6 @@
 import { call, type Outcome } from './eventsApi';
+import { day, euros, today } from './format';
+import { outcomeText } from './api';
 
 // /api/treasury (Endpoints/TreasuryEndpoints.cs, React track 024). Signed-in members; the server decides every rule
 // (TreasuryAuthorization): treasury members read, Caloiros and Leitões see only their own calotes.
@@ -137,20 +139,11 @@ export const treasuryApi = {
   removeNerbaOrder: (id: number) => call<NerbaOrders>('DELETE', `/api/treasury/nerba/orders/${id}`),
 };
 
-/** 1234.5 → "1234,50 €" (pt-PT, two decimals), as the old pages showed money. */
-export const euros = (n: number) => `${n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
-/** "2026-10-04T00:00:00" → "04/10/2026". */
-export const day = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : '');
 
 /** "2026-10-04T00:00:00" → "2026-10-04" (a date input's value). */
 export const isoDay = (iso: string | null) => (iso ? iso.slice(0, 10) : '');
 
-/** Today as a date input's value (local time). */
-export const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 
 /** Words of a query all found in one of the texts (accents and case ignored), as the old multi-word search. */
 export const matches = (query: string, ...texts: (string | null | undefined)[]) => {
@@ -160,14 +153,4 @@ export const matches = (query: string, ...texts: (string | null | undefined)[]) 
 };
 
 export const problem = (o: Outcome<unknown>, what: string) =>
-  o.kind === 'invalid'
-    ? Object.values(o.errors)[0]
-    : o.kind === 'forbidden'
-      ? 'Não tens permissão para esta ação.'
-      : o.kind === 'closed'
-        ? 'O relatório já foi publicado ou a atividade está bloqueada. Recarrega a página.'
-        : o.kind === 'notfound'
-          ? 'Isto já não existe. Recarrega a página.'
-          : o.kind === 'signin'
-            ? 'A sessão terminou. Entra outra vez.'
-            : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
+  outcomeText(o, what, { forbidden: 'Não tens permissão para esta ação.', closed: 'O relatório já foi publicado ou a atividade está bloqueada. Recarrega a página.', notfound: 'Isto já não existe. Recarrega a página.' });
