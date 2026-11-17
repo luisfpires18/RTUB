@@ -1,17 +1,13 @@
-using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Net;
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
 using RTUB.Web.Extensions;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 
@@ -35,7 +31,7 @@ namespace RTUB.Integration.Tests;
 /// below is unchanged; <see cref="IdentityCookieRefreshTests"/> covers the requests on which it
 /// does something.</para>
 /// </summary>
-public class CookieValidationTests : IClassFixture<CookieValidationFactory>
+public partial class CookieValidationTests : IClassFixture<CookieValidationFactory>
 {
     private const string LastLoginWrite = CookieTestSession.LastLoginWrite;
     private const string RoleLookup = "\"AspNetRoles\"";
@@ -199,70 +195,6 @@ public class CookieValidationTests : IClassFixture<CookieValidationFactory>
             "a request that reaches the endpoint pipeline, even a 404, pays for a cookie validation");
     }
 
-    // ------------------------------------------------------------------------ security checks
-
-    [Fact]
-    public async Task SecurityStampChange_RejectsCookie()
-    {
-        var (client, user) = await SignInNewUserAsync("sec-stamp", "10.30.0.5");
-
-        // Arm the activity-write throttle first: the security checks must still reject on a
-        // request that would skip the LastLoginDate write.
-        (await client.GetAsync("/Events")).StatusCode.Should().Be(HttpStatusCode.OK);
-
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var stored = await userManager.FindByIdAsync(user.Id);
-            (await userManager.UpdateSecurityStampAsync(stored!)).Succeeded.Should().BeTrue();
-        }
-
-        await AssertCookieRejectedAsync(client);
-    }
-
-    [Fact]
-    public async Task ExpelledUser_RejectsCookie()
-    {
-        var (client, user) = await SignInNewUserAsync("sec-expelled", "10.30.0.6");
-
-        // Arm the activity-write throttle first: the security checks must still reject on a
-        // request that would skip the LastLoginDate write.
-        (await client.GetAsync("/Events")).StatusCode.Should().Be(HttpStatusCode.OK);
-
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var stored = await userManager.FindByIdAsync(user.Id);
-            stored!.IsExpelled = true;
-            // UpdateAsync does not touch the security stamp, so this exercises the expulsion
-            // branch specifically and not the stamp branch above it.
-            (await userManager.UpdateAsync(stored)).Succeeded.Should().BeTrue();
-        }
-
-        await AssertCookieRejectedAsync(client);
-    }
-
-    [Fact]
-    public async Task AdminRoleRemoved_RejectsCookie()
-    {
-        var (client, user) = await SignInNewUserAsync("sec-admin", "10.30.0.7", role: "Admin");
-
-        // Arm the activity-write throttle first: the security checks must still reject on a
-        // request that would skip the LastLoginDate write.
-        (await client.GetAsync("/Events")).StatusCode.Should().Be(HttpStatusCode.OK);
-
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var stored = await userManager.FindByIdAsync(user.Id);
-            // RemoveFromRoleAsync leaves the security stamp alone, so the stock
-            // SecurityStampValidator would NOT catch this — only RTUB's own role probe does.
-            (await userManager.RemoveFromRoleAsync(stored!, "Admin")).Succeeded.Should().BeTrue();
-        }
-
-        await AssertCookieRejectedAsync(client);
-    }
-
     [Fact]
     public async Task Login_SetsLastLoginDate()
     {
@@ -310,111 +242,4 @@ public class CookieValidationTests : IClassFixture<CookieValidationFactory>
     private Task<(HttpClient Client, ApplicationUser User)> SignInNewUserAsync(
         string userName, string clientIp, string? role = null) =>
         CookieTestSession.SignInAsync(_factory, userName, clientIp, role);
-}
-
-/// <summary>
-/// The shared factory plus a recorder for the SQL its <see cref="ApplicationDbContext"/>s execute.
-/// The context is re-registered against <see cref="TestWebApplicationFactory.ConnectionString"/> —
-/// the same database — purely so the interceptor can be attached.
-/// </summary>
-public class CookieValidationFactory : TestWebApplicationFactory
-{
-    public SqlRecorder Sql { get; } = new();
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        base.ConfigureWebHost(builder);
-
-        builder.ConfigureServices(services =>
-        {
-            services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
-            services.RemoveAll<ApplicationDbContext>();
-            services.AddDbContext<ApplicationDbContext>(options =>
-            {
-                options.UseSqlite(ConnectionString);
-                options.EnableSensitiveDataLogging();
-                options.AddInterceptors(new RecordingCommandInterceptor(Sql));
-            });
-        });
-    }
-}
-
-/// <summary>
-/// Records executed SQL, but only between <see cref="Recording"/> and the disposal of its handle,
-/// so the application's background services cannot colour a measurement taken around one request.
-/// </summary>
-public sealed class SqlRecorder
-{
-    private readonly ConcurrentQueue<string> _statements = new();
-    private volatile bool _enabled;
-
-    public IDisposable Recording()
-    {
-        _statements.Clear();
-        _enabled = true;
-        return new Handle(this);
-    }
-
-    internal void Add(string sql)
-    {
-        if (_enabled)
-        {
-            _statements.Enqueue(sql);
-        }
-    }
-
-    public int Count(string fragment) =>
-        _statements.Count(s => s.Contains(fragment, StringComparison.Ordinal));
-
-    private sealed class Handle : IDisposable
-    {
-        private readonly SqlRecorder _recorder;
-        public Handle(SqlRecorder recorder) => _recorder = recorder;
-        public void Dispose() => _recorder._enabled = false;
-    }
-}
-
-public sealed class RecordingCommandInterceptor : DbCommandInterceptor
-{
-    private readonly SqlRecorder _recorder;
-
-    public RecordingCommandInterceptor(SqlRecorder recorder) => _recorder = recorder;
-
-    public override InterceptionResult<DbDataReader> ReaderExecuting(
-        DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result)
-    {
-        _recorder.Add(command.CommandText);
-        return base.ReaderExecuting(command, eventData, result);
-    }
-
-    public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
-        DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result,
-        CancellationToken cancellationToken = default)
-    {
-        _recorder.Add(command.CommandText);
-        return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
-    }
-
-    public override InterceptionResult<int> NonQueryExecuting(
-        DbCommand command, CommandEventData eventData, InterceptionResult<int> result)
-    {
-        _recorder.Add(command.CommandText);
-        return base.NonQueryExecuting(command, eventData, result);
-    }
-
-    public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
-        DbCommand command, CommandEventData eventData, InterceptionResult<int> result,
-        CancellationToken cancellationToken = default)
-    {
-        _recorder.Add(command.CommandText);
-        return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
-    }
-
-    public override ValueTask<InterceptionResult<object>> ScalarExecutingAsync(
-        DbCommand command, CommandEventData eventData, InterceptionResult<object> result,
-        CancellationToken cancellationToken = default)
-    {
-        _recorder.Add(command.CommandText);
-        return base.ScalarExecutingAsync(command, eventData, result, cancellationToken);
-    }
 }
