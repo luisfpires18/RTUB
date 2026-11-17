@@ -1,10 +1,7 @@
 // TransactionService: history.
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Moq;
-using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
-using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;

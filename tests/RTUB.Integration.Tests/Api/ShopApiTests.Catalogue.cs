@@ -1,15 +1,9 @@
 // ShopApiTests: Catalogue tests.
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
-using RTUB.Application.Data;
 using RTUB.Application.Helpers;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 

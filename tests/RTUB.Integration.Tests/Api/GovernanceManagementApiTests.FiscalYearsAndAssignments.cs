@@ -2,11 +2,6 @@
 using System.Net;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
-using RTUB.Application.Data;
 using RTUB.Application.Helpers;
 using RTUB.Core.Enums;
 

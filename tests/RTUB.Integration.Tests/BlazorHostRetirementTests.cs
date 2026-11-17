@@ -2,7 +2,6 @@ using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 

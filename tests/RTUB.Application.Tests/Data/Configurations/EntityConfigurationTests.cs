@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;

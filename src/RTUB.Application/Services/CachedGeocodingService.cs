@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 
@@ -14,16 +13,13 @@ public class CachedGeocodingService : IGeocodingService
 {
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly IGeocodingQueue _geocodingQueue;
-    private readonly ILogger<CachedGeocodingService> _logger;
 
     public CachedGeocodingService(
         IDbContextFactory<ApplicationDbContext> contextFactory,
-        IGeocodingQueue geocodingQueue,
-        ILogger<CachedGeocodingService> logger)
+        IGeocodingQueue geocodingQueue)
     {
         _contextFactory = contextFactory;
         _geocodingQueue = geocodingQueue;
-        _logger = logger;
     }
 
     public async Task<(double Latitude, double Longitude)?> GetCoordinatesAsync(string cityName, string? countryCode = "PT", CancellationToken cancellationToken = default)

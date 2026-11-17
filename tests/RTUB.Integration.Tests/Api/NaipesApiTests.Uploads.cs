@@ -1,15 +1,9 @@
 // NaipesApiTests: Uploads tests.
 using System.Net;
-using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using RTUB.Application.DTOs;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 

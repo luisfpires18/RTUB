@@ -9,7 +9,6 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 

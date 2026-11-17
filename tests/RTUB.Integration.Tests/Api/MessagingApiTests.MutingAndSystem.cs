@@ -1,6 +1,5 @@
 // MessagingApiTests: MutingAndSystem tests.
 using System.Net;
-using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

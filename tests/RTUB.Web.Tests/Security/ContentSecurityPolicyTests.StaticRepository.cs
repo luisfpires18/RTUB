@@ -1,8 +1,6 @@
 ﻿// CSP static repository policy checks on application scripts
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using RTUB.Security;
-using Xunit;
 
 namespace RTUB.Web.Tests.Security;
 

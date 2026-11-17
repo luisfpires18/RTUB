@@ -1,17 +1,9 @@
-using System.Data.Common;
-using System.Globalization;
-using System.Security.Claims;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
-using RTUB.Application.DTOs;
-using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -44,7 +36,6 @@ public partial class OwnerOperationsService : IOwnerOperationsService
     private readonly IPushNotificationService _push;
     private readonly IAuditLogService _audit;
     private readonly IMemberStatusService _memberStatus;
-    private readonly IUserProfileService _profiles;
     private readonly IDatabaseViewerService _database;
     private readonly ISqlValidationService _sql;
     private readonly ILogger<OwnerOperationsService> _logger;
@@ -56,7 +47,6 @@ public partial class OwnerOperationsService : IOwnerOperationsService
         IPushNotificationService push,
         IAuditLogService audit,
         IMemberStatusService memberStatus,
-        IUserProfileService profiles,
         IDatabaseViewerService database,
         ISqlValidationService sql,
         ILogger<OwnerOperationsService> logger,
@@ -69,7 +59,6 @@ public partial class OwnerOperationsService : IOwnerOperationsService
         _push = push;
         _audit = audit;
         _memberStatus = memberStatus;
-        _profiles = profiles;
         _database = database;
         _sql = sql;
         _logger = logger;

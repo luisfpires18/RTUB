@@ -5,11 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
-using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Tests.Services;

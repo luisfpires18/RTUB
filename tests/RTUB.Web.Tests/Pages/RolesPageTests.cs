@@ -1,6 +1,5 @@
 using FluentAssertions;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Web.Tests.Pages;
 

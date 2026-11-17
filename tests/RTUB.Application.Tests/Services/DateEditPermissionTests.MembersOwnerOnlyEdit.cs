@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Moq;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;

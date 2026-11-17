@@ -1,9 +1,6 @@
-using System.Text;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
-using RTUB.Application.Services.Email;
-using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;

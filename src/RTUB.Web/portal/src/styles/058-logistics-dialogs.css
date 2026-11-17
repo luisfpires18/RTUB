@@ -1,10 +1,5 @@
 /* ---- dialogs ---- */
 
-.lx-detail {
-  display: grid;
-  gap: 22px;
-}
-
 .lx-detail__section {
   display: grid;
   gap: 10px;
@@ -19,13 +14,6 @@
   font: 700 0.8125rem/1 var(--font-body);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-}
-
-.lx-detail__save {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
 }
 
 .lx-segment {
@@ -179,18 +167,6 @@
   color: var(--ink);
 }
 
-.lx-view__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.lx-view__head .lx-status {
-  padding: 5px 9px;
-  font-size: 0.75rem;
-}
-
 .lx-view__status--todo {
   --st: var(--st-todo);
 }
@@ -219,15 +195,6 @@
 .lx-view__role .icon {
   flex: none;
   margin-top: 2px;
-}
-
-.lx-view__role--work {
-  border-color: color-mix(in srgb, var(--st-done) 50%, transparent);
-  color: var(--ink-soft);
-}
-
-.lx-view__role--work .icon {
-  color: var(--st-done);
 }
 
 .lx-view__text {

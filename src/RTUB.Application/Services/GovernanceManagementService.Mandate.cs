@@ -1,17 +1,11 @@
 // Governance: sync the current mandate, remove an assignment, read the RGI.
-using System.Globalization;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
-using RTUB.Application.Extensions;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 

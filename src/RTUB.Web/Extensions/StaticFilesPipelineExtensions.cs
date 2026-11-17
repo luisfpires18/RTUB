@@ -1,19 +1,3 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using RTUB.Application.Configuration;
-using RTUB.Application.Data;
-using RTUB.Application.Interfaces;
-using RTUB.Application.Services;
-using RTUB.Application.Services.Geocoding;
-using RTUB.Core.Entities;
-using RTUB.Core.Helpers;
-using RTUB.Security;
-using RTUB.Web.Endpoints;
-using RTUB.Web.Extensions;
-using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
-
 namespace RTUB.Web.Extensions;
 
 // HTTPS redirect, compression, routing, rate limiter, static files and authentication middleware.

@@ -1,16 +1,9 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Moq;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
-using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Tests.Services;
 

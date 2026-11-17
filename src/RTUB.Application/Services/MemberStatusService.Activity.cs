@@ -1,12 +1,8 @@
 // Member status: rehearsal activity loading and notifications.
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
-using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;

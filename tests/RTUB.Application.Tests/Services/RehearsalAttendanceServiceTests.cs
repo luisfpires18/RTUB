@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -9,7 +8,6 @@ using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 

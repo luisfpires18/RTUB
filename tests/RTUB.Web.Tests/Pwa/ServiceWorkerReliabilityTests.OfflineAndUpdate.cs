@@ -1,7 +1,6 @@
 // Service worker offline fallback and update lifecycle
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.Pwa;
 

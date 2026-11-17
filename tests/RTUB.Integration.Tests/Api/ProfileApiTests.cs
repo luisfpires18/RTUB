@@ -1,11 +1,9 @@
 // ProfileApiTests: test class moved here from MemberAreaApiTests.cs.
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;

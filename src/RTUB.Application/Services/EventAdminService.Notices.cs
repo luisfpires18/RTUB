@@ -6,7 +6,6 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
 using RTUB.Application.Helpers;
 using RTUB.Core.Entities;
-using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 

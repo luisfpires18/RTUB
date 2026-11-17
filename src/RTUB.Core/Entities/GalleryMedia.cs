@@ -113,23 +113,6 @@ public class GalleryMedia : BaseEntity
     }
 
     /// <summary>
-    /// Update media URL
-    /// </summary>
-    public void UpdateMediaUrl(string mediaUrl)
-    {
-        ValidateMediaUrl(mediaUrl);
-        MediaUrl = mediaUrl;
-    }
-
-    /// <summary>
-    /// Set or update thumbnail URL for video media
-    /// </summary>
-    public void SetThumbnailUrl(string? thumbnailUrl)
-    {
-        ThumbnailUrl = thumbnailUrl;
-    }
-
-    /// <summary>
     /// Update privacy setting
     /// </summary>
     public void UpdatePrivacy(bool isPrivate)

@@ -1,10 +1,6 @@
 // MemberStatusService: transitions and notifications.
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;

@@ -144,21 +144,8 @@
   font-weight: 500;
 }
 
-.lx-completed summary {
-  cursor: pointer;
-  list-style: none;
-}
-
-.lx-completed summary::-webkit-details-marker {
-  display: none;
-}
-
 .lx-completed__chevron {
   transition: transform 0.15s ease;
-}
-
-.lx-completed[open] .lx-completed__chevron {
-  transform: rotate(180deg);
 }
 
 .lx-boards {

@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Data.Configurations;
 

@@ -1,12 +1,8 @@
 // Naipe: comments, delete permission, DTO mapping and audit log.
 using System.Security.Claims;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
-using RTUB.Application.Interfaces;
-using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 

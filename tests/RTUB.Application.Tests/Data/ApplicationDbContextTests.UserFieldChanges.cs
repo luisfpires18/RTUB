@@ -1,7 +1,5 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
-using RTUB.Application.Services;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Data;

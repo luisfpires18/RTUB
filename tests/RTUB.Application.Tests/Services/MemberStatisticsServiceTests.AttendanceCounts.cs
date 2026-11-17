@@ -1,11 +1,5 @@
 // MemberStatisticsService: attendance counts.
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using RTUB.Application.Configuration;
-using RTUB.Application.Data;
-using RTUB.Application.Services;
-using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;

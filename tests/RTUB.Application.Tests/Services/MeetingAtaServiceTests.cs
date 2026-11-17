@@ -2,7 +2,6 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
-using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;

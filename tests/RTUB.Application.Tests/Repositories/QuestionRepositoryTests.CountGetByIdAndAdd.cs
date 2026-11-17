@@ -1,9 +1,4 @@
 using FluentAssertions;
-using RTUB.Application.Data;
-using RTUB.Application.Repositories;
-using RTUB.Application.Tests.Fixtures;
-using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Tests.Repositories;
 

@@ -1,6 +1,5 @@
 // Members grid avatar lazy-load, loading state, keyboard accessibility, performance
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.Pages;
 

@@ -1,10 +1,6 @@
 // Database backup: snapshot, validation, path resolution and schedule helpers.
 using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using RTUB.Application.Configuration;
-using RTUB.Application.Interfaces;
 
 namespace RTUB.Application.Services;
 

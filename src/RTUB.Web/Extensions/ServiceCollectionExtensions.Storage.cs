@@ -1,19 +1,9 @@
-using System.Security.Claims;
-using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Email;
 using RTUB.Application.Services.Storage;
-using RTUB.Core.Helpers;
-using RTUB.Web.Services;
 
 namespace RTUB.Web.Extensions;
 

@@ -1,8 +1,6 @@
 // Naipe board: instrument settings and pictures.
 using System.Security.Claims;
 using RTUB.Application.DTOs;
-using RTUB.Application.Interfaces;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 

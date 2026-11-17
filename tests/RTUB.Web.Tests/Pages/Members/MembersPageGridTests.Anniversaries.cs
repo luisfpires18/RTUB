@@ -1,6 +1,5 @@
 // Anniversaries modal and table pagination
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.Pages;
 

@@ -11,8 +11,6 @@ using RTUB.Application.Factories;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
-using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 

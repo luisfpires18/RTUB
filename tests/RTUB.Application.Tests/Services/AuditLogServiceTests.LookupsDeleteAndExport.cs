@@ -1,9 +1,5 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
-using RTUB.Application.Repositories;
-using RTUB.Application.Services;
-using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;

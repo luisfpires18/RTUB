@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 

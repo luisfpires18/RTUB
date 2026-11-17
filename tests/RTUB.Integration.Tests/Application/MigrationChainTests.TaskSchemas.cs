@@ -1,12 +1,6 @@
 // MigrationChainTests: TaskSchemas tests.
 using FluentAssertions;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Moq;
-using RTUB.Application.Data;
-using RTUB.Application.Services;
-using RTUB.Web.Extensions;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 

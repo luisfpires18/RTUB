@@ -1,16 +1,5 @@
 // RehearsalAttendanceService: mark and query.
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Moq;
-using RTUB.Application.Data;
-using RTUB.Application.Interfaces;
-using RTUB.Application.Repositories;
-using RTUB.Application.Services;
-using RTUB.Application.Tests.Fixtures;
-using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;

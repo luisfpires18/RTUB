@@ -1,4 +1,4 @@
-// Message mark-as-unread, system messages and entity base properties
+// Message system messages and entity base properties
 using FluentAssertions;
 using RTUB.Core.Entities;
 
@@ -6,62 +6,6 @@ namespace RTUB.Core.Tests.Entities;
 
 public partial class MessageTests
 {
-    #region MarkAsUnreadBy Tests
-
-    [Fact]
-    public void MarkAsUnreadBy_WhenUserHasRead_ShouldRemoveUser()
-    {
-        // Arrange
-        var message = new Message { ReadBy = "user1;user2;user3" };
-
-        // Act
-        message.MarkAsUnreadBy("user2");
-
-        // Assert
-        message.ReadBy.Should().Be("user1;user3");
-    }
-
-    [Fact]
-    public void MarkAsUnreadBy_WhenUserHasNotRead_ShouldNotChange()
-    {
-        // Arrange
-        var message = new Message { ReadBy = "user1;user2" };
-
-        // Act
-        message.MarkAsUnreadBy("user99");
-
-        // Assert
-        message.ReadBy.Should().Be("user1;user2");
-    }
-
-    [Fact]
-    public void MarkAsUnreadBy_WhenOnlyUser_ShouldResultInEmptyString()
-    {
-        // Arrange
-        var message = new Message { ReadBy = "user1" };
-
-        // Act
-        message.MarkAsUnreadBy("user1");
-
-        // Assert
-        message.ReadBy.Should().Be("");
-    }
-
-    [Fact]
-    public void MarkAsUnreadBy_WhenReadByIsEmpty_ShouldNotChange()
-    {
-        // Arrange
-        var message = new Message { ReadBy = "" };
-
-        // Act
-        message.MarkAsUnreadBy("user1");
-
-        // Assert
-        message.ReadBy.Should().Be("");
-    }
-
-    #endregion
-
     #region System Message Tests
 
     [Fact]

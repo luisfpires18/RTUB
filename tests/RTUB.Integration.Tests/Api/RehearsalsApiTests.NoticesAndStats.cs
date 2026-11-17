@@ -6,8 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
-using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 

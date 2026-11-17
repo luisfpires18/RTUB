@@ -1,12 +1,8 @@
 // Naipe: instrument type configuration (cache, pictures, push).
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
 using RTUB.Application.Helpers;
-using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 

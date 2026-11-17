@@ -1,6 +1,5 @@
 using RTUB.Application.Factories;
 using RTUB.Core.Entities;
-using Xunit;
 
 namespace RTUB.Application.Tests.Factories;
 

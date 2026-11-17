@@ -1,5 +1,3 @@
-using System.Security.Claims;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -7,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 

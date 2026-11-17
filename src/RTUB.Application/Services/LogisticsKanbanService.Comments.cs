@@ -1,9 +1,7 @@
 // Logistics: card comments.
-using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;

@@ -2,7 +2,6 @@
 using FluentAssertions;
 using MockQueryable.Moq;
 using Moq;
-using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 

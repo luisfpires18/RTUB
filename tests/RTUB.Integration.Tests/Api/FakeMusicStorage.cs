@@ -1,16 +1,5 @@
 using System.Collections.Concurrent;
-using System.Net.Http.Json;
-using System.Text.Json;
-using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 

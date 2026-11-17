@@ -1,7 +1,5 @@
 // NerbaOrderService: add order.
 using FluentAssertions;
-using RTUB.Application.Services;
-using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;

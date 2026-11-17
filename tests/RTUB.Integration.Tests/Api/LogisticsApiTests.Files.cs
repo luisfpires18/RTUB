@@ -1,9 +1,6 @@
 // LogisticsApiTests tests: board and card files in Documentation, moves and ETags.
 using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Helpers;

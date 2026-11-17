@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;

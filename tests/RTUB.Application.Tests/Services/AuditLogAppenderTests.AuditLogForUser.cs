@@ -1,8 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
-using RTUB.Application.Services;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
@@ -154,7 +152,7 @@ public partial class AuditLogAppenderTests
         _context.SaveChanges();
 
         var binaryData = new byte[1000];
-        report.SetPdfData(binaryData);
+        report.PdfData = binaryData;
         _context.Reports.Update(report);
         var entry = _context.Entry((BaseEntity)report);
 

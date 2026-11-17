@@ -1,14 +1,10 @@
 // LogisticsApiTests tests: who may read and manage boards and cards.
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
 using RTUB.Application.Data;
-using RTUB.Application.Interfaces;
-using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 

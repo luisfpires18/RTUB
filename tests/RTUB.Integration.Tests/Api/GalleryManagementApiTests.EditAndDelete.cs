@@ -1,14 +1,9 @@
 // GalleryManagementApiTests: EditAndDelete tests.
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RTUB.Application.DTOs;
-using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 

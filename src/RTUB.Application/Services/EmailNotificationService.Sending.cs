@@ -2,9 +2,7 @@ using System.Net.Mail;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.DTOs;
-using RTUB.Application.Interfaces;
 using RTUB.Application.Services.Email;
-using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 

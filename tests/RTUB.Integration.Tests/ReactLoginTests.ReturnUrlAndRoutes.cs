@@ -2,10 +2,6 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using RTUB.Core.Entities;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 

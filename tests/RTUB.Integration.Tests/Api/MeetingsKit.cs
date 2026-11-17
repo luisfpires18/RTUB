@@ -1,18 +1,12 @@
 // MeetingsKit: test class moved here from MeetingsApiTests.cs.
-using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Moq;
 using RTUB.Application.Data;
-using RTUB.Application.Helpers;
-using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using static RTUB.Integration.Tests.Api.MeetingsKit;
 
 namespace RTUB.Integration.Tests.Api;
 /// <summary>Personas, seeded rows and the calls the /api/meetings tests share.</summary>

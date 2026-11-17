@@ -125,14 +125,6 @@ public class Product : BaseEntity
         Description = description;
     }
 
-    public void UpdateStock(int newStock)
-    {
-        if (newStock < 0)
-            throw new ArgumentException("O stock do produto não pode ser negativo", nameof(newStock));
-
-        Stock = newStock;
-    }
-
     public void SetAvailability(bool isAvailable)
     {
         IsAvailable = isAvailable;

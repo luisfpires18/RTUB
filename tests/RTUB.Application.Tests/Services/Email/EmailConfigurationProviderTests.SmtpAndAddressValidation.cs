@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
-using Moq;
 using RTUB.Application.Services.Email;
 
 namespace RTUB.Application.Tests.Services.Email;
@@ -188,62 +187,6 @@ public partial class EmailConfigurationProviderTests
 
         // Act
         var result = provider.ValidateSenderEmail(emailConfig);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void ValidateRecipientEmail_WithNullConfig_ReturnsFalse()
-    {
-        // Arrange
-        var configValues = new Dictionary<string, string?>();
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(configValues)
-            .Build();
-        var provider = new EmailConfigurationProvider(config, _mockLogger.Object);
-
-        // Act
-        var result = provider.ValidateRecipientEmail(null!);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void ValidateRecipientEmail_WithEmptyRecipientEmail_ReturnsFalse()
-    {
-        // Arrange
-        var configValues = new Dictionary<string, string?>();
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(configValues)
-            .Build();
-        var provider = new EmailConfigurationProvider(config, _mockLogger.Object);
-        var emailConfig = provider.GetConfiguration();
-
-        // Act
-        var result = provider.ValidateRecipientEmail(emailConfig);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void ValidateRecipientEmail_WithValidRecipientEmail_ReturnsTrue()
-    {
-        // Arrange
-        var configValues = new Dictionary<string, string?>
-        {
-            ["EmailSettings:RecipientEmail"] = "recipient@test.com"
-        };
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(configValues)
-            .Build();
-        var provider = new EmailConfigurationProvider(config, _mockLogger.Object);
-        var emailConfig = provider.GetConfiguration();
-
-        // Act
-        var result = provider.ValidateRecipientEmail(emailConfig);
 
         // Assert
         result.Should().BeTrue();

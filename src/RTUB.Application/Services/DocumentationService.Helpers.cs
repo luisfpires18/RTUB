@@ -1,10 +1,8 @@
 // Documentacao: viewer rules, paths and tree filters.
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
-using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;

@@ -1,14 +1,8 @@
 // CookieValidationTests: Rejections tests.
-using System.Data.Common;
 using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using RTUB.Application.Data;
 using RTUB.Core.Entities;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 

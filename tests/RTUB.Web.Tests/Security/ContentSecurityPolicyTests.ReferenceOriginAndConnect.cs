@@ -1,8 +1,6 @@
 ﻿// CSP DEV production-reference origin, malformed R2 settings and connect-src
-using System.Text.RegularExpressions;
 using FluentAssertions;
 using RTUB.Security;
-using Xunit;
 
 namespace RTUB.Web.Tests.Security;
 

@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Configuration;
 using RTUB.Application.Services.Storage;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 

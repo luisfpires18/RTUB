@@ -1,8 +1,6 @@
 using System.Net;
-using System.Text;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.DependencyInjection;
 using RTUB.Core.Entities;
 
 namespace RTUB.Integration.Tests;

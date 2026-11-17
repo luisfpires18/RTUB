@@ -1,22 +1,6 @@
 using System.Globalization;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using RTUB.Application.Data;
-using RTUB.Application.Interfaces;
-using RTUB.Application.Repositories;
-using RTUB.Application.Services;
-using RTUB.Application.Services.Email;
-using RTUB.Application.Services.Geocoding;
-using RTUB.Application.Services.Storage;
-using RTUB.Core.Entities;
-using RTUB.Core.Helpers;
-using RTUB.Web.Services;
 
 namespace RTUB.Web.Extensions;
 

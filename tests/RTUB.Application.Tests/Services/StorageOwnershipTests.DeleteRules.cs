@@ -1,11 +1,7 @@
 // StorageOwnership: delete rules.
 using Amazon.S3.Model;
 using FluentAssertions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using RTUB.Application.Services.Storage;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 

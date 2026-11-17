@@ -4,7 +4,6 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
@@ -138,8 +137,6 @@ public sealed partial class LogisticsKanbanService
 
     private static string? ListName(LogisticsListInput input) =>
         input.Name?.Trim() is { Length: > 0 and <= 100 } name ? name : null;
-
-    private static Dictionary<string, string[]> Error(string field, string message) => new() { [field] = new[] { message } };
 
     private static void Renumber(List<LogisticsCard> cards)
     {

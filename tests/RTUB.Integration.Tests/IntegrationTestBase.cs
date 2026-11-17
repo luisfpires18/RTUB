@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace RTUB.Integration.Tests;
 
 /// <summary>

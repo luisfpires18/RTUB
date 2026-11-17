@@ -1,11 +1,8 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Tests.Services;
 

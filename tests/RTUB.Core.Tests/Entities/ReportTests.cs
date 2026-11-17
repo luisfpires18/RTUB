@@ -83,45 +83,6 @@ public partial class ReportTests
     }
 
     [Fact]
-    public void UpdateSummary_UpdatesCorrectly()
-    {
-        // Arrange
-        var report = Report.Create("Test Report", 2023);
-        var newSummary = "Updated summary";
-
-        // Act
-        report.UpdateSummary(newSummary);
-
-        // Assert
-        report.Summary.Should().Be(newSummary);
-    }
-
-    [Fact]
-    public void SetPdfData_WithValidData_SetsCorrectly()
-    {
-        // Arrange
-        var report = Report.Create("Test Report", 2023);
-        var pdfData = new byte[] { 1, 2, 3, 4, 5 };
-
-        // Act
-        report.SetPdfData(pdfData);
-
-        // Assert
-        report.PdfData.Should().BeEquivalentTo(pdfData);
-    }
-
-    [Fact]
-    public void SetPdfData_WithNullData_ThrowsArgumentNullException()
-    {
-        // Arrange
-        var report = Report.Create("Test Report", 2023);
-
-        // Act & Assert
-        var act = () => report.SetPdfData(null!);
-        act.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
     public void Publish_WhenNotPublished_PublishesReport()
     {
         // Arrange
@@ -147,83 +108,5 @@ public partial class ReportTests
         var act = () => report.Publish();
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*already published*");
-    }
-
-    [Fact]
-    public void Unpublish_WhenPublished_UnpublishesReport()
-    {
-        // Arrange
-        var report = Report.Create("Test Report", 2023);
-        report.Publish();
-
-        // Act
-        report.Unpublish();
-
-        // Assert
-        report.IsPublished.Should().BeFalse();
-        report.PublishedAt.Should().BeNull();
-    }
-
-    [Fact]
-    public void IsCurrentFiscalYear_WhenReportIsCurrentYear_ReturnsTrue()
-    {
-        // Arrange - Get current fiscal year start year
-        var today = DateTime.Today;
-        var currentFiscalYearStartYear = today.Month >= 9 ? today.Year : today.Year - 1;
-        var report = Report.Create("Current Year Report", currentFiscalYearStartYear);
-
-        // Act
-        var result = report.IsCurrentFiscalYear();
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsCurrentFiscalYear_WhenReportIsNotCurrentYear_ReturnsFalse()
-    {
-        // Arrange - Get a year that's definitely not current
-        var today = DateTime.Today;
-        var currentFiscalYearStartYear = today.Month >= 9 ? today.Year : today.Year - 1;
-        var pastYear = currentFiscalYearStartYear - 2;
-        var report = Report.Create("Past Year Report", pastYear);
-
-        // Act
-        var result = report.IsCurrentFiscalYear();
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsCurrentFiscalYear_WhenReportIsLastYear_ReturnsFalse()
-    {
-        // Arrange
-        var today = DateTime.Today;
-        var currentFiscalYearStartYear = today.Month >= 9 ? today.Year : today.Year - 1;
-        var lastYear = currentFiscalYearStartYear - 1;
-        var report = Report.Create("Last Year Report", lastYear);
-
-        // Act
-        var result = report.IsCurrentFiscalYear();
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsCurrentFiscalYear_WhenReportIsNextYear_ReturnsFalse()
-    {
-        // Arrange
-        var today = DateTime.Today;
-        var currentFiscalYearStartYear = today.Month >= 9 ? today.Year : today.Year - 1;
-        var nextYear = currentFiscalYearStartYear + 1;
-        var report = Report.Create("Next Year Report", nextYear);
-
-        // Act
-        var result = report.IsCurrentFiscalYear();
-
-        // Assert
-        result.Should().BeFalse();
     }
 }

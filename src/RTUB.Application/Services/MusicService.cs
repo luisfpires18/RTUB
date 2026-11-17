@@ -2,9 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
-using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;
 

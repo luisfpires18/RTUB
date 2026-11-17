@@ -1,7 +1,6 @@
 // ApplicationUser current role
 using FluentAssertions;
 using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Core.Tests.Entities;
 

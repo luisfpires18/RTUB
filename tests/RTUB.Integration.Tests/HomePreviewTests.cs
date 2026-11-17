@@ -4,11 +4,9 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 

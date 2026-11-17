@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;

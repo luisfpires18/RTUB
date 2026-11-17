@@ -27,6 +27,9 @@ over 300 (one method each): `Data/SeedData.Member.cs` (766, a 701-line seed meth
 `Services/AtaPdfService.cs` (447, a 344-line PDF method).
 Task 115 (`chore/115/split-test-files`, on top of 114): phase 6, every test file at most 300 lines (partial test
 classes by topic, one class per file); test count unchanged (4175).
+Task 116 (`chore/116/remove-unused-code`, on top of 115): unused code deleted: 30 public members with no caller in
+`src/` (and the 88 tests that only covered them), unused private members/parameters, 2,141 unused `using`s, 11 dead
+CSS rules.
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not
@@ -51,6 +54,10 @@ classes by topic, one class per file); test count unchanged (4175).
 - Old work branches `chore/001`…`chore/029`, `fix/012`…`fix/029`, `perf/019`: delete when convenient.
 
 ## Deferred (recorded, not fixed)
+
+**Code**
+- `NominatimGeocodingService.GeocodeAsync` tries three "strategies" but `TryGeocode` ignores its `featureType`, so the
+  same Nominatim query can go out three times. Collapsing them changes the request count: decide.
 
 **Portal (left after phase 3)**
 - `data/musicApi.ts` keeps its own `call` and `Outcome` (adds `title`, `unavailable`); merging it into `data/api.ts`

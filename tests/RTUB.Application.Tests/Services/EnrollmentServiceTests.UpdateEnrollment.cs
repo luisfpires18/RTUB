@@ -1,7 +1,4 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;

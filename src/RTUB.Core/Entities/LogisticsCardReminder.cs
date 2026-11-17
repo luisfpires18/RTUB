@@ -99,11 +99,6 @@ public class LogisticsCardReminder : BaseEntity
         while (NextReminderDate <= nowLocal);
     }
 
-    public void Deactivate()
-    {
-        IsActive = false;
-    }
-
     public void UpdateTargetUsers(string targetUserIds)
     {
         if (string.IsNullOrWhiteSpace(targetUserIds))

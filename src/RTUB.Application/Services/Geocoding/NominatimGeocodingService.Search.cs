@@ -1,9 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services.Geocoding;
 
@@ -81,7 +78,7 @@ public partial class NominatimGeocodingService
             }
 
             // Find the best match
-            var bestResult = FindBestMatch(results, query, featureType);
+            var bestResult = FindBestMatch(results, query);
 
             if (bestResult != null)
             {
@@ -142,7 +139,7 @@ public partial class NominatimGeocodingService
         return (latitude, longitude);
     }
 
-    private NominatimResult? FindBestMatch(List<NominatimResult> results, string query, string? featureType)
+    private NominatimResult? FindBestMatch(List<NominatimResult> results, string query)
     {
         if (results.Count == 0) return null;
 

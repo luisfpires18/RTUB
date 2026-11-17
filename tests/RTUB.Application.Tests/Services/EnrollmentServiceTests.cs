@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;

@@ -37,11 +37,6 @@
   border-color: color-mix(in srgb, #b7e4c7 45%, transparent);
 }
 
-.pa-status--retired {
-  color: var(--muted);
-  border-color: var(--line-strong);
-}
-
 .pa-today {
   display: inline-flex;
   align-items: center;

@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
-using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;

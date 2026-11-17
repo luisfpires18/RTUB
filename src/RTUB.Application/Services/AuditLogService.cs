@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;

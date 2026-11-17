@@ -1,8 +1,6 @@
-using MockQueryable.Moq;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Tests.Services;
 

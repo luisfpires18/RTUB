@@ -1,7 +1,5 @@
 using FluentAssertions;
-using Moq;
 using RTUB.Web.EmailTemplates.Models;
-using RTUB.Web.Services;
 
 namespace RTUB.Web.Tests.Services;
 

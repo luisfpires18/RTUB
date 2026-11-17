@@ -1,18 +1,7 @@
 // Owner tools: database tables, select and modify queries.
 using System.Data.Common;
 using System.Globalization;
-using System.Security.Claims;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
-using RTUB.Application.Helpers;
-using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
-using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 

@@ -3,10 +3,6 @@ using System.Net;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 
 namespace RTUB.Integration.Tests.Api;

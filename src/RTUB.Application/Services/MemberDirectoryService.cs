@@ -1,15 +1,8 @@
-using System.Globalization;
-using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
-using RTUB.Application.DTOs;
-using RTUB.Application.Extensions;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
-using RTUB.Core.Enums;
-using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -26,7 +19,6 @@ public sealed partial class MemberDirectoryService : IMemberDirectoryService
 {
     private readonly TimeProvider _time;
 
-    private static readonly CultureInfo Pt = CultureInfo.GetCultureInfo("pt-PT");
     private static readonly string[] Categories = { "Leitao", "Caloiro", "Tuno", "TunoHonorario" };
     private static readonly string[] SubCategories = { "Tuno", "Veterano", "Tunossauro", "Fundador" };
 

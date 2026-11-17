@@ -1,10 +1,7 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using RTUB.Core.Enums;
-using Xunit;
-using static RTUB.Integration.Tests.Api.MeetingsKit;
 
 namespace RTUB.Integration.Tests.Api;
 

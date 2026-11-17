@@ -1,12 +1,8 @@
 // HallOfFameApiTests: test class moved here from MemberAreaApiTests.cs.
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;

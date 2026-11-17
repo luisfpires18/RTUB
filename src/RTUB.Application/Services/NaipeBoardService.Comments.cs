@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 

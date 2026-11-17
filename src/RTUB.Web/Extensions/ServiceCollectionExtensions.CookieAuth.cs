@@ -3,15 +3,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using RTUB.Application.Data;
-using RTUB.Application.Repositories;
-using RTUB.Application.Services;
-using RTUB.Application.Services.Email;
-using RTUB.Application.Services.Geocoding;
-using RTUB.Application.Services.Storage;
 using RTUB.Core.Entities;
 using RTUB.Core.Helpers;
 

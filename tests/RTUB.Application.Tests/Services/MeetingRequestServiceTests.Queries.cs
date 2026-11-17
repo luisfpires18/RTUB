@@ -1,11 +1,5 @@
 // MeetingRequestService: queries.
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Logging;
-using MockQueryable.Moq;
 using Moq;
-using RTUB.Application.Services;
-using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 

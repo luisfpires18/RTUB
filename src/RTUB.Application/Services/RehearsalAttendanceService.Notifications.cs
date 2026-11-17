@@ -1,12 +1,7 @@
 // Rehearsal attendance: approval, rejection and attendance notifications.
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using RTUB.Application.Configuration;
-using RTUB.Application.Extensions;
-using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
-using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 

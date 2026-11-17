@@ -5,7 +5,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using RTUB.Application.Data;
 using RTUB.Application.Helpers;
 using RTUB.Application.Services;

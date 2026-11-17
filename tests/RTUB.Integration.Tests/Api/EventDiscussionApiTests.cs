@@ -3,7 +3,6 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;

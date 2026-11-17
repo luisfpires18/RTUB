@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -15,13 +14,11 @@ namespace RTUB.Application.Tests.Services;
 /// </summary>
 public class CachedGeocodingServiceTests
 {
-    private readonly Mock<ILogger<CachedGeocodingService>> _mockLogger;
     private readonly Mock<IGeocodingQueue> _mockQueue;
     private readonly IServiceProvider _serviceProvider;
 
     public CachedGeocodingServiceTests()
     {
-        _mockLogger = new Mock<ILogger<CachedGeocodingService>>();
         _mockQueue = new Mock<IGeocodingQueue>();
 
         // Setup required dependencies for ApplicationDbContext
@@ -56,7 +53,7 @@ public class CachedGeocodingServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object);
 
         // Act
         var result = await service.GetCoordinatesAsync("Lisboa", "PT");
@@ -76,7 +73,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object);
 
         // Act
         var result = await service.GetCoordinatesAsync("Porto", "PT");
@@ -94,7 +91,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object);
 
         // Act
         var result = await service.GetCoordinatesAsync("", "PT");
@@ -112,7 +109,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object);
 
         // Act
         var result = await service.GetCoordinatesAsync("   ", "PT");
@@ -143,7 +140,7 @@ public class CachedGeocodingServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object);
 
         // Act - Query with uppercase
         var result = await service.GetCoordinatesAsync("PORTO", "PT");
@@ -172,7 +169,7 @@ public class CachedGeocodingServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object);
 
         // Act - Query with lowercase country code
         var result = await service.GetCoordinatesAsync("Madrid", "es");
@@ -188,7 +185,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object);
 
         // Act
         var result = await service.GetCoordinatesAsync("Braga");
@@ -219,7 +216,7 @@ public class CachedGeocodingServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object, _mockLogger.Object);
+        var service = new CachedGeocodingService(WrapInFactory(scope.ServiceProvider), _mockQueue.Object);
 
         // Act - Query with same city name but different country
         var resultPT = await service.GetCoordinatesAsync("Braga", "PT");

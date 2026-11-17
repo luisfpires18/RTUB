@@ -1,23 +1,6 @@
 // FakeReceiptStorage: test class moved here from TreasuryApiTests.cs.
 using System.Collections.Concurrent;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
-using FluentAssertions;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Moq;
-using RTUB.Application.Data;
-using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 /// <summary>An in-memory receipt bucket: URLs are fake public URLs; nothing reaches R2.</summary>

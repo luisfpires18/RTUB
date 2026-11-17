@@ -28,8 +28,6 @@ public sealed partial class LogisticsKanbanService
 
     public const int MaxComposedCards = 200;
 
-    private static readonly CardStatus[] Workflow = [CardStatus.Todo, CardStatus.InProgress, CardStatus.Blocked, CardStatus.Done];
-
     /// <summary>The default columns of a new board, one per state.</summary>
     private static readonly (string Name, CardStatus State)[] DefaultColumns =
         [("Por fazer", CardStatus.Todo), ("Em curso", CardStatus.InProgress), ("Bloqueado", CardStatus.Blocked), ("Feito", CardStatus.Done)];

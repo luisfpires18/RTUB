@@ -1,5 +1,4 @@
 using RTUB.Application.Services;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Tests.Services;
 

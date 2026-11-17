@@ -397,15 +397,6 @@ public class AtaPdfService : IAtaPdfService
         _ => "—"
     };
 
-    private static string GetMeetingTypeDisplayName(MeetingType type) => type switch
-    {
-        MeetingType.ConselhoVeteranos => "Conselho de Veteranos",
-        MeetingType.AssembleiaGeralOrdinaria => "Assembleia Geral Ordinária",
-        MeetingType.AssembleiaGeralExtraordinaria => "Assembleia Geral Extraordinária",
-        MeetingType.ReuniaoDirecao => "Reunião de Direção",
-        _ => "Reunião"
-    };
-
     /// <summary>
     /// Formats a user's name as "FirstName 'NickName' LastName" or "FirstName LastName" if no nickname
     /// </summary>

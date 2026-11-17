@@ -3,9 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Configuration;
-using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 

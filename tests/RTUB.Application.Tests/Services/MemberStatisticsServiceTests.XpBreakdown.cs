@@ -1,6 +1,5 @@
 // MemberStatisticsService: xp breakdown.
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Services;

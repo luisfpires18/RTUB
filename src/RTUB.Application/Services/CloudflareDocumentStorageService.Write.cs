@@ -1,14 +1,7 @@
 ﻿// Cloudflare documents: upload, folders, copy, delete and audit log.
 using Amazon.S3;
 using Amazon.S3.Model;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using RTUB.Application.Configuration;
-using RTUB.Application.Data;
-using RTUB.Application.DTOs;
-using RTUB.Application.Interfaces;
-using RTUB.Application.Services.Storage;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -47,9 +45,6 @@ public partial class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisp
             _fixture.CreateContextFactory(),
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object);
-
-        // Disable auditing for test setup
-        _context.DisableAuditing();
 
         // Create test users
         var currentYear = DateTime.Now.Year;
@@ -124,9 +119,6 @@ public partial class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisp
             _context.Users.Add(_leitaoUser);
             _context.SaveChanges();
         }
-
-        // Re-enable auditing
-        _context.EnableAuditing();
     }
 
     public void Dispose()

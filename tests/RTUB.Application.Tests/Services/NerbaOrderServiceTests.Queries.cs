@@ -1,9 +1,5 @@
 // NerbaOrderService: queries.
 using FluentAssertions;
-using RTUB.Application.Services;
-using RTUB.Application.Tests.Fixtures;
-using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Tests.Services;
 

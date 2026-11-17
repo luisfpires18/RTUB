@@ -3,7 +3,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
-using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Helpers;
 

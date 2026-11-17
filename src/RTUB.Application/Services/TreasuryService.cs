@@ -1,12 +1,7 @@
-using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
-using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Constants;
-using RTUB.Core.Entities;
-using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -31,8 +26,6 @@ public sealed partial class TreasuryService : ITreasuryService
 
     public const long MaxReceiptBytes = 10 * 1024 * 1024;
     public const int FirstYear = 1991;
-    private const string Bank = "DINHEIRO NO BANCO";
-    private const string Cash = "DINHEIRO EM CAIXA";
 
     private readonly IDbContextFactory<ApplicationDbContext> _contexts;
     private readonly IReportService _reports;

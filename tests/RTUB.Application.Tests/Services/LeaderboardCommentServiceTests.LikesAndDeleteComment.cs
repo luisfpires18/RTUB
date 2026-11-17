@@ -1,9 +1,6 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
 using MockQueryable.Moq;
 using Moq;
-using RTUB.Application.Services;
-using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;

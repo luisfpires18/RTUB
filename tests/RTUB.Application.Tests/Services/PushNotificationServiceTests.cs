@@ -4,7 +4,6 @@ using Moq;
 using RTUB.Application.Configuration;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -39,17 +38,5 @@ public partial class PushNotificationServiceTests
             _mockUserProfileRepository.Object,
             optionsWrapper,
             _mockLogger.Object);
-    }
-
-    private void VerifyLog(LogLevel level, string expectedMessage)
-    {
-        _mockLogger.Verify(
-            x => x.Log(
-                level,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString() == expectedMessage),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
     }
 }

@@ -1,15 +1,12 @@
 // Report PDF: builds the QuestPDF document and caches it.
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using RTUB.Application.Data;
 using RTUB.Core.Constants;
 using Activity = RTUB.Core.Entities.Activity;
 using Report = RTUB.Core.Entities.Report;
 using Transaction = RTUB.Core.Entities.Transaction;
-using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 

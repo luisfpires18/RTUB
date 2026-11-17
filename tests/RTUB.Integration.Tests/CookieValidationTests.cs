@@ -1,10 +1,6 @@
-using System.Data.Common;
 using System.Net;
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
 using RTUB.Web.Extensions;

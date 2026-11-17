@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;

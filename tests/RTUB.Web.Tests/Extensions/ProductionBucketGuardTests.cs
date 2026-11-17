@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using RTUB.Web.Extensions;
-using Xunit;
 
 namespace RTUB.Web.Tests.Extensions;
 

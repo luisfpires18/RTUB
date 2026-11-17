@@ -4,7 +4,6 @@ using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -15,13 +14,11 @@ namespace RTUB.Application.Tests.Services;
 public class TrophyServiceTests
 {
     private readonly Mock<ITrophyRepository> _mockTrophyRepository;
-    private readonly Mock<IRepository<Event>> _mockEventRepository;
     private readonly TrophyService _trophyService;
 
     public TrophyServiceTests()
     {
         _mockTrophyRepository = new Mock<ITrophyRepository>();
-        _mockEventRepository = new Mock<IRepository<Event>>();
         _trophyService = new TrophyService(_mockTrophyRepository.Object);
     }
 

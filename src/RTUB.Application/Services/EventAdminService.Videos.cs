@@ -1,12 +1,8 @@
 // Event admin: videos (012C).
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
-using RTUB.Core.Entities;
-using RTUB.Core.Enums;
-using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 

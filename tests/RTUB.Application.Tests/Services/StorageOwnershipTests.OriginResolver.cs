@@ -1,10 +1,5 @@
 // StorageOwnership: origin resolver.
-using Amazon.S3.Model;
 using FluentAssertions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
-using RTUB.Application.Services;
 using RTUB.Application.Services.Storage;
 
 namespace RTUB.Application.Tests.Services;
@@ -28,23 +23,11 @@ public partial class StorageOwnershipTests
     }
 
     [Fact]
-    public void Resolve_OnlyCurrentEnvironmentIsDeletable()
-    {
-        var resolver = new StorageOriginResolver(DevPublicUrl, ProdPublicUrl);
-
-        resolver.IsDeletable(DevImageUrl).Should().BeTrue();
-        resolver.IsDeletable(ProdImageUrl).Should().BeFalse();
-        resolver.IsDeletable(ForeignImageUrl).Should().BeFalse();
-        resolver.IsDeletable("images/Production/x.webp").Should().BeFalse();
-    }
-
-    [Fact]
     public void Resolve_NoCurrentOriginConfigured_FailsClosed()
     {
         // A missing PublicUrl must not make everything deletable.
         var resolver = new StorageOriginResolver(currentPublicUrl: null, referencePublicUrl: null);
-
-        resolver.IsDeletable(DevImageUrl).Should().BeFalse();
+        resolver.Resolve(DevImageUrl).Should().NotBe(StorageObjectOrigin.CurrentEnvironment);
         resolver.Resolve(DevImageUrl).Should().Be(StorageObjectOrigin.External);
     }
 
@@ -56,7 +39,7 @@ public partial class StorageOwnershipTests
     {
         var resolver = new StorageOriginResolver(configuredValue, ProdPublicUrl);
 
-        resolver.IsDeletable(DevImageUrl).Should().BeTrue();
+        resolver.Resolve(DevImageUrl).Should().Be(StorageObjectOrigin.CurrentEnvironment);
     }
 
     #endregion

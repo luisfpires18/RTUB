@@ -203,18 +203,6 @@ public partial class FundadorFeatureTests
         display.Should().Be("FUNDADOR");
     }
 
-    [Fact]
-    public void GetCategoryBadgeClass_ForFundador_ShouldReturnBadgeFundador()
-    {
-        // Arrange & Act
-        var badgeClass = StatusHelper.GetCategoryBadgeClass(MemberCategory.Fundador);
-
-        // Assert
-        badgeClass.Should().Be("badge-fundador");
-    }
-
-
-
     [Theory]
     [InlineData("Manuel", "Costa")]
     [InlineData("António", "Santos")]

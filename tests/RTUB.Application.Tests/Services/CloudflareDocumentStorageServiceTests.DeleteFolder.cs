@@ -1,14 +1,8 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Moq;
-using RTUB.Application.DTOs;
 using RTUB.Application.Services;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 

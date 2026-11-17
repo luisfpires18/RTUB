@@ -1,6 +1,4 @@
 using RTUB.Application.Interfaces;
-using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Application.Tests.Factories;
 

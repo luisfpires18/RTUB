@@ -1,13 +1,7 @@
 // Logistics: card checklist items.
-using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
-using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 

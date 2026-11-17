@@ -1,12 +1,8 @@
 // PendingActionsService: panels.
 using System.Security.Claims;
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Services;
-using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Tests.Services;

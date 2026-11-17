@@ -1,7 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using RTUB.Application.Interfaces;
 using RTUB.Core.Constants;
 
 namespace RTUB.Application.Services;

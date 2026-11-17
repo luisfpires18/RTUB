@@ -3,9 +3,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
 using RTUB.Core.Enums;
-using Xunit;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
 namespace RTUB.Integration.Tests.Api;

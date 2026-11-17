@@ -1,16 +1,7 @@
 // LogisticsApiTests tests: private boards, columns, archive, copies and templates.
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using RTUB.Application.Data;
-using RTUB.Application.Helpers;
-using RTUB.Application.Interfaces;
-using RTUB.Application.Services;
-using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
 namespace RTUB.Integration.Tests.Api;

@@ -1,6 +1,5 @@
 using FluentAssertions;
 using RTUB.Application.Services;
-using Xunit;
 
 namespace RTUB.Web.Tests.ReactPortal;
 

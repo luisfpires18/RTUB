@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RTUB.Application.DTOs;

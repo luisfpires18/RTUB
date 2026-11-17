@@ -110,12 +110,6 @@ public sealed class StorageOriginResolver
     }
 
     /// <summary>
-    /// The single invariant every destructive path goes through: only an object in this
-    /// environment's own bucket may be deleted or overwritten.
-    /// </summary>
-    public bool IsDeletable(string? url) => Resolve(url) == StorageObjectOrigin.CurrentEnvironment;
-
-    /// <summary>
     /// <c>scheme://host[:port]</c> for an absolute http/https URL, or null for anything else.
     /// Comparing normalized origins rather than string prefixes means a trailing slash, a
     /// default port or a differing path cannot change the answer.

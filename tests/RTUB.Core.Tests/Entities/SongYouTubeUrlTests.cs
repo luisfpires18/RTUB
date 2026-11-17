@@ -56,37 +56,4 @@ public class SongYouTubeUrlTests
         act.Should().Throw<ArgumentException>()
             .WithMessage("*O URL não pode estar vazio*");
     }
-
-    [Fact]
-    public void UpdateUrl_WithValidData_ShouldUpdateProperties()
-    {
-        // Arrange
-        var songYouTubeUrl = SongYouTubeUrl.Create(1, "https://youtube.com/old");
-        var newUrl = "https://youtube.com/new";
-        var newDescription = "Updated video";
-
-        // Act
-        songYouTubeUrl.UpdateUrl(newUrl, newDescription);
-
-        // Assert
-        songYouTubeUrl.Url.Should().Be(newUrl);
-        songYouTubeUrl.Description.Should().Be(newDescription);
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData(" ")]
-    [InlineData(null)]
-    public void UpdateUrl_WithEmptyUrl_ShouldThrowException(string? emptyUrl)
-    {
-        // Arrange
-        var songYouTubeUrl = SongYouTubeUrl.Create(1, "https://youtube.com/old");
-
-        // Act
-        var act = () => songYouTubeUrl.UpdateUrl(emptyUrl!, "desc");
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*O URL não pode estar vazio*");
-    }
 }

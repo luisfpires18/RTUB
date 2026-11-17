@@ -1,15 +1,10 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Services;
 using RTUB.Core.Constants;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Data;
 
-// Audit switches: which entities are audited, and temporarily turning auditing off.
+// Audit switches: which entities are audited.
 
 public partial class ApplicationDbContext
 {
@@ -28,23 +23,5 @@ public partial class ApplicationDbContext
                     && p.Metadata.Name is not ("UpdatedAt" or "UpdatedBy")),
             _ => false,
         };
-    }
-
-    /// <summary>
-    /// Temporarily disables audit logging for operations that need to save multiple times
-    /// but should only create a single audit log entry.
-    /// Use with caution and always re-enable auditing afterwards.
-    /// </summary>
-    public void DisableAuditing()
-    {
-        _isAuditingEnabled = false;
-    }
-
-    /// <summary>
-    /// Re-enables audit logging after it was temporarily disabled.
-    /// </summary>
-    public void EnableAuditing()
-    {
-        _isAuditingEnabled = true;
     }
 }

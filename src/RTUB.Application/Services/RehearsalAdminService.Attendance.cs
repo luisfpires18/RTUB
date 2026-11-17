@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;

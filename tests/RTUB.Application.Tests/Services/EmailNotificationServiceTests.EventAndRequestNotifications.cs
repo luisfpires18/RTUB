@@ -1,8 +1,5 @@
 using FluentAssertions;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Moq;
-using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Email;
 

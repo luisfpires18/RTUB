@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.ReactPortal;
 
@@ -17,9 +16,6 @@ public class MemberShellTests
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Src, file)).Replace("\r\n", "\n");
     private static string Css() => PortalCss.Read(Src).Replace("\r\n", "\n");
-
-    private static string Function(string file, string name) =>
-        Regex.Match(Read(file), $@"\nfunction {name}\(.*?\n\}}\n", RegexOptions.Singleline).Value;
 
     // The old components/App.tsx was split into these files (task 113).
     private static string AppFiles() => string.Join("\n", new[]

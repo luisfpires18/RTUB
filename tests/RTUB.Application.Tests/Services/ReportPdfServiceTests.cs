@@ -27,7 +27,7 @@ public class ReportPdfServiceTests : IDisposable
     {
         // Arrange
         var report = Report.Create("Test Report 2024", 2024);
-        report.UpdateSummary("Test summary");
+        report.Summary = "Test summary";
         report.Publish();
 
         var activities = new List<Activity>
@@ -210,7 +210,7 @@ public class ReportPdfServiceTests : IDisposable
         var result1 = _service.GenerateReportPdf(report, activities, allTransactions);
 
         // Simulate update by modifying the report
-        report.UpdateSummary("New summary");
+        report.Summary = "New summary";
 
         // Act - Generate after update
         var result2 = _service.GenerateReportPdf(report, activities, allTransactions);

@@ -2,7 +2,6 @@ using System.Net;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Core.Entities;

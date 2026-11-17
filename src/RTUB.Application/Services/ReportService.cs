@@ -1,14 +1,7 @@
-using Microsoft.EntityFrameworkCore;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Constants;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
-using RTUB.Core.Helpers;
-
 
 namespace RTUB.Application.Services;
 
@@ -18,20 +11,14 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class ReportService : IReportService
 {
-    private readonly TimeProvider _time;
-
-    /// <summary>The "Gerado em" stamp: Portugal's wall clock (#226 F02; was the server's DateTime.Now, UTC on Azure).</summary>
-    internal string GeneratedAt() => PortugalTime.Now(_time).ToString("dd/MM/yyyy HH:mm");
-
     private readonly IReportRepository _reportRepository;
 
     /// <summary>
     /// Initializes a new instance of the ReportService
     /// </summary>
     /// <param name="reportRepository">Repository for report operations</param>
-    public ReportService(IReportRepository reportRepository, TimeProvider? time = null)
+    public ReportService(IReportRepository reportRepository)
     {
-        _time = time ?? TimeProvider.System;
         _reportRepository = reportRepository;
     }
 
@@ -86,93 +73,5 @@ public class ReportService : IReportService
 
         // Repository will handle cascading deletes through EF Core relationships
         await _reportRepository.DeleteAsync(report);
-    }
-
-    private byte[] GeneratePdf(Report report, List<Activity> activities, List<(Activity activity, List<Transaction> transactions)> allTransactions)
-    {
-        QuestPDF.Settings.License = LicenseType.Community;
-
-        var document = Document.Create(container =>
-        {
-            container.Page(page =>
-            {
-                page.Size(PageSizes.A4);
-                page.Margin(2, Unit.Centimetre);
-                page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(11).FontColor(Colors.Black));
-
-                // Header
-                page.Header().ShowOnce().AlignCenter().Column(column =>
-                {
-                    column.Item().Text(report.Title).FontSize(24).Bold().FontColor("#6f42c1");
-                    column.Item().PaddingTop(5).Text($"Ano Letivo: {report.Year}").FontSize(12).FontColor(Colors.Grey.Darken2);
-
-                    if (!string.IsNullOrEmpty(report.Summary))
-                    {
-                        column.Item().PaddingTop(10).Text(report.Summary).FontSize(11).Italic().FontColor(Colors.Grey.Darken1);
-                    }
-
-                    if (report.PublishedAt.HasValue)
-                    {
-                        column.Item().PaddingTop(5).Text($"Publicado em: {report.PublishedAt.Value:dd/MM/yyyy HH:mm}")
-                            .FontSize(10).FontColor(Colors.Grey.Medium);
-                    }
-                });
-
-                // Content
-                page.Content().PaddingVertical(1, Unit.Centimetre).Column(column =>
-                {
-                    // Financial Summary - calculate from transactions (excluding hidden activities)
-                    var regularTransactions = allTransactions
-                        .Where(x => !x.activity.IsHiddenFromCalculations())
-                        .SelectMany(x => x.transactions);
-                    var totalIncome = regularTransactions.Where(t => t.Type == TransactionTypes.Income).Sum(t => t.Amount);
-                    var totalExpenses = regularTransactions.Where(t => t.Type == TransactionTypes.Expense).Sum(t => t.Amount);
-                    var balance = totalIncome - totalExpenses;
-
-                    column.Item().Background("#f8f9fa").Padding(15).Column(summaryColumn =>
-                    {
-                        summaryColumn.Item().Row(row =>
-                        {
-                            row.RelativeItem().Column(col =>
-                            {
-                                col.Item().Text("Receitas").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                col.Item().Text($"€{totalIncome:N2}").FontSize(18).Bold().FontColor("#28a745");
-                            });
-                            row.RelativeItem().Column(col =>
-                            {
-                                col.Item().Text("Despesas").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                col.Item().Text($"€{totalExpenses:N2}").FontSize(18).Bold().FontColor("#dc3545");
-                            });
-                            row.RelativeItem().Column(col =>
-                            {
-                                col.Item().Text("Saldo").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                col.Item().Text($"€{balance:N2}").FontSize(18).Bold()
-                                    .FontColor(balance >= 0 ? "#28a745" : "#dc3545");
-                            });
-                            row.RelativeItem().Column(col =>
-                            {
-                                col.Item().Text("Atividades").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                col.Item().Text(activities.Count.ToString()).FontSize(18).Bold().FontColor("#6f42c1");
-                            });
-                        });
-                    });
-                });
-
-                // Footer
-                page.Footer().AlignCenter().Text(text =>
-                {
-                    text.DefaultTextStyle(TextStyle.Default.FontSize(9).FontColor(Colors.Grey.Medium));
-                    text.Span("Gerado em: ");
-                    text.Span(GeneratedAt());
-                    text.Span(" | Página ");
-                    text.CurrentPageNumber();
-                    text.Span(" de ");
-                    text.TotalPages();
-                });
-            });
-        });
-
-        return document.GeneratePdf();
     }
 }

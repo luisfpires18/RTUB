@@ -1,9 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Core.Entities;

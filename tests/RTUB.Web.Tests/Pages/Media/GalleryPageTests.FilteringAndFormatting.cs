@@ -1,8 +1,6 @@
 // Gallery filtering, month grouping, timeline alternation and date formatting
 using FluentAssertions;
 using RTUB.Core.Entities;
-using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Web.Tests.Pages.Media;
 

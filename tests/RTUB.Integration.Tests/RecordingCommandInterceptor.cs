@@ -1,14 +1,5 @@
 using System.Data.Common;
-using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using RTUB.Application.Data;
-using RTUB.Core.Entities;
-using RTUB.Web.Extensions;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 

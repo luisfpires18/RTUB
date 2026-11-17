@@ -1,11 +1,7 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
-using RTUB.Core.Entities;
-using RTUB.Core.Helpers;
-using RTUB.Security;
 using RTUB.Web.Endpoints;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 

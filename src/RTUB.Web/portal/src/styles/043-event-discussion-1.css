@@ -249,10 +249,6 @@
   gap: 4px 16px;
 }
 
-.talk__actions--small {
-  gap: 4px 12px;
-}
-
 .talk__confirm {
   display: inline-flex;
   flex-wrap: wrap;

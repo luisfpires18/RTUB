@@ -1,9 +1,7 @@
 // PushNotificationService: subscriptions.
 using FluentAssertions;
-using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.DTOs;
-using RTUB.Application.Services;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;

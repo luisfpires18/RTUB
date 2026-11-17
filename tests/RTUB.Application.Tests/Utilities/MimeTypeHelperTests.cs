@@ -1,5 +1,4 @@
 using RTUB.Application.Utilities;
-using Xunit;
 
 namespace RTUB.Application.Tests.Utilities;
 
@@ -43,20 +42,6 @@ public class MimeTypeHelperTests
     {
         // Act
         var result = MimeTypeHelper.GetImageMimeType(fileName, providedContentType);
-
-        // Assert
-        Assert.Equal(expectedMimeType, result);
-    }
-
-    [Theory]
-    [InlineData("video.mp4", "", true, "video/mp4")] // Video file
-    [InlineData("image.jpg", "", false, "image/jpeg")] // Image file
-    [InlineData("file.mp4", "video/quicktime", true, "video/quicktime")] // Video with valid type
-    [InlineData("file.png", "image/png", false, "image/png")] // Image with valid type
-    public void GetMediaMimeType_ShouldReturnCorrectMimeTypeBasedOnFlag(string fileName, string? providedContentType, bool isVideo, string expectedMimeType)
-    {
-        // Act
-        var result = MimeTypeHelper.GetMediaMimeType(fileName, providedContentType, isVideo);
 
         // Assert
         Assert.Equal(expectedMimeType, result);

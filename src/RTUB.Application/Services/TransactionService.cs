@@ -1,9 +1,6 @@
-using System.Text.Json;
-using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 

@@ -1,12 +1,8 @@
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.DTOs;
-using RTUB.Application.Helpers;
-using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 

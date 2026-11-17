@@ -1,10 +1,7 @@
 // RehearsalAttendanceService: category snapshots.
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Utilities;

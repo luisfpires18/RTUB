@@ -1,11 +1,4 @@
-using System.Net.Sockets;
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
-using RTUB.Core.Entities;
-using WebPush;
 
 namespace RTUB.Application.Services;
 
