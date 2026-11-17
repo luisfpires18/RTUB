@@ -389,3 +389,4 @@ graphify-out/
 
 # Local-only outputs (task 039 config audit: redacted reports and placeholder templates). Never commit.
 .local/
+.ai/tmp/

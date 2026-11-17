@@ -450,6 +450,25 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Creates a push notification for a new poll (Votação).
+    /// </summary>
+    public SendPushNotificationDto CreateMeetingPollNotification(MeetingPoll poll, string audienceLabel)
+    {
+        ArgumentNullException.ThrowIfNull(poll);
+        ArgumentException.ThrowIfNullOrWhiteSpace(audienceLabel);
+
+        return new SendPushNotificationDto
+        {
+            Title = $"Nova votação: {audienceLabel}",
+            Body = poll.Question,
+            Icon = "/icons/rtub-logo-192.png",
+            Url = "/meetings/polls",
+            Tag = $"meeting-poll-{poll.Id}",
+            PreferenceKey = PushPreferenceCatalog.MeetingsPolls
+        };
+    }
+
+    /// <summary>
     /// Gets the text for days until meeting (similar to GetDaysUntilEventText).
     /// </summary>
     private string? GetDaysUntilMeetingText(DateTime meetingDate)
@@ -718,6 +737,24 @@ public class PushNotificationFactory : IPushNotificationFactory
             Icon = "/icons/rtub-logo-192.png",
             Url = musicUrl,
             Tag = $"song-video-{song.Id}",
+            PreferenceKey = PushPreferenceCatalog.MediaNew
+        };
+    }
+
+    /// <summary>
+    /// A song is new in Aprender (task 097): the Owner sends it from /music/learn; it opens the song's Aprender page.
+    /// </summary>
+    public SendPushNotificationDto CreateSongLearnNotification(int songId, string songTitle, string? message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(songTitle);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Nova música para aprender",
+            Body = string.IsNullOrWhiteSpace(message) ? $"Já podes aprender \"{songTitle}\" com os acordes a acompanhar a gravação." : message.Trim(),
+            Icon = "/icons/rtub-logo-192.png",
+            Url = $"/music/play/{songId}",
+            Tag = $"song-learn-{songId}",
             PreferenceKey = PushPreferenceCatalog.MediaNew
         };
     }

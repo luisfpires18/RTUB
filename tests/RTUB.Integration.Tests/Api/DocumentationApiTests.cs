@@ -64,6 +64,18 @@ public class DocumentationApiTests : IClassFixture<DocumentationApiFactory>
         Storage.Put(Key("Logistics/Jantar", "orcamento.xlsx"), 99);
         Storage.Put(Key("Logistics/Arraial", "lista.csv"), 5);
         Storage.Put(Key("Vazia"), 0);
+
+        // 104: members see a Logistics folder only while a board they see owns it.
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        foreach (var name in new[] { "Jantar", "Arraial" }.Where(n => !db.LogisticsBoards.Any(b => b.LegacyFolder == n)))
+        {
+            var board = LogisticsBoard.Create(name);
+            board.LegacyFolder = name;
+            db.LogisticsBoards.Add(board);
+        }
+
+        db.SaveChanges();
     }
 
     [Fact]
@@ -466,14 +478,15 @@ public sealed class DocumentationApiFactory : TestWebApplicationFactory
 /// </summary>
 public sealed class FakeDocumentStorage : IDocumentStorageService
 {
-    public sealed record StoredObject(long Size, string ContentType);
+    /// <summary>ETag: a fresh value per upload (different content), kept by a copy (same content).</summary>
+    public sealed record StoredObject(long Size, string ContentType, string ETag = "");
 
     public ConcurrentDictionary<string, StoredObject> Objects { get; } = new();
 
     /// <summary>Seeds an object; a key ending in "/" is a folder marker. Parent folder markers are added too.</summary>
-    public void Put(string key, long size, string contentType = "application/pdf")
+    public void Put(string key, long size, string contentType = "application/pdf", string? etag = null)
     {
-        Objects[key] = new StoredObject(size, contentType);
+        Objects[key] = new StoredObject(size, contentType, etag ?? Guid.NewGuid().ToString("N"));
         for (var i = key.IndexOf('/', "docs/".Length); i > 0 && i < key.Length - 1; i = key.IndexOf('/', i + 1))
         {
             Objects.TryAdd(key[..(i + 1)], new StoredObject(0, "application/x-directory"));
@@ -567,11 +580,38 @@ public sealed class FakeDocumentStorage : IDocumentStorageService
     public Task<long> GetFileSizeAsync(string documentPath) =>
         Task.FromResult(Objects.TryGetValue(documentPath, out var o) ? o.Size : 0);
 
+    /// <summary>Set by a test: a write ("copy" or "delete") on a matching key throws, like an R2 outage.</summary>
+    public Func<string, string, bool>? Fails;
+
+    private void Check(string operation, string key)
+    {
+        if (Fails?.Invoke(operation, key) == true)
+        {
+            throw new InvalidOperationException($"Storage {operation} failed for {key}");
+        }
+    }
+
     public Task DeleteDocumentAsync(string documentPath)
     {
+        Check("delete", documentPath);
         Objects.TryRemove(documentPath, out _);
         return Task.CompletedTask;
     }
+
+    public Task CopyDocumentAsync(string sourcePath, string targetPath)
+    {
+        Check("copy", sourcePath);
+        if (!Objects.TryGetValue(sourcePath, out var source))
+        {
+            throw new InvalidOperationException($"No object {sourcePath}");
+        }
+
+        Put(targetPath, source.Size, source.ContentType, source.ETag);
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetDocumentETagAsync(string documentPath) =>
+        Task.FromResult(Objects.TryGetValue(documentPath, out var o) ? o.ETag : null);
 
     public Task DeleteFolderAsync(string folderPath)
     {

@@ -27,6 +27,7 @@ public static class PushPreferenceCatalog
     public const string MeetingsReminder = "meetings.reminder";
     public const string MeetingsManagerNotice = "meetings.manager-notice";
     public const string MeetingsRequests = "meetings.requests";
+    public const string MeetingsPolls = "meetings.polls";
     public const string RequestsPublic = "requests.public";
     public const string Questions = "questions";
     public const string Messages = "messages";
@@ -71,6 +72,7 @@ public static class PushPreferenceCatalog
         new(MeetingsReminder, "Reuniões", "Lembretes de reuniões", null, false),
         new(MeetingsManagerNotice, "Reuniões", "Avisos sobre a reunião", null, false),
         new(MeetingsRequests, "Reuniões", "Pedidos de reunião", "Para quem aprova pedidos, e para quem os fez.", false),
+        new(MeetingsPolls, "Reuniões", "Novas votações", "Só nas votações em que podes votar.", false),
 
         new(RequestsPublic, "Tuna", "Pedidos de atuação", "Só para quem trata os pedidos do site.", false),
         new(Questions, "Tuna", "Perguntas", null, false),

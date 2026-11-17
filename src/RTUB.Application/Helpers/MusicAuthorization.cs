@@ -11,6 +11,7 @@ namespace RTUB.Application.Helpers;
 /// - Exclusive albums and their access list: Owner only.
 /// - Songs: Mod, Admin and Owner create and edit; only Admin and Owner delete.
 /// - Videos: any signed-in member who can see the album uploads; the uploader, Admin or Owner deletes.
+/// - Aprender charts (095): only the Owner uploads, replaces and removes; each one is checked by ear first.
 /// - Statistics: any signed-in member sees song and album totals; per-member detail is Admin/Owner.
 /// </summary>
 public static class MusicAuthorization
@@ -26,6 +27,8 @@ public static class MusicAuthorization
     public static bool CanDelete(ClaimsPrincipal user) => IsAdmin(user);
 
     public static bool CanManageExclusive(ClaimsPrincipal user) => IsOwner(user);
+
+    public static bool CanManagePlayAlong(ClaimsPrincipal user) => IsOwner(user);
 
     public static bool CanSeeDetailedStatistics(ClaimsPrincipal user) => IsAdmin(user);
 

@@ -17,6 +17,7 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/profile': lazy(() => import('./Profile')),
   '/request': lazy(() => import('./Request')),
   '/music': lazy(() => import('./Music')),
+  '/music/learn': lazy(() => import('./MusicLearn')),
   '/login': lazy(() => import('./Login')),
   '/roles': lazy(() => import('./Governance')),
   '/gallery': lazy(() => import('./Gallery')),
@@ -42,6 +43,7 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/requests': lazy(() => import('./Requests')),
   '/questions': lazy(() => import('./Questions')),
   '/meetings': lazy(() => import('./Meetings')),
+  '/meetings/polls': lazy(() => import('./MeetingPolls')),
   '/messages': lazy(() => import('./Messages')),
   '/pending-actions': lazy(() => import('./PendingActions')),
   '/users': lazy(() => import('./OwnerUsers')),
@@ -61,6 +63,10 @@ const Page = pages[path];
 // /music/albums/{id} carries its id; Program.cs maps it with an {id:int} constraint.
 const MusicAlbum = lazy(() => import('./MusicAlbum'));
 const albumId = /^\/music\/albums\/(\d+)$/.exec(path)?.[1];
+
+// /music/play/{songId} (task 094): the play-along page; Program.cs sends visitors to sign in first.
+const MusicPlayAlong = lazy(() => import('./MusicPlayAlong'));
+const playSongId = Number(/^\/music\/play\/(\d+)$/.exec(path)?.[1]) || undefined;
 
 // /events/{id} (React track 011), mapped with {id:int} as well. Answering is a modal on that page.
 const EventDetail = lazy(() => import('./EventDetail'));
@@ -89,7 +95,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Layout>
       <ErrorBoundary>
-        {Page || albumId || eventId || eventPage || rehearsalId || boardId || treasuryReportId || nerbaEventId ? (
+        {Page || albumId || playSongId || eventId || eventPage || rehearsalId || boardId || treasuryReportId || nerbaEventId ? (
           <Suspense
             fallback={
               <div className="wrap">
@@ -99,6 +105,8 @@ createRoot(document.getElementById('root')!).render(
           >
             {albumId ? (
               <MusicAlbum albumId={Number(albumId)} />
+            ) : playSongId ? (
+              <MusicPlayAlong songId={playSongId} />
             ) : eventId ? (
               <EventDetail eventId={eventId} />
             ) : eventPage?.[2] === 'discussion' ? (

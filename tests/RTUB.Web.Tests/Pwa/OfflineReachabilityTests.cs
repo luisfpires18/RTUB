@@ -17,7 +17,7 @@ namespace RTUB.Web.Tests.Pwa;
 /// can never stand in for a live one. These are source-level scans for the same reason the
 /// neighbouring service-worker tests are: the behaviour runs on a page served from a cache
 /// with no origin, which no test host reproduces. The runtime proof is the browser run
-/// recorded in STATE.md.
+/// recorded in .ai/STATE.md.
 /// </summary>
 public class OfflineReachabilityTests
 {

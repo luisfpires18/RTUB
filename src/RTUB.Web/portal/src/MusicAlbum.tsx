@@ -253,6 +253,12 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
                   {s.links.length}
                   <span className="sr-only"> links de {s.title}</span>
                 </button>
+                {s.hasPlayAlong && (
+                  <a className="song__btn" href={`/music/play/${s.id}`}>
+                    <Icon name="music" />
+                    Aprender<span className="sr-only"> {s.title}</span>
+                  </a>
+                )}
                 {s.videoCount !== null && (
                   <button
                     type="button"
@@ -300,6 +306,7 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
         <SongForm
           albumId={album.id}
           songId={editing}
+          canPlayAlong={can.canManageExclusive}
           onClose={() => setEditing(undefined)}
           onSaved={() => {
             setEditing(undefined);

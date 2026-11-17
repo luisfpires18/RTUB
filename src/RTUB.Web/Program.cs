@@ -198,6 +198,21 @@ public class Program
                         logger.LogError(ex, "Failed to map the legacy logistics columns on startup");
                     }
 
+                    // Logística files live in Documentação (104): files still kept outside it move into their board's
+                    // folder, once. Idempotent, best effort per file; never fails startup.
+                    try
+                    {
+                        var moved = await sp.GetRequiredService<ILogisticsKanbanService>().MoveFilesIntoDocumentationAsync();
+                        if (moved > 0)
+                        {
+                            logger.LogInformation("Logistics files moved into Documentação: {Moved}", moved);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to move the logistics files into Documentação on startup");
+                    }
+
                     // Initialize MemberStatus table if the migration just ran
                     // This ensures "Gestao de membros ativos" has data immediately after deployment
                     // instead of waiting for the scheduled daily update
@@ -244,7 +259,7 @@ public class Program
         // unit 023 removed every inline <script> block and inline on* handler attribute, and
         // unit 024 removed every inline <style> block and style="..." attribute from
         // browser-served markup. Every source in the policy is evidence-based - see
-        // ContentSecurityPolicyBuilder and STATE.md for the per-directive justification.
+        // ContentSecurityPolicyBuilder and .ai/STATE.md for the per-directive justification.
         //
         // It is emitted on HTML DOCUMENT responses only, deliberately. A CSP header served with
         // a worker script governs that worker's own execution context, and RTUB's service
@@ -540,7 +555,7 @@ public class Program
         // --------- React public shell (React track, tasks 001-004) ---------
         // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
         // members-only ones that 302 visitors to sign in). /Error is a static server page; nothing else renders HTML
-        // (task 037 retired the Blazor host). Retired Blazor URLs 302 to their React page further down. Current list: docs/RTUB_REACT_MIGRATION_GUIDE.md.
+        // (task 037 retired the Blazor host). Retired Blazor URLs 302 to their React page further down. Current list: docs/react-portal-pilot.md.
         // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
         // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
         var portalShell = new StaticFileOptions
@@ -589,13 +604,17 @@ public class Program
         // Task 032: /members/map (was /member/map) and /hall-of-fame, members only (both Blazor pages were [Authorize]).
         // Task 033: /naipes and /naipes/config, members only (the API keeps the settings to Admin / Owner).
         // Task 034: /meetings, members only (the Blazor page was [Authorize]; the API refuses Leitões and decides the rest).
+        // /meetings/polls (Votações), members only; the API decides which polls the member sees.
         // Task 041: /messages, Messaging v2 (React; the conversation is ?c=<id>), members only. /messages/{id} and the old
         // /hubs/messages stay 404: nothing of the 027-retired inbox comes back.
         // Task 071: /pending-actions (As minhas ações pendentes), members only; the API decides each panel.
+        // Task 094: /music/play/{id} (Aprender), members only; the API decides which songs the member may open.
+        // Task 095: /music/learn (Aprender Músicas), members only: the songs that have a chart.
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
                      "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/tasks", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
-                     "/pending-actions", "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/meetings", "/messages" })
+                     "/pending-actions", "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config",
+                     "/music/play/{id:int}", "/music/learn", "/meetings/polls", "/meetings", "/messages" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {

@@ -307,6 +307,11 @@ public class UserProfileService : IUserProfileService
             foreach (var meetingRequest in meetingRequests)
                 await _meetingRequestRepository.DeleteAsync(meetingRequest);
 
+            // MeetingPollVotes by UserId (required FK with NoAction: blocks the user delete otherwise)
+            await ctx.MeetingPollVotes
+                .Where(vote => vote.UserId == userId)
+                .ExecuteDeleteAsync();
+
             // MeetingAtas - delete where PresidentUserId = userId (required field, children deleted in Phase 1)
             await ctx.MeetingAtas
                 .Where(ma => ma.PresidentUserId == userId)

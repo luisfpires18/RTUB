@@ -113,6 +113,15 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateMeetingCustomNotification(Meeting meeting, string customBody);
 
     /// <summary>
+    /// Creates a push notification for a new poll (Votação). Recipients are the poll's own audience
+    /// (MeetingAccess.CanVoteInPoll): the caller picks them.
+    /// </summary>
+    /// <param name="poll">The poll that was created.</param>
+    /// <param name="audienceLabel">The poll's body as members read it ("Conselho de Veteranos").</param>
+    /// <returns>A SendPushNotificationDto ready to be sent.</returns>
+    SendPushNotificationDto CreateMeetingPollNotification(MeetingPoll poll, string audienceLabel);
+
+    /// <summary>
     /// Creates a push notification for new performance requests.
     /// Sent only to admins.
     /// </summary>
@@ -193,6 +202,9 @@ public interface IPushNotificationFactory
     /// <param name="uploaderName">The name of the user who uploaded the video</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateSongVideoUploadNotification(Song song, string uploaderName);
+
+    /// <summary>A song is new in Aprender (task 097); <paramref name="message"/> replaces the default text.</summary>
+    SendPushNotificationDto CreateSongLearnNotification(int songId, string songTitle, string? message);
 
     /// <summary>
     /// Creates a push notification for pending public request reminders (sent to admins daily).

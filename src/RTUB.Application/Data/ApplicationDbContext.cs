@@ -38,6 +38,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Song> Songs { get; set; }
     public DbSet<SongYouTubeUrl> SongYouTubeUrls { get; set; }
     public DbSet<SongVideo> SongVideos { get; set; } = null!;
+    public DbSet<SongPlayAlong> SongPlayAlongs { get; set; } = null!;
     public DbSet<SongPlayCount> SongPlayCounts { get; set; }
     public DbSet<EventVideo> EventVideos { get; set; } = null!;
     public DbSet<EventRepertoire> EventRepertoires { get; set; }
@@ -90,6 +91,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Meeting> Meetings { get; set; }
     public DbSet<MeetingRequest> MeetingRequests { get; set; }
     public DbSet<MeetingParticipation> MeetingParticipations { get; set; }
+    public DbSet<MeetingPoll> MeetingPolls { get; set; } = null!;
+    public DbSet<MeetingPollOption> MeetingPollOptions { get; set; } = null!;
+    public DbSet<MeetingPollVote> MeetingPollVotes { get; set; } = null!;
 
     // Meeting Atas DbSets
     public DbSet<MeetingAta> MeetingAtas { get; set; }

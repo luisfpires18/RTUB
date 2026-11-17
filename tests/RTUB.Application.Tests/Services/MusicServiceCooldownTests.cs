@@ -44,7 +44,9 @@ public class MusicServiceCooldownTests : IClassFixture<DatabaseFixture>
             Mock.Of<ISongContentService>(),
             Mock.Of<IAuditLogService>(),
             new MemoryCache(new MemoryCacheOptions { Clock = _clock }),
-            NullLogger<MusicService>.Instance);
+            NullLogger<MusicService>.Instance,
+            Mock.Of<IPushNotificationService>(),
+            Mock.Of<IPushNotificationFactory>());
     }
 
     [Fact]

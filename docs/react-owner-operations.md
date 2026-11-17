@@ -1,169 +1,153 @@
-# React Owner tools (task 035)
+# React Owner tools
 
-`/emails`, `/notifications`, `/users`, `/owner/tracing` and `/owner/db` are React pages over one Owner-only API,
-`/api/owner/*`. They were five Blazor pages. **All five are Owner only.** `/emails` and `/notifications` were Admin
-pages, and the product decision for this task removed Admin access to them.
+`/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/db` and `/owner/dashboard` are React pages over one
+Owner-only API, `/api/owner/*`.
 
 Code: `src/RTUB.Web/Endpoints/OwnerEndpoints.cs` (thin, with the Owner gate),
-`src/RTUB.Application/Services/OwnerOperationsService.cs` (the work, over the services the old pages used),
-`src/RTUB.Application/DTOs/OwnerOperationsDtos.cs`, and `portal/src/Owner*.tsx` + `ownerApi.ts` + `OwnerUi.tsx`.
-Task 035 had no schema change and no migration; task 050 (`/owner/dashboard`, below) adds the `LoginEvents` table.
+`src/RTUB.Application/Services/OwnerOperationsService*.cs` (the work; `.Dashboard.cs` for `/owner/dashboard`),
+`src/RTUB.Application/DTOs/OwnerOperationsDtos.cs`, `portal/src/Owner*.tsx` + `ownerApi.ts` + `OwnerUi.tsx`.
+Tests: `RTUB.Integration.Tests/Api/OwnerOperationsApiTests.cs` (access, behavior, dashboard),
+`RTUB.Web.Tests/ReactPortal/OwnerOperationsSourceTests.cs`, `RTUB.Web.Tests/Services/SqlValidationServiceTests.cs`.
 
-## Permission matrix
+## Permissions
 
-| Who | Before (Blazor) | Now |
+All six pages and the whole API are **Owner only**; Admin has no access.
+
+| Who | Pages | API |
 | --- | --- | --- |
-| Visitor | 302 to sign in | Pages: 302 to `/login?returnUrl=…`. API: 401. |
-| Leitão / Caloiro / Tuno / Veterano (Member role) | Refused on all five | Pages: 403 with the React refusal ("Acesso Restrito"). API: 403. |
-| Mod | Refused on all five | 403 (page and API) |
-| **Admin** | **`/emails` and `/notifications` allowed** (`[Authorize(Roles = "Admin")]`); the other three refused | **403 on all five** (page and API) |
-| Owner | All five (an Owner also holds Admin, because `/users` adds Admin when it grants Owner) | All five |
+| Visitor | 302 to `/login?returnUrl=…` | 401 |
+| Leitão / Caloiro / Tuno / Veterano, Mod, Admin | the shell with status 403 and the React refusal ("Acesso Restrito") | 403 |
+| Owner | all | all |
 
-The gate is `OwnerEndpoints.RequireOwner`, an endpoint filter on the whole `/api/owner` group. It checks the role and
-runs before the antiforgery check, so a non-Owner gets 403 and nothing is read or written. Every GET is
-`Cache-Control: no-store`, and every write needs `X-CSRF-TOKEN`. The page routes (`Program.cs`) serve the shell to
-the Owner. Any other signed-in member gets the same shell with status 403, and the page shows the refusal. The menu
-(`MemberMenuAccess.Owner`) and the Blazor navbar ("Operações", now `AuthorizeView Roles="Owner"`) only hide the links;
-the API is what enforces access.
+The gate is `OwnerEndpoints.RequireOwner`, an endpoint filter on the whole `/api/owner` group. It checks the role before
+the antiforgery check, so a non-Owner gets 403 and nothing is read or written. Every GET is `Cache-Control: no-store`;
+every write needs `X-CSRF-TOKEN` (missing: 400). The page routes (`Program.cs`) serve the shell. The menu
+(`MemberMenuAccess.Owner`) only hides links; the API enforces access. An Owner also holds Admin (`/users` adds Admin
+when it grants Owner).
 
-## Audit (old pages) → what the React page does
+## /emails
 
-### /emails (was `Pages/Operations/Emails.razor`, Admin)
-- **Old:** a title (≤200) and content (≤5000) form, with the subject sent as `[RTUB] {title}`. A preview modal showed a
-  mock template (greeting, body, "Saudações RTUBianas."). "Enviar" went to every account with
-  `Subscribed && EmailConfirmed && Email` and showed live per-recipient progress. "Limpar" cleared the form. The
-  recipients list (`EmailRecipientsPreview`) had two sides, "Destinatários" and "Quem não irá receber", each with a
-  search (nickname, first name, last name, email), select-all over the search, a bulk add or remove, and a per-row
-  add or remove. Paging: 25 per page, with 10/25/50/100 offered. The only validation was client-side required fields;
-  the length limits were HTML `maxlength` only. Side effect: `EmailNotificationService.SendAnnouncementEmailAsync`,
-  which keeps its one-per-minute rate limit. The page wrote no audit row.
-- **Now:** the same form, preview, recipients and toggles (`PUT /api/owner/emails/recipients` with one or many ids).
-  "Enviar" asks for confirmation first. The server validates both fields as required and enforces the lengths. The
-  recipients are recomputed from the database at send time, and a duplicate address is sent once. The same sender is
-  used and its rate limit and failure message are kept. **Changed on purpose:** there is no live progress counter
-  (the request returns when the batch is done), and nothing else changed.
+- Form: title (≤200, subject sent as `[RTUB] {title}`) and content (≤5000), both required, lengths enforced on the
+  server. Preview shows a mock template (greeting, body, "Saudações RTUBianas."). "Enviar" asks for confirmation.
+- Recipients: accounts with `Subscribed && EmailConfirmed && Email`, recomputed from the database at send time; a
+  duplicate address is sent once. Two lists ("Destinatários", "Quem não irá receber") with search (nickname, first name,
+  last name, email), select-all over the search, bulk and per-row toggle (`PUT /api/owner/emails/recipients`), 25 per page
+  (10/25/50/100).
+- Sender: `EmailNotificationService.SendAnnouncementEmailAsync`, with its one-per-minute rate limit and failure message.
+  No audit row. Sending is synchronous: the request returns when the batch is done (no live progress).
 
-### /notifications (was `Pages/Operations/Notifications.razor`, Admin)
-- **Old:** a title (≤100) and message (≤500) form with a preview (logo, title, body, "Notificação Push RTUB"). The
-  recipient list holds the accounts with a push subscription (`GetSubscribedUserIdsAsync`), all selected at first, with
-  search, select-all over the search and 25 per page. The send goes through `SendToSelectedUsersAsync` with the icon
-  `/icons/rtub-logo-192.png`, the site URL and `Tag = announcement-{ticks}`. The page then writes an audit row:
-  `EntityType=Notification`, `Action=PushNotificationSent`, with `{RecipientCount, NotificationBody}` and the title as
-  the display name; a failure here is only logged. After a send, the form is cleared and every account is selected
-  again.
-- **Now:** the same flow, behind a confirmation dialog. The server validates the fields and drops any id without a push
-  subscription. It reuses the existing push sender and writes the same audit row. **Not in this task:** the members'
-  own push settings (Push v2), and the `PushSubscriptions` table and push senders stay as they are.
+## /notifications
 
-### /users (was `Pages/Management/UserRoles.razor`, Owner)
-- **Old:** a card for every account showing avatar, online status (signed in within the last hour), nickname, full
-  name, role, a locked badge, username, email and last login. Online accounts come first, then the most recent login,
-  then first and last name. Search covers id, first name, last name, nickname, username and email; paging is
-  20/40/60/80/100. The details modal shows id, email, last login, email subscription, locked, "must change password"
-  and the lockout end, with "Desbloquear" (clears the lockout and resets the failed-attempt count). The edit modal sets
-  one role (Member / Mod / Admin / Owner): it removes every role, adds the new one, adds Admin as well for Owner, and
-  updates the security stamp. Its "Guardar" saved straight away; the page's confirm dialog was never wired up. The
-  "Sincronizar Estado da Tuna" button calls `MemberStatusService.ReconcileAllMemberStatusesAsync`.
-- **Now:** the same features, with the search and paging done on the server. A role change now asks for
-  **confirmation** (a new safeguard). An unknown role gets 400 and an unknown account 404.
-  "Só Mod, Admin e Owner" (`?staff=true`) lists only accounts whose role is Owner, Admin or Mod, with the search.
+- Form: title (≤100) and message (≤500) with a preview. Recipients are accounts with a push subscription
+  (`GetSubscribedUserIdsAsync`), all selected at first, with search, select-all and 25 per page. The server validates
+  the fields and drops any id without a subscription.
+- Send, behind a confirmation dialog, via `SendToSelectedUsersAsync` (icon `/icons/rtub-logo-192.png`, the site URL,
+  `Tag = announcement-{ticks}`). Writes an audit row (`EntityType=Notification`, `Action=PushNotificationSent`,
+  `{RecipientCount, NotificationBody}`, title as display name); an audit failure is only logged.
+- Members' own push settings are separate ([react-push-v2](react-push-v2.md)).
 
-### /owner/tracing (was `Pages/Operations/AuditLog.razor`, Owner)
-- **Old:** filters for user, excluded user, entity type, action and "critical only". The search looks inside
-  `Changes` only and **ignores the other filters**, and its total is an estimate. Stats: total records, critical count
-  **on the current page**, number of entity types and number of users. The cards show the details (pretty-printed JSON)
-  and a delete (with confirmation). Paging is 20/40/60/80/100. "Truncate" removes every log, or one user's, after
-  typing `DELETE ALL`. "Export JSON" exports the filtered list, without the search. "Logins" shows who last signed in
-  between two days, with search and 12/24/36/48/60 per page. The "Anúncio de sistema" (≤500) is broadcast through
-  `AnnouncementService`.
-- **Now:** all of the above. `DELETE ALL` is **checked on the server** (`POST /api/owner/tracing/truncate`); before, it
-  was only checked in the browser. The export is `GET /api/owner/tracing/export`, a JSON file download. The search
-  estimate is now right on later pages: it is (page − 1) × size + count, plus 1 when the page is full; before, it was
-  wrong after page 1. Changes stored in the log are shown as they were recorded. The log already leaves out password
-  hashes and stamps (`AuditLogAppender`).
+## /users
 
-#### Names and cards (#220)
+- A card per account: avatar, online status (signed in within the last hour), nickname, full name, role, locked badge,
+  username, email, last login. Order: online first, then latest login, then first and last name. Search covers id, first
+  name, last name, nickname, username, email; done on the server; paging 20/40/60/80/100. `?staff=true` ("Só Mod, Admin e
+  Owner") lists only Owner / Admin / Mod accounts.
+- Details: id, email, last login, email subscription, locked, "must change password", lockout end; **Desbloquear**
+  clears the lockout and the failed-attempt count.
+- Role edit (Member / Mod / Admin / Owner) asks for confirmation: removes every role, adds the new one (plus Admin for
+  Owner), updates the security stamp. Unknown role 400, unknown account 404.
+- "Sincronizar Estado da Tuna" calls `MemberStatusService.ReconcileAllMemberStatusesAsync`.
 
-- **Names when written** (`ApplicationDbContext.EntityDisplay.cs`): every audited type is named after the person or
-  object (Novidade by title or the first words of its text, "Zé · iPhone" for a push subscription, "Zé - Serenata - Vai"
-  for an enrollment, "Zé (ze.pires)" for a user, "Pedido · Serenata · 01/12/2026" for a request - the outside person's
-  name and contacts stay in the changes). Before the save, `LoadAuditNamesAsync` loads what the change tracker lacks
-  (members, events, rehearsals, ...) in **at most one batched query per table, none when nothing needs it**, so a
-  deleted row is named while it still exists. Was: the tracker only, so fresh contexts stored member ids or nothing.
-- **Push keys**: `Endpoint`, `Auth` and `P256dh` are written as `[redacted]` in new log entries
-  (`AuditConfiguration.RedactedProperties`). Older entries still hold them in the database, but since #226 F04 the page
-  (list and Details) and the export show them as `[redacted]` too (`AuditLogAppender.RedactStored`, same property list,
-  read time only): the key stays so the Owner sees it was set or changed. The stored rows are never rewritten. The
-  search still runs over the stored text (Owner only; a match never shows the value). `/owner/db` reads raw tables.
-- **Old entries are never rewritten.** The page adds `currentDisplayName`, at read time only, for an entry whose stored
-  name is missing or carries member ids: ids become today's nicknames (one query per page), and a missing name the
-  entity's current name for a few simple types when it still exists (one query per type on the page). Shown as "nome
-  atual"; Details shows the stored name and the current one; the export is the stored log (redacted properties hidden).
-- **Search** matches the stored changes **or the stored name**, together with the other filters, with an exact total
-  (was: changes only, other filters ignored, an estimated total). A name resolved at read time is not searchable.
-- **Card**: the name (or "{type} #id"), then the Portuguese type (`ENTITY_LABELS` in `OwnerTracing.tsx`, presentation
-  only; the type filter shows "Label (RawType)" and submits the raw type) with the action and a written "Crítica"
-  (plus an accent border), then who and `dd/MM/yyyy HH:mm`, then Detalhes and delete. Details: type, technical type,
-  id, stored name, current name, user, date, action, critical, changes (redacted properties hidden).
+## /owner/tracing
+
+- Filters: user, excluded user, entity type, action, "critical only", search, **Esconder sistema**. Typeahead member
+  fields (`datalist`; "Excluir" applies once the name is an exact username), quick toggles, removable chips. Paging
+  20/40/60/80/100. Stats: total, critical on the current page, entity types, users.
+- **Search** matches the stored changes **or the stored name**, together with the other filters; the total is exact
+  ((page − 1) × size + count, plus 1 when the page is full). A name resolved at read time is not searchable.
+- Cards: name (or "{type} #id"), Portuguese type (`ENTITY_LABELS` in `OwnerTracing.tsx`, presentation only; the type
+  filter shows "Label (RawType)" and submits the raw type), action, "Crítica" (accent border), who, `dd/MM/yyyy HH:mm`,
+  Detalhes (pretty-printed JSON, stored and current name) and delete (confirmed).
+- Truncate (all logs, or one user's) needs `DELETE ALL`, **checked on the server**. Export is
+  `GET /api/owner/tracing/export` (filtered list, without the search; JSON download). "Anúncio de sistema" (≤500) goes
+  through `AnnouncementService`; the React shell shows it via `GET /api/announcement`
+  ([react-portal-pilot](react-portal-pilot.md) → *System announcement*).
+- **System actions**: audit entries the app wrote itself (daily `MemberActivityStatus` reconciliation, `MemberStatus`,
+  any entry with `UserName` null or `System`: jobs, cleanups, geocoding). `AuditLogService.IsMemberAction` is the one
+  rule. `?system=hide` (also applied to the export) hides them; the dashboard counts members' actions only.
 - Messaging stays excluded (`AuditConfiguration.ExcludedEntityTypes`): never listed, searched, filtered or exported.
 
-### /owner/db (was `Pages/Operations/DatabaseViewer.razor`, Owner)
-- **Old:** a list of tables (a select on phones), each browsed page by page (10/25/50/100, 50 by default). Cell
-  display: `[NULL]`, `[Binary: n bytes]`, dates as `yyyy-MM-dd HH:mm:ss`, and text cut at 100 characters. The SELECT
-  tab used `SqlValidationService.ValidateQuery`, which only allows SELECT and rejects any write or DDL keyword. The
-  INSERT / UPDATE / DELETE tab used `ValidateModifyQuery`, which only allows DML and rejects DDL and SELECT; it showed a
-  warning box but no confirmation. Errors were shown as the SQLite message.
-- **Now:** the same, with both rules applied **on the server**. Before, the SELECT rule ran in the browser only and
-  `ExecuteSelectQueryAsync` did not check it. A change now needs a **confirmation dialog** that shows the query, and
-  the server refuses a change sent without `confirmed: true`. SELECT results are paged in the browser; before, every
-  row was shown at once. A query that fails shows the database's error as a 400 message, as before.
+### Audit names and redaction
 
-## /owner/dashboard (task 050)
+- Names are written at save time (`ApplicationDbContext.EntityDisplay.cs`): every audited type is named after the person
+  or object ("Zé · iPhone" for a push subscription, "Zé - Serenata - Vai" for an enrollment, "Pedido · Serenata ·
+  01/12/2026" for a request; the outside person's name and contacts stay in the changes). `LoadAuditNamesAsync` loads
+  what the change tracker lacks in at most one batched query per table, none when nothing is needed, so a deleted row is
+  named while it still exists.
+- Push keys `Endpoint`, `Auth`, `P256dh` are written as `[redacted]` (`AuditConfiguration.RedactedProperties`). Older
+  stored rows still hold them, but the list, Details and export show `[redacted]` too (`AuditLogAppender.RedactStored`,
+  read time only; the key stays so the Owner sees it was set or changed). Stored rows are never rewritten. The log leaves
+  out password hashes and stamps. Search still runs over the stored text (Owner only; a match never shows the value).
+- Old entries are never rewritten. The page adds `currentDisplayName` at read time for entries whose stored name is
+  missing or carries member ids (ids become nicknames, one query per page; a few simple types get the entity's current
+  name, one query per type). Shown as "nome atual"; the export is the stored log.
 
-"Estatísticas" in the Owner menu, after Auditoria. Owner only on the same terms as the other tools (page: visitor →
-sign in, other members → 403 shell; API: 401 / 403). Read only, `no-store`.
+### Logins dialog
 
-- **Tiles** (one per series, click to chart it, with the change against the same number of days just before):
-  sign-ins, active members (distinct members seen that day; the tile is distinct over the range), movements (audit rows
-  except `Played`), uploads (`GalleryMedia`, `NaipeContents`, `PostMedia`, `MeetingAtaAttachments`, `CommentImages`
-  rows), song plays (`SongPlayCounts`), naipe plays (`NaipePlayCounts`), enrollments (`Enrollments.EnrolledAt`).
-- **Now**: accounts, signed in within the last hour (as `/users`), members with a push subscription.
-- **Busiest hours**: `LoginEvents` by Portugal weekday × hour. **Rankings** (top 10): members by movements and areas
-  of the app (`OwnerOperationsService.Dashboard.cs` → `DashboardAreas`, entity type → Atuações / Ensaios / Logística /
-  Tesouraria…; an unmapped type keeps its name). Task 088 (owner request, 2026-11-07) dropped the song, naipe and
-  action-type rankings; the song / naipe play tiles stay. **Páginas mais vistas** and the "Páginas abertas" tile
-  (task 089): `PageViews` rows (`Day` Portugal day, `Path`, `Count`; unique `Day + Path`; migration `AddPageViews`,
-  additive). Every React page asks `GET /api/account/me` once per load, so `AccountController.Me` hands the request's
-  Referer to `PageViewCounter` (same-origin only; ids → `{id}`, no query, lower-case, ≤ 128 chars), which counts in
-  memory; `PageViewFlushService` upserts the buffer once a minute and on shutdown (a failed flush keeps the counts).
-  Never a write per request, no member, address or user agent. Signed-in members only, and the buffer holds at most
-  300 distinct (day, path) keys: a new path beyond that counts under `/outras`, so a client cannot grow memory or the
-  table with made-up paths. Labels (`PAGE_LABELS`) are the client's; an unknown
-  route shows its path. Limits: a page restored from bfcache is not re-counted; one app instance assumed (a scaled-out
-  App Service would each count its own).
+`GET /api/owner/tracing/logins?from=&to=` (`yyyy-MM-dd` Portugal days, both included) → `{records, historySince}`: one
+line per member with a `LoginEvents` row in the range (sign-ins, active Portugal days, first → last time, "Ver sessões":
+sign-in times, newest first, ≤50). A member with no row in the range but a `LastLoginDate` in it is listed as "Só o
+último acesso". The dialog says so when the range starts before the first `LoginEvents` row. Search, 12/24/36/48/60 per
+page.
+
+## /owner/db
+
+- Table list (a select on phones), browsed page by page (10/25/50/100, 50 default). Cells: `[NULL]`,
+  `[Binary: n bytes]`, dates as `yyyy-MM-dd HH:mm:ss`, text cut at 100 characters.
+- SELECT tab: `SqlValidationService.ValidateQuery` allows SELECT only and rejects any write or DDL keyword. Results are
+  paged in the browser.
+- INSERT / UPDATE / DELETE tab: `ValidateModifyQuery` allows DML only and rejects DDL and SELECT. Both rules are applied
+  **on the server**. A change needs a confirmation dialog showing the query, and the server refuses it without
+  `confirmed: true`. A failing query returns the database's error as a 400 message.
+
+## Dashboard (`/owner/dashboard`)
+
+"Estatísticas" in the Owner menu. Read only, `no-store`.
+
+- Tiles (one per series; click to chart, with the change against the same number of days just before): sign-ins, active
+  members (distinct per day; distinct over the range for the tile), movements (audit rows except `Played`), uploads
+  (`GalleryMedia`, `NaipeContents`, `PostMedia`, `MeetingAtaAttachments`, `CommentImages`), song plays
+  (`SongPlayCounts`), naipe plays (`NaipePlayCounts`), enrollments (`Enrollments.EnrolledAt`).
+- Now: accounts, signed in within the last hour (as `/users`), members with a push subscription.
+- Busiest hours: `LoginEvents` by Portugal weekday × hour. Rankings (top 10): members by movements, and areas of the app
+  (`OwnerOperationsService.Dashboard.cs` → `DashboardAreas`, entity type → Atuações / Ensaios / Logística / Tesouraria…;
+  an unmapped type keeps its name). There are no song, naipe or action-type rankings; the play tiles stay.
 - Every count is bucketed by **Portugal day** (`PortugalTime.FromUtc`); stored stamps stay UTC. Messaging is never
-  counted. Bucketing is in memory over one narrow column per source (`ponytail:` note in the service).
-- Line chart, heatmap and bars are plain SVG / CSS (no chart dependency), one series at a time in `--purple-ink`, with a
-  crosshair tooltip (pointer and arrow keys) and a "Ver como tabela" view.
+  counted. Bucketing is in memory over one narrow column per source.
+- Charts (line, heatmap, bars) are plain SVG / CSS, one series at a time in `--purple-ink`, with a crosshair tooltip
+  (pointer and arrow keys) and a "Ver como tabela" view.
 
-**`LoginEvents`** (migration `AddLoginEvents`, additive: an N-1 app ignores it): `UserId`, `At` (UTC), `IsSignIn`.
-Written with raw SQL, never audited (`AuditConfiguration.ExcludedEntityTypes`), no foreign key (history outlives an
-account):
+### Páginas mais vistas
+
+`PageViews` rows (`Day` Portugal day, `Path`, `Count`; unique `Day + Path`; migration `AddPageViews`, additive). Every
+React page asks `GET /api/account/me` once per load, so `AccountController.Me` hands the request's Referer to
+`PageViewCounter` (same-origin only; ids → `{id}`, no query, lower-case, ≤128 chars), which counts in memory;
+`PageViewFlushService` upserts the buffer once a minute and on shutdown (a failed flush keeps the counts). Never a write
+per request; no member, address or user agent. Signed-in members only. The buffer holds at most 300 distinct (day, path)
+keys; a new path beyond that counts under `/outras`, so a client cannot grow memory or the table with made-up paths.
+Labels (`PAGE_LABELS`) are the client's; an unknown route shows its path. Limits: a page restored from bfcache is not
+re-counted; one app instance assumed (a scaled-out App Service would each count its own).
+
+### `LoginEvents`
+
+Migration `AddLoginEvents`, additive (an N-1 app ignores it): `UserId`, `At` (UTC), `IsSignIn`. Written with raw SQL,
+never audited (`AuditConfiguration.ExcludedEntityTypes`), no foreign key (history outlives an account):
 - `POST /auth/login` adds an `IsSignIn = 1` row after `LastLoginDate` (a failure is logged and never fails the sign-in);
-- the cookie validation's throttled `LastLoginDate` write (once per 5 minutes per member) adds an `IsSignIn = 0` row
-  only when the member has no row yet in this UTC hour (Portugal is a whole-hour offset, so that is a Portugal hour).
-History starts with the deploy of 050; before it only `LastLoginDate` (latest only) exists, as the page says.
+- the cookie validation's throttled `LastLoginDate` write (once per 5 minutes per member) adds an `IsSignIn = 0` row only
+  when the member has no row yet in this UTC hour (Portugal is a whole-hour offset, so that is a Portugal hour).
 
-**Tracing "Logins" dialog (050):** was "accounts whose `LastLoginDate` falls in the days", so anyone who came back later
-vanished from earlier days (and the days were compared as UTC). Now one line per member with a `LoginEvents` row in the
-range: sign-ins, active Portugal days, first → last time, and "Ver sessões" (sign-in times, newest first, ≤50). A
-member with no row in the range but a `LastLoginDate` in it is still listed as "Só o último acesso". When the range
-starts before the first `LoginEvents` row, the dialog says so. `IUserProfileService.GetUsersWithLoginBetweenAsync`
-(its only caller) is gone.
-Unbounded growth is about one row per member per active hour; prune if it ever matters.
-
-Code: `OwnerOperationsService.Dashboard.cs`, `portal/src/OwnerDashboard.tsx`. Tests: `OwnerOperationsApiTests`
-(`Dashboard_*`, plus the page / read lists of the gate tests).
+History starts at the deploy that added the table; before it only the latest `LastLoginDate` exists. Growth is about one
+row per member per active hour; prune if it ever matters.
 
 ## API (`/api/owner`, Owner only)
 
@@ -174,80 +158,25 @@ Code: `OwnerOperationsService.Dashboard.cs`, `portal/src/OwnerDashboard.tsx`. Te
 | POST | `/emails` | `{title, content}` → `{success, sent, total, message}` |
 | GET | `/notifications` | Accounts with a push subscription |
 | POST | `/notifications` | `{title, body, userIds[]}` → `{recipients, sent, failed}`; audited |
-| GET | `/users?q=&page=&pageSize=&staff=` | Cards, sorted as before; `staff=true`: Owner / Admin / Mod only |
+| GET | `/users?q=&page=&pageSize=&staff=` | Cards; `staff=true`: Owner / Admin / Mod only |
 | GET | `/users/{id}` | Details (no secrets) |
 | PUT | `/users/{id}/role` | `{role}` (Member / Mod / Admin / Owner) |
-| POST | `/users/{id}/unlock` | Clears the lockout and resets the failed-attempt count |
+| POST | `/users/{id}/unlock` | Clears the lockout and the failed-attempt count |
 | POST | `/users/sync-status` | `{updated}` |
 | GET | `/tracing/filters` | Users, entity types, actions |
 | GET | `/tracing?user=&excludeUser=&entityType=&action=&critical=&q=&page=&pageSize=` | One page of the log |
 | GET | `/tracing/export?…filters` | JSON file |
-| GET | `/tracing/logins?from=&to=` | `yyyy-MM-dd` Portugal days, both included → `{records, historySince}` (050: from `LoginEvents`) |
+| GET | `/tracing/logins?from=&to=` | See Logins dialog |
 | DELETE | `/tracing/{id}` | 204, or 404 |
 | POST | `/tracing/truncate` | `{user?, confirmation: "DELETE ALL"}` |
 | POST | `/tracing/announcement` | `{message}` (≤500) |
-| GET | `/dashboard?from=&to=` | `yyyy-MM-dd` Portugal days, both included, ≤366; the last 30 days when missing |
+| GET | `/dashboard?from=&to=` | `yyyy-MM-dd` Portugal days, both included, ≤366; last 30 days when missing |
 | GET | `/db/tables` | Table names (EF model) |
 | GET | `/db/tables/{table}?page=&pageSize=` | One page as display strings; unknown table → 404 |
 | POST | `/db/select` | `{query}`; SELECT only |
 | POST | `/db/modify` | `{query, confirmed}`; INSERT / UPDATE / DELETE only |
 
-## Retired
+## Follow-ups
 
-- **Blazor pages:** `Emails.razor`, `Notifications.razor`, `AuditLog.razor`, `DatabaseViewer.razor` and
-  `UserRoles.razor`, with their `.razor.css`.
-- **Shared components:** `EmailRecipientsPreview` (+ css), `UserCard`, `TracingCard`, `LoginStatisticsButton` (+ css)
-  and `SyncMemberStatusButton`.
-- **Global CSS:** `3-components/user-card.css` and `tracing-card.css`.
-- **Tests:** the bUnit and page tests (`EmailsTests`, `NotificationsPageTests`, `UserRolesPageTests`,
-  `AuditLogPageTests`, `EmailRecipientsPreviewTests`). The SQL rules tests remain as
-  `RTUB.Web.Tests/Services/SqlValidationServiceTests.cs`.
-- **Kept**, because something else still uses them: `AnnouncementService` and `AnnouncementBanner` (037 retired the
-  banner and made the service the store behind `GET /api/announcement`),
-  `SqlValidationService`, `DatabaseViewerService`, `AuditLogService` and the push and email services.
-
-## Tests
-
-- `RTUB.Integration.Tests/Api/OwnerOperationsApiTests.cs`, through the real host:
-  - **Access:** visitors get 401 on every call and the pages send them to sign in. Leitão, Caloiro, Tuno, Veterano, Mod,
-    Admin and Admin+Veterano get 403 on every read and write, the 403 page shows the refusal, no data leaks and nothing
-    changes. The Owner gets the pages and every read. Every GET is no-store, and a write without the antiforgery token
-    gets 400.
-  - **Behaviour:** emails (lists, toggles, validation, recipients sent to, the sender's refusal), notifications (only
-    push subscribers, validation, the audit row), users (search, details, role changes including Owner+Admin, unlock,
-    sync), tracing (filters, critical, search, export, delete / 404, truncate confirmation and truncating one user,
-    logins, announcement) and db (tables, paging, unknown table, SELECT rule, failed query, the confirmation and the
-    DML rule, an applied UPDATE).
-- `RTUB.Web.Tests/ReactPortal/OwnerOperationsSourceTests.cs`: the retired files are gone, no Blazor `@page` owns the
-  five routes, `main.tsx` and `Program.cs` map them, every route sits on the gated group, the navbar is Owner only with
-  full navigations, and the pages contain no move wording and no removed module.
-- Updated: `MemberShellTests` (the five links are now `portal.*`, `when: 'owner'`), `PortalRouteTests`,
-  `OwnerPagesTests`, `LogisticsApiTests` (Admin and Mod refused `/emails`) and `RetiredImagesLabelsRoutesTests` (the
-  menu is the Owner's).
-
-## Deferred (recorded, not fixed)
-
-- (resolved in 037) **The system announcement** reached only open Blazor pages (`AnnouncementBanner` in `MainLayout`),
-  so nobody after 036. Since 037 the React shell polls `GET /api/announcement` and shows it (up to 30 s late, for 5
-  minutes after the send): `react-portal-pilot.md` → *System announcement*. The Owner page and its API are unchanged.
-- Role changes have no guard against the Owner demoting themselves or removing the last Owner (as before).
-- `/owner/db` shows every column, including `PasswordHash` and the security stamps in `AspNetUsers` (as before; Owner
-  only).
-- Email sending is synchronous: a large batch keeps the request open until it ends (the old page streamed progress).
-- No caller left: the Shared badges `LockStatusBadge`, `LoginStatusBadge`, `RoleBadge` (+ `RoleBadgeTests`,
-  `wwwroot/js/roleBadge.js`) and `MemberCardLite`. Also the `.subscriber-list--h*` classes in
-  `9-overrides/dynamic-style-classes.css` (asserted by `InlineStylePolicyTests`) and the 32px `.member-avatar-small`
-  in `4-pages/meetings.css`.
-- Comments in `TransactionService` still mention `AuditLog.razor`.
-
-## System actions (2026-10-28)
-
-A *system action* is an audit entry the application wrote by itself: the daily activity reconciliation
-(`MemberActivityStatus`), the old per-member recalculation (`MemberStatus`, already hidden from tracing) and any entry
-with no signed-in member (`UserName` null or `System`: background jobs, cleanups, geocoding).
-`AuditLogService.IsMemberAction` is the one rule.
-
-- `/owner/dashboard`: movements, their previous period, top members and areas count members' actions only.
-- `/owner/tracing`: the **Esconder sistema** toggle (`?system=hide`, also applied to the JSON export). Filters are now
-  a search, typeahead member fields (`datalist`: "Excluir" applies once the name is an exact username), entity / action
-  selects, quick toggles and removable chips for the filters in force.
+- Role changes have no guard against the Owner demoting themselves or removing the last Owner.
+- `/owner/db` shows every column, including `PasswordHash` and the security stamps in `AspNetUsers` (Owner only).

@@ -23,6 +23,20 @@ public static class MeetingEndpoints
         meetings.MapGet("/", async (string? fy, string? q, HttpContext http, IMeetingBoardService service) =>
             ToResult(await service.GetBoardAsync(fy, q, http.User)));
 
+        meetings.MapGet("/polls", async (HttpContext http, IMeetingPollBoardService service) =>
+            ToResult(await service.GetBoardAsync(http.User)));
+
+        writes.MapPost("/polls", async (MeetingPollInput input, HttpContext http, IMeetingPollBoardService service) =>
+                ToResult(await service.CreateAsync(input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(32 * 1024));
+
+        writes.MapPut("/polls/{pollId:int}/vote", async (int pollId, MeetingPollVoteInput input, HttpContext http, IMeetingPollBoardService service) =>
+                ToResult(await service.VoteAsync(pollId, input, http.User)))
+            .WithMetadata(new RequestSizeLimitAttribute(1024));
+
+        writes.MapPost("/polls/{pollId:int}/close", async (int pollId, HttpContext http, IMeetingPollBoardService service) =>
+            ToResult(await service.CloseAsync(pollId, http.User)));
+
         meetings.MapGet("/form", async (HttpContext http, IMeetingBoardService service) =>
             ToResult(await service.GetFormAsync(http.User)));
 

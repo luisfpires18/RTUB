@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 
@@ -49,7 +50,25 @@ public static class MusicEndpoints
         music.MapGet("/songs/{id:int}/edit", async (int id, HttpContext http, IMusicService service) =>
             ToResult(await service.GetSongForEditAsync(id, http.User)));
 
+        // Aprender (094): members read; the chart is made offline (tools/playalong) and uploaded as JSON by the Owner.
+        music.MapGet("/playalongs", async (HttpContext http, IMusicService service) =>
+            ToResult(await service.GetPlayAlongSongsAsync(http.User)));
+
+        music.MapGet("/songs/{id:int}/playalong", async (int id, HttpContext http, IMusicService service) =>
+            ToResult(await service.GetPlayAlongAsync(id, http.User)));
+
         var writes = music.MapGroup(string.Empty).AddEndpointFilter(RequireAntiforgery);
+
+        writes.MapPut("/songs/{id:int}/playalong", async (int id, PlayAlongChartDto? chart, HttpContext http, IMusicService service) =>
+                ToResult(await service.SavePlayAlongAsync(id, chart, http.User), _ => Results.NoContent()))
+            .WithMetadata(new RequestSizeLimitAttribute(PlayAlongChart.MaxBytes));
+
+        writes.MapPost("/songs/{id:int}/playalong/notify", async (int id, MusicLearnNoticeInput? input, HttpContext http, IMusicService service) =>
+                ToResult(await service.NotifyPlayAlongAsync(id, input, http.User), _ => Results.NoContent()))
+            .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
+
+        writes.MapDelete("/songs/{id:int}/playalong", async (int id, HttpContext http, IMusicService service) =>
+            ToResult(await service.DeletePlayAlongAsync(id, http.User), _ => Results.NoContent()));
 
         writes.MapPost("/songs/{id:int}/plays", async (int id, HttpContext http, IMusicService service) =>
             ToResult(await service.PlayAsync(id, http.User, http.Connection.RemoteIpAddress?.ToString() ?? "unknown")))
