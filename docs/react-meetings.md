@@ -25,6 +25,10 @@ point at `/meetings`.
   expired), each with the meetings `Pager` (6 / 12 / 18 / 24, default 12); search by question and a body filter, both
   in memory. Each card carries the body badge in the meeting type colours (AG / CV / Direção). A new poll sends a push
   to its audience only (`CreateMeetingPollNotification`, key `meetings.polls`).
+- Poll link: "Copiar link" on each card copies `/meetings/polls?poll={id}` (to paste in a group chat). The page then
+  shows that poll alone, with "Ver todas as votações". Nothing new on the server: the board already holds only the
+  polls the member may see, so a poll outside their audience shows "não existe ou não tem acesso"; a visitor signs in
+  first and comes back to the link.
 - Poll content: flexible questions with free-text options (dates, topics, or other choices), one vote per eligible
   member, changeable until close, aggregate totals only, and an optional Portugal-local closing date/time. Expired polls
   are treated as closed on every request. no background job is required.

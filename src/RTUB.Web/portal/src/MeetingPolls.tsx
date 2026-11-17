@@ -40,6 +40,13 @@ export default function MeetingPolls() {
   const [closedPage, setClosedPage] = useState(1);
   const [closedSize, setClosedSize] = useState(12);
   const ids = { q: useId(), audience: useId(), open: useId(), closed: useId() };
+  // ?poll={id} (a copied link): show that poll alone. The board only holds what the server lets this member see, so a
+  // poll outside their audience is simply not there.
+  const [linked, setLinked] = useState<number | null>(() => Number(new URLSearchParams(location.search).get('poll')) || null);
+  const showAll = () => {
+    setLinked(null);
+    history.replaceState(null, '', location.pathname);
+  };
 
   useEffect(() => {
     document.title = 'Votações · RTUB';
@@ -68,8 +75,10 @@ export default function MeetingPolls() {
   // The filter offers only the bodies the member actually has polls for.
   const audiences = [...new Map((data?.polls ?? []).map((poll) => [poll.audience, poll.audienceLabel])).entries()];
   const query = text.trim().toLowerCase();
-  const polls = (data?.polls ?? []).filter(
-    (poll) => (audience === 'all' || poll.audience === audience) && (!query || poll.question.toLowerCase().includes(query)),
+  const polls = (data?.polls ?? []).filter((poll) =>
+    linked !== null
+      ? poll.id === linked
+      : (audience === 'all' || poll.audience === audience) && (!query || poll.question.toLowerCase().includes(query)),
   );
 
   return (
@@ -109,13 +118,22 @@ export default function MeetingPolls() {
       ) : board === 'signin' ? (
         <div className="notice" role="status">
           <p>As votações são da área de membros.</p>
-          <a className="btn btn--primary btn--sm" href={loginTo(portal.meetingPolls)}>
+          <a className="btn btn--primary btn--sm" href={loginTo(portal.meetingPolls + location.search)}>
             <Icon name="login" />
             Entrar
           </a>
         </div>
       ) : !data ? null : (
         <>
+          {linked !== null && (
+            <div className="notice" role="status">
+              <p>{polls.length ? 'A mostrar a votação do link.' : 'Esta votação não existe ou não tem acesso.'}</p>
+              <button type="button" className="btn btn--ghost btn--sm" onClick={showAll}>
+                Ver todas as votações
+              </button>
+            </div>
+          )}
+          {linked === null && (
           <div className="events-tools mtg-tools" role="search">
             <label className="control" htmlFor={ids.q}>
               <span className="sr-only">Pesquisar votações</span>
@@ -136,6 +154,7 @@ export default function MeetingPolls() {
               </label>
             )}
           </div>
+          )}
 
           <PollSection
             id={ids.open}
@@ -245,8 +264,22 @@ function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: () => voi
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [confirmClose, setConfirmClose] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => setSelected(poll.myOptionId), [poll.myOptionId]);
+
+  // The link opens this poll for a signed-in member in its audience; anyone else is asked to sign in or sees nothing.
+  const copyLink = async () => {
+    const link = `${location.origin}${portal.meetingPolls}?poll=${poll.id}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setError(undefined);
+      setCopied(true);
+    } catch {
+      // The browser refused the clipboard: show the link to select by hand.
+      setError(`Não foi possível copiar. Link: ${link}`);
+    }
+  };
 
   const vote = async () => {
     if (selected === null) return;
@@ -311,6 +344,10 @@ function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: () => voi
             Encerrar votação
           </button>
         )}
+        <button type="button" className="btn btn--ghost btn--sm" onClick={copyLink}>
+          <Icon name={copied ? 'check' : 'link'} />
+          <span role="status">{copied ? 'Link copiado' : 'Copiar link'}</span>
+        </button>
       </div>
       {confirmClose && (
         <ConfirmDialog
