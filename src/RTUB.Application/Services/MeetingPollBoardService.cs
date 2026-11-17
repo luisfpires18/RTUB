@@ -40,14 +40,22 @@ public sealed class MeetingPollBoardService(
         var polls = await db.MeetingPolls
             .AsNoTracking()
             .Include(poll => poll.Options)
-            .Include(poll => poll.Votes)
             .OrderByDescending(poll => poll.CreatedAt)
             .ToListAsync();
 
+        // Votes are counted in SQL: the board never needs the vote rows themselves.
+        var counts = await db.MeetingPollVotes
+            .GroupBy(vote => vote.MeetingPollOptionId)
+            .Select(group => new { OptionId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.OptionId, item => item.Count);
+        var ownVotes = await db.MeetingPollVotes
+            .Where(vote => vote.UserId == access.UserId)
+            .ToDictionaryAsync(vote => vote.MeetingPollId, vote => vote.MeetingPollOptionId);
+
         var now = PortugalTime.Now(time);
         var visible = polls
-            .Where(poll => access.IsOwner || access.CanVoteInPoll(poll.Audience) || access.CanManagePoll(poll.Audience))
-            .Select(poll => ToDto(access, poll, now))
+            .Where(poll => access.CanVoteInPoll(poll.Audience) || access.CanManagePoll(poll.Audience))
+            .Select(poll => ToDto(access, poll, now, counts, ownVotes))
             .ToList();
         var createAudiences = AudienceOrder
             .Where(access.CanCreatePoll)
@@ -229,17 +237,19 @@ public sealed class MeetingPollBoardService(
         return access.IsBlocked ? (null, EventResultStatus.Forbidden) : (access, EventResultStatus.Ok);
     }
 
-    private static MeetingPollDto ToDto(MeetingAccess access, MeetingPoll poll, DateTime now)
+    private static MeetingPollDto ToDto(
+        MeetingAccess access,
+        MeetingPoll poll,
+        DateTime now,
+        IReadOnlyDictionary<int, int> counts,
+        IReadOnlyDictionary<int, int> ownVotes)
     {
         var eligible = access.CanVoteInPoll(poll.Audience);
         var closed = !IsOpen(poll, now);
-        var ownVote = eligible ? poll.Votes.FirstOrDefault(vote => vote.UserId == access.UserId) : null;
+        int? ownOptionId = eligible && ownVotes.TryGetValue(poll.Id, out var optionId) ? optionId : null;
         var options = poll.Options
             .OrderBy(option => option.Id)
-            .Select(option => new MeetingPollOptionDto(
-                option.Id,
-                option.Text,
-                poll.Votes.Count(vote => vote.MeetingPollOptionId == option.Id)))
+            .Select(option => new MeetingPollOptionDto(option.Id, option.Text, counts.GetValueOrDefault(option.Id)))
             .ToList();
         var createdAt = PortugalTime.FromUtc(DateTime.SpecifyKind(poll.CreatedAt, DateTimeKind.Utc));
 
@@ -253,7 +263,7 @@ public sealed class MeetingPollBoardService(
             closed,
             access.CanManagePoll(poll.Audience),
             eligible && !closed,
-            ownVote?.MeetingPollOptionId,
+            ownOptionId,
             options.Sum(option => option.Votes),
             options);
     }
