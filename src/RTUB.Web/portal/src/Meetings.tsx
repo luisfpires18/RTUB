@@ -3,7 +3,6 @@ import { Loading } from './App';
 import { portal } from './content';
 import { Icon, type IconName } from './icons';
 import { AtaEditorDialog, AtaViewDialog } from './MeetingAta';
-import MeetingPolls from './MeetingPolls';
 import {
   CancelDialog,
   ConfirmDialog,
@@ -34,7 +33,7 @@ import {
 } from './meetingsApi';
 import { loginTo } from './musicApi';
 
-const MEETING_PAGE_SIZES = [6, 12, 18, 24];
+export const MEETING_PAGE_SIZES = [6, 12, 18, 24];
 const REQUEST_PAGE_SIZES = [4, 8, 12, 16, 20];
 const UPCOMING_EMPTY =
   'Não existem reuniões agendadas no momento. As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos.';
@@ -210,6 +209,10 @@ export default function Meetings() {
               <Icon name="people" />
               Propor Assembleia Geral
             </button>
+            <a className="btn btn--ghost btn--sm" href={portal.meetingPolls}>
+              <Icon name="chart" />
+              Votações
+            </a>
           </div>
         )}
       </header>
@@ -291,8 +294,6 @@ export default function Meetings() {
             empty={<Empty title="Nenhuma reunião realizada." />}
             onOpen={setOpen}
           />
-
-          <MeetingPolls />
 
           {data.access.canSeeRequests && (
             <RequestsSection

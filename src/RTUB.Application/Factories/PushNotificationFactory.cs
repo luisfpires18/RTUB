@@ -450,6 +450,25 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Creates a push notification for a new poll (Votação).
+    /// </summary>
+    public SendPushNotificationDto CreateMeetingPollNotification(MeetingPoll poll, string audienceLabel)
+    {
+        ArgumentNullException.ThrowIfNull(poll);
+        ArgumentException.ThrowIfNullOrWhiteSpace(audienceLabel);
+
+        return new SendPushNotificationDto
+        {
+            Title = $"Nova votação: {audienceLabel}",
+            Body = poll.Question,
+            Icon = "/icons/rtub-logo-192.png",
+            Url = "/meetings/polls",
+            Tag = $"meeting-poll-{poll.Id}",
+            PreferenceKey = PushPreferenceCatalog.MeetingsPolls
+        };
+    }
+
+    /// <summary>
     /// Gets the text for days until meeting (similar to GetDaysUntilEventText).
     /// </summary>
     private string? GetDaysUntilMeetingText(DateTime meetingDate)

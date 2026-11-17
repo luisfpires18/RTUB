@@ -25,7 +25,7 @@ opt-in: [react-push-v2](react-push-v2.md). This doc is about what is sent and wh
    `PushPreferenceFilterTests` fails when a factory method has no key. See *Preference keys*.
 
 Deep links the React pages accept: `/events/{id}`, `/events/{id}/discussion`, `/rehearsals/{id}`,
-`/meetings?meeting={id}`, `/messages?c={id}`, `/gallery?item={id}`, `/music/albums/{id}`, `/music/play/{songId}`,
+`/meetings?meeting={id}`, `/meetings/polls`, `/messages?c={id}`, `/gallery?item={id}`, `/music/albums/{id}`, `/music/play/{songId}`,
 `/naipes?instrument={InstrumentType}`, `/treasury/calotes`, `/profile#push`, `/logistics/{boardId}?card={cardId}` (a
 card or board the member can no longer see shows "não existe ou não tem acesso" and nothing of the card).
 `/questions` and `/requests` have no item view yet; when they get one (`?question=` / `?request=`), switch the links.
@@ -86,6 +86,7 @@ The React "remove" of a presença uses `DeleteAttendanceAsync` and sends no refu
 | `CreateMeetingCustomNotification` | manager's push (`MeetingBoardService`, `POST /api/meetings/{id}/push`) | one | "Reunião - {date}" | `/meetings?meeting={id}` | `meeting-custom-{id}` |
 | `CreatePendingMeetingRequestReminderNotification` | manual reminder on `/meetings` + daily 10:00 (`PendingRequestReminderService`) | one (approvers) | "Lembrete: Pedido de {type}" | `/meetings` | `pending-meeting-request-{id}` |
 | `CreateMeetingRequestRejectedNotification` | request rejected, or expired by the daily job | one (author) | "Pedido de reunião rejeitado" | `/meetings` | `meeting-request-rejected-{id}` |
+| `CreateMeetingPollNotification` | poll created (`MeetingPollBoardService.CreateAsync`, `POST /api/meetings/polls`): the poll's audience only (`MeetingAccess.CanVoteInPoll`: CV = Veterano / Tunossauro by time, Magister, Presidente do CV; AG = everyone but Leitões; Direção = Direção positions and Admins with the Tuno category) | some | "Nova votação: {body}" | `/meetings/polls` | `meeting-poll-{id}` |
 
 ### Pedidos de atuação
 | Factory method | Trigger | Recipients | Title | Opens | Tag |
@@ -206,6 +207,7 @@ keys on purpose. Mand. = mandatory (shown checked and locked).
 | `meetings.reminder` | Lembretes de reuniões | `CreateMeetingNotification(isReminder: true)` | |
 | `meetings.manager-notice` | Avisos sobre a reunião | `CreateMeetingCustomNotification` | |
 | `meetings.requests` | Pedidos de reunião | `CreateMeetingNotification` (proposal branch: meeting `Id` 0), `CreatePendingMeetingRequestReminderNotification`, `CreateMeetingRequestRejectedNotification` | |
+| `meetings.polls` | Novas votações | `CreateMeetingPollNotification` | |
 | `requests.public` | Pedidos de atuação | `CreateRequestNotification`, `CreatePendingPublicRequestsReminderNotification` | |
 | `questions` | Perguntas | `CreateNewQuestionNotification`, `…Answered…`, `…Reply…`, `…Reminder…`, `CreatePendingQuestionsNotification` | |
 | `messages` | Mensagens | `CreateConversationMessageNotification` (per-chat mute applies on top: both must be on) | |

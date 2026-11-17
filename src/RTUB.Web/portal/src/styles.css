@@ -12375,22 +12375,12 @@ video.tile__media {
   border-top: 1px solid var(--line);
 }
 
-.mtg-polls {
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-}
-
-.mtg-polls__heading,
 .mtg-poll__top,
 .mtg-poll__actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-.mtg-polls__heading {
-  flex-wrap: wrap;
 }
 
 .mtg-polls__grid {
