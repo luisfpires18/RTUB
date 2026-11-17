@@ -470,7 +470,7 @@ public class MemberAdminApiTests : IClassFixture<EventsApiFactory>
             .Should().NotContain(new[] { "/members/manage", "/member/events", "/member/gallery", "/member/roles", "/hierarchy" });
 
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        foreach (var file in new[] { "Members.tsx", "MemberDialogs.tsx", "MemberManage.tsx", "membersApi.ts" })
+        foreach (var file in new[] { "pages/Members.tsx", "components/MemberDialogs.tsx", "components/MemberManage.tsx", "data/membersApi.ts" })
         {
             var text = File.ReadAllText(Path.Combine(src, file));
             text.Should().NotContainAny(new[] { "migra", "Migra" }, file).And.NotContain("href=\"/members/manage\"", file);

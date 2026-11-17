@@ -158,10 +158,10 @@ public class BlazorHostRetirementTests : IntegrationTestBase
     public void TheAnnouncementListener_IsInTheReactShell_AndSaysNothingAboutMigration()
     {
         var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var app = File.ReadAllText(Path.Combine(portal, "App.tsx"));
+        var app = File.ReadAllText(Path.Combine(portal, "components/App.tsx"));
 
         app.Should().Contain("<SystemAnnouncement />").And.Contain("getAnnouncement()");
-        File.ReadAllText(Path.Combine(portal, "api.ts")).Should().Contain("fetch('/api/announcement'");
+        File.ReadAllText(Path.Combine(portal, "data/api.ts")).Should().Contain("fetch('/api/announcement'");
         app.Should().NotContainAny("migra", "Migra", "Blazor");
     }
 

@@ -1,6 +1,6 @@
 # React profile (`/profile`), members map (`/members/map`) and Hall of Fame (`/hall-of-fame`)
 
-React: `portal/src/Profile.tsx`, `MembersMap.tsx`, `HallOfFame.tsx`, client `memberAreaApi.ts`. Code:
+React: `portal/src/pages/Profile.tsx`, `MembersMap.tsx`, `HallOfFame.tsx`, client `memberAreaApi.ts`. Code:
 `Endpoints/MemberAreaEndpoints.cs` → `IMyProfileService` (`MyProfileService`), `IMemberMapService`,
 `IHallOfFameService` (`HallOfFameService`); photo storage in `UserProfileService.UpdateProfilePictureAsync`.
 

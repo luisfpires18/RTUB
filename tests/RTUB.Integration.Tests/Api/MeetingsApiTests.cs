@@ -1147,11 +1147,11 @@ public class MeetingsRetirementTests
     public void TheReactPage_IsLinked_AndSaysNoMigration()
     {
         var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        File.ReadAllText(Path.Combine(portal, "content.ts")).Should().Contain("meetings: '/meetings'");
-        File.ReadAllText(Path.Combine(portal, "MemberShell.tsx")).Should().Contain("href: portal.meetings,").And.NotContain("blazor.meetings");
+        File.ReadAllText(Path.Combine(portal, "data/content.ts")).Should().Contain("meetings: '/meetings'");
+        File.ReadAllText(Path.Combine(portal, "components/MemberShell.tsx")).Should().Contain("href: portal.meetings,").And.NotContain("blazor.meetings");
         File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().Contain("'/meetings': lazy(");
 
-        foreach (var file in new[] { "Meetings.tsx", "MeetingDialogs.tsx", "MeetingAta.tsx", "meetingsApi.ts" })
+        foreach (var file in new[] { "pages/Meetings.tsx", "components/MeetingDialogs.tsx", "components/MeetingAta.tsx", "data/meetingsApi.ts" })
         {
             File.ReadAllText(Path.Combine(portal, file)).Should().NotContainAny(new[] { "migra", "Migra" }, file);
         }

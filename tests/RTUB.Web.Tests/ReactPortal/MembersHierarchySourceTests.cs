@@ -16,7 +16,7 @@ public class MembersHierarchySourceTests
 
     private static string Read(params string[] path) => File.ReadAllText(Path.Combine([Web, .. path])).Replace("\r\n", "\n");
 
-    private static readonly string Tree = Read("portal", "src", "MembersHierarchy.tsx");
+    private static readonly string Tree = Read("portal", "src", "pages/MembersHierarchy.tsx");
 
     [Fact]
     public void NoGraphOrLayoutDependency_WasAdded()
@@ -29,7 +29,7 @@ public class MembersHierarchySourceTests
         }
 
         Regex.Matches(Tree, @"^import .* from '([^']+)';", RegexOptions.Multiline).Select(m => m.Groups[1].Value)
-            .Should().OnlyContain(m => m == "react" || m.StartsWith("./"), "only React and the portal's own modules");
+            .Should().OnlyContain(m => m == "react" || m.StartsWith("./") || m.StartsWith("../"), "only React and the portal's own modules");
     }
 
     [Fact]

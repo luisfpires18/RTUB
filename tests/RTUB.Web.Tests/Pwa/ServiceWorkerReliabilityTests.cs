@@ -49,7 +49,7 @@ public class ServiceWorkerReliabilityTests
     [Fact]
     public void ReactPushClient_AdoptsTheExistingRegistrationInsteadOfRegistering()
     {
-        var push = ReadRepoFile("src", "RTUB.Web", "portal", "src", "push.ts");
+        var push = ReadRepoFile("src", "RTUB.Web", "portal", "src", "data/push.ts");
 
         push.Should().MatchRegex(@"navigator\s*\.\s*serviceWorker\s*\.\s*ready");
         push.Should().NotMatchRegex(@"serviceWorker\s*\.\s*register\s*\(");

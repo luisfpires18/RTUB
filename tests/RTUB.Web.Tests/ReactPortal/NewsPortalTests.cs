@@ -18,19 +18,19 @@ public class NewsPortalTests
     [Fact]
     public void Navbar_HasNovidades_LinkingToTheNewsPage()
     {
-        var app = Read("App.tsx");
+        var app = Read("components/App.tsx");
 
         // The section list feeds the top bar, the mobile menu and the footer.
         app.Should().Contain("{ id: 'news', label: 'Novidades' }");
         Regex.Match(app, @"const sectionPages[^}]*\}").Value.Should().Contain("news: portal.news", "Novidades opens /news, not a home anchor");
-        Read("content.ts").Should().Contain("news: '/news'");
-        Read("main.tsx").Should().Contain("'/news': lazy(() => import('./News'))");
+        Read("data/content.ts").Should().Contain("news: '/news'");
+        Read("main.tsx").Should().Contain("'/news': lazy(() => import('./pages/News'))");
     }
 
     [Fact]
     public void Home_ShowsTheLatestNewsRightAfterTheAgenda_AndDoesNotEndWithIt()
     {
-        var home = Read("Home.tsx");
+        var home = Read("pages/Home.tsx");
         var body = Regex.Match(home, @"export function Home\(\) \{.*?return \((.*?)\);\s*\}", RegexOptions.Singleline).Groups[1].Value;
         var sections = Regex.Matches(body, @"<(\w+) />").Select(m => m.Groups[1].Value).ToList();
 
@@ -47,7 +47,7 @@ public class NewsPortalTests
     [Fact]
     public void PostText_IsNeverRenderedAsHtml()
     {
-        foreach (var file in new[] { "News.tsx", "Home.tsx" })
+        foreach (var file in new[] { "pages/News.tsx", "pages/Home.tsx" })
         {
             Read(file).Should().NotContain("dangerouslySetInnerHTML", "{0} shows post text as text, never as markup", file);
         }
@@ -56,15 +56,15 @@ public class NewsPortalTests
     [Fact]
     public void Visibility_IsAnExplicitChoiceOnANewPost_TabsAreForSignedInReadersOnly_AndPrivatePostsAreBadged()
     {
-        var news = Read("News.tsx");
+        var news = Read("pages/News.tsx");
 
         news.Should().Contain("useState<boolean | undefined>(post?.membersOnly)", "a new post has no audience until chosen (077), an edit keeps its own");
         news.Should().Contain("Escolhe quem pode ver: Público ou Apenas RTUB.");
         news.Should().Contain("Público: qualquer visitante").And.Contain("Apenas RTUB: só membros").And.Contain("Só membros");
         news.Should().Contain("{feed.signedIn && (", "visitors get no tabs and no hint that private posts exist");
         news.Should().Contain("'Todas'").And.Contain("'Públicas'").And.Contain("'Privadas'");
-        Read("Home.tsx").Should().Contain("p.membersOnly && <span className=\"tag tag--private news-latest__tag\">Só membros</span>", "the home preview badges a private post like the feed");
-        Read("api.ts").Should().Contain("membersOnly: boolean").And.Contain("signedIn: boolean");
+        Read("pages/Home.tsx").Should().Contain("p.membersOnly && <span className=\"tag tag--private news-latest__tag\">Só membros</span>", "the home preview badges a private post like the feed");
+        Read("data/api.ts").Should().Contain("membersOnly: boolean").And.Contain("signedIn: boolean");
     }
 
     private static string GetProjectRoot()

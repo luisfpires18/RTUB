@@ -13,7 +13,9 @@ _Last updated: 2026-11-17_
 Task 110 (`chore/110/codebase-cleanup`): phase 1 of the readability cleanup. Blazor-era history comments rewritten as
 present-tense rules, old-URL redirects moved out of `Program.cs` into `Extensions/LegacyRedirectExtensions.cs`, service
 methods with no production caller removed (with their tests). No behaviour change.
-Planned next phases (one branch each): 2 portal folders `pages/` `components/` `data/`; 3 shared UI pieces (notice,
+Task 111 (`chore/111/portal-folders`, on top of 110): phase 2, `portal/src` split into `pages/`, `components/`, `data/`
+(moves and import paths only; layout rule in `docs/frontend-practices.md` → *Layout*).
+Planned next phases (one branch each): 3 shared UI pieces (notice,
 avatar, tabs, euro/date formatting); 4 split portal files over 300 lines and `styles.css` per area; 5 split C# files
 over 300 lines; 6 test files (lowest priority).
 

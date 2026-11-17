@@ -240,9 +240,9 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
     public void Links_PointAtTheReactMembersArea()
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("members: '/members'").And.Contain("membersHierarchy: '/members/hierarchy'");
-        File.ReadAllText(Path.Combine(src, "MemberShell.tsx")).Should().Contain("href: portal.members,").And.Contain("href: portal.membersHierarchy,");
-        foreach (var file in new[] { "Members.tsx", "MembersHierarchy.tsx", "MemberDialogs.tsx", "MemberManage.tsx", "membersApi.ts" })
+        File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("members: '/members'").And.Contain("membersHierarchy: '/members/hierarchy'");
+        File.ReadAllText(Path.Combine(src, "components/MemberShell.tsx")).Should().Contain("href: portal.members,").And.Contain("href: portal.membersHierarchy,");
+        foreach (var file in new[] { "pages/Members.tsx", "pages/MembersHierarchy.tsx", "components/MemberDialogs.tsx", "components/MemberManage.tsx", "data/membersApi.ts" })
         {
             File.ReadAllText(Path.Combine(src, file)).Should().NotContainAny(new[] { "migra", "Migra" }, file);
         }

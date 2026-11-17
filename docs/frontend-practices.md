@@ -10,11 +10,23 @@ the static server page `/Error` (`wwwroot/error.html`).
 | Service worker, manifest, offline, install | `docs/pwa-practices.md` |
 | Push opt-in / opt-out and service-worker push handlers | `docs/react-push-v2.md` |
 
+## Layout
+
+Code a beginner can read: one job per file, no file over 300 lines.
+
+| Folder (`portal/src/`) | Holds |
+| --- | --- |
+| `pages/` | One screen per route (the routes in `main.tsx`). |
+| `components/` | Pieces shared by screens: the shell (`App.tsx`, `MemberShell.tsx`), dialogs, `*Ui.tsx` helpers, `icons.tsx`. |
+| `data/` | Saving and loading: `api.ts` (the fetch wrapper) and one `*Api.ts` per area, plus non-UI helpers and fixed content. |
+
+`main.tsx` (routes) and `styles.css` stay at the root.
+
 ## Basics
 
 - The server is the authority. Every permission is checked by the `/api/*` endpoint; the UI only hides what the API refuses.
-- Reuse before writing: look in `portal/src` (`Dialog.tsx`, `icons.tsx`, the `*Ui.tsx` helpers, `styles.css` classes and
-  variables) before adding a component or style. One stylesheet (`portal/src/styles.css`); no inline styles where a class will do.
+- Reuse before writing: look in `components/` (`Dialog.tsx`, `icons.tsx`, the `*Ui.tsx` helpers), `data/` and the
+  `styles.css` classes and variables before adding a component, a request or a style. One stylesheet (`portal/src/styles.css`); no inline styles where a class will do.
 - Every user-facing string is Portuguese (pt-PT).
 - Check every change at phone width (about 375 px) and in the installed app: tap targets large enough, dialogs scroll inside themselves.
 - No sideways page scroll, never masked. At 320-414 px the document is never wider than the viewport. Fix the

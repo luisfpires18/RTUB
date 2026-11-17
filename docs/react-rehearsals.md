@@ -1,6 +1,6 @@
 # React Rehearsals (`/rehearsals`)
 
-`/rehearsals` is the React page (`src/RTUB.Web/portal/src/Rehearsals.tsx`); `/rehearsals/{id}` is one rehearsal (`RehearsalDetail.tsx`).
+`/rehearsals` is the React page (`src/RTUB.Web/portal/src/pages/Rehearsals.tsx`); `/rehearsals/{id}` is one rehearsal (`RehearsalDetail.tsx`).
 Modals live in `RehearsalDialogs.tsx`. Members read through `Endpoints/RehearsalEndpoints.cs` → `IRehearsalAgendaService`.
 Admin/Owner and the approval rules use `IRehearsalAdminService`. Rules: `Helpers/RehearsalsAuthorization.cs`.
 Also `Services/RehearsalAttendanceService.cs` (presenças, notifications) and `Services/RehearsalService.cs`.

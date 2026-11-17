@@ -115,7 +115,7 @@ debug otherwise). A failed delete of a gone row does not stop the fan-out to the
   here) and `denied` remind. `unsupported` shows the iPhone/iPad install steps only in Safari on iPhone/iPad
   (`navigator.standalone` exists) and general "use an up-to-date browser or another device" text elsewhere; inside the
   installed app nothing shows. `on`, push disabled / not configured, no worker and any read error do not (unknown is
-  never "off"). Rules in `portal/src/startupRules.ts`.
+  never "off"). Rules in `portal/src/data/startupRules.ts`.
 - Active vs Reformado (`ApplicationUser.IsRetired`): active = every opening while off ("Agora não" is for that opening
   only). Reformado = once per account across devices: closing or enabling a shown reminder stores
   `POST /api/push/reminder/ack` (a `PendingActionDismissals` row, kind `startup.push`, no source or period). A failed
@@ -123,7 +123,7 @@ debug otherwise). A failed delete of a gone row does not stop the fan-out to the
   rule whatever was stored.
 - The browser permission is asked only by the "Ativar notificações" click (`turnOn`, as `/profile`). Denied shows how to
   allow it in the site/app settings; the native prompt is never repeated by RTUB.
-- Queue (`portal/src/Startup.tsx`, `StartupModals`): one dialog at a time, after the page settles (1.5 s). A
+- Queue (`portal/src/components/Startup.tsx`, `StartupModals`): one dialog at a time, after the page settles (1.5 s). A
   `MutationObserver` watches for any other open `<dialog>` (a deep-link dialog, the system announcement, even one that
   opens later): the reminder is hidden meanwhile (not closed, nothing stored) and returns once it closes, so two modals
   never stack and the URL is never changed. Order: release notes ([release-and-rollback](release-and-rollback.md) →

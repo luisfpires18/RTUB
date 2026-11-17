@@ -63,7 +63,7 @@ public class PortalCopyOriginalityTests
     {
         // Wording rule (docs/react-portal-pilot.md): "migration" is for EF/database migrations and
         // developer docs only - never in public UI, copy, routes or feature names, in any language.
-        var files = PortalFiles().Append(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src", "Privacy.tsx"));
+        var files = PortalFiles().Append(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src", "pages/Privacy.tsx"));
 
         files.Where(f => Regex.IsMatch(File.ReadAllText(f), "migra", RegexOptions.IgnoreCase))
             .Select(Path.GetFileName)
@@ -123,7 +123,7 @@ public class PortalCopyOriginalityTests
     {
         var portal = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal");
 
-        return Directory.EnumerateFiles(Path.Combine(portal, "src"))
+        return Directory.EnumerateFiles(Path.Combine(portal, "src"), "*", SearchOption.AllDirectories)
             .Where(f => f.EndsWith(".ts", StringComparison.Ordinal) || f.EndsWith(".tsx", StringComparison.Ordinal))
             .Where(f => !f.EndsWith("Privacy.tsx", StringComparison.Ordinal))
             .Append(Path.Combine(portal, "index.html"));

@@ -306,7 +306,7 @@ public class ContentSecurityPolicyTests
         File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "memberMap.js"))
             .Should().BeFalse("the Blazor map script was retired in 032");
 
-        var content = ReadRepoFile("src", "RTUB.Web", "portal", "src", "MembersMap.tsx");
+        var content = ReadRepoFile("src", "RTUB.Web", "portal", "src", "pages/MembersMap.tsx");
 
         JsMarkupEventHandler.IsMatch(content).Should().BeFalse(
             "the popup avatar must not carry an inline error handler under a strict script-src");
@@ -323,7 +323,7 @@ public class ContentSecurityPolicyTests
     [Fact]
     public void MembersMap_UsesNoKeyOpenStreetMapTiles_AllowedByTheCsp_AndNoCartoTiles()
     {
-        var map = ReadRepoFile("src", "RTUB.Web", "portal", "src", "MembersMap.tsx");
+        var map = ReadRepoFile("src", "RTUB.Web", "portal", "src", "pages/MembersMap.tsx");
         map.Should().Contain("const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';")
             .And.Contain("OpenStreetMap</a> contributors")
             .And.NotContainAny("cartocdn", "carto.com", "apikey", "api_key", "access_token", "?key=");
@@ -331,7 +331,7 @@ public class ContentSecurityPolicyTests
         Directives(Policy())["img-src"].Should().Contain("https://tile.openstreetmap.org")
             .And.NotContain(s => s.Contains("cartocdn"));
 
-        var sources = Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src"))
+        var sources = Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src"), "*", SearchOption.AllDirectories)
             .Concat(Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "portal", "assets"), "*.js"))
             .Append(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "Security", "ContentSecurityPolicyBuilder.cs"));
         sources.Where(f => File.ReadAllText(f).Contains("basemaps.cartocdn.com"))

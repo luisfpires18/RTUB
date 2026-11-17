@@ -1,6 +1,6 @@
 # React Tesouraria (`/treasury`)
 
-`portal/src/Treasury*.tsx` over `/api/treasury`.
+`portal/src/pages/Treasury*.tsx` over `/api/treasury`.
 Code: `Endpoints/TreasuryEndpoints.cs` -> `ITreasuryService` (reports, activities, transactions) and
 `ITreasuryRecordsService` (calotes, MBWay, Nerba); `TreasuryAuthorization`, `FinanceManagementService` (bank/cash),
 `ReportPdfService`, `IReceiptStorageService`, `CalotesNotificationBackgroundService`.

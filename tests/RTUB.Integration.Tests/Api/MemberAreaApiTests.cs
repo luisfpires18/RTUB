@@ -746,28 +746,28 @@ public class MemberAreaRetirementTests
     public void ReactPages_AreLinked_AndSayNoMigration()
     {
         var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var content = File.ReadAllText(Path.Combine(portal, "content.ts"));
+        var content = File.ReadAllText(Path.Combine(portal, "data/content.ts"));
         content.Should().Contain("membersMap: '/members/map'").And.Contain("hallOfFame: '/hall-of-fame'").And.NotContain("memberProfile");
-        File.ReadAllText(Path.Combine(portal, "MemberShell.tsx")).Should().Contain("href: portal.membersMap,").And.Contain("href: portal.hallOfFame,");
-        File.ReadAllText(Path.Combine(portal, "Members.tsx")).Should().Contain("href={portal.membersMap}");
-        File.ReadAllText(Path.Combine(portal, "Leaderboard.tsx")).Should().NotContain("portal.hallOfFame", "Classificação and Hall of Fame are not presented as one feature");
+        File.ReadAllText(Path.Combine(portal, "components/MemberShell.tsx")).Should().Contain("href: portal.membersMap,").And.Contain("href: portal.hallOfFame,");
+        File.ReadAllText(Path.Combine(portal, "pages/Members.tsx")).Should().Contain("href={portal.membersMap}");
+        File.ReadAllText(Path.Combine(portal, "pages/Leaderboard.tsx")).Should().NotContain("portal.hallOfFame", "Classificação and Hall of Fame are not presented as one feature");
         var main = File.ReadAllText(Path.Combine(portal, "main.tsx"));
         main.Should().Contain("'/members/map': lazy(").And.Contain("'/hall-of-fame': lazy(").And.Contain("'/profile': lazy(");
 
-        foreach (var file in new[] { "Profile.tsx", "MembersMap.tsx", "HallOfFame.tsx", "memberAreaApi.ts" })
+        foreach (var file in new[] { "pages/Profile.tsx", "pages/MembersMap.tsx", "pages/HallOfFame.tsx", "data/memberAreaApi.ts" })
         {
             File.ReadAllText(Path.Combine(portal, file)).Should().NotContainAny(new[] { "migra", "Migra" }, file);
         }
 
         // Push came back with task 038 as its own section (PushV2SourceTests), not as the old toggle.
-        File.ReadAllText(Path.Combine(portal, "Profile.tsx")).Should().Contain("<PushSection />").And.NotContain("PushNotificationToggle");
+        File.ReadAllText(Path.Combine(portal, "pages/Profile.tsx")).Should().Contain("<PushSection />").And.NotContain("PushNotificationToggle");
     }
 
     [Fact]
     public void ProfilePage_Batch3_HeaderPhotoTunaInfoAndSharedBadge()
     {
         var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var profile = File.ReadAllText(Path.Combine(portal, "Profile.tsx"));
+        var profile = File.ReadAllText(Path.Combine(portal, "pages/Profile.tsx"));
 
         profile.Should().NotContain("Entraste como", "one account per member: the sentence says nothing");
         profile.Should().NotContain("<PhotoSection", "the photo lives in the header, not in a card of its own")
@@ -780,8 +780,8 @@ public class MemberAreaRetirementTests
         profile.Should().NotContain("portal.myEnrollments").And.Contain("<SignOutButton").And.Contain("buttonClassName=\"btn btn--ghost btn--sm\"");
 
         // One badge component, with the per-kind variants kept in it: profile header, dialogs, directory and the header badge.
-        File.ReadAllText(Path.Combine(portal, "MemberBadge.tsx")).Should().Contain("member-badge--${kind}");
-        foreach (var file in new[] { "Profile.tsx", "MemberDialogs.tsx", "Members.tsx", "MemberShell.tsx" })
+        File.ReadAllText(Path.Combine(portal, "components/MemberBadge.tsx")).Should().Contain("member-badge--${kind}");
+        foreach (var file in new[] { "pages/Profile.tsx", "components/MemberDialogs.tsx", "pages/Members.tsx", "components/MemberShell.tsx" })
         {
             File.ReadAllText(Path.Combine(portal, file)).Should().Contain("<MemberBadge", file);
         }
@@ -791,24 +791,24 @@ public class MemberAreaRetirementTests
             .And.NotContain(".profile-photo", "the standalone Foto card is gone");
 
         // Sweep: no page draws its own member badge. Only MemberBadge.tsx writes the class; the old local pill classes are gone.
-        foreach (var file in Directory.GetFiles(portal, "*.tsx").Where(f => !f.EndsWith("MemberBadge.tsx", StringComparison.Ordinal)))
+        foreach (var file in Directory.GetFiles(portal, "*.tsx", SearchOption.AllDirectories).Where(f => !f.EndsWith("MemberBadge.tsx", StringComparison.Ordinal)))
         {
             File.ReadAllText(file).Should().NotContainAny(new[] { "className=\"member-badge\"", "className=\"member-badge ", "'member-badge ", "who__badge", "talk__badge", "owner-badge--danger" }, Path.GetFileName(file));
         }
 
         // Header (batch 4): inbox, then the category badge as its own control, then the profile chip, then the menu.
-        var app = File.ReadAllText(Path.Combine(portal, "App.tsx"));
+        var app = File.ReadAllText(Path.Combine(portal, "components/App.tsx"));
         app.IndexOf("<MemberInbox />", StringComparison.Ordinal).Should().BeInRange(0, app.Length)
             .And.BeLessThan(app.IndexOf("<MemberCategory", StringComparison.Ordinal));
         app.IndexOf("<MemberCategory", StringComparison.Ordinal).Should().BeLessThan(app.IndexOf("<MemberIdentity", StringComparison.Ordinal));
         app.IndexOf("<MemberIdentity", StringComparison.Ordinal).Should().BeLessThan(app.IndexOf("<MemberDrawer", StringComparison.Ordinal));
-        var shell = File.ReadAllText(Path.Combine(portal, "MemberShell.tsx"));
+        var shell = File.ReadAllText(Path.Combine(portal, "components/MemberShell.tsx"));
         var chip = shell[shell.IndexOf("export function MemberIdentity", StringComparison.Ordinal)..shell.IndexOf("export function SignOutButton", StringComparison.Ordinal)];
         chip.Should().NotContain("MemberBadge", "the badge is no longer inside the profile chip").And.Contain("href={portal.profile}");
 
         // The timeline exposes semantic variants (leitao, caloiro, position, tuno, veterano, tunossauro) from the server's accent.
         // Since #226 batch 2 the component lives in MemberDialogs.tsx, shared by /profile and the member details.
-        var dialogs = File.ReadAllText(Path.Combine(portal, "MemberDialogs.tsx"));
+        var dialogs = File.ReadAllText(Path.Combine(portal, "components/MemberDialogs.tsx"));
         dialogs.Should().Contain("tuna-path__step--${pathVariant(t)}").And.Contain("'position'");
         foreach (var variant in new[] { "leitao", "caloiro", "position", "tuno", "veterano", "tunossauro" })
         {
@@ -820,13 +820,13 @@ public class MemberAreaRetirementTests
     public void EventMemberPanel_KeepsDiscussionAndContacts_AndSignedInPagesShareOneWidth()
     {
         var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var detail = File.ReadAllText(Path.Combine(portal, "EventDetail.tsx"));
+        var detail = File.ReadAllText(Path.Combine(portal, "pages/EventDetail.tsx"));
         var panel = detail[detail.IndexOf("member-panel__links", StringComparison.Ordinal)..];
         panel = panel[..panel.IndexOf("</aside>", StringComparison.Ordinal)];
         panel.Should().Contain("portal.eventDiscussion(").And.Contain("portal.eventContacts(")
             .And.NotContain("whoLabel").And.NotContain("portal.myEnrollments");
 
-        File.ReadAllText(Path.Combine(portal, "EventContacts.tsx")).Should().NotContain("Mod e acima</p>", "the eyebrow label is gone");
+        File.ReadAllText(Path.Combine(portal, "pages/EventContacts.tsx")).Should().NotContain("Mod e acima</p>", "the eyebrow label is gone");
 
         // One container: the signed-in shell sets the width, no page narrows itself with its own max-width.
         var css = File.ReadAllText(Path.Combine(portal, "styles.css"));
@@ -839,7 +839,7 @@ public class MemberAreaRetirementTests
     public void Messages_OnPhones_IsAnAppScreen_WithoutTheSiteFooter()
     {
         var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal");
-        File.ReadAllText(Path.Combine(portal, "src", "Messages.tsx")).Should().Contain("classList.add('app-screen')").And.Contain("classList.remove('app-screen')");
+        File.ReadAllText(Path.Combine(portal, "src", "pages/Messages.tsx")).Should().Contain("classList.add('app-screen')").And.Contain("classList.remove('app-screen')");
         var css = File.ReadAllText(Path.Combine(portal, "src", "styles.css"));
         css.Should().Contain("html.app-screen .footer").And.Contain("100dvh", "dynamic viewport units, not 100vh");
         File.ReadAllText(Path.Combine(portal, "index.html")).Should().Contain("interactive-widget=resizes-content");
@@ -849,10 +849,10 @@ public class MemberAreaRetirementTests
     public void Messages_FillTheViewportOnDesktop_AndSystemWearsThePortalLogo()
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var messages = File.ReadAllText(Path.Combine(src, "Messages.tsx"));
+        var messages = File.ReadAllText(Path.Combine(src, "pages/Messages.tsx"));
         messages.Should().Contain("/icons/rtub-logo-352.webp", "the logo the portal header uses").And.Contain("kind === 'system' ? RTUB_LOGO : avatarUrl", "only Notificações RTUB wears the portal logo; groups a chat icon, people their own avatar")
             .And.Contain("system: 0, group: 1, direct: 2", "Sistema RTUB, then groups, then people");
-        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("/icons/rtub-logo-352.webp");
+        File.ReadAllText(Path.Combine(src, "components/App.tsx")).Should().Contain("/icons/rtub-logo-352.webp");
 
         // The app-screen rules are not phone-only: the desktop shell fits the viewport too, scoped to /messages by html.app-screen.
         var css = File.ReadAllText(Path.Combine(src, "styles.css"));
@@ -870,7 +870,7 @@ public class MemberAreaRetirementTests
         string R(string f) => File.ReadAllText(Path.Combine(src, f));
 
         // Menu: no "Recursos" group, no "As minhas inscrições"; Documentação once under Gestão; Instrumentos once under Tuna.
-        var shell = R("MemberShell.tsx");
+        var shell = R("components/MemberShell.tsx");
         shell.Should().NotContain("'Recursos'").And.NotContain("As minhas inscrições").And.NotContain("key: 'resources'");
         var management = shell[shell.IndexOf("key: 'management'", StringComparison.Ordinal)..shell.IndexOf("key: 'owner'", StringComparison.Ordinal)];
         management.Should().Contain("portal.documentation").And.NotContain("portal.inventory");
@@ -879,15 +879,15 @@ public class MemberAreaRetirementTests
         System.Text.RegularExpressions.Regex.Matches(shell, @"portal\.documentation,").Count.Should().Be(1);
         System.Text.RegularExpressions.Regex.Matches(shell, @"portal\.inventory,").Count.Should().Be(1);
 
-        R("Events.tsx").Should().Contain("Onde estiveste").And.Contain("<WhereYouWereDialog").And.Contain("btn--prizes").And.NotContain("btn--gold");
-        R("EventDetail.tsx").Should().Contain("Área da atuação").And.NotContain("Para membros").And.Contain("btn--prizes");
-        R("Rehearsals.tsx").Should().Contain("Adicionar vários").And.NotContain("Vários");
-        R("HallOfFame.tsx").Should().NotContain("portal.leaderboard");
-        R("Events.tsx").Should().NotContain("As minhas inscrições", "the button says Onde estiveste");
-        R("EventDialogs.tsx").Should().Contain("title=\"Onde estiveste\"");
-        System.Text.RegularExpressions.Regex.IsMatch(R("Naipes.tsx"), @"btn--primary btn--sm""\s+onClick=\{\(\) => setEditing\(\{ kind: 'new', isVideo: false \}\)\}").Should().BeTrue("Adicionar imagem is a primary action");
+        R("pages/Events.tsx").Should().Contain("Onde estiveste").And.Contain("<WhereYouWereDialog").And.Contain("btn--prizes").And.NotContain("btn--gold");
+        R("pages/EventDetail.tsx").Should().Contain("Área da atuação").And.NotContain("Para membros").And.Contain("btn--prizes");
+        R("pages/Rehearsals.tsx").Should().Contain("Adicionar vários").And.NotContain("Vários");
+        R("pages/HallOfFame.tsx").Should().NotContain("portal.leaderboard");
+        R("pages/Events.tsx").Should().NotContain("As minhas inscrições", "the button says Onde estiveste");
+        R("components/EventDialogs.tsx").Should().Contain("title=\"Onde estiveste\"");
+        System.Text.RegularExpressions.Regex.IsMatch(R("pages/Naipes.tsx"), @"btn--primary btn--sm""\s+onClick=\{\(\) => setEditing\(\{ kind: 'new', isVideo: false \}\)\}").Should().BeTrue("Adicionar imagem is a primary action");
         System.Text.RegularExpressions.Regex.IsMatch(R("styles.css"), @"\.lx-board-page\s*\{\s*max-width").Should().BeFalse("the board uses the shared container");
-        R("MemberDialogs.tsx").Should().Contain("export const progressText");
+        R("components/MemberDialogs.tsx").Should().Contain("export const progressText");
         System.Text.RegularExpressions.Regex.IsMatch(R("styles.css"), @"\.naipe-picker\s*\{[^}]*justify-content:\s*center").Should().BeTrue("the instrument picker is centred");
     }
 

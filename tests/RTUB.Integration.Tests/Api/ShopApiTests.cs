@@ -434,7 +434,7 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
         (await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().ProductReservations.CountAsync(r => r.ProductId == id))
             .Should().Be(0, "the delete still takes the reservations (cascade)");
 
-        var shop = File.ReadAllText(Path.Combine(PortalSrc(), "Shop.tsx")).Replace("\r\n", "\n");
+        var shop = File.ReadAllText(Path.Combine(PortalSrc(), "pages/Shop.tsx")).Replace("\r\n", "\n");
         shop.Should().Contain("(open.product.reservationCount ?? 0) > 0 &&", "no warning line at zero")
             .And.Contain("'Este produto tem 1 reserva, que também é apagada.'")
             .And.Contain("`Este produto tem ${open.product.reservationCount} reservas, que também são apagadas.`");
@@ -514,9 +514,9 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
     public void ReactFiles_SayNothingAboutMigration_AndTheMemberMenuLinksTheShop()
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        File.ReadAllText(Path.Combine(src, "Shop.tsx")).Should().NotContainAny("migra", "Migra");
-        File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("shop: '/shop'");
-        File.ReadAllText(Path.Combine(src, "MemberShell.tsx")).Should().Contain("href: portal.shop,", "the member menu links it (030)");
+        File.ReadAllText(Path.Combine(src, "pages/Shop.tsx")).Should().NotContainAny("migra", "Migra");
+        File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("shop: '/shop'");
+        File.ReadAllText(Path.Combine(src, "components/MemberShell.tsx")).Should().Contain("href: portal.shop,", "the member menu links it (030)");
     }
 
     /// <summary>
@@ -526,7 +526,7 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
     [Fact]
     public void ReactProductForm_WiresTheAllYearsOption()
     {
-        var shop = File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src", "Shop.tsx"));
+        var shop = File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src", "pages/Shop.tsx"));
         shop.Should().Contain("Disponível em todos os anos letivos")
             .And.Contain("availableAllYears: false })", "a new product is year-specific")
             .And.Contain("availableAllYears: d.availableAllYears,", "edit loads the saved value")

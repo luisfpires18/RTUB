@@ -15,8 +15,8 @@ public class PushV2SourceTests
     private static readonly string Root = FindRoot();
     private static readonly string Portal = Path.Combine(Root, "src", "RTUB.Web", "portal", "src");
     private static string Read(params string[] parts) => File.ReadAllText(Path.Combine(parts));
-    private static string Push => Read(Portal, "push.ts");
-    private static string Profile => Read(Portal, "Profile.tsx");
+    private static string Push => Read(Portal, "data/push.ts");
+    private static string Profile => Read(Portal, "pages/Profile.tsx");
     private static string Worker => Read(Root, "src", "RTUB.Web", "wwwroot", "service-worker.js");
 
     [Fact]
@@ -186,7 +186,7 @@ public class PushV2SourceTests
     [Fact]
     public void Profile_OpensThePreferencesDialog_ApartFromTheDeviceSwitch()
     {
-        var prefs = Read(Portal, "PushPreferences.tsx");
+        var prefs = Read(Portal, "components/PushPreferences.tsx");
 
         Profile.Should().Contain("Escolher o que receber").And.Contain("<PushPreferencesDialog");
         Profile.IndexOf("Escolher o que receber", StringComparison.Ordinal).Should()

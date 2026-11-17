@@ -13,15 +13,15 @@ public class PortalContentCoverageTests
     public void HomeAnchors_LinkedByTheShell_ExistOnTheHomePage()
     {
         var src = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src");
-        var home = File.ReadAllText(Path.Combine(src, "Home.tsx"));
+        var home = File.ReadAllText(Path.Combine(src, "pages/Home.tsx"));
 
         // Literal "/#id" links, and the { id: '...' } section lists that App.tsx turns into "/#id" -
         // except the sections App.tsx's sectionPages sends to their own page (e.g. governance -> /roles).
-        var app = File.ReadAllText(Path.Combine(src, "App.tsx"));
+        var app = File.ReadAllText(Path.Combine(src, "components/App.tsx"));
         var ownPages = Regex.Matches(Regex.Match(app, @"const sectionPages[^}]*\}").Value, @"(\w+): portal\.")
             .Select(m => m.Groups[1].Value)
             .ToHashSet();
-        var anchors = Directory.GetFiles(src, "*.tsx")
+        var anchors = Directory.GetFiles(src, "*.tsx", SearchOption.AllDirectories)
             .SelectMany(f =>
             {
                 var text = File.ReadAllText(f);

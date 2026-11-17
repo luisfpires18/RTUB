@@ -60,7 +60,7 @@ Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD 
 
 | Path | Notes |
 | --- | --- |
-| `/`, `/privacy`, `/request`, `/music`, `/music/albums/{id}`, `/news`, `/gallery`, `/shop` (read-only catalogue), `/events`, `/events/{id}`, `/roles`, `/share`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/login` | Public. `/privacy`: `portal/src/Privacy.tsx` is the legal source. `/share`: Web Share Target, GET only (`docs/react-identity.md`). |
+| `/`, `/privacy`, `/request`, `/music`, `/music/albums/{id}`, `/news`, `/gallery`, `/shop` (read-only catalogue), `/events`, `/events/{id}`, `/roles`, `/share`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/login` | Public. `/privacy`: `portal/src/pages/Privacy.tsx` is the legal source. `/share`: Web Share Target, GET only (`docs/react-identity.md`). |
 | `/profile` | Signed out: notice + link to `/login?returnUrl=/profile`. Signed in: own profile editor (`docs/react-member-area.md`). |
 | `/events/{id}/discussion`, `/events/{id}/contacts`, `/rehearsals[/{id}]`, `/members`, `/members/hierarchy`, `/members/map`, `/hall-of-fame`, `/leaderboard`, `/inventory`, `/music/play/{id}`, `/music/learn`, `/documentation`, `/logistics[/{id}]`, `/logistics/tasks`, `/treasury/...`, `/pending-actions`, `/requests`, `/questions`, `/naipes`, `/naipes/config`, `/meetings`, `/meetings/polls`, `/messages` | Members only. |
 | `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/dashboard`, `/owner/db` | Owner only (`docs/react-owner-operations.md`). Other members get the shell with a 403 refusal. |
@@ -116,7 +116,7 @@ and Linux.
 
 Portal copy is original Portuguese; sentences from the old site are never copied. `PortalCopyOriginalityTests` fails if
 any six-word run of portal copy appears in the seeded labels or static HTML. Exception: the Privacy Policy, legal text,
-whose only copy is `portal/src/Privacy.tsx`.
+whose only copy is `portal/src/pages/Privacy.tsx`.
 
 **Institution naming.** Present-day copy says **UPB** (*Universidade Politécnica de Bragança*). Historical context
 (founding, old documents, songs) keeps **IPB**. Never mass-replace; bridge only when it helps ("fundada no contexto do
@@ -124,7 +124,7 @@ IPB, hoje UPB"). The Privacy Policy stays as written.
 
 ## Login
 
-`/login` is `portal/src/Login.tsx`. No public registration.
+`/login` is `portal/src/pages/Login.tsx`. No public registration.
 
 | Route | Behaviour |
 | --- | --- |
@@ -141,13 +141,13 @@ Tests: `ReactLoginTests`, `AuthAntiforgeryTests`, `LoginRateLimitTests`, `Portal
 `GET /api/account/me` (anonymous allowed, `no-store`) returns `{ authenticated: false }` or the caller's own
 `displayName` (nickname → first name → username), `fullName`, `avatarUrl`, category labels and `menu` (booleans from
 `MemberMenuAccess`). Never email, phone, birth date, roles, IDs or other users. React calls it once per page load
-(`getCurrentUser` in `portal/src/api.ts`); unknown or failed state falls back to the visitors' header.
+(`getCurrentUser` in `portal/src/data/api.ts`); unknown or failed state falls back to the visitors' header.
 
 ## Member shell
 
-`portal/src/MemberShell.tsx`. The header ends with `[inbox] [profile chip] [menu]`; the menu opens one right-hand
+`portal/src/components/MemberShell.tsx`. The header ends with `[inbox] [profile chip] [menu]`; the menu opens one right-hand
 drawer at every width (native modal `<dialog>`, 48px rows, safe-area insets) and closes after every choice. The profile
-chip opens `/profile`; the inbox opens `/messages` with the unread badge (`portal/src/unread.ts`). Perfil and Mensagens
+chip opens `/profile`; the inbox opens `/messages` with the unread badge (`portal/src/data/unread.ts`). Perfil and Mensagens
 are not in the menu.
 
 - **Groups:** Membro (Atuações, Ensaios, Música, Galeria, Novidades, Loja) · Tuna (Membros, Hierarquia, Órgãos
@@ -161,7 +161,7 @@ are not in the menu.
 
 ## Request
 
-`/request` is the only public request form (`portal/src/Request.tsx`). One submission path:
+`/request` is the only public request form (`portal/src/pages/Request.tsx`). One submission path:
 `IPublicRequestService.SubmitAsync` (entity annotations, `RequestValidationService` date rules,
 `RequestService.CreateRequestAsync` which pushes to every Admin and Owner, optional date range, then the RTUB email).
 Only the API calls it. Management is `/requests` (`docs/react-requests-questions.md`).

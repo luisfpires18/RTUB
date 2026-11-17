@@ -104,25 +104,25 @@ public class GovernanceTests : IntegrationTestBase
             .Should().BeEmpty("no Blazor page owns Órgãos Sociais any more");
 
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        File.ReadAllText(Path.Combine(src, "Governance.tsx")).Should().Contain("<RgiDialog").And.Contain("<AssignDialog")
+        File.ReadAllText(Path.Combine(src, "pages/Governance.tsx")).Should().Contain("<RgiDialog").And.Contain("<AssignDialog")
             .And.Contain("<RemoveDialog").And.Contain("<CreateYearDialog");
-        File.ReadAllText(Path.Combine(src, "GovernanceManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
+        File.ReadAllText(Path.Combine(src, "components/GovernanceManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
     }
 
     [Fact]
     public void PortalLinks_PointAtTheReactRolesPage()
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var content = File.ReadAllText(Path.Combine(src, "content.ts"));
+        var content = File.ReadAllText(Path.Combine(src, "data/content.ts"));
 
         content.Should().Contain("roles: '/roles'").And.NotContain("memberGovernance").And.NotContain("/member/roles",
             "nothing links to the retired /member/roles (016)");
-        var home = File.ReadAllText(Path.Combine(src, "Home.tsx"));
+        var home = File.ReadAllText(Path.Combine(src, "pages/Home.tsx"));
         home.Should().NotContain("id=\"governance\"").And.NotContain("Órgãos Sociais").And.NotContain("governingBodies",
             "011: the home has no Órgãos Sociais block at all; the top bar, menu and footer open /roles");
-        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("governance: portal.roles",
+        File.ReadAllText(Path.Combine(src, "components/App.tsx")).Should().Contain("governance: portal.roles",
             "the top bar, menu and footer open /roles, not the home anchor");
-        Directory.GetFiles(src).Select(File.ReadAllText).Should().NotContain(t => t.Contains("legacy.roles"));
+        Directory.GetFiles(src, "*", SearchOption.AllDirectories).Select(File.ReadAllText).Should().NotContain(t => t.Contains("legacy.roles"));
     }
 
     // ---------- helpers ----------

@@ -117,8 +117,8 @@ public class GalleryTests : IntegrationTestBase
 
         typeof(RTUB.Program).Assembly.GetType("RTUB.Pages.Members.MemberGallery").Should().BeNull("the Blazor management page was retired");
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        File.ReadAllText(Path.Combine(src, "Gallery.tsx")).Should().Contain("<UploadDialog").And.Contain("<EditDialog").And.Contain("open.canEdit");
-        File.ReadAllText(Path.Combine(src, "GalleryManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
+        File.ReadAllText(Path.Combine(src, "pages/Gallery.tsx")).Should().Contain("<UploadDialog").And.Contain("<EditDialog").And.Contain("open.canEdit");
+        File.ReadAllText(Path.Combine(src, "components/GalleryManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
     }
 
     [Fact]
@@ -126,12 +126,12 @@ public class GalleryTests : IntegrationTestBase
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
 
-        File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("gallery: '/gallery'")
+        File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("gallery: '/gallery'")
             .And.NotContain("memberGallery", "nothing links to the retired /member/gallery (015)");
-        File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.gallery}>");
-        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("gallery: portal.gallery",
+        File.ReadAllText(Path.Combine(src, "pages/Home.tsx")).Should().Contain("<MoreLink href={portal.gallery}>");
+        File.ReadAllText(Path.Combine(src, "components/App.tsx")).Should().Contain("gallery: portal.gallery",
             "the top bar, menu and footer open /gallery, not the home anchor");
-        Directory.GetFiles(src).Select(File.ReadAllText).Should().NotContain(t => t.Contains("legacy.gallery"));
+        Directory.GetFiles(src, "*", SearchOption.AllDirectories).Select(File.ReadAllText).Should().NotContain(t => t.Contains("legacy.gallery"));
     }
 
     // ---------- helpers ----------

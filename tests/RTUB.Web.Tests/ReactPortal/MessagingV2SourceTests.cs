@@ -20,10 +20,10 @@ public class MessagingV2SourceTests
     [Fact]
     public void TheRoute_IsTheReactPage_LinkedFromTheMemberMenu()
     {
-        Read(Portal, "main.tsx").Should().Contain("'/messages': lazy(() => import('./Messages')),");
-        Read(Portal, "content.ts").Should().Contain("messages: '/messages',");
+        Read(Portal, "main.tsx").Should().Contain("'/messages': lazy(() => import('./pages/Messages')),");
+        Read(Portal, "data/content.ts").Should().Contain("messages: '/messages',");
         // Task 044: the header inbox button links it (not the drawer menu).
-        Read(Portal, "MemberShell.tsx").Should().Contain("href={portal.messages}").And.NotContain("label: 'Mensagens'");
+        Read(Portal, "components/MemberShell.tsx").Should().Contain("href={portal.messages}").And.NotContain("label: 'Mensagens'");
         Read(Web, "Program.cs").Should().Contain("\"/meetings\", \"/messages\" })").And.Contain("app.MapMessagingEndpoints();");
     }
 
@@ -50,7 +50,7 @@ public class MessagingV2SourceTests
     [Fact]
     public void Nova_PicksMembersWithoutCreatingAnything_AndTheFirstMessageStartsTheChatOrGroup()
     {
-        var page = Read(Portal, "Messages.tsx");
+        var page = Read(Portal, "pages/Messages.tsx");
         var dialog = page[page.IndexOf("function StartDialog(", StringComparison.Ordinal)..];
         dialog.Should().NotContain("api.start(", "picking members stores nothing")
             .And.Contain("aria-pressed=").And.Contain("Nome do grupo").And.Contain("Criar grupo");
@@ -66,14 +66,14 @@ public class MessagingV2SourceTests
     {
         // VETERANOS, TUNOSSAUROS... leave the inboxes on deploy, not only at the daily job (062).
         Read(Web, "Program.cs").Should().Contain("await MessagingGroups.SyncAsync(db, DateTime.UtcNow);");
-        var page = Read(Portal, "Messages.tsx");
+        var page = Read(Portal, "pages/Messages.tsx");
         page.Should().Contain("kind === 'system' ? RTUB_LOGO : avatarUrl").And.Contain("className=\"chat-face\"");
     }
 
     [Fact]
     public void MessagingIsTextOnly_NoAttachmentOrMediaPath()
     {
-        var page = Read(Portal, "Messages.tsx");
+        var page = Read(Portal, "pages/Messages.tsx");
         page.Should().NotContain("type=\"file\"").And.NotContain("FormData").And.NotContain("<video").And.NotContain("<audio")
             .And.NotContain("dangerouslySetInnerHTML").And.NotContain("innerHTML");
 
@@ -90,19 +90,19 @@ public class MessagingV2SourceTests
     [Fact]
     public void TheHeaderBadge_IsOneServerNumber_PolledByThePortal_NoHubNeeded()
     {
-        var unread = Read(Portal, "unread.ts");
+        var unread = Read(Portal, "data/unread.ts");
         unread.Should().Contain("'/api/conversations/unread'").And.Contain("document.visibilityState === 'visible'")
             .And.Contain("'visibilitychange'", "coming back to the tab refreshes it").And.Contain("useSyncExternalStore")
             .And.Contain("publishUnread", "/messages feeds the badge from the list it already loaded");
         unread.Should().NotContain("SignalR").And.NotContain("WebSocket").And.NotContain("EventSource");
 
-        Read(Portal, "Messages.tsx").Should().Contain("publishUnread(o.data)");
+        Read(Portal, "pages/Messages.tsx").Should().Contain("publishUnread(o.data)");
 
         // #226 F12: on /messages the list's own poll feeds the badge, so the shell's 10 s badge poll stands down while the
         // page is mounted (coming back to the tab or online still asks), and resumes when the page goes.
         unread.Should().Contain("setInterval(() => providers === 0 && tick(), POLL_MS)")
             .And.Contain("export function useUnreadProvider()").And.Contain("providers -= 1");
-        Read(Portal, "Messages.tsx").Should().Contain("useUnreadProvider();");
+        Read(Portal, "pages/Messages.tsx").Should().Contain("useUnreadProvider();");
         Read(Web, "Endpoints", "MessagingEndpoints.cs").Should().Contain("MapGet(\"/unread\"");
 
         // Semantics shared with the list: not mine and my id not in ReadBy, summed.

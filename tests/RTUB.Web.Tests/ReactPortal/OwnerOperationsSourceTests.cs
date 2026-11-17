@@ -58,8 +58,8 @@ public class OwnerOperationsSourceTests
                      ("/owner/tracing", "OwnerTracing"), ("/owner/dashboard", "OwnerDashboard"), ("/owner/db", "OwnerDatabase"),
                  })
         {
-            main.Should().Contain($"'{route}': lazy(() => import('./{page}')),");
-            File.Exists(Path.Combine(Portal, page + ".tsx")).Should().BeTrue();
+            main.Should().Contain($"'{route}': lazy(() => import('./pages/{page}')),");
+            File.Exists(Path.Combine(Portal, "pages", page + ".tsx")).Should().BeTrue();
         }
 
         program.Should().Contain("app.MapOwnerEndpoints();")
@@ -81,7 +81,7 @@ public class OwnerOperationsSourceTests
     [Fact]
     public void TheOwnerPages_SayNothingAboutTheMove_AndLinkNoRemovedModule()
     {
-        foreach (var file in Directory.GetFiles(Portal, "Owner*.tsx").Append(Path.Combine(Portal, "ownerApi.ts")))
+        foreach (var file in Directory.GetFiles(Portal, "Owner*.tsx", SearchOption.AllDirectories).Append(Path.Combine(Portal, "data/ownerApi.ts")))
         {
             var text = File.ReadAllText(file);
             var visible = Regex.Replace(text, @"/\*\*.*?\*/|//[^\n]*", string.Empty, RegexOptions.Singleline);
@@ -102,7 +102,7 @@ public class OwnerOperationsSourceTests
     public void Tracing_LabelsEveryAuditedType()
     {
         // Task 050: ENTITY_LABELS lives in ownerApi.ts, shared by /owner/tracing and /owner/dashboard.
-        var tracing = Read(Portal, "ownerApi.ts");
+        var tracing = Read(Portal, "data/ownerApi.ts");
         var audited = typeof(RTUB.Application.Data.ApplicationDbContext).GetProperties()
             .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(Microsoft.EntityFrameworkCore.DbSet<>))
             .Select(p => p.PropertyType.GetGenericArguments()[0])
@@ -125,7 +125,7 @@ public class OwnerOperationsSourceTests
     [Fact]
     public void Tracing_CardLeadsWithTheName_AndDetailsKeepTheRawEvidence()
     {
-        var tracing = Read(Portal, "OwnerTracing.tsx");
+        var tracing = Read(Portal, "pages/OwnerTracing.tsx");
         var card = tracing[tracing.IndexOf("<ul className=\"owner-logs\">", StringComparison.Ordinal)..tracing.IndexOf("<OwnerPager", StringComparison.Ordinal)];
 
         string[] order = ["owner-log__name", "owner-log__type", "owner-action", "Crítica", "owner-log__meta", "name=\"eye\"", "icon-btn--danger"];

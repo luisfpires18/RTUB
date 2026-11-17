@@ -1,6 +1,6 @@
 # React Events (`/events`)
 
-`/events` is the React agenda (`src/RTUB.Web/portal/src/Events.tsx`); `/events/{id}` is one event (`EventDetail.tsx`).
+`/events` is the React agenda (`src/RTUB.Web/portal/src/pages/Events.tsx`); `/events/{id}` is one event (`EventDetail.tsx`).
 Members answer (Vou / Não vou) in a modal (`EventDialogs.tsx`), from a card's quick reply or the event page. Admin and
 Owner create, edit, delete, manage the image, cancel or reactivate, and send notices in modals on the same pages.
 
@@ -207,7 +207,7 @@ it counts as a performance and in XP at once, and the activity status is reconci
 
 ## Calendário: "Adicionar ao Google Calendar"
 
-Shared by events, rehearsals and `/pending-actions`. `portal/src/calendar.ts` builds the link; `CalendarOffer.tsx` shows it.
+Shared by events, rehearsals and `/pending-actions`. `portal/src/data/calendar.ts` builds the link; `CalendarOffer.tsx` shows it.
 
 - **When:** right after the server saves a member's **new** "vou" to an upcoming, not cancelled activity. Also on the event dialog, the rehearsal dialog,
   and a "Vou" under Próximas on `/pending-actions`. Never after "não", a past "Fui", a failed save, a page load, or re-saving a "vou" that was already a "vou".

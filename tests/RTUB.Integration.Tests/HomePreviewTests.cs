@@ -91,19 +91,19 @@ public class HomePreviewTests : IntegrationTestBase
     [Fact]
     public void Home_ReadsRealPreviews_AndNoLongerShowsTheIllustrationsOrTheStaticAgenda()
     {
-        var home = Source("Home.tsx");
+        var home = Source("pages/Home.tsx");
 
         home.Should().Contain("getUpcomingEvents()").And.Contain("events.slice(0, 3)", "at most three event cards");
         home.Should().Contain("getGalleryPreview(PREVIEW_PHOTOS)").And.Contain("!i.membersOnly");
         home.Should().NotContain("galleryTiles").And.NotContain("Ilustrações")
             .And.NotContain("As datas confirmadas estão na agenda completa.");
-        Source("content.ts").Should().NotContain("galleryTiles").And.NotContain("instruments");
+        Source("data/content.ts").Should().NotContain("galleryTiles").And.NotContain("instruments");
     }
 
     [Fact]
     public void Home_Copy_Follows010()
     {
-        var home = Source("Home.tsx");
+        var home = Source("pages/Home.tsx");
 
         home.Should().NotContain("Quatro discos, uma só voz").And.Contain("álbuns para ouvir e recordar");
         home.Should().NotContain("aria-label=\"Instrumentos\"", "the guitarra/bandolim/cavaquinho/voz tags are gone");
@@ -118,7 +118,7 @@ public class HomePreviewTests : IntegrationTestBase
     [Fact]
     public void Gallery_ShowsVisitorsNoMembersOnlyTeaser()
     {
-        var gallery = Source("Gallery.tsx");
+        var gallery = Source("pages/Gallery.tsx");
 
         gallery.Should().NotContain("reservadas a membros").And.NotContain("Entrar como membro");
     }
@@ -127,7 +127,7 @@ public class HomePreviewTests : IntegrationTestBase
     public void Music_ShowsVisitorsNoMembersOnlyAlbumsTeaser()
     {
         // #228: the header already has Login; the public page carries no extra "reservados a membros" block.
-        var music = Source("Music.tsx");
+        var music = Source("pages/Music.tsx");
 
         music.Should().NotContain("reservados a membros").And.NotContain("Entrar como membro").And.NotContain("music__members");
         Source("styles.css").Should().NotContain(".music__members");
@@ -136,7 +136,7 @@ public class HomePreviewTests : IntegrationTestBase
     [Fact]
     public void RequestForm_Copy_Follows010()
     {
-        var request = Source("Request.tsx");
+        var request = Source("pages/Request.tsx");
 
         request.Should().Contain("Definir intervalo de datas").And.NotContain("Ainda sem data fechada");
         request.Should().NotContain("Localidade e, se já souber, o sítio.");
@@ -146,11 +146,11 @@ public class HomePreviewTests : IntegrationTestBase
     [Fact]
     public void SearchAndFilterFields_ShareOneControl_AndBackLinksOneStyle()
     {
-        Source("Gallery.tsx").Should().Contain("className=\"control\"").And.Contain("className=\"control control--select\"");
-        Source("Governance.tsx").Should().Contain("className=\"control control--select\"");
-        Source("MusicAlbum.tsx").Should().Contain("className=\"control album-tools__search\"").And.Contain("className=\"back-link\"");
-        Source("MusicUi.tsx").Should().Contain("control control--select control--sm");
-        Source("Privacy.tsx").Should().Contain("className=\"back-link\"");
+        Source("pages/Gallery.tsx").Should().Contain("className=\"control\"").And.Contain("className=\"control control--select\"");
+        Source("pages/Governance.tsx").Should().Contain("className=\"control control--select\"");
+        Source("pages/MusicAlbum.tsx").Should().Contain("className=\"control album-tools__search\"").And.Contain("className=\"back-link\"");
+        Source("components/MusicUi.tsx").Should().Contain("control control--select control--sm");
+        Source("pages/Privacy.tsx").Should().Contain("className=\"back-link\"");
 
         var css = Source("styles.css");
         css.Should().Contain(".control {").And.Contain(".control:focus-within").And.Contain(".back-link {");

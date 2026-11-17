@@ -17,8 +17,8 @@ public class StartupReminderPortalTests
     [Fact]
     public void TheReminder_IsForMembers_NeverStacks_AndAsksTheBrowserOnlyFromTheClick()
     {
-        var app = Read("App.tsx");
-        var startup = Read("Startup.tsx");
+        var app = Read("components/App.tsx");
+        var startup = Read("components/Startup.tsx");
 
         app.Should().Contain("{member && <StartupModals />}", "visitors never see it");
         app.Should().Contain("if (user && !user.authenticated) resetStartup();", "sign-out and /login start a new launch");

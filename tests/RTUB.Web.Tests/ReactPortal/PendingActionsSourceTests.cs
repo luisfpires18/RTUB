@@ -13,7 +13,7 @@ public class PendingActionsSourceTests
     [Fact]
     public void TheAnswerDialog_UsesEachModulesNoteLimit()
     {
-        var page = File.ReadAllText(Path.Combine(FindRoot(), "src", "RTUB.Web", "portal", "src", "PendingActions.tsx"));
+        var page = File.ReadAllText(Path.Combine(FindRoot(), "src", "RTUB.Web", "portal", "src", "pages/PendingActions.tsx"));
 
         page.Should().Contain($"'{EventResponsePendingActionSource.KindCode}': {EventAgendaService.MaxNotesLength}")
             .And.Contain($"'{RehearsalResponsePendingActionSource.KindCode}': {RehearsalAgendaService.NotesMax}")

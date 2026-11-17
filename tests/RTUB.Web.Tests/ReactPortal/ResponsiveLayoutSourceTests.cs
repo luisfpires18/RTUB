@@ -53,14 +53,14 @@ public class ResponsiveLayoutSourceTests
     [Fact]
     public void Governance_UsesTheSharedHead_AndOffersAYearOnlyWhenOneIsMissing()
     {
-        var page = Read("src", "Governance.tsx");
+        var page = Read("src", "pages/Governance.tsx");
         page.Should().Contain("<header className=\"page__head events-page__head\">");
         page.Should().Contain("const canAddYear = !!manage && manage.availableStartYears.length > 0;",
             "the server's list of start years still missing decides (#224), not a client rule");
         page.Should().Contain("{canAddYear && (");
-        Read("src", "GovernanceManage.tsx").Should().Contain("Não falta criar nenhum ano letivo", "the dialog keeps its defensive message");
+        Read("src", "components/GovernanceManage.tsx").Should().Contain("Não falta criar nenhum ano letivo", "the dialog keeps its defensive message");
 
-        foreach (var file in new[] { "Gallery.tsx", "Music.tsx" })
+        foreach (var file in new[] { "pages/Gallery.tsx", "pages/Music.tsx" })
         {
             Read("src", file).Should().Contain("<header className=\"page__head events-page__head\">",
                 $"{file}: a local 1fr auto grid inside .page__head's 44rem cap floated the actions mid-page");
@@ -72,7 +72,7 @@ public class ResponsiveLayoutSourceTests
     [Fact]
     public void LeaderboardLevels_OpenByDefault_InABalancedGrid()
     {
-        var page = Read("src", "Leaderboard.tsx");
+        var page = Read("src", "pages/Leaderboard.tsx");
         page.Should().Contain("<details className=\"leaderboard-levels\" open>");
         page.Should().Contain("me: Entry | null").And.Contain("l.level === me.level ? ' is-current'");
 

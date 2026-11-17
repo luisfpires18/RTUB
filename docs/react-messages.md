@@ -5,8 +5,8 @@ A WhatsApp-like chat in the React portal over the four v1 messaging tables: `Con
 sent to sign in). The open conversation is `/messages?c=<id>`. `/messages/{id}` and `/hubs/messages` are 404; there is no
 SignalR hub or package.
 
-Code: `Endpoints/MessagingEndpoints.cs` -> `MessagingService`, `Services/MessagingGroups.cs`, `portal/src/Messages.tsx`,
-`portal/src/unread.ts`, `MemberShell.tsx` (`MemberInbox`).
+Code: `Endpoints/MessagingEndpoints.cs` -> `MessagingService`, `Services/MessagingGroups.cs`, `portal/src/pages/Messages.tsx`,
+`portal/src/data/unread.ts`, `MemberShell.tsx` (`MemberInbox`).
 
 ## Tables are preserved: never drop them
 

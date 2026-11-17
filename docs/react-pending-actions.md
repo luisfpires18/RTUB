@@ -6,7 +6,7 @@ load. The only stored thing is a member's own dismissal of an optional action.
 
 Code: `src/RTUB.Core/Entities/PendingActionDismissal.cs`, `Interfaces/IPendingActionsService.cs` (service +
 `IPendingActionSource` contract), `Services/PendingActionsService.cs`, `Services/PendingActionSources.*.cs`,
-`Endpoints/PendingActionsEndpoints.cs`, `portal/src/PendingActions.tsx`, `pendingActionsApi.ts`, `styles.css` (`.pa-*`).
+`Endpoints/PendingActionsEndpoints.cs`, `portal/src/pages/PendingActions.tsx`, `pendingActionsApi.ts`, `styles.css` (`.pa-*`).
 A new panel = a new `IPendingActionSource` registered in `ServiceCollectionExtensions` (registration order = page order).
 Tests: `PendingActionsServiceTests`, `PendingActionsApiTests`, `RehearsalAttendanceAdminWorkflowTests`
 (`AddFirstAttendanceAsync`); `tests/responsive/responsive_audit.py` scenarios `pending-actions*` (the dialog scenario

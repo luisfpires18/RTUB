@@ -1,6 +1,6 @@
 # React Órgãos Sociais (`/roles`)
 
-`/roles` is React (`portal/src/Governance.tsx`, `GovernanceManage.tsx`). It shows the public mandate, the RGI for
+`/roles` is React (`portal/src/pages/Governance.tsx`, `GovernanceManage.tsx`). It shows the public mandate, the RGI for
 members, and lets Mod, Admin and Owner add fiscal years and assign or remove positions in modals on the same page.
 Code: `Endpoints/GovernanceEndpoints.cs`, `Helpers/GovernanceAuthorization.cs`, `IGovernanceManagementService`,
 `GovernanceService.Structure`.

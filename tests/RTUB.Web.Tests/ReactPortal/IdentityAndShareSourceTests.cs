@@ -35,7 +35,7 @@ public class IdentityAndShareSourceTests
 
         foreach (var (route, page) in new[] { ("/forgot-password", "ForgotPassword"), ("/reset-password", "ResetPassword"), ("/confirm-email", "ConfirmEmail"), ("/share", "Share") })
         {
-            main.Should().Contain($"'{route}': lazy(() => import('./{page}')),");
+            main.Should().Contain($"'{route}': lazy(() => import('./pages/{page}')),");
         }
 
         program.Should().Contain("new[] { \"/forgot-password\", \"/reset-password\", \"/confirm-email\" }")
@@ -61,17 +61,17 @@ public class IdentityAndShareSourceTests
     [Fact]
     public void TheTokenPages_KeepTokensOutOfStorageTheAddressBarAndTheLogs()
     {
-        foreach (var file in new[] { "ForgotPassword.tsx", "ResetPassword.tsx", "ConfirmEmail.tsx", "accountApi.ts", "Share.tsx" })
+        foreach (var file in new[] { "pages/ForgotPassword.tsx", "pages/ResetPassword.tsx", "pages/ConfirmEmail.tsx", "data/accountApi.ts", "pages/Share.tsx" })
         {
             var source = Read(Portal, file);
             source.Should().NotContain("localStorage").And.NotContain("sessionStorage").And.NotContain("console.");
         }
 
-        Read(Portal, "accountApi.ts").Should().Contain("history.replaceState(null, '', location.pathname)");
-        Read(Portal, "ResetPassword.tsx").Should().Contain("let link = takeLinkQuery('code', 'email');")
+        Read(Portal, "data/accountApi.ts").Should().Contain("history.replaceState(null, '', location.pathname)");
+        Read(Portal, "pages/ResetPassword.tsx").Should().Contain("let link = takeLinkQuery('code', 'email');")
             .And.Contain("link = { code: null, email: null };", "forgotten once used")
             .And.NotContain("useState(link", "never in React state");
-        Read(Portal, "ConfirmEmail.tsx").Should().Contain("const link = takeLinkQuery('userId', 'code');");
+        Read(Portal, "pages/ConfirmEmail.tsx").Should().Contain("const link = takeLinkQuery('userId', 'code');");
 
         var service = Read(Root, "src", "RTUB.Application", "Services", "AccountRecoveryService.cs");
         Regex.Matches(service, @"_logger\.Log\w+\([^;]*\b(token|callbackUrl|Code)\b", RegexOptions.Singleline).Should().BeEmpty("no token is logged");
@@ -91,11 +91,11 @@ public class IdentityAndShareSourceTests
         share.GetProperty("params").EnumerateObject().Select(p => (p.Name, p.Value.GetString()))
             .Should().BeEquivalentTo([("title", "title"), ("text", "text"), ("url", "url")]);
 
-        var page = Read(Portal, "Share.tsx");
+        var page = Read(Portal, "pages/Share.tsx");
         page.Should().Contain("new URLSearchParams(location.search)", "the shared values come from the share_target query")
             .And.NotContain("takeLinkQuery", "the query stays, so a reload keeps the shared content")
             .And.NotContain("fetch(", "nothing shared is sent anywhere");
-        Read(Portal, "content.ts").Should().Contain("share: '/share',");
+        Read(Portal, "data/content.ts").Should().Contain("share: '/share',");
 
         Read(Web, "wwwroot", "service-worker.js").Should().NotContain("share");
         File.Exists(Path.Combine(Web, "Pages", "Share.razor")).Should().BeFalse();
@@ -104,7 +104,7 @@ public class IdentityAndShareSourceTests
     [Fact]
     public void TheNewPages_SayNothingAboutTheMove_AndLinkNoRemovedModule()
     {
-        foreach (var file in new[] { "ForgotPassword.tsx", "ResetPassword.tsx", "ConfirmEmail.tsx", "accountApi.ts", "Share.tsx" }.Select(f => Path.Combine(Portal, f))
+        foreach (var file in new[] { "pages/ForgotPassword.tsx", "pages/ResetPassword.tsx", "pages/ConfirmEmail.tsx", "data/accountApi.ts", "pages/Share.tsx" }.Select(f => Path.Combine(Portal, f))
                      .Append(Path.Combine(Web, "wwwroot", "error.html")))
         {
             var text = File.ReadAllText(file);
@@ -116,7 +116,7 @@ public class IdentityAndShareSourceTests
             }
         }
 
-        Read(Portal, "content.ts").Should().NotContain("legacy", "no Blazor page is left to link out to");
+        Read(Portal, "data/content.ts").Should().NotContain("legacy", "no Blazor page is left to link out to");
     }
 
     private static string GetProjectRoot()

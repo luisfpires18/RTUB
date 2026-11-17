@@ -1,6 +1,6 @@
 # React Members (`/members`, `/members/hierarchy`)
 
-React: `portal/src/Members.tsx`, `MemberDialogs.tsx`, `MemberManage.tsx`, `MembersHierarchy.tsx` over `/api/members`.
+React: `portal/src/pages/Members.tsx`, `MemberDialogs.tsx`, `MemberManage.tsx`, `MembersHierarchy.tsx` over `/api/members`.
 Code: `Endpoints/MemberEndpoints.cs`, `Helpers/MembersAuthorization.cs`, `MemberInfoRules`, `IMemberDirectoryService`
 (reads), `IMemberAdminService` (tools), `MemberHierarchyService`. Related: Classificação in
 [react-leaderboard](react-leaderboard.md); profile, map and Hall of Fame in [react-member-area](react-member-area.md).
