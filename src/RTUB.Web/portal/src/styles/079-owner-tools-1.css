@@ -1,0 +1,297 @@
+/* ---------- Owner tools (task 035): /users, /owner/tracing, /owner/db, /emails, /notifications ---------- */
+
+.owner-page {
+  display: grid;
+  gap: 20px;
+}
+
+.owner-page > * {
+  min-width: 0;
+}
+
+.owner-page__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.owner-page__title .icon {
+  flex: none;
+  width: 0.8em;
+  height: 0.8em;
+  color: var(--purple-ink);
+}
+
+.owner-page__actions,
+.owner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.owner-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.owner-card__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.owner-card__title .icon {
+  flex: none;
+  color: var(--purple-ink);
+}
+
+details.owner-card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+details.owner-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.owner-card:not([open]) {
+  gap: 0;
+}
+
+.owner-flash {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid #40c078;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.owner-flash > .icon {
+  flex: none;
+  color: #8fe0b0;
+}
+
+.owner-flash--error {
+  border-left-color: #ff8f86;
+}
+
+.owner-flash--error > .icon {
+  color: #ffb3ad;
+}
+
+.owner-flash p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.owner-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner-danger {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 143, 134, 0.4);
+  border-radius: 12px;
+  background: rgba(255, 143, 134, 0.08);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.owner-danger p,
+.owner-danger ul {
+  margin: 0;
+}
+
+.owner-danger ul {
+  padding-left: 1.25rem;
+  color: var(--ink-soft);
+}
+
+.owner-danger .icon {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -2px;
+  color: #ffb3ad;
+}
+
+.owner-search {
+  width: 100%;
+}
+
+.owner-columns {
+  display: grid;
+  gap: 24px;
+}
+
+@media (min-width: 960px) {
+  .owner-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.owner-people {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+
+.owner-people__title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.owner-people__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.owner-people__list {
+  display: grid;
+  gap: 6px;
+  max-height: 420px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.owner-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+label.owner-person {
+  cursor: pointer;
+}
+
+.owner-person input[type='checkbox'] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--purple);
+}
+
+.owner-person__avatar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-card);
+}
+
+.owner-person__name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.owner-person__name strong,
+.owner-person__name .note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-person__name strong {
+  color: var(--ink);
+}
+
+/* Rows grow when "Ver sessões" opens (the shared grid list squeezed them under max-height). */
+.owner-logins {
+  display: flex;
+  flex-direction: column;
+  /* The modal body is a fixed-height grid: without a floor it squeezes this scroll box to a row on phones. */
+  min-height: min(300px, 50vh);
+}
+
+.owner-logins > .owner-person {
+  flex: none;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+@media (max-width: 480px) {
+  .owner-logins .owner-login__when {
+    flex-basis: 100%;
+    padding: 0 0 0 42px;
+    text-align: left;
+  }
+
+  .owner-logins .owner-login__when br {
+    display: none;
+  }
+}
+
+.owner-login__times summary {
+  color: var(--purple-ink);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.owner-login__times ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+}
+
+.owner-login__when {
+  flex: none;
+  align-self: start;
+  padding-top: 4px;
+  text-align: right;
+}
+
+.owner-preview {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #fff;
+  color: #222;
+  overflow-wrap: anywhere;
+}
+
+.owner-preview__title {
+  margin: 0;
+  color: #3f2a86;
+  font-size: 1.25rem;
+}
+
+.owner-preview p {
+  margin: 0;
+}

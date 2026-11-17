@@ -17,6 +17,12 @@ public class MessagingV2SourceTests
     private static readonly string Portal = Path.Combine(Web, "portal", "src");
     private static string Read(params string[] parts) => File.ReadAllText(Path.Combine(parts));
 
+    // Task 113 split pages/Messages.tsx into the page, components/Message*.tsx and data/messagesApi.ts.
+    private static string MessagesPage() => string.Join("\n", new[]
+    {
+        "pages/Messages.tsx", "components/MessageParts.tsx", "components/MessageThread.tsx", "components/MessageStart.tsx", "data/messagesApi.ts",
+    }.Select(f => Read(Portal, f)));
+
     [Fact]
     public void TheRoute_IsTheReactPage_LinkedFromTheMemberMenu()
     {
@@ -50,13 +56,16 @@ public class MessagingV2SourceTests
     [Fact]
     public void Nova_PicksMembersWithoutCreatingAnything_AndTheFirstMessageStartsTheChatOrGroup()
     {
-        var page = Read(Portal, "pages/Messages.tsx");
-        var dialog = page[page.IndexOf("function StartDialog(", StringComparison.Ordinal)..];
+        var page = MessagesPage();
+        // DraftThread and StartDialog (still the last function) now live in MessageStart.tsx; Composer moved to MessageParts.tsx,
+        // so the draft slice ends at StartDialog, the next function in the same file.
+        var start = Read(Portal, "components/MessageStart.tsx");
+        var dialog = start[start.IndexOf("function StartDialog(", StringComparison.Ordinal)..];
         dialog.Should().NotContain("api.start(", "picking members stores nothing")
             .And.Contain("aria-pressed=").And.Contain("Nome do grupo").And.Contain("Criar grupo");
         page.Should().Contain("api.direct(people[0].id)", "one member: their existing chat opens")
             .And.Contain("function DraftThread(");
-        var draft = page[page.IndexOf("function DraftThread(", StringComparison.Ordinal)..page.IndexOf("function Composer(", StringComparison.Ordinal)];
+        var draft = start[start.IndexOf("function DraftThread(", StringComparison.Ordinal)..start.IndexOf("function StartDialog(", StringComparison.Ordinal)];
         draft.Should().Contain("api.start(", "the conversation is created with its first message");
         page.Should().Contain("call<Detail>('POST', '/api/conversations', { userIds, title, body })");
     }
@@ -66,14 +75,14 @@ public class MessagingV2SourceTests
     {
         // VETERANOS, TUNOSSAUROS... leave the inboxes on deploy, not only at the daily job (062).
         Read(Web, "Program.cs").Should().Contain("await MessagingGroups.SyncAsync(db, DateTime.UtcNow);");
-        var page = Read(Portal, "pages/Messages.tsx");
+        var page = MessagesPage();
         page.Should().Contain("kind === 'system' ? RTUB_LOGO : avatarUrl").And.Contain("className=\"chat-face\"");
     }
 
     [Fact]
     public void MessagingIsTextOnly_NoAttachmentOrMediaPath()
     {
-        var page = Read(Portal, "pages/Messages.tsx");
+        var page = MessagesPage();
         page.Should().NotContain("type=\"file\"").And.NotContain("FormData").And.NotContain("<video").And.NotContain("<audio")
             .And.NotContain("dangerouslySetInnerHTML").And.NotContain("innerHTML");
 

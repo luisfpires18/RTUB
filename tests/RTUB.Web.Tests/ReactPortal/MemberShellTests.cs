@@ -16,9 +16,17 @@ public class MemberShellTests
     private static readonly string Src = Path.Combine(Root, "src", "RTUB.Web", "portal", "src");
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Src, file)).Replace("\r\n", "\n");
+    private static string Css() => PortalCss.Read(Src).Replace("\r\n", "\n");
 
     private static string Function(string file, string name) =>
         Regex.Match(Read(file), $@"\nfunction {name}\(.*?\n\}}\n", RegexOptions.Singleline).Value;
+
+    // The old components/App.tsx was split into these files (task 113).
+    private static string AppFiles() => string.Join("\n", new[]
+    {
+        "components/App.tsx", "components/AppChrome.tsx", "components/AppShared.tsx",
+        "components/AppLaunch.tsx", "components/AppAnnouncement.tsx", "data/sections.ts",
+    }.Select(Read));
 
     private static string Exported(string file, string name) =>
         Regex.Match(Read(file), $@"\nexport function {name}\(.*?\n\}}\n", RegexOptions.Singleline).Value;
@@ -26,7 +34,7 @@ public class MemberShellTests
     [Fact]
     public void Header_ShowsVisitorsPedirAtuacaoAndLogin_AndMembersTheirIdentityAndMenu()
     {
-        var header = Function("components/App.tsx", "Header");
+        var header = Exported("components/AppChrome.tsx", "Header");
         header.Should().NotBeEmpty();
 
         // {shell ? ( member branch ) : ( visitor branch )}
@@ -44,8 +52,8 @@ public class MemberShellTests
         header.Should().Contain("{!shell && (", "the public section nav is the visitors' header only")
             .And.NotContain("AccountLink", "the header never says Membros or A minha conta");
 
-        Function("components/App.tsx", "LoginLink").Should().Contain("href={portal.login}").And.Contain(">Login<");
-        Function("components/App.tsx", "MobileMenu").Should().Contain("<LoginLink").And.Contain("Pedir uma atuação").And.NotContain("AccountLink");
+        Exported("components/AppChrome.tsx", "LoginLink").Should().Contain("href={portal.login}").And.Contain(">Login<");
+        Exported("components/AppChrome.tsx", "MobileMenu").Should().Contain("<LoginLink").And.Contain("Pedir uma atuação").And.NotContain("AccountLink");
     }
 
     [Fact]
@@ -54,15 +62,15 @@ public class MemberShellTests
         var layout = Exported("components/App.tsx", "Layout");
         layout.Should().NotContain("Rail").And.NotContain("collapsed");
 
-        var app = Read("components/App.tsx");
+        var app = AppFiles();
         app.Should().NotContain("MemberRail").And.NotContain("useRailCollapsed").And.NotContain("rtub-member-rail")
             .And.Contain("if (user?.authenticated) return { kind: 'member', user };")
             .And.Contain("if (user || failed || !hint) return { kind: 'visitor' };", "a visitor never waits for the session");
         Read("components/MemberShell.tsx").Should().NotContain("MemberRail").And.NotContain("compact");
-        Read("data/api.ts").Should().Contain("rememberMemberShell(false);\n    const form = document.createElement('form');",
+        Read("data/signInApi.ts").Should().Contain("rememberMemberShell(false);\n    const form = document.createElement('form');",
             "signing out drops the layout hint before leaving");
 
-        var css = Read("styles.css");
+        var css = Css();
         css.Should().NotContain("--rail").And.NotContain(".rail").And.NotContain("shell--collapsed", "no leftover sidebar offset or grid column");
     }
 
@@ -82,7 +90,7 @@ public class MemberShellTests
     [Fact]
     public void PublicNavigation_AndMemberMenuEachLinkToShopOnce()
     {
-        var app = Read("components/App.tsx");
+        var app = AppFiles();
         app.Should().Contain("{ id: 'shop', label: 'Loja' }")
             .And.Contain("shop: portal.shop,")
             .And.Contain("{!shell && (", "the public header is replaced by the member shell after sign-in")
@@ -141,7 +149,7 @@ public class MemberShellTests
         foreach (var url in new[] { "/games", "/bets", "/my-tuno", "/messages", "'/images'", "/labels" })
         {
             shell.Should().NotContain(url);
-            Read("components/App.tsx").Should().NotContain(url);
+            AppFiles().Should().NotContain(url);
         }
 
         // Task 044: Perfil and Mensagens are header controls (profile chip, inbox), not drawer links.
@@ -194,7 +202,7 @@ public class MemberShellTests
         else
         {
             line.Should().Contain($"when: '{flag}'");
-            Read("data/api.ts").Should().Contain($"{flag}: boolean", "the flag comes from /api/account/me");
+            Read("data/apiSession.ts").Should().Contain($"{flag}: boolean", "the flag comes from /api/account/me");
         }
     }
 
@@ -205,7 +213,7 @@ public class MemberShellTests
         drawer.Should().Contain("showModal()").And.Contain("<MemberNav member={member} onNavigate={hide} />")
             .And.Contain("if (e.target === e.currentTarget) hide();", "a tap on the backdrop closes it");
 
-        var css = Read("styles.css");
+        var css = Css();
         Regex.Match(css, @"\.drawer__panel \{[^}]*\}").Value.Should().Contain("env(safe-area-inset-bottom)").And.Contain("env(safe-area-inset-top)");
         Regex.Match(css, @"\.drawer \.mnav__link \{[^}]*\}").Value.Should().Contain("min-height: 48px", "thumb-sized targets on phones");
         Regex.Match(css, @"\n\.drawer \{[^}]*\}").Value.Should().Contain("inset: 0 0 0 auto", "the drawer opens from the right at every width");

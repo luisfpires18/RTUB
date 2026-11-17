@@ -1,0 +1,64 @@
+/* ---------- shared bits ---------- */
+
+.btn--danger {
+  background: #a3322b;
+  color: #fff;
+}
+
+.btn--danger:hover {
+  background: #8a2a24;
+}
+
+.music .btn:disabled,
+.music-album .btn:disabled,
+.modal .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-btn--sm {
+  width: 36px;
+  height: 36px;
+  font-size: 0.9375rem;
+  background: rgba(12, 11, 14, 0.75);
+}
+
+.icon-btn--danger:hover {
+  border-color: #ff8f86;
+  color: #ffb3ad;
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--purple-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.warning {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: #f5c46b;
+}
+
+.warning .icon {
+  flex: none;
+  margin-top: 4px;
+}
+
+.form__label {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}

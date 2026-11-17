@@ -13,7 +13,10 @@ public class PendingActionsSourceTests
     [Fact]
     public void TheAnswerDialog_UsesEachModulesNoteLimit()
     {
-        var page = File.ReadAllText(Path.Combine(FindRoot(), "src", "RTUB.Web", "portal", "src", "pages/PendingActions.tsx"));
+        // Task 113: the limits moved to data/pendingActionsView.ts and the answer row to components/PendingActionRows.tsx.
+        var src = Path.Combine(FindRoot(), "src", "RTUB.Web", "portal", "src");
+        var page = string.Join("\n", new[] { "pages/PendingActions.tsx", "data/pendingActionsView.ts", "components/PendingActionRows.tsx" }
+            .Select(f => File.ReadAllText(Path.Combine(src, f))));
 
         page.Should().Contain($"'{EventResponsePendingActionSource.KindCode}': {EventAgendaService.MaxNotesLength}")
             .And.Contain($"'{RehearsalResponsePendingActionSource.KindCode}': {RehearsalAgendaService.NotesMax}")

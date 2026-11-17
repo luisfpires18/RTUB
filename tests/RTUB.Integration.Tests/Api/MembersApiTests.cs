@@ -242,7 +242,10 @@ public class MembersApiTests : IClassFixture<EventsApiFactory>
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("members: '/members'").And.Contain("membersHierarchy: '/members/hierarchy'");
         File.ReadAllText(Path.Combine(src, "components/MemberShell.tsx")).Should().Contain("href: portal.members,").And.Contain("href: portal.membersHierarchy,");
-        foreach (var file in new[] { "pages/Members.tsx", "pages/MembersHierarchy.tsx", "components/MemberDialogs.tsx", "components/MemberManage.tsx", "data/membersApi.ts" })
+        // MemberManage.tsx was split (113) into the Member*Dialog / MemberFormFields files and data/memberFormState.ts.
+        var memberFiles = new[] { "pages/Members.tsx", "pages/MembersHierarchy.tsx", "components/MemberDialogs.tsx", "components/MemberFormDialog.tsx",
+            "components/MemberFormFields.tsx", "components/MemberInfoDialog.tsx", "components/MemberActionDialogs.tsx", "data/memberFormState.ts", "data/membersApi.ts" };
+        foreach (var file in memberFiles)
         {
             File.ReadAllText(Path.Combine(src, file)).Should().NotContainAny(new[] { "migra", "Migra" }, file);
         }

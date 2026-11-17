@@ -1,12 +1,14 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from '../components/App';
+import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
-import { ActiveMembersDialog, BirthdaysDialog, MemberDialog, MemberFace } from '../components/MemberDialogs';
-import { MemberBadge } from '../components/MemberBadge';
-import { ConfirmAction, MemberFormDialog, MemberInfoDialog, NicknameDialog } from '../components/MemberManage';
-import { memberAdminApi, membersApi, type ActiveMember, type Directory, type DirectoryFilters, type MemberCard, type MemberDetail } from '../data/membersApi';
+import { MemberDialog } from '../components/MemberDialogs';
+import { ActiveMembersDialog, BirthdaysDialog } from '../components/MemberListDialogs';
+import { MemberInfoDialog } from '../components/MemberInfoDialog';
+import { membersApi, type Directory, type DirectoryFilters } from '../data/membersApi';
 import { RetryNotice, SignInNotice } from '../components/Notice';
+import { Group } from '../components/MemberGroup';
+import { MemberTools, type Tool, ToolDialog } from '../components/MemberTools';
 
 const CATEGORIES = [
   { value: 'Leitao', label: 'Leitão' },
@@ -14,20 +16,15 @@ const CATEGORIES = [
   { value: 'Tuno', label: 'Tuno' },
   { value: 'TunoHonorario', label: 'Tuno Honorário' },
 ];
+
 const SUB_CATEGORIES = [
   { value: 'Tuno', label: 'Tuno' },
   { value: 'Veterano', label: 'Veterano' },
   { value: 'Tunossauro', label: 'Tunossauro' },
   { value: 'Fundador', label: 'Fundador' },
 ];
-const PAGE = { members: 30, leitoes: 18 };
 
-/** An Admin/Owner tool open over the page (React track 018). */
-type Tool =
-  | { kind: 'create' }
-  | { kind: 'edit'; id: string }
-  | { kind: 'nickname' | 'expel' | 'reactivate' | 'delete'; member: MemberDetail }
-  | { kind: 'reminder'; member: ActiveMember; reload: () => void };
+const PAGE = { members: 30, leitoes: 18 };
 
 function filtersFromUrl(): DirectoryFilters {
   const p = new URLSearchParams(location.search);
@@ -273,141 +270,6 @@ export default function Members() {
             else setVersion((v) => v + 1);
           }}
         />
-      )}
-    </section>
-  );
-}
-
-function MemberTools({ m, canDelete, onPick }: { m: MemberDetail; canDelete: boolean; onPick: (t: Tool) => void }) {
-  return (
-    <>
-      <button type="button" className="btn btn--ghost btn--sm" onClick={() => onPick({ kind: 'edit', id: m.id })}>
-        <Icon name="pencil" />
-        Editar
-      </button>
-      {m.leitao && (
-        <>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => onPick({ kind: 'nickname', member: m })}>
-            <Icon name="star" />
-            Definir alcunha
-          </button>
-          {m.expelled ? (
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => onPick({ kind: 'reactivate', member: m })}>
-              <Icon name="restore" />
-              Reativar
-            </button>
-          ) : (
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => onPick({ kind: 'expel', member: m })}>
-              <Icon name="ban" />
-              Expulsar
-            </button>
-          )}
-        </>
-      )}
-      {canDelete && (
-        <button type="button" className="btn btn--danger btn--sm" onClick={() => onPick({ kind: 'delete', member: m })}>
-          <Icon name="trash" />
-          Eliminar
-        </button>
-      )}
-    </>
-  );
-}
-
-function ToolDialog({
-  tool,
-  instruments,
-  onClose,
-  onChanged,
-}: {
-  tool: Tool;
-  instruments: Directory['instruments'];
-  onClose: () => void;
-  onChanged: (deleted: boolean) => void;
-}) {
-  const changed = () => onChanged(false);
-  switch (tool.kind) {
-    case 'create':
-      return <MemberFormDialog instrumentOptions={instruments} onClose={onClose} onSaved={changed} />;
-    case 'edit':
-      return <MemberFormDialog memberId={tool.id} instrumentOptions={instruments} onClose={onClose} onSaved={changed} />;
-    case 'nickname':
-      return <NicknameDialog member={tool.member} onClose={onClose} onDone={changed} />;
-    case 'expel':
-      return (
-        <ConfirmAction title="Expulsar membro" confirmLabel="Expulsar" danger run={() => memberAdminApi.expel(tool.member.id)} onClose={onClose} onDone={changed}>
-          <p>
-            Expulsar <strong>{tool.member.displayName}</strong>? Deixa de conseguir entrar na área de membros. Pode ser reativado mais tarde.
-          </p>
-        </ConfirmAction>
-      );
-    case 'reactivate':
-      return (
-        <ConfirmAction title="Reativar membro" confirmLabel="Reativar" run={() => memberAdminApi.reactivate(tool.member.id)} onClose={onClose} onDone={changed}>
-          <p>
-            Reativar <strong>{tool.member.displayName}</strong>? Volta a conseguir entrar na área de membros.
-          </p>
-        </ConfirmAction>
-      );
-    case 'delete':
-      return (
-        <ConfirmAction title="Eliminar membro" confirmLabel="Eliminar" danger run={() => memberAdminApi.remove(tool.member.id)} onClose={onClose} onDone={() => onChanged(true)}>
-          <p>
-            Eliminar <strong>{tool.member.displayName}</strong>?
-          </p>
-          <p className="warning">
-            <Icon name="warning" />
-            Apaga a conta e tudo o que lhe está ligado. Não dá para desfazer.
-          </p>
-        </ConfirmAction>
-      );
-    case 'reminder':
-      return (
-        <ConfirmAction title="Enviar lembrete push" confirmLabel="Enviar" run={() => memberAdminApi.reminder(tool.member.id)} onClose={onClose} onDone={tool.reload}>
-          <p>
-            Enviar um lembrete push a <strong>{tool.member.displayName}</strong> para participar numa atividade este mês?
-          </p>
-        </ConfirmAction>
-      );
-  }
-}
-
-function Group({ title, people, limit, onMore, onOpen }: { title: string; people: MemberCard[]; limit: number; onMore: () => void; onOpen: (id: string) => void }) {
-  return (
-    <section className="events-block" aria-label={title}>
-      <h2 className="events-block__title">
-        {title} · {people.length}
-      </h2>
-      <ul className="who members-grid">
-        {people.slice(0, limit).map((p) => (
-          <li key={p.id}>
-            <button type="button" className={p.expelled ? 'who__person member-card member-card--expelled' : 'who__person member-card'} onClick={() => onOpen(p.id)}>
-              <span className={p.online ? 'member-card__online is-on' : 'member-card__online'}>{p.online ? 'Online' : 'Offline'}</span>
-              <MemberFace avatarUrl={p.avatarUrl} size={72} />
-              <span className="who__name">{p.displayName}</span>
-              {p.fullName && <span className="who__meta">{p.fullName}</span>}
-              <span className="member-badges">
-                {p.badges.map((b) => (
-                  <MemberBadge key={b.kind} kind={b.kind}>{b.label}</MemberBadge>
-                ))}
-                {p.position && <MemberBadge kind="position">{p.position}</MemberBadge>}
-                {p.noRoles && <MemberBadge>Sem cargos</MemberBadge>}
-              </span>
-              {p.instrument && <span className="who__meta">{p.instrument}</span>}
-              {p.inactive && (
-                <span className="member-card__inactive">
-                  <Icon name="clock" />
-                  Não tem participado
-                </span>
-              )}
-            </button>
-          </li>
-        ))}
-      </ul>
-      {people.length > limit && (
-        <button type="button" className="btn btn--ghost btn--sm members-more" onClick={onMore}>
-          Mostrar mais ({people.length - limit})
-        </button>
       )}
     </section>
   );

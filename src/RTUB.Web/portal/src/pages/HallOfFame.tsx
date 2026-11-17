@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loading } from '../components/App';
+import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { MemberFace } from '../components/MemberDialogs';
 import { memberAreaApi, type FameRecord, type HallOfFame as Fame } from '../data/memberAreaApi';

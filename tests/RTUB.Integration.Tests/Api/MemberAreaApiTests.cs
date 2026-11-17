@@ -767,7 +767,8 @@ public class MemberAreaRetirementTests
     public void ProfilePage_Batch3_HeaderPhotoTunaInfoAndSharedBadge()
     {
         var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var profile = File.ReadAllText(Path.Combine(portal, "pages/Profile.tsx"));
+        // 113: /profile is the page plus its Profile* parts.
+        var profile = PortalSource.Cat(portal, "pages/Profile.tsx", "components/Profile*.tsx");
 
         profile.Should().NotContain("Entraste como", "one account per member: the sentence says nothing");
         profile.Should().NotContain("<PhotoSection", "the photo lives in the header, not in a card of its own")
@@ -781,12 +782,13 @@ public class MemberAreaRetirementTests
 
         // One badge component, with the per-kind variants kept in it: profile header, dialogs, directory and the header badge.
         File.ReadAllText(Path.Combine(portal, "components/MemberBadge.tsx")).Should().Contain("member-badge--${kind}");
-        foreach (var file in new[] { "pages/Profile.tsx", "components/MemberDialogs.tsx", "pages/Members.tsx", "components/MemberShell.tsx" })
+        // The directory rows moved from pages/Members.tsx to MemberGroup.tsx in 113; the profile header is Profile.tsx + ProfileTuna.tsx.
+        foreach (var file in new[] { "pages/Profile.tsx", "components/MemberDialogs.tsx", "components/MemberGroup.tsx", "components/MemberShell.tsx" })
         {
             File.ReadAllText(Path.Combine(portal, file)).Should().Contain("<MemberBadge", file);
         }
 
-        var css = File.ReadAllText(Path.Combine(portal, "styles.css"));
+        var css = PortalCss.Read(portal);
         css.Should().Contain(".member-badge--tuno").And.Contain(".member-badge--veterano").And.Contain(".member-badge--tunossauro")
             .And.NotContain(".profile-photo", "the standalone Foto card is gone");
 
@@ -797,7 +799,7 @@ public class MemberAreaRetirementTests
         }
 
         // Header (batch 4): inbox, then the category badge as its own control, then the profile chip, then the menu.
-        var app = File.ReadAllText(Path.Combine(portal, "components/App.tsx"));
+        var app = File.ReadAllText(Path.Combine(portal, "components/AppChrome.tsx")); // the header moved out of App.tsx in 113
         app.IndexOf("<MemberInbox />", StringComparison.Ordinal).Should().BeInRange(0, app.Length)
             .And.BeLessThan(app.IndexOf("<MemberCategory", StringComparison.Ordinal));
         app.IndexOf("<MemberCategory", StringComparison.Ordinal).Should().BeLessThan(app.IndexOf("<MemberIdentity", StringComparison.Ordinal));
@@ -820,7 +822,7 @@ public class MemberAreaRetirementTests
     public void EventMemberPanel_KeepsDiscussionAndContacts_AndSignedInPagesShareOneWidth()
     {
         var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var detail = File.ReadAllText(Path.Combine(portal, "pages/EventDetail.tsx"));
+        var detail = File.ReadAllText(Path.Combine(portal, "components/EventDetailBody.tsx")); // the member panel moved out of the page in 113
         var panel = detail[detail.IndexOf("member-panel__links", StringComparison.Ordinal)..];
         panel = panel[..panel.IndexOf("</aside>", StringComparison.Ordinal)];
         panel.Should().Contain("portal.eventDiscussion(").And.Contain("portal.eventContacts(")
@@ -829,7 +831,7 @@ public class MemberAreaRetirementTests
         File.ReadAllText(Path.Combine(portal, "pages/EventContacts.tsx")).Should().NotContain("Mod e acima</p>", "the eyebrow label is gone");
 
         // One container: the signed-in shell sets the width, no page narrows itself with its own max-width.
-        var css = File.ReadAllText(Path.Combine(portal, "styles.css"));
+        var css = PortalCss.Read(portal);
         css.Should().Contain(".shell--member {");
         System.Text.RegularExpressions.Regex.IsMatch(css, @"\.(talk|contacts)-page\s*\{\s*max-width").Should()
             .BeFalse("Discussão and Contactos used to be narrow centred columns");
@@ -840,7 +842,7 @@ public class MemberAreaRetirementTests
     {
         var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal");
         File.ReadAllText(Path.Combine(portal, "src", "pages/Messages.tsx")).Should().Contain("classList.add('app-screen')").And.Contain("classList.remove('app-screen')");
-        var css = File.ReadAllText(Path.Combine(portal, "src", "styles.css"));
+        var css = PortalCss.Read(Path.Combine(portal, "src"));
         css.Should().Contain("html.app-screen .footer").And.Contain("100dvh", "dynamic viewport units, not 100vh");
         File.ReadAllText(Path.Combine(portal, "index.html")).Should().Contain("interactive-widget=resizes-content");
     }
@@ -849,13 +851,13 @@ public class MemberAreaRetirementTests
     public void Messages_FillTheViewportOnDesktop_AndSystemWearsThePortalLogo()
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var messages = File.ReadAllText(Path.Combine(src, "pages/Messages.tsx"));
+        var messages = PortalSource.Cat(src, "pages/Messages.tsx", "components/Message*.tsx", "data/messagesApi.ts");
         messages.Should().Contain("/icons/rtub-logo-352.webp", "the logo the portal header uses").And.Contain("kind === 'system' ? RTUB_LOGO : avatarUrl", "only Notificações RTUB wears the portal logo; groups a chat icon, people their own avatar")
             .And.Contain("system: 0, group: 1, direct: 2", "Sistema RTUB, then groups, then people");
-        File.ReadAllText(Path.Combine(src, "components/App.tsx")).Should().Contain("/icons/rtub-logo-352.webp");
+        PortalSource.Cat(src, "components/App*.tsx").Should().Contain("/icons/rtub-logo-352.webp");
 
         // The app-screen rules are not phone-only: the desktop shell fits the viewport too, scoped to /messages by html.app-screen.
-        var css = File.ReadAllText(Path.Combine(src, "styles.css"));
+        var css = PortalCss.Read(src);
         var screen = css.IndexOf("html.app-screen,", StringComparison.Ordinal);
         screen.Should().BeGreaterThan(0);
         css.LastIndexOf("@media (max-width: 899px)", screen, StringComparison.Ordinal).Should().BeLessThan(css.LastIndexOf("@media (max-width: 899px)", StringComparison.Ordinal),
@@ -879,16 +881,17 @@ public class MemberAreaRetirementTests
         System.Text.RegularExpressions.Regex.Matches(shell, @"portal\.documentation,").Count.Should().Be(1);
         System.Text.RegularExpressions.Regex.Matches(shell, @"portal\.inventory,").Count.Should().Be(1);
 
-        R("pages/Events.tsx").Should().Contain("Onde estiveste").And.Contain("<WhereYouWereDialog").And.Contain("btn--prizes").And.NotContain("btn--gold");
-        R("pages/EventDetail.tsx").Should().Contain("Área da atuação").And.NotContain("Para membros").And.Contain("btn--prizes");
+        string Events() => PortalSource.Cat(src, "pages/Events.tsx", "components/EventsCards.tsx", "components/EventsToolbar.tsx");
+        Events().Should().Contain("Onde estiveste").And.Contain("<WhereYouWereDialog").And.Contain("btn--prizes").And.NotContain("btn--gold");
+        PortalSource.Cat(src, "pages/EventDetail.tsx", "components/EventDetail*.tsx").Should().Contain("Área da atuação").And.NotContain("Para membros").And.Contain("btn--prizes");
         R("pages/Rehearsals.tsx").Should().Contain("Adicionar vários").And.NotContain("Vários");
         R("pages/HallOfFame.tsx").Should().NotContain("portal.leaderboard");
-        R("pages/Events.tsx").Should().NotContain("As minhas inscrições", "the button says Onde estiveste");
-        R("components/EventDialogs.tsx").Should().Contain("title=\"Onde estiveste\"");
+        Events().Should().NotContain("As minhas inscrições", "the button says Onde estiveste");
+        R("components/EventStats.tsx").Should().Contain("title=\"Onde estiveste\"");
         System.Text.RegularExpressions.Regex.IsMatch(R("pages/Naipes.tsx"), @"btn--primary btn--sm""\s+onClick=\{\(\) => setEditing\(\{ kind: 'new', isVideo: false \}\)\}").Should().BeTrue("Adicionar imagem is a primary action");
-        System.Text.RegularExpressions.Regex.IsMatch(R("styles.css"), @"\.lx-board-page\s*\{\s*max-width").Should().BeFalse("the board uses the shared container");
+        System.Text.RegularExpressions.Regex.IsMatch(PortalCss.Read(src), @"\.lx-board-page\s*\{\s*max-width").Should().BeFalse("the board uses the shared container");
         R("components/MemberDialogs.tsx").Should().Contain("export const progressText");
-        System.Text.RegularExpressions.Regex.IsMatch(R("styles.css"), @"\.naipe-picker\s*\{[^}]*justify-content:\s*center").Should().BeTrue("the instrument picker is centred");
+        System.Text.RegularExpressions.Regex.IsMatch(PortalCss.Read(src), @"\.naipe-picker\s*\{[^}]*justify-content:\s*center").Should().BeTrue("the instrument picker is centred");
     }
 
     private static string RepoRoot()

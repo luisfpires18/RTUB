@@ -45,7 +45,7 @@ install the app.
 The splash is static markup in `portal/index.html` (logo on black while the bundle loads). Once React has committed,
 `revealApp` (`App.tsx`) decides, on the first load of a browser session:
 
-- `/` plays the opening (`styles.css`, *opening*; `.intro` on `<html>`, timings in `--intro-*`), about 3 s.
+- `/` plays the opening (`styles/004-opening.css`; `.intro` on `<html>`, timings in `--intro-*`), about 3 s.
 - Any other route gets the short curtain lift (a deep link never waits).
 - Later loads in the session, or `prefers-reduced-motion: reduce`: the splash is removed at once.
 
@@ -86,7 +86,7 @@ Unknown URLs are a plain 404.
 
 | Path | What |
 | --- | --- |
-| `src/RTUB.Web/portal/` | Source: `index.html` (shell + splash), `src/*.tsx`, `styles.css`, `vite.config.ts`. Excluded from publish (`RTUB.csproj`). LF-only (`.gitattributes`). |
+| `src/RTUB.Web/portal/` | Source: `index.html` (shell + splash), `src/{pages,components,data}/`, `src/styles.css` + `src/styles/`, `vite.config.ts`. Excluded from publish (`RTUB.csproj`). LF-only (`.gitattributes`). |
 | `src/RTUB.Web/wwwroot/portal/` | **Committed** build output, published as-is. |
 | `src/RTUB.Web/package.json` | `build:portal`, `check:portal`. |
 

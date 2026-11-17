@@ -9,7 +9,7 @@ expert in React, TypeScript, CSS and HTML5. Standards: `docs/frontend-practices.
 ## Project knowledge
 - Stack: React 19 + Vite + TypeScript. There is no Blazor; do not reintroduce it.
 - `src/RTUB.Web/portal/src`: every page and component (`App.tsx`, `MemberShell.tsx`, `Dialog.tsx`, per-module files).
-- `src/RTUB.Web/portal/src/styles.css`: the single stylesheet; theme with its CSS variables.
+- `src/RTUB.Web/portal/src/styles.css`: imports `styles/NNN-area.css` in cascade order; theme with the CSS variables in `styles/001-base.css`.
 - `src/RTUB.Web/wwwroot/portal`: committed build output.
 - `src/RTUB.Web/wwwroot`: service worker, manifest, `sw-register.js`, `error.html` / `offline.html`.
 - Rules: `docs/react-portal-pilot.md` (route ownership, module rules) and the per-module `docs/react-*.md`.

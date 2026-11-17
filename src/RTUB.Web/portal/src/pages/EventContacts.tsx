@@ -1,10 +1,10 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from '../components/App';
+import { Loading } from '../components/AppShared';
 import { Dialog } from '../components/Dialog';
 import { portal } from '../data/content';
 import { dateLabel, eventsApi, type EventContactRow, type EventContacts as Contacts, type EventSummary } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { when } from './EventDiscussion';
+import { when } from '../components/EventDiscussionShared';
 import { fold } from '../data/format';
 import { Notice, SignInNotice } from '../components/Notice';
 

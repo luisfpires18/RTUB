@@ -1,0 +1,66 @@
+/* ---------- mobile menu (native modal dialog) ---------- */
+
+.menu {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 12px var(--gutter) calc(24px + env(safe-area-inset-bottom));
+  border: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.menu[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.menu__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+}
+
+.menu__links {
+  margin-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.menu__links a {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 18px 4px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 7vw, 2.25rem);
+  font-weight: 500;
+  line-height: 1.1;
+  text-decoration: none;
+}
+
+.menu__links a:hover {
+  color: var(--purple-ink);
+}
+
+.menu__num {
+  color: var(--purple-ink);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+.menu__actions {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 32px;
+}

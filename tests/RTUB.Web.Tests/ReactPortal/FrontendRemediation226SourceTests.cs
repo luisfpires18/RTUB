@@ -16,26 +16,29 @@ public class FrontendRemediation226SourceTests
     private static readonly string Assets = Path.Combine(Web, "wwwroot", "portal", "assets");
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Src, file)).Replace("\r\n", "\n");
+    private static string Css() => PortalCss.Read(Src).Replace("\r\n", "\n");
 
     [Fact]
     public void EventManagement_LoadsOnlyWhenADialogOpens()
     {
-        foreach (var page in new[] { "pages/Events.tsx", "pages/EventDetail.tsx", "components/EventDialogs.tsx" })
+        // Task 113: components/EventDialogs.tsx was split into EventAnswer, EventPrizesDialog and EventStats.
+        foreach (var page in new[] { "pages/Events.tsx", "pages/EventDetail.tsx", "components/EventAnswer.tsx+components/EventPrizesDialog.tsx+components/EventStats.tsx" })
         {
             var prefix = page.StartsWith("pages/", StringComparison.Ordinal) ? "../components/" : "./";
-            Read(page).Should().Contain($"from '{prefix}EventManageLazy'").And.NotContain($"from '{prefix}EventManage'", "{0} must not pull the admin chunk", page);
+            string.Join("\n", page.Split('+').Select(Read)).Should().Contain($"from '{prefix}EventManageLazy'").And.NotContain($"from '{prefix}EventManage'", "{0} must not pull the admin chunk", page);
         }
 
         Read("components/EventManageLazy.tsx").Should().Contain("const load = () => import('./EventManage');").And.Contain("<Suspense fallback=");
         Directory.GetFiles(Assets, "EventManage-*.js").Should().ContainSingle("the admin dialogs are their own chunk");
-        var events = File.ReadAllText(Directory.GetFiles(Assets, "Events-*.js").Single());
+        // Task 113: EventManageLazy now sits in the EventsCards chunk that the Events chunk imports, so both are read.
+        var events = File.ReadAllText(Directory.GetFiles(Assets, "Events-*.js").Single()) + "\n" + File.ReadAllText(Directory.GetFiles(Assets, "EventsCards-*.js").Single());
         events.Should().NotContain("A imagem atual é apagada ao guardar.", "no EventManage text in the Events chunk").And.Contain("EventManage-");
     }
 
     [Fact]
     public void Searches_LetTheLatestAnswerWin()
     {
-        var app = Read("components/App.tsx");
+        var app = Read("components/AppShared.tsx");
         app.Should().Contain("export function useLatest()").And.Contain("if (id === last.current) apply(value);").And.Contain("last.current = -1;");
 
         foreach (var page in new[] { "pages/Inventory.tsx", "pages/Leaderboard.tsx", "pages/Logistics.tsx", "pages/Requests.tsx", "pages/Shop.tsx", "pages/Gallery.tsx" })
@@ -43,8 +46,11 @@ public class FrontendRemediation226SourceTests
             Read(page).Should().Contain("const latest = useLatest();", page);
         }
 
-        foreach (var picker in new[] { "components/LogisticsDialogs.tsx", "components/TreasuryUi.tsx", "pages/EventDiscussion.tsx", "components/EventManage.tsx", "components/GovernanceManage.tsx",
-                     "components/GalleryManage.tsx", "components/MemberManage.tsx", "pages/RehearsalDetail.tsx", "pages/Members.tsx", "pages/Naipes.tsx", "pages/Questions.tsx", "components/MemberDialogs.tsx" })
+        // Task 113: the pickers moved out of LogisticsDialogs, EventDiscussion, EventManage (two), GalleryManage, MemberManage,
+        // RehearsalDetail, Questions and MemberDialogs into the files below.
+        foreach (var picker in new[] { "components/LogisticsFields.tsx", "components/TreasuryUi.tsx", "components/EventDiscussionLift.tsx", "components/EventManageParticipants.tsx",
+                     "components/EventManageRepertoire.tsx", "components/GovernanceManage.tsx", "components/GalleryFormParts.tsx", "components/MemberFormFields.tsx",
+                     "components/RehearsalAttendees.tsx", "pages/Members.tsx", "pages/Naipes.tsx", "components/QuestionList.tsx", "components/MemberListDialogs.tsx" })
         {
             var source = Read(picker);
             source.Should().Contain("let live = true;", picker).And.Contain("live = false;", picker);
@@ -73,8 +79,8 @@ public class FrontendRemediation226SourceTests
     {
         var dialogs = Read("components/MemberDialogs.tsx");
         dialogs.Should().Contain("export function TunaPath(").And.Contain("<TunaPath items={m.timeline} />").And.NotContain("member-timeline");
-        Read("pages/Profile.tsx").Should().Contain("<TunaPath items={m.timeline} />").And.Contain("TunaPath, progressText } from '../components/MemberDialogs'");
-        Regex.Match(Read("styles.css"), @"\n\.member-path \{[^}]*\}").Value.Should().Contain("min-width: 0;",
+        Read("components/ProfileTuna.tsx").Should().Contain("<TunaPath items={m.timeline} />").And.Contain("TunaPath, progressText } from './MemberDialogs'");
+        Regex.Match(Css(), @"\n\.member-path \{[^}]*\}").Value.Should().Contain("min-width: 0;",
             "the timeline scrolls inside the dialog, never the page");
     }
 

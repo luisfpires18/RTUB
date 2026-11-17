@@ -34,8 +34,10 @@ public class ReleaseNotesPortalTests
     [Fact]
     public void TheFooter_ReopensTheRunningReleasesNotes_WithoutAcknowledging()
     {
-        var app = Read("components/App.tsx");
-        var footer = app[app.IndexOf("function VersionTag", StringComparison.Ordinal)..];
+        // Task 113: VersionTag is now the last function of components/AppChrome.tsx; what followed it in the old App.tsx
+        // (useLatest, useCurrentUser, AccountLink, ExternalLink, Loading) is components/AppShared.tsx.
+        var app = Read("components/AppChrome.tsx");
+        var footer = app[app.IndexOf("function VersionTag", StringComparison.Ordinal)..] + "\n" + Read("components/AppShared.tsx");
 
         footer.Should().Contain("Ver novidades da versão").And.Contain("const member = user?.authenticated === true;")
             .And.Contain("releaseNotesApi.state()").And.NotContain("acknowledge");

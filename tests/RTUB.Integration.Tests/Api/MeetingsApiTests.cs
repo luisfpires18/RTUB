@@ -1151,9 +1151,11 @@ public class MeetingsRetirementTests
         File.ReadAllText(Path.Combine(portal, "components/MemberShell.tsx")).Should().Contain("href: portal.meetings,").And.NotContain("blazor.meetings");
         File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().Contain("'/meetings': lazy(");
 
-        foreach (var file in new[] { "pages/Meetings.tsx", "components/MeetingDialogs.tsx", "components/MeetingAta.tsx", "data/meetingsApi.ts" })
+        // MeetingDialogs.tsx, MeetingAta.tsx and meetingsApi.ts were split (113): every file of the feature is checked.
+        var files = PortalSource.Files(portal, "pages/Meetings.tsx", "components/Meeting*.tsx", "data/meetingsApi.ts", "data/meeting*.ts");
+        foreach (var file in files.Distinct())
         {
-            File.ReadAllText(Path.Combine(portal, file)).Should().NotContainAny(new[] { "migra", "Migra" }, file);
+            File.ReadAllText(file).Should().NotContainAny(new[] { "migra", "Migra" }, file);
         }
     }
 

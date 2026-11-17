@@ -18,8 +18,10 @@ Task 111 (`chore/111/portal-folders`, on top of 110): phase 2, `portal/src` spli
 Task 112 (`chore/112/shared-ui`, on top of 111): phase 3, shared pieces. `components/Notice.tsx` (Notice,
 SignInNotice, RetryNotice: same markup), `data/format.ts`, `queryString` + `outcomeText` in `data/api.ts`, `loginTo`
 in `data/content.ts`; one copy of `DEFAULT_AVATAR`, the Logística status/priority lists and the antiforgery token.
-Planned next phases (one branch each): 4 split portal files over 300 lines and `styles.css` per area; 5 split C# files
-over 300 lines; 6 test files (lowest priority).
+Task 113 (`chore/113/split-portal-files`, on top of 112): phase 4, every portal file at most 300 lines by pure moves
+(`styles.css` now imports `styles/NNN-area.css` in cascade order; built CSS byte-identical). Three files stay over
+300: `components/MeetingAta.tsx` (472), `MessageThread.tsx` (318), `FamilyTree.tsx` (310): one function each.
+Planned next phases (one branch each): 5 split C# files over 300 lines; 6 test files (lowest priority).
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not

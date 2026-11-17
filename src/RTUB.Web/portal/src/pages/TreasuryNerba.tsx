@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loading } from '../components/App';
+import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { problem, treasuryApi, type Nerba, type NerbaSummary } from '../data/treasuryApi';

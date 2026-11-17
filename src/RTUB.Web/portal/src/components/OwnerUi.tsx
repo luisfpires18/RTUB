@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { Loading } from './App';
+import { Loading } from './AppShared';
 import type { Outcome } from '../data/eventsApi';
 import { Icon, type IconName } from './icons';
 import { portal } from '../data/content';

@@ -1,0 +1,208 @@
+/* The members map. Leaflet's own CSS comes with the page's chunk. */
+.map-canvas {
+  width: 100%;
+  height: clamp(320px, 62vh, 620px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-deep);
+  overflow: hidden;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+/* OpenStreetMap's light tiles, darkened to the site's palette; only the tiles, never markers or popups (040). */
+.map-canvas .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6);
+}
+
+.map-page__empty {
+  margin: 12px 0 0;
+}
+
+.map-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+}
+
+.map-stats strong {
+  color: var(--ink);
+  font-size: 1.125rem;
+}
+
+.map-lists {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .map-lists {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.map-list {
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.map-list summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.map-list ul {
+  display: grid;
+  gap: 6px;
+  max-height: 22rem;
+  margin: 12px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.map-city {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-city:hover,
+.map-city:focus-visible {
+  border-color: var(--line-strong);
+  background: var(--bg-card);
+}
+
+.map-city span:first-of-type {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.map-city__count {
+  min-width: 2rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--royal);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-pending {
+  padding: 4px 10px;
+  color: var(--ink-soft);
+}
+
+.map-marker {
+  background: none;
+  border: 0;
+}
+
+.map-marker__pin {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: linear-gradient(135deg, #8a2be2 0%, #6a1bb2 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transform: rotate(-45deg);
+}
+
+.map-marker__count {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 30px;
+  color: #fff;
+  font: 700 12px/1 var(--font-body);
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.map-popup .leaflet-popup-content-wrapper,
+.map-popup .leaflet-popup-tip {
+  border: 1px solid var(--line-strong);
+  background: var(--bg-card);
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.map-popup .leaflet-popup-close-button {
+  color: var(--ink-soft);
+}
+
+.map-popup .leaflet-popup-content {
+  margin: 14px 16px;
+  font: 0.875rem/1.4 var(--font-body);
+}
+
+.map-popup__city {
+  margin: 0 0 2px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--purple);
+  color: var(--purple-ink);
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+.map-popup__count {
+  margin: 4px 0 8px;
+  color: var(--muted);
+}
+
+.map-popup__list {
+  display: grid;
+  gap: 6px;
+  max-height: 14rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.map-popup__list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-popup__list img {
+  flex: none;
+  border: 2px solid var(--purple);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.map-popup__list span {
+  display: grid;
+  min-width: 0;
+}
+
+.map-popup__list small {
+  color: var(--muted);
+}
+
+.map-popup__more {
+  justify-content: center;
+  color: var(--muted);
+  font-style: italic;
+}

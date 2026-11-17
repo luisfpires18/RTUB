@@ -1,8 +1,11 @@
 import { useEffect, useId, useMemo, useState } from 'react';
-import { Loading } from '../components/App';
+import { Loading } from '../components/AppShared';
 import { dateLabel, dayOf, monthShort, weekday } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { MyPresencesDialog, PresenceDialog, PresencePill, RangeDialog, RehearsalFormDialog, StatsDialog } from '../components/RehearsalDialogs';
+import { MyPresencesDialog, StatsDialog } from '../components/RehearsalStats';
+import { PresenceDialog } from '../components/RehearsalPresence';
+import { PresencePill } from '../components/RehearsalShared';
+import { RangeDialog, RehearsalFormDialog } from '../components/RehearsalFormDialogs';
 import { rehearsalsApi, type RehearsalAgenda, type RehearsalSummary } from '../data/rehearsalsApi';
 import { fold } from '../data/format';
 import { RetryNotice, SignInNotice } from '../components/Notice';

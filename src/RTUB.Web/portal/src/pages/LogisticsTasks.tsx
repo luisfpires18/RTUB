@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Loading } from '../components/App';
+import { Loading } from '../components/AppShared';
 import { Icon } from '../components/icons';
-import { deadline } from '../components/LogisticsCard';
+import { deadline } from '../data/logisticsDates';
 import { cardUrl, logisticsApi, PRIORITY, STATUS, type MyTask, type MyTasks } from '../data/logisticsApi';
 import { day, lisbonToday } from '../data/format';
 import { Notice, RetryNotice, SignInNotice } from '../components/Notice';

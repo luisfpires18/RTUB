@@ -1,0 +1,44 @@
+/* ---------- join ---------- */
+
+.join__quote {
+  max-width: 22ch;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.625rem, 2.2vw + 0.8rem, 2.5rem);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.15;
+  border-left: 3px solid var(--purple);
+  padding-left: 20px;
+}
+
+.join__facts {
+  display: grid;
+  gap: 12px;
+}
+
+.join__facts > div {
+  display: grid;
+  gap: 6px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.join__facts dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--purple-ink);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.join__facts dd {
+  color: var(--ink);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { accountApi, takeLinkQuery, type RecoveryResult } from '../data/accountApi';
-import { Loading } from '../components/App';
+import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 

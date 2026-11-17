@@ -117,10 +117,10 @@ public class GovernanceTests : IntegrationTestBase
 
         content.Should().Contain("roles: '/roles'").And.NotContain("memberGovernance").And.NotContain("/member/roles",
             "nothing links to the retired /member/roles (016)");
-        var home = File.ReadAllText(Path.Combine(src, "pages/Home.tsx"));
+        var home = PortalSource.Home(src);
         home.Should().NotContain("id=\"governance\"").And.NotContain("Órgãos Sociais").And.NotContain("governingBodies",
             "011: the home has no Órgãos Sociais block at all; the top bar, menu and footer open /roles");
-        File.ReadAllText(Path.Combine(src, "components/App.tsx")).Should().Contain("governance: portal.roles",
+        File.ReadAllText(Path.Combine(src, "data/sections.ts")).Should().Contain("governance: portal.roles",
             "the top bar, menu and footer open /roles, not the home anchor");
         Directory.GetFiles(src, "*", SearchOption.AllDirectories).Select(File.ReadAllText).Should().NotContain(t => t.Contains("legacy.roles"));
     }

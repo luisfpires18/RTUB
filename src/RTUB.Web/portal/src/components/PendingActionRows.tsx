@@ -1,0 +1,136 @@
+// Pending actions answer dialog and row.
+import { useId, useState, type FormEvent } from 'react';
+import { Dialog } from './Dialog';
+import { type ActionButton, type ActionRow, type Answer, type InstrumentOption } from '../data/pendingActionsApi';
+import { NOTES_MAX, rowDate } from '../data/pendingActionsView';
+
+/** Vou / Fui with a choice of instrument (and an optional note), as on the module pages. Cancelling sends nothing. */
+export function AnswerDialog({
+  row,
+  label,
+  instruments,
+  defaultInstrument,
+  onClose,
+  onSubmit,
+}: {
+  row: ActionRow;
+  label: string;
+  instruments: InstrumentOption[];
+  defaultInstrument: string | null;
+  onClose: () => void;
+  onSubmit: (a: Answer) => Promise<string | null>;
+}) {
+  const [instrument, setInstrument] = useState(defaultInstrument ?? '');
+  const [notes, setNotes] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ids = { instrument: useId(), notes: useId() };
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const failed = await onSubmit({ answer: 'yes', instrument: instrument || null, notes: notes.trim() || null });
+    setBusy(false);
+    setError(failed);
+  };
+
+  return (
+    <Dialog title={`${label}: ${row.title}`} onClose={onClose}>
+      <form className="answer" onSubmit={submit}>
+        <div className="form__field">
+          <label htmlFor={ids.instrument}>Instrumento</label>
+          <span className="control control--select">
+            <select id={ids.instrument} value={instrument} onChange={(e) => setInstrument(e.target.value)}>
+              <option value="">Sem instrumento</option>
+              {instruments.map((i) => (
+                <option key={i.value} value={i.value}>
+                  {i.label}
+                </option>
+              ))}
+            </select>
+          </span>
+        </div>
+        <div className="form__field">
+          <label htmlFor={ids.notes}>Nota (opcional)</label>
+          <textarea id={ids.notes} rows={2} maxLength={NOTES_MAX[row.kind] ?? 500} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+        {error && (
+          <p className="form__error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="answer__actions">
+          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
+            Cancelar
+          </button>
+          <button type="submit" className="btn btn--primary" disabled={busy}>
+            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+            Confirmar
+          </button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+export function Row({
+  row,
+  today,
+  busy,
+  onDismiss,
+  onAnswer,
+}: {
+  row: ActionRow;
+  today: string;
+  busy: boolean;
+  onDismiss: (row: ActionRow) => void;
+  onAnswer: (row: ActionRow, button: ActionButton) => void;
+}) {
+  return (
+    <li className="pa-row">
+      <div className="pa-row__text">
+        <strong className="pa-row__title">
+          {row.href ? <a href={row.href}>{row.title}</a> : row.title}
+          {row.required && <span className="pa-required">Obrigatório</span>}
+        </strong>
+        {(row.date || row.context) && (
+          <span className="pa-row__meta">
+            {row.date && (
+              <time dateTime={row.date}>
+                {rowDate(row.date, today)}
+                {row.time && ` · ${row.time}`}
+              </time>
+            )}
+            {row.context && <span>{row.context}</span>}
+          </span>
+        )}
+      </div>
+      <div className="pa-row__actions">
+        {row.actions.map((a) =>
+          a.answer ? (
+            <button
+              key={a.answer}
+              type="button"
+              className={`btn btn--sm ${a.primary ? 'btn--primary' : 'btn--ghost'}`}
+              disabled={busy}
+              aria-label={`${a.label}: ${row.title}`}
+              onClick={() => onAnswer(row, a)}
+            >
+              {a.label}
+            </button>
+          ) : (
+            <a key={a.href} className={`btn btn--sm ${a.primary ? 'btn--primary' : 'btn--ghost'}`} href={a.href!}>
+              {a.label}
+            </a>
+          ),
+        )}
+        {row.dismissible && !row.required && (
+          <button type="button" className="btn btn--sm btn--ghost" disabled={busy} onClick={() => onDismiss(row)}>
+            {row.dismissLabel ?? 'Agora não'}
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}

@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ComponentProps, type ComponentType, type ReactNode } from 'react';
-import { Loading } from './App';
+import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 
 /**

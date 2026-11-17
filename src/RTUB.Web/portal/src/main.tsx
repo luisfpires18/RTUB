@@ -1,6 +1,7 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ErrorBoundary, Layout, Loading } from './components/App';
+import { ErrorBoundary, Layout } from './components/App';
+import { Loading } from './components/AppShared';
 import { Home } from './pages/Home';
 import './styles.css';
 import { getCurrentUser } from './data/api';

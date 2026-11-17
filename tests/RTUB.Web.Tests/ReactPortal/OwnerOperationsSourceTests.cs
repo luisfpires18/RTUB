@@ -18,6 +18,7 @@ public class OwnerOperationsSourceTests
     private static readonly string[] Routes = ["/emails", "/notifications", "/users", "/owner/tracing", "/owner/db"];
 
     private static string Read(params string[] path) => File.ReadAllText(Path.Combine(path)).Replace("\r\n", "\n");
+    private static string Css() => PortalCss.Read(Portal).Replace("\r\n", "\n");
 
     [Theory]
     [InlineData("src/RTUB.Web/Pages/Operations/Emails.razor")]
@@ -125,8 +126,11 @@ public class OwnerOperationsSourceTests
     [Fact]
     public void Tracing_CardLeadsWithTheName_AndDetailsKeepTheRawEvidence()
     {
-        var tracing = Read(Portal, "pages/OwnerTracing.tsx");
-        var card = tracing[tracing.IndexOf("<ul className=\"owner-logs\">", StringComparison.Ordinal)..tracing.IndexOf("<OwnerPager", StringComparison.Ordinal)];
+        // Task 113 split pages/OwnerTracing.tsx into the page, OwnerTracingDialogs, OwnerTracingParts and data/ownerTracingHelpers.ts.
+        var page = Read(Portal, "pages/OwnerTracing.tsx");
+        var dialogs = Read(Portal, "components/OwnerTracingDialogs.tsx");
+        var tracing = string.Join("\n", page, dialogs, Read(Portal, "components/OwnerTracingParts.tsx"), Read(Portal, "data/ownerTracingHelpers.ts"));
+        var card = page[tracing.IndexOf("<ul className=\"owner-logs\">", StringComparison.Ordinal)..page.IndexOf("<OwnerPager", StringComparison.Ordinal)];
 
         string[] order = ["owner-log__name", "owner-log__type", "owner-action", "Crítica", "owner-log__meta", "name=\"eye\"", "icon-btn--danger"];
         order.Select(m => card.IndexOf(m, StringComparison.Ordinal)).Should().BeInAscendingOrder().And.NotContain(-1);
@@ -134,7 +138,7 @@ public class OwnerOperationsSourceTests
         tracing.Should().NotContain("`ID: ${");
         tracing.Should().Contain("${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}");
 
-        var details = tracing[tracing.IndexOf("function DetailsDialog", StringComparison.Ordinal)..tracing.IndexOf("function DeleteDialog", StringComparison.Ordinal)];
+        var details = dialogs[dialogs.IndexOf("function DetailsDialog", StringComparison.Ordinal)..dialogs.IndexOf("function DeleteDialog", StringComparison.Ordinal)];
         foreach (var raw in new[] { "entry.entityType}", "entry.entityId ??", "entry.entityDisplayName ||", "entry.currentDisplayName}", "entry.userName ??",
                      "entry.action}", "entry.isCritical ?", "pretty(entry.changes)" })
         {
@@ -142,7 +146,7 @@ public class OwnerOperationsSourceTests
         }
 
         tracing.Should().Contain("<option key={i} value={i}>").And.Contain("text={entityText}", "the type filter shows labels but submits raw types");
-        var css = Read(Web, "portal", "src", "styles.css");
+        var css = Css();
         css.Should().Contain(".owner-log--critical {\n  border-left-color:");
         // Phones: at least a 44 x 44 tap area around the compact delete (36px) and Detalhes (40px tall) buttons.
         // The browser check is the responsive audit's owner-tracing-targets scenario.

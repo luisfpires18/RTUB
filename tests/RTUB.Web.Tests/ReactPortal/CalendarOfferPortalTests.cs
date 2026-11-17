@@ -34,13 +34,13 @@ public class CalendarOfferPortalTests
     [Fact]
     public void TheOffer_FollowsOnlyANewYes_ToAnUpcomingActivity_OnEveryAnswerPath()
     {
-        Read("components/EventDialogs.tsx").Should().Contain(
+        Read("components/EventAnswer.tsx").Should().Contain(
             "if (choice.willAttend && enrollment.status !== 'going' && saved.state === 'open' && !saved.event.past && !saved.event.cancelled) setOffer(saved);");
-        Read("components/RehearsalDialogs.tsx").Should().Contain(
+        Read("components/RehearsalPresence.tsx").Should().Contain(
             "if (willAttend && !going && data.state === 'open' && !data.rehearsal.past && !data.rehearsal.cancelled) setOffer(true);")
             .And.Contain("Presença registada, pendente de aprovação.");
-        Read("pages/PendingActions.tsx").Should().Contain("if (o.kind === 'ok' && a.answer === 'yes' && upcoming) offerCalendar(row);");
-        Read("pages/EventDetail.tsx").Should().Contain("{m.myStatus === 'going' && (").And.Contain("Adicionar ao calendário");
+        Read("components/PendingActionPanel.tsx").Should().Contain("if (o.kind === 'ok' && a.answer === 'yes' && upcoming) offerCalendar(row);");
+        Read("components/EventDetailBody.tsx").Should().Contain("{m.myStatus === 'going' && (").And.Contain("Adicionar ao calendário");
         Read("pages/RehearsalDetail.tsx").Should().Contain("{open && r.mine && r.mine.status !== 'notGoing' && (");
     }
 

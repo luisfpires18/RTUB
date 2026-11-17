@@ -1,5 +1,4 @@
 import { call, type Outcome } from './eventsApi';
-import { day, euros, today } from './format';
 import { outcomeText } from './api';
 
 // /api/treasury (Endpoints/TreasuryEndpoints.cs, React track 024). Signed-in members; the server decides every rule

@@ -1,0 +1,229 @@
+/* ---------- ata ---------- */
+
+.mtg-ata {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.mtg-fieldset {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.mtg-fieldset:disabled input,
+.mtg-fieldset:disabled textarea,
+.mtg-fieldset:disabled select {
+  opacity: 0.75;
+}
+
+.mtg-block {
+  display: grid;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.mtg-block__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(111, 66, 193, 0.22);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.mtg-block__body {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.mtg-ata .form__field input:disabled {
+  color: var(--muted);
+}
+
+.mtg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mtg-chip {
+  max-width: 100%;
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.mtg-chip--yes {
+  border-color: rgba(64, 192, 120, 0.45);
+  background: rgba(64, 192, 120, 0.12);
+  color: #b8ecd0;
+}
+
+.mtg-points {
+  display: grid;
+  gap: 10px;
+}
+
+.mtg-point {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-deep);
+}
+
+.mtg-point.is-invalid {
+  border-color: #ff8f86;
+}
+
+.mtg-point__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mtg-point__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.mtg-point__head .icon-btn {
+  flex: none;
+}
+
+.mtg-point .form__field textarea {
+  min-height: 72px;
+}
+
+.mtg-votes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .mtg-votes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.mtg-votes .form__field label {
+  font-size: 0.8125rem;
+}
+
+.mtg-point-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mtg-point-add .control {
+  flex: 1 1 220px;
+}
+
+.mtg-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mtg-ata__generated {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mtg-ata__split {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.mtg-ata__answer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mtg-ata-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.mtg-ata-foot__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Forms in the meeting dialogs: one shrinkable column, so a long option or a date field never widens a phone dialog. */
+.mtg-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mtg-form .form__field {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.mtg-form .control select {
+  width: 100%;
+  text-overflow: ellipsis;
+}
+
+.mtg-form input[type='datetime-local'] {
+  min-width: 0;
+  padding-inline: 10px;
+}
+
+@media (max-width: 639px) {
+  .mtg-form .form__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.mtg-point .form__field,
+.mtg-votes .form__field {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.mtg-ata,
+.mtg-fieldset,
+.mtg-block__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mtg-ata-foot .btn {
+  padding: 0 12px;
+}
+
+.mtg-point .form__field label {
+  overflow-wrap: anywhere;
+}

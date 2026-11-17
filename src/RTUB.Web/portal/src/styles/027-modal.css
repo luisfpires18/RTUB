@@ -1,0 +1,75 @@
+/* ---------- modal (native <dialog>) ---------- */
+
+.modal {
+  width: min(560px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  color: var(--ink-soft);
+}
+
+.modal--lg {
+  width: min(880px, calc(100% - 24px));
+}
+
+.modal[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal__title {
+  min-width: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+/* A long title (e.g. "Participantes - <meeting>") wraps instead of squeezing the close button. */
+.modal__head > .icon-btn {
+  flex: none;
+}
+
+.modal__body {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.modal__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.modal .state {
+  padding-block: 40px;
+}
+
+/* The Owner's system announcement (App.tsx): plain text, its line breaks kept, a long word never widens the dialog. */
+.announcement {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

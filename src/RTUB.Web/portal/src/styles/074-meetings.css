@@ -1,0 +1,262 @@
+/* ==========================================================================
+   Reuniões (/meetings, task 034): meetings, participants, atas, requests
+   ========================================================================== */
+
+.mtg-page .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mtg-head-actions .btn {
+  white-space: normal;
+  text-align: left;
+}
+
+/* Reuniões has five header actions: beside the title they wrap raggedly, so they take their own row under it. */
+.mtg-head {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mtg-refusal .state__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.mtg-flash {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 16px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid #40c078;
+  border-radius: 12px;
+  background: var(--bg-raise);
+  color: var(--ink);
+}
+
+.mtg-flash > .icon {
+  color: #8fe0b0;
+}
+
+.mtg-flash--warn {
+  border-left-color: #f5c46b;
+}
+
+.mtg-flash--warn > .icon {
+  color: #f5c46b;
+}
+
+.mtg-flash p {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 760px) {
+  .mtg-tools {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+.mtg-section {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.mtg-section__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: clamp(1.375rem, 1vw + 1rem, 1.75rem);
+}
+
+.mtg-section__title .icon {
+  color: var(--purple-ink);
+  font-size: 0.85em;
+}
+
+.mtg-requests {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.mtg-poll__top,
+.mtg-poll__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mtg-polls__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.mtg-poll {
+  display: grid;
+  gap: 12px;
+  height: 100%;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, var(--bg-card), var(--bg-raise));
+}
+
+.mtg-poll__status {
+  color: var(--purple-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.mtg-poll__status.is-closed {
+  color: var(--muted);
+}
+
+.mtg-poll__question {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.mtg-poll__meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.mtg-poll__options,
+.mtg-poll__create-options {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.mtg-poll__create-options {
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.mtg-poll__create-options legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.mtg-poll__option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.mtg-poll__option-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mtg-poll__option-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mtg-poll__bar {
+  grid-column: 2 / -1;
+  width: 100%;
+  height: 8px;
+  accent-color: var(--purple-ink);
+}
+
+.mtg-poll__actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.mtg-poll__option-input {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+.mtg-poll__option-input .form__field {
+  flex: 1;
+}
+
+@media (min-width: 720px) {
+  .mtg-polls__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mtg-requests__tools {
+  display: flex;
+}
+
+.mtg-requests__tools .control {
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .mtg-requests__tools .control {
+    width: auto;
+    min-width: 240px;
+  }
+}
+
+.mtg-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 32px 20px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--muted);
+  text-align: center;
+}
+
+.mtg-empty__icon {
+  font-size: 1.75rem;
+  color: var(--purple-ink);
+}
+
+.mtg-empty__title {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.mtg-empty__text {
+  max-width: 46rem;
+  font-size: 0.9375rem;
+}
+
+.mtg-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.mtg-grid > li {
+  min-width: 0;
+}
+
+@media (min-width: 720px) {
+  .mtg-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1180px) {
+  .mtg-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

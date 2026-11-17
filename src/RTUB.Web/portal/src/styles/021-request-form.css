@@ -1,0 +1,208 @@
+/* ---------- request form ---------- */
+
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+/* A long button label ("Entrar com Face ID / impressão digital") wraps instead of widening the form. */
+.form .btn {
+  max-width: 100%;
+  height: auto;
+  padding-block: 12px;
+  line-height: 1.25;
+  white-space: normal;
+  text-align: center;
+}
+
+.form__row {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 640px) {
+  .form__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.form__field {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+}
+
+/* #229: a field never widens its row (grid items default to min-width: auto). */
+.form__row > * {
+  min-width: 0;
+}
+
+/* #229: native date / time controls (iOS Safari above all) have an intrinsic width that can ignore width: 100% and
+   push a dialog or a row past the screen; they shrink like any other input, value aligned left. */
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'],
+input[type='month'] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .form__field input[type='date'],
+  .form__field input[type='time'],
+  .form__field input[type='datetime-local'],
+  .form__field input[type='month'] {
+    display: block;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
+.form__field label {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.form__field input,
+.form__field textarea,
+.form__field select,
+.prize-manager__row input {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1rem/1.4 var(--font-body);
+  transition: border-color 160ms ease;
+}
+
+.form__field textarea {
+  resize: vertical;
+  min-height: 132px;
+}
+
+.form__field input:focus-visible,
+.form__field textarea:focus-visible,
+.form__field select:focus-visible,
+.prize-manager__row input:focus-visible {
+  border-color: var(--purple-ink);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.form__field--error input,
+.form__field--error textarea,
+.form__field--error select {
+  border-color: #ff8f86;
+}
+
+/* A bare <select> in a dialog form (instrument, group, calendar duration) draws like the inputs beside it, with the
+   same CSS chevron as .control--select instead of the browser's own control (task 085). */
+.form__field select {
+  appearance: none;
+  padding-right: 40px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.form__field select option {
+  background: var(--bg-card);
+  color: var(--ink);
+}
+
+.form__hint {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.form__error {
+  color: #ffb3ad;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form__check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.form__check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--purple);
+}
+
+.form__banner {
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid #ff8f86;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.form__banner--throttled,
+.form__banner--expired {
+  border-left-color: #f5c46b;
+}
+
+.form__submit {
+  justify-self: start;
+}
+
+.spinner--small {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+}
+
+/* Honeypot: off-screen, not display:none (which some bots detect). */
+.hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.request__done {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+}
+
+.request__done-icon {
+  font-size: 2rem;
+  color: var(--purple-ink);
+}
+
+.request__done-title {
+  font-size: clamp(1.75rem, 2vw + 1rem, 2.5rem);
+}
+
+@media (min-width: 900px) {
+  .request {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  }
+
+  .request__go {
+    position: sticky;
+    top: calc(var(--header-h) + 24px);
+  }
+}

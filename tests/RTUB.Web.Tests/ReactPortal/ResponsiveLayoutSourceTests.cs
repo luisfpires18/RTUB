@@ -15,6 +15,7 @@ public class ResponsiveLayoutSourceTests
     private static readonly string Portal = Path.Combine(Root, "src", "RTUB.Web", "portal");
 
     private static string Read(params string[] path) => File.ReadAllText(Path.Combine([Portal, .. path])).Replace("\r\n", "\n");
+    private static string Css() => PortalCss.Read(Path.Combine(Portal, "src")).Replace("\r\n", "\n");
 
     private static string Rule(string css, string selector) =>
         Regex.Match(css, @"\n" + Regex.Escape(selector) + @" \{[^}]*\}").Value;
@@ -22,7 +23,7 @@ public class ResponsiveLayoutSourceTests
     [Fact]
     public void HorizontalOverflow_IsNeverMaskedGlobally()
     {
-        var css = Read("src", "styles.css");
+        var css = Css();
         foreach (var root in new[] { "html", "body", "main", ".shell", ".shell__body" })
         {
             Rule(css, root).Should().NotMatchRegex(@"overflow(-x)?:\s*(hidden|clip)",
@@ -35,14 +36,14 @@ public class ResponsiveLayoutSourceTests
     {
         // `.form__field input { width: 100% }` is more specific than `.sr-only`: the hidden file inputs of the image
         // pickers took the whole width and scrolled "Adicionar atuação" sideways.
-        var srOnly = Rule(Read("src", "styles.css"), ".sr-only");
+        var srOnly = Rule(Css(), ".sr-only");
         srOnly.Should().Contain("width: 1px !important").And.Contain("min-height: 0 !important").And.Contain("padding: 0 !important");
     }
 
     [Fact]
     public void MemberHeader_FitsAPhone_AndPadsForTheStatusBar()
     {
-        var css = Read("src", "styles.css");
+        var css = Css();
         css.Should().Contain("--safe-top: env(safe-area-inset-top, 0px);").And.Contain("--header-h: calc(68px + var(--safe-top));");
         Rule(css, ".header").Should().Contain("padding-top: var(--safe-top);");
         css.Should().Contain("@media (max-width: 359px) {\n  .shell--member .brand__text {\n    display: none;",
@@ -66,17 +67,17 @@ public class ResponsiveLayoutSourceTests
                 $"{file}: a local 1fr auto grid inside .page__head's 44rem cap floated the actions mid-page");
         }
 
-        Read("src", "styles.css").Should().NotContain(".governance-page__head").And.NotContain(".gallery-page__head").And.NotContain(".music__head");
+        Css().Should().NotContain(".governance-page__head").And.NotContain(".gallery-page__head").And.NotContain(".music__head");
     }
 
     [Fact]
     public void LeaderboardLevels_OpenByDefault_InABalancedGrid()
     {
-        var page = Read("src", "pages/Leaderboard.tsx");
+        var page = Read("src", "components/LeaderboardLevels.tsx");
         page.Should().Contain("<details className=\"leaderboard-levels\" open>");
         page.Should().Contain("me: Entry | null").And.Contain("l.level === me.level ? ' is-current'");
 
-        var css = Read("src", "styles.css");
+        var css = Css();
         Rule(css, ".leaderboard-level-list").Should().Contain("grid-template-columns: minmax(0, 1fr);").And.NotContain("auto-fill",
             "auto-fill made the accidental 8 + 4 grid (#225)");
         css.Should().Contain("grid-template-columns: repeat(4, minmax(0, 1fr));");

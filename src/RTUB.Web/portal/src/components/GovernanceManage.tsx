@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { ExternalLink, Loading } from './App';
+import { ExternalLink, Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';

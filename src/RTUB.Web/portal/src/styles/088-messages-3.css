@@ -1,0 +1,142 @@
+.chat-page {
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+  padding-block: 12px 0;
+  /* The heading keeps its height; the chat takes the rest, even when an empty chat is short (.page is a grid). */
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.chat {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.chat-list__items {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.chat-list .who__avatar,
+.chat-thread__head .who__avatar {
+  flex: none;
+  margin: 0;
+  box-shadow: none;
+}
+
+.chat-list .who__avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.chat-thread__head .who__avatar {
+  width: 40px;
+  height: 40px;
+}
+
+/* Phones: one pane at a time, edge to edge. */
+@media (max-width: 899px) {
+  .chat {
+    margin-inline: calc(var(--gutter) * -1);
+    border-inline: 0;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+
+  .chat-thread {
+    height: auto;
+  }
+
+  .chat-page--open {
+    padding-block: 0;
+    grid-template-rows: minmax(0, 1fr); /* the heading is hidden: the chat is the only row */
+  }
+
+  .chat-page--open .chat-page__head,
+  .chat-page--open .chat-list,
+  .chat-page:not(.chat-page--open) .chat-thread {
+    display: none;
+  }
+}
+
+/* Desktop: a compact heading line, then the list (about 30%) and the dominant chat filling the viewport. */
+@media (min-width: 900px) {
+  .chat-page {
+    padding-block: 16px 20px;
+  }
+
+  .chat-page__head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    max-width: none;
+  }
+
+  .chat-page__head .eyebrow {
+    display: none;
+  }
+
+  .chat-page__head .page__title {
+    font-size: 1.5rem;
+  }
+
+  .chat {
+    grid-template-columns: minmax(260px, 30%) minmax(0, 1fr);
+    height: auto;
+  }
+
+  .chat-list {
+    border-right: 1px solid var(--line);
+  }
+
+  .chat-thread {
+    height: auto;
+  }
+
+  .chat-thread__back {
+    display: none;
+  }
+}
+
+/* Novidades: Todas / Públicas / Privadas for signed-in readers (#222). */
+.news-tabs {
+  display: flex;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.news-tabs button {
+  min-height: 44px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 600 0.875rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.news-tabs button[aria-pressed='true'] {
+  background: var(--purple);
+  color: #fff;
+}
+
+.talk__name .tag--private {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* /share (053): the Web Share Target page, copy and back side by side. */
+.share__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}

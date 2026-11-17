@@ -128,8 +128,8 @@ public class GalleryTests : IntegrationTestBase
 
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("gallery: '/gallery'")
             .And.NotContain("memberGallery", "nothing links to the retired /member/gallery (015)");
-        File.ReadAllText(Path.Combine(src, "pages/Home.tsx")).Should().Contain("<MoreLink href={portal.gallery}>");
-        File.ReadAllText(Path.Combine(src, "components/App.tsx")).Should().Contain("gallery: portal.gallery",
+        PortalSource.Home(src).Should().Contain("<MoreLink href={portal.gallery}>");
+        File.ReadAllText(Path.Combine(src, "data/sections.ts")).Should().Contain("gallery: portal.gallery",
             "the top bar, menu and footer open /gallery, not the home anchor");
         Directory.GetFiles(src, "*", SearchOption.AllDirectories).Select(File.ReadAllText).Should().NotContain(t => t.Contains("legacy.gallery"));
     }

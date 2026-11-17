@@ -1,0 +1,174 @@
+/* ---------- launch splash ---------- */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #000;
+  /* Failsafe only: if the app never mounts, uncover the static fallback text after 10 s. */
+  animation: splash-failsafe 0s 10s forwards;
+}
+
+/* Everything shares the one centred cell. Only the logo is visible until the opening plays. */
+.splash > *,
+.splash::before {
+  grid-area: 1 / 1;
+}
+
+.splash__logo {
+  position: relative;
+  width: 176px;
+  height: 176px;
+  border-radius: 38px;
+}
+
+.splash::before {
+  content: '';
+  width: min(560px, 100vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(111, 66, 193, 0.5), transparent);
+  opacity: 0;
+  scale: 0.6;
+}
+
+/* Six strings behind the logo: three plain, three wound. */
+.splash__strings {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  display: grid;
+  gap: 12px;
+  translate: 0 -50%;
+}
+
+.splash__strings i {
+  height: 1px;
+  background: var(--ink);
+  opacity: 0.55;
+  scale: 0 1;
+}
+
+.splash__strings i:nth-child(2) { --i: 1; }
+.splash__strings i:nth-child(3) { --i: 2; height: 1.5px; }
+.splash__strings i:nth-child(4) { --i: 3; height: 2px; background: var(--purple-ink); }
+.splash__strings i:nth-child(5) { --i: 4; height: 2.5px; background: var(--purple-ink); }
+.splash__strings i:nth-child(6) { --i: 5; height: 3px; background: var(--purple-ink); }
+
+/* The emblem's viola and guitarra portuguesa, leaning in over the logo. */
+.splash__guitar {
+  width: clamp(84px, 22vw, 124px);
+  height: auto;
+  opacity: 0;
+  transform: translate(var(--x), -6%) rotate(var(--r));
+}
+
+.splash__guitar--viola {
+  --x: calc(-1 * clamp(118px, 33vw, 230px));
+  --r: 14deg;
+  --sway: -5deg;
+}
+
+.splash__guitar--guitarra {
+  --x: clamp(118px, 33vw, 230px);
+  --r: -14deg;
+  --sway: 5deg;
+}
+
+.splash__body {
+  fill: url(#splash-wood);
+}
+
+/* Wood, like the emblem's instruments: the only browns in the portal. */
+.splash__neck {
+  fill: #3d2516;
+}
+
+.splash__hole {
+  fill: var(--bg-deep);
+}
+
+.splash__ring {
+  fill: none;
+  stroke: #e8c08a;
+  stroke-width: 1.5;
+}
+
+.splash__gstrings {
+  stroke: var(--ink);
+  stroke-width: 0.6;
+  opacity: 0.75;
+}
+
+.splash__peg {
+  stroke: var(--ink);
+  stroke-width: 4.4;
+  stroke-linecap: round;
+}
+
+.splash__name {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3vw + 0.5rem, 2rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  translate: 0 calc(108px + 0.625em);
+}
+
+.splash__name em {
+  color: var(--purple-ink);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.splash__name span {
+  display: inline-block;
+  translate: 0 110%;
+}
+
+.splash__edge {
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  width: 6px;
+  background: var(--purple);
+  box-shadow: 0 0 32px 4px rgba(111, 66, 193, 0.7);
+  scale: 1 0;
+  transform-origin: bottom;
+}
+
+.splash--exit {
+  box-shadow: 0 2px 0 var(--purple), 0 24px 60px rgba(111, 66, 193, 0.45);
+  animation: splash-curtain 720ms cubic-bezier(0.76, 0, 0.24, 1) 140ms forwards;
+}
+
+.splash--exit .splash__logo {
+  animation: splash-logo 380ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes splash-curtain {
+  to {
+    transform: translateY(-104%);
+  }
+}
+
+@keyframes splash-logo {
+  to {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.94);
+  }
+}
+
+@keyframes splash-failsafe {
+  to {
+    visibility: hidden;
+  }
+}

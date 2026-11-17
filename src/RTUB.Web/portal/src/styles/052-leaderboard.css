@@ -1,0 +1,298 @@
+/* ---------- classification (React track 019) ---------- */
+
+/* "Níveis de Alcoolismo" (#225): one card, open by default; the summary is its header and still folds it away. */
+.leaderboard-levels {
+  margin-bottom: 20px;
+  padding: 4px 16px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.leaderboard-levels__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 48px;
+  padding: 8px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.leaderboard-levels__head::-webkit-details-marker {
+  display: none;
+}
+
+.leaderboard-levels__title {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.leaderboard-levels__me {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.leaderboard-levels__me strong {
+  color: var(--purple-ink);
+}
+
+.leaderboard-levels__head > .icon {
+  margin-left: auto;
+  color: var(--purple-ink);
+  transition: transform 160ms ease;
+}
+
+.leaderboard-levels:not([open]) .leaderboard-levels__head > .icon {
+  transform: rotate(-90deg);
+}
+
+.leaderboard-levels__head:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* The explanation is the card's intro, not a card of its own. */
+.leaderboard-story {
+  display: grid;
+  gap: 6px;
+  max-width: 62rem;
+  margin: 4px 0 0;
+}
+
+.leaderboard-story__title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leaderboard-story__text,
+.leaderboard-comment__text {
+  color: var(--ink-soft);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* Phones: one column, a compact progression read top to bottom. Wider: a balanced 2 / 3 / 4-column grid of the 12
+   levels (6x2, 4x3, 3x4), never the accidental 8 + 4 of auto-fill. */
+.leaderboard-level-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 560px) {
+  .leaderboard-level-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (min-width: 820px) {
+  .leaderboard-level-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .leaderboard-level-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.leaderboard-level {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.leaderboard-level__n {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-level__text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.leaderboard-level__name {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-level__xp {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-level.is-reached .leaderboard-level__n {
+  border-color: transparent;
+  background: rgba(111, 66, 193, 0.28);
+  color: var(--ink);
+}
+
+.leaderboard-level.is-current {
+  border-color: var(--purple-ink);
+  background: rgba(111, 66, 193, 0.14);
+}
+
+.leaderboard-level.is-current .leaderboard-level__n {
+  border-color: transparent;
+  background: var(--purple);
+  color: #fff;
+}
+
+.leaderboard-level__you {
+  margin-top: 2px;
+  color: var(--purple-ink);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.leaderboard-rows {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.leaderboard-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.leaderboard-row:hover,
+.leaderboard-row:focus-visible {
+  border-color: var(--purple-ink);
+}
+
+.leaderboard-row--top1,
+.leaderboard-row--top2,
+.leaderboard-row--top3 {
+  border-color: var(--line-strong);
+}
+
+.leaderboard-row__pos {
+  flex: none;
+  width: 2.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.leaderboard-row .who__avatar {
+  flex: none;
+  width: 48px;
+  height: 48px;
+}
+
+.leaderboard-row__who {
+  display: grid;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.leaderboard-row__who small {
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-row__score {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.leaderboard-comments {
+  margin-top: 16px;
+}
+
+.leaderboard-comment {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+}
+
+.leaderboard-comment__head,
+.leaderboard-comment__likes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.leaderboard-comment__head .icon-btn {
+  margin-left: auto;
+}
+
+.leaderboard-comment .who__avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.leaderboard-comment .is-liked {
+  border-color: var(--purple-ink);
+  color: var(--purple-ink);
+}
+
+.member-activities .member-badge {
+  flex: none;
+  /* #229: `.member-activities span` (min-width: 0) matched the badge too, so its nowrap "+15 XP" shrank and spilled
+     out of the row, scrolling the "Detalhes da classificação" dialog sideways at 320px. */
+  min-width: auto;
+  margin-left: auto;
+}
+
+.member-activities li > span:not(.member-badge) {
+  flex: 1 1 auto;
+}
+
+.member-activities strong {
+  overflow-wrap: anywhere;
+}

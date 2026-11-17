@@ -291,15 +291,17 @@ public class PortalRouteTests : IntegrationTestBase
     public void EventPages_UsePastWording_AndManageInReact()
     {
         var src = Path.Combine(FindRepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var detail = File.ReadAllText(Path.Combine(src, "pages/EventDetail.tsx"));
-        var agenda = File.ReadAllText(Path.Combine(src, "pages/Events.tsx"));
-        var manage = File.ReadAllText(Path.Combine(src, "components/EventManage.tsx"));
+        // 113: the page, its dialogs and the manage code are split into parts; each variable is every part of that feature.
+        var detail = PortalSource.Cat(src, "pages/EventDetail.tsx", "components/EventDetail*.tsx");
+        var agenda = PortalSource.Cat(src, "pages/Events.tsx", "components/EventsCards.tsx", "components/EventsToolbar.tsx");
+        var manage = PortalSource.Cat(src, "components/EventManage*.tsx");
 
         detail.Should().Contain("past ? 'Quem foi' : 'Quem vai'").And.Contain("whoLabel(past)");
         detail.Should().NotContain("Gerir atuações").And.NotContain("legacy.memberEvents").And.NotContain("eventEnrollments",
             "the event page sends nobody to the Blazor management pages");
 
-        var card = agenda[agenda.IndexOf("function AgendaCard", StringComparison.Ordinal)..agenda.IndexOf("function ArchiveRow", StringComparison.Ordinal)];
+        var cards = File.ReadAllText(Path.Combine(src, "components/EventsCards.tsx"));
+        var card = cards[cards.IndexOf("function AgendaCard", StringComparison.Ordinal)..cards.IndexOf("function ArchiveRow", StringComparison.Ordinal)];
         card.Should().NotContain("Quem vai", "who is going lives on the event page only");
         agenda.Should().Contain("{agenda?.canEdit && (").And.Contain("Adicionar atuação")
             .And.Contain("onEdit: () => setEditing(e.id),").And.Contain("onDelete: () => setDeleting(e),")
@@ -312,7 +314,7 @@ public class PortalRouteTests : IntegrationTestBase
             .And.NotContain("área de membros", "image, cancel and notices no longer send anyone to /member/events (012A)");
         detail.Should().Contain("<NoticeDialog").And.Contain("<CancelEventDialog").And.Contain("<ReactivateEventDialog");
         detail.Should().Contain("loaded.canManagePrizes", "Admin/Owner manage prizes in the Prémios modal (012B)");
-        File.ReadAllText(Path.Combine(src, "components/EventDialogs.tsx")).Should().Contain("<PrizeManager");
+        File.ReadAllText(Path.Combine(src, "components/EventPrizesDialog.tsx")).Should().Contain("<PrizeManager");
         manage.Should().Contain("eventsApi.addPrize(").And.Contain("eventsApi.renamePrize(").And.Contain("eventsApi.deletePrize(");
         manage.Should().Contain("eventsApi.uploadVideo(").And.Contain("eventsApi.renameVideo(").And.Contain("eventsApi.reorderVideos(")
             .And.Contain("eventsApi.deleteVideo(");
@@ -323,7 +325,7 @@ public class PortalRouteTests : IntegrationTestBase
         manage.Should().Contain("eventsApi.addEnrollment(").And.Contain("eventsApi.removeMemberEnrollment(").And.Contain("eventsApi.enrollmentMembers(");
         File.ReadAllText(Path.Combine(src, "main.tsx")).Should().NotContain("my-enrollments");
         Directory.GetFiles(src, "MyEnrollments.tsx", SearchOption.AllDirectories).Should().BeEmpty("\"Onde estiveste\" is a modal on /events now");
-        File.ReadAllText(Path.Combine(src, "components/EventDialogs.tsx")).Should().Contain("export function WhereYouWereDialog");
+        File.ReadAllText(Path.Combine(src, "components/EventStats.tsx")).Should().Contain("export function WhereYouWereDialog");
         manage.Should().Contain("eventsApi.addToRepertoire(").And.Contain("eventsApi.removeFromRepertoire(")
             .And.Contain("eventsApi.reorderRepertoire(").And.Contain("eventsApi.clearRepertoireDay(").And.Contain("eventsApi.repertoireSongs(");
     }
@@ -361,9 +363,11 @@ public class PortalRouteTests : IntegrationTestBase
         linking.Should().BeEmpty("no Blazor or React page links to the retired /member/events");
 
         var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
-        var agenda = File.ReadAllText(Path.Combine(portal, "pages/Events.tsx"));
+        var agenda = PortalSource.Cat(portal, "pages/Events.tsx", "components/EventsCards.tsx", "components/EventsToolbar.tsx");
         agenda.Should().Contain("<StatsDialog").And.Contain("onClick={() => setStats(true)}").And.NotContain("Área de membros");
-        File.ReadAllText(Path.Combine(portal, "components/EventDialogs.tsx")).Should().Contain("eventsApi.stats(").And.NotContain("presen");
+        // EventDialogs.tsx was split (113) into EventAnswer, EventPrizesDialog and EventStats.
+        PortalSource.Cat(portal, "components/EventAnswer.tsx", "components/EventPrizesDialog.tsx", "components/EventStats.tsx")
+            .Should().Contain("eventsApi.stats(").And.NotContain("presen");
         agenda.Should().Contain("takeCreatePrefill").And.Contain("prefill={editing === 'new' ? prefill : undefined}",
             "Requests' prefill opens the React create form (Admin/Owner)");
         // 030: the member menu (MemberShell.tsx) is the members' way around; /profile keeps the enrollments and sign-out.
@@ -412,7 +416,7 @@ public class PortalRouteTests : IntegrationTestBase
         var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
         var rehearsals = Directory.GetFiles(portal, "*", SearchOption.AllDirectories).Where(f => Path.GetFileName(f).StartsWith("Rehearsal", StringComparison.Ordinal)
                 || f.EndsWith("rehearsalsApi.ts")).Select(File.ReadAllText).ToList();
-        rehearsals.Should().HaveCount(4);
+        rehearsals.Should().HaveCount(9, "the 4 rehearsal files (page, detail, dialogs, api) became 9 in the 113 split");
         rehearsals.Should().NotContain(t => t.Contains("inscri", StringComparison.OrdinalIgnoreCase) || t.Contains("enrollment", StringComparison.OrdinalIgnoreCase)
             || t.Contains("migra", StringComparison.OrdinalIgnoreCase), "rehearsals speak of presença, never inscrição");
         string.Concat(rehearsals).Should().Contain("Presenças").And.Contain("As minhas presenças").And.Contain("presença");
@@ -440,13 +444,13 @@ public class PortalRouteTests : IntegrationTestBase
     {
         var src = Path.Combine(FindRepoRoot(), "src");
         var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
-        var detail = File.ReadAllText(Path.Combine(portal, "pages/EventDetail.tsx"));
+        var detail = PortalSource.Cat(portal, "pages/EventDetail.tsx", "components/EventDetail*.tsx");
         detail.Should().Contain("portal.eventDiscussion(event.id)").And.Contain("portal.eventContacts(event.id)")
             .And.Contain("{detail.canTrackContacts && (").And.NotContain("legacy.");
         File.ReadAllText(Path.Combine(portal, "data/content.ts")).Should().NotContain("legacy.eventDiscussion").And.Contain("eventContacts: (id: number)");
         File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().Contain("(discussion|contacts)");
 
-        var talk = File.ReadAllText(Path.Combine(portal, "pages/EventDiscussion.tsx"));
+        var talk = PortalSource.Cat(portal, "pages/EventDiscussion.tsx", "components/EventDiscussion*.tsx");
         talk.Should().Contain("Escreve uma nota para a atuação…").And.Contain("Ainda não há mensagens nesta atuação.")
             .And.Contain("Deixa uma nota, combina detalhes ou partilha uma dúvida.").And.Contain("Apagar esta publicação?");
         var contacts = File.ReadAllText(Path.Combine(portal, "pages/EventContacts.tsx"));
@@ -473,11 +477,11 @@ public class PortalRouteTests : IntegrationTestBase
         var src = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
 
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("events: '/events'").And.NotContain("memberEvents");
-        File.ReadAllText(Path.Combine(src, "pages/Home.tsx")).Should().Contain("<MoreLink href={portal.events}>",
+        PortalSource.Home(src).Should().Contain("<MoreLink href={portal.events}>",
             "the home agenda's call to action opens the React agenda");
-        File.ReadAllText(Path.Combine(src, "components/App.tsx")).Should().Contain("events: portal.events,",
+        File.ReadAllText(Path.Combine(src, "data/sections.ts")).Should().Contain("events: portal.events,",
             "the top bar, the mobile menu and the footer open the agenda page, not the home section");
-        File.ReadAllText(Path.Combine(src, "pages/Requests.tsx")).Should().Contain("href={approved.createEventUrl}",
+        File.ReadAllText(Path.Combine(src, "components/RequestDialogs.tsx")).Should().Contain("href={approved.createEventUrl}",
             "turning a request into an event opens the React create form (012F; the requests page is React since 031, "
             + "RequestsApiTests pins the /events?openModal=true link)");
     }
@@ -513,8 +517,8 @@ public class PortalRouteTests : IntegrationTestBase
         var src = Path.Combine(FindRepoRoot(), "src", "RTUB.Web", "portal", "src");
 
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("music: '/music'");
-        File.ReadAllText(Path.Combine(src, "pages/Home.tsx")).Should().Contain("<MoreLink href={portal.music}>");
-        File.ReadAllText(Path.Combine(src, "components/App.tsx")).Should().Contain("music: portal.music,",
+        PortalSource.Home(src).Should().Contain("<MoreLink href={portal.music}>");
+        File.ReadAllText(Path.Combine(src, "data/sections.ts")).Should().Contain("music: portal.music,",
             "the top bar, the mobile menu and the footer open the Music page, not the home section");
         Directory.GetFiles(src, "*", SearchOption.AllDirectories).Select(File.ReadAllText).Should().NotContain(t => Regex.IsMatch(t, "(?<!/api)/music/songs/"),
             "the React Music area links to /music/albums/{id}, never the retired Blazor route");

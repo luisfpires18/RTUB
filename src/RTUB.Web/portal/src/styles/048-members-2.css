@@ -1,0 +1,31 @@
+.member-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.member-date > svg {
+  color: var(--purple-ink);
+  font-size: 1.125rem;
+}
+
+.member-date > span {
+  display: grid;
+  line-height: 1.25;
+}
+
+.member-date__label {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.member-date strong {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.member-row__who .member-badges {
+  justify-content: flex-start;
+  margin-top: 4px;
+}

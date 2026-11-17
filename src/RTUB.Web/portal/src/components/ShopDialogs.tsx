@@ -1,0 +1,262 @@
+// Shop detail and reservation dialogs.
+import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
+import { Loading } from './AppShared';
+import { Dialog } from './Dialog';
+import { Icon } from './icons';
+import { euros } from '../data/format';
+import { type Reservation, type Product, type Detail, SIZE_LABELS, api, when, problem } from '../data/shopApi';
+import { Confirm } from './ShopProductForm';
+
+export function DetailDialog({ id, onClose }: { id: number; onClose: () => void }) {
+  const [detail, setDetail] = useState<Detail | 'missing' | null>();
+  useEffect(() => {
+    api.product(id).then((o) => setDetail(o.kind === 'ok' ? o.data : o.kind === 'notfound' ? 'missing' : null));
+  }, [id]);
+
+  const field = (label: string, value: ReactNode) => (
+    <div className="member-field">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+
+  return (
+    <Dialog title="Detalhes do produto" onClose={onClose}>
+      {detail === undefined ? (
+        <Loading label="A carregar…" />
+      ) : detail === 'missing' ? (
+        <p className="form__banner">Este produto já não existe.</p>
+      ) : detail === null ? (
+        <p className="form__banner">Não foi possível carregar o produto.</p>
+      ) : (
+        <div className="member-detail">
+          <div className="member-detail__head">
+            {detail.imageUrl && <img className="shop-detail__image" src={detail.imageUrl} alt="" />}
+            <p className="member-detail__name">{detail.name}</p>
+          </div>
+          <dl className="member-fields">
+            {field('Tipo', detail.type)}
+            {field('Preço', euros(detail.price))}
+            {field('Stock', detail.stock > 0 ? detail.stock : 'Esgotado')}
+            {field('Disponível', detail.isAvailable ? 'Sim' : 'Não')}
+            {!detail.isPublic && field('Visibilidade', 'Apenas membros')}
+            {field('Ano letivo', detail.availableAllYears ? 'Todos os anos letivos' : detail.fiscalYear)}
+          </dl>
+          {detail.description && <p className="shop-description">{detail.description}</p>}
+        </div>
+      )}
+    </Dialog>
+  );
+}
+
+export function ReserveDialog({ product, sizes, onClose, onDone }: { product: Product; sizes: string[]; onClose: () => void; onDone: () => void }) {
+  const id = useId();
+  const [hasSizes, setHasSizes] = useState(false);
+  const [size, setSize] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (hasSizes && !size) return setErrors({ size: 'O tamanho é obrigatório quando o produto tem tamanhos' });
+    setBusy(true);
+    const o = await api.reserve(product.id, { hasSizes, size: hasSizes ? size : null, displayName: displayName.trim() || null });
+    setBusy(false);
+    if (o.kind === 'ok') {
+      onDone();
+      onClose();
+    } else setErrors(o.kind === 'invalid' ? o.errors : { product: problem(o, 'reservar') });
+  };
+
+  return (
+    <Dialog
+      title="Reservar produto"
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
+            Cancelar
+          </button>
+          <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy}>
+            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+            Reservar
+          </button>
+        </>
+      }
+    >
+      <form id={`${id}-form`} className="form" onSubmit={submit} noValidate>
+        <p className="answer-event">
+          <strong>{product.name}</strong>
+          <span>
+            {product.type} · {euros(product.price)} · {product.stock} disponíveis
+          </span>
+        </p>
+        {(errors.product || errors.hasSizes) && (
+          <p className="form__banner" role="alert">
+            {errors.product ?? errors.hasSizes}
+          </p>
+        )}
+        <div className={errors.displayName ? 'form__field form__field--error' : 'form__field'}>
+          <label htmlFor={`${id}-name`}>Nome para apresentação (opcional)</label>
+          <input id={`${id}-name`} type="text" maxLength={200} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+          <p className="form__hint">Em branco, fica o teu nome de membro.</p>
+          {errors.displayName && <p className="form__error">{errors.displayName}</p>}
+        </div>
+        <label className="form__check" htmlFor={`${id}-sizes`}>
+          <input id={`${id}-sizes`} type="checkbox" checked={hasSizes} onChange={(e) => setHasSizes(e.target.checked)} />
+          Este produto tem tamanhos
+        </label>
+        {hasSizes && (
+          <div className={errors.size ? 'form__field form__field--error' : 'form__field'}>
+            <label htmlFor={`${id}-size`}>Tamanho</label>
+            <span className="control control--select">
+              <select id={`${id}-size`} value={size} onChange={(e) => setSize(e.target.value)}>
+                <option value="">Escolher o tamanho</option>
+                {sizes.map((s) => (
+                  <option key={s} value={s}>
+                    {SIZE_LABELS[s] ?? s}
+                  </option>
+                ))}
+              </select>
+            </span>
+            {errors.size && (
+              <p className="form__error" role="alert">
+                {errors.size}
+              </p>
+            )}
+          </div>
+        )}
+      </form>
+    </Dialog>
+  );
+}
+
+function ReservationLines({ r }: { r: Reservation }) {
+  return (
+    <dl className="member-fields">
+      <div className="member-field">
+        <dt>Reservado por</dt>
+        <dd>{r.username}</dd>
+      </div>
+      {r.displayName && (
+        <div className="member-field">
+          <dt>Nome para apresentação</dt>
+          <dd>{r.displayName}</dd>
+        </div>
+      )}
+      {r.size && (
+        <div className="member-field">
+          <dt>Tamanho</dt>
+          <dd>{r.size}</dd>
+        </div>
+      )}
+      <div className="member-field">
+        <dt>Data da reserva</dt>
+        <dd>{when(r.createdAt)}</dd>
+      </div>
+    </dl>
+  );
+}
+
+/** "Minha Reserva", with "Anular" for the member. */
+export function MineDialog({ product, reservation, onClose, onDone }: { product: Product; reservation: Reservation; onClose: () => void; onDone: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <>
+      <Dialog
+        title="A minha reserva"
+        onClose={onClose}
+        footer={
+          <button type="button" className="btn btn--danger" onClick={() => setConfirming(true)}>
+            <Icon name="close" />
+            Anular reserva
+          </button>
+        }
+      >
+        <p className="answer-event">
+          <strong>{product.name}</strong>
+          <span>
+            {product.type} · {euros(product.price)}
+          </span>
+        </p>
+        <ReservationLines r={reservation} />
+      </Dialog>
+      {confirming && (
+        <Confirm
+          title="Anular reserva"
+          label="Anular reserva"
+          run={() => api.cancel(reservation.id)}
+          onClose={() => setConfirming(false)}
+          onDone={() => {
+            onDone();
+            onClose();
+          }}
+        >
+          <p>
+            Anular a reserva de <strong>{product.name}</strong> feita a {when(reservation.createdAt)}? Não dá para desfazer.
+          </p>
+        </Confirm>
+      )}
+    </>
+  );
+}
+
+/** "Reservas do Produto" (Mod, Admin and Owner): every reservation, newest first, each deletable. */
+export function ReservationsDialog({ product, onClose, onChanged }: { product: Product; onClose: () => void; onChanged: () => void }) {
+  const [list, setList] = useState<Reservation[] | null>();
+  const [deleting, setDeleting] = useState<Reservation>();
+  const load = () => api.reservations(product.id).then((o) => setList(o.kind === 'ok' ? o.data : null));
+  useEffect(() => {
+    load();
+  }, [product.id]);
+
+  return (
+    <>
+      <Dialog title={`Reservas · ${product.name}`} size="lg" onClose={onClose}>
+        {list === undefined ? (
+          <Loading label="A carregar as reservas…" />
+        ) : list === null ? (
+          <p className="form__banner">Não foi possível carregar as reservas.</p>
+        ) : list.length === 0 ? (
+          <p className="note">Não existem reservas para este produto.</p>
+        ) : (
+          <ul className="member-rows">
+            {list.map((r) => (
+              <li key={r.id} className="member-row shop-reservation">
+                <span className="member-row__who">
+                  <strong>{r.username}</strong>
+                  {r.displayName && <small>Nome: {r.displayName}</small>}
+                  <small>
+                    {r.size ? `Tamanho ${r.size} · ` : ''}
+                    {when(r.createdAt)}
+                  </small>
+                </span>
+                <button type="button" className="icon-btn icon-btn--danger" onClick={() => setDeleting(r)}>
+                  <Icon name="trash" />
+                  <span className="sr-only">Eliminar a reserva de {r.username}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Dialog>
+      {deleting && (
+        <Confirm
+          title="Eliminar reserva"
+          label="Eliminar reserva"
+          run={() => api.cancel(deleting.id)}
+          onClose={() => setDeleting(undefined)}
+          onDone={() => {
+            load();
+            onChanged();
+          }}
+        >
+          <p>
+            Eliminar a reserva de <strong>{deleting.username}</strong> para {product.name} ({when(deleting.createdAt)})? Não dá para desfazer.
+          </p>
+        </Confirm>
+      )}
+    </>
+  );
+}

@@ -1,8 +1,9 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './App';
+import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { AccessFields, EventField } from '../pages/Logistics';
+import { AccessFields } from './LogisticsAccessFields';
+import { EventField } from './LogisticsEventField';
 import { logisticsApi, PRIORITY, problem, STATUS, type LogisticsEvent, type Priority, type Template, type Visibility, PRIORITIES_LOW_FIRST } from '../data/logisticsApi';
 
 type Person = { id: string; name: string; avatar: string | null };

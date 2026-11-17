@@ -1,0 +1,297 @@
+/* ---------- /members (React track 017) ---------- */
+
+.members-tools .check {
+  align-self: center;
+}
+
+.member-card {
+  width: 100%;
+  height: 100%;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.member-card:hover,
+.member-card:focus-visible {
+  border-color: var(--purple-ink);
+}
+
+.member-card--expelled {
+  opacity: 0.5;
+}
+
+.member-card__online {
+  color: var(--muted);
+  font-size: 0.6875rem;
+}
+
+.member-card__online::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #dc3545;
+}
+
+.member-card__online.is-on::before {
+  background: #2fb36d;
+}
+
+.member-card__inactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #f5c46b;
+  font-size: 0.75rem;
+}
+
+.member-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* The one badge of the portal (MemberBadge.tsx): a compact pill; `kind` picks the per-status colours below. */
+.member-badge {
+  padding: 1px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* The colours of the old badges (badges.css): black Tuno, pink Honorário, white Caloiro, grey Leitão... */
+.member-badge--tuno,
+.member-badge--retired {
+  background: #000;
+  color: #fff;
+}
+
+.member-badge--veterano {
+  border-color: var(--purple-ink);
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.member-badge--tunossauro {
+  border-color: var(--purple-ink);
+  background: #2c2c54;
+  color: #fff;
+}
+
+.member-badge--tunohonorario {
+  background: #ff1d8e;
+  color: #fff;
+}
+
+.member-badge--fundador {
+  background: #3d2c5c;
+  color: #fff;
+}
+
+.member-badge--caloiro {
+  background: #fff;
+  color: #000;
+}
+
+.member-badge--leitao {
+  background: #6c757d;
+  color: #fff;
+}
+
+.member-badge--danger {
+  border-color: rgba(255, 143, 134, 0.5);
+  background: #000;
+  color: #ffb3ad;
+}
+
+.member-badge--active,
+.member-badge--position {
+  background: var(--purple);
+  color: #fff;
+}
+
+/* Long cargo names ("Presidente Mesa Assembleia") wrap inside the card instead of widening the page. */
+.members-grid > li {
+  min-width: 0;
+}
+
+.members-grid .member-badges {
+  max-width: 100%;
+}
+
+.members-grid .member-badge {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.members-more {
+  margin-top: 12px;
+}
+
+.member-detail {
+  display: grid;
+  gap: 20px;
+}
+
+.member-detail__head {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.member-detail__name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.member-section {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.member-section__title {
+  margin: 0;
+  color: var(--purple-ink);
+  font-size: 0.875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.member-fields {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.member-field {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.member-field dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.member-field dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Member details: "Percurso na tuna" is the /profile timeline (TunaPath). min-width 0 keeps its own sideways scroll
+   (a row from 700px) inside the dialog, never the page. */
+.member-path {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 10px;
+}
+
+.member-path__title {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.member-progress {
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+}
+
+.member-progress--row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.member-progress--row > svg {
+  color: var(--purple-ink);
+}
+
+.member-progress__bar {
+  width: 100%;
+  accent-color: var(--purple);
+}
+
+.member-encourage {
+  margin: 0;
+  color: var(--purple-ink);
+  font-weight: 600;
+}
+
+.member-activities,
+.member-rows {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member-activities li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.member-activities span,
+.member-row__who {
+  display: grid;
+  min-width: 0;
+}
+
+.member-activities small,
+.member-row__who small {
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+}
+
+.member-row .who__avatar {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  margin: 0;
+  box-shadow: none;
+}
+
+.member-row__who {
+  flex: 1;
+}
+
+.member-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin-top: 6px;
+}

@@ -1,0 +1,299 @@
+/* /owner/tracing */
+
+.owner-filters__grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .owner-filters__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Tracing filters: title and quick toggles, the search, then four compact fields, then the filters in force as chips. */
+.trace-filters {
+  gap: 14px;
+}
+
+.trace-filters__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.trace-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trace-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 600 0.8125rem/1 var(--font-body);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.trace-toggle .icon {
+  color: var(--muted);
+}
+
+@media (hover: hover) {
+  .trace-toggle:hover {
+    border-color: var(--purple-ink);
+  }
+}
+
+.trace-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.trace-toggle[aria-pressed='true'] {
+  border-color: var(--purple);
+  background: var(--purple);
+  color: #fff;
+}
+
+.trace-toggle[aria-pressed='true'] .icon {
+  color: #fff;
+}
+
+.trace-toggle--critical[aria-pressed='true'] {
+  border-color: #b4423c;
+  background: #b4423c;
+}
+
+.trace-filters__grid {
+  display: grid;
+  gap: 12px;
+}
+
+.trace-filters__grid .form__field {
+  gap: 6px;
+}
+
+.trace-filters__grid label {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.trace-filters__grid .control--sm {
+  min-height: 42px;
+}
+
+.trace-filters__grid .control input,
+.trace-filters__grid .control select {
+  font-size: 0.9375rem;
+}
+
+/* The member fields: the chips clear them, so the browser's own clear cross and datalist arrow stay hidden. */
+.trace-filters__grid input::-webkit-search-cancel-button,
+.trace-filters__grid input::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+@media (min-width: 640px) {
+  .trace-filters__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .trace-filters__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.trace-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.trace-chips ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trace-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0 10px 0 12px;
+  border: 1px solid rgba(185, 160, 238, 0.4);
+  border-radius: 999px;
+  background: rgba(111, 66, 193, 0.16);
+  color: var(--ink);
+  font: 500 0.8125rem/1.2 var(--font-body);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.trace-chip .icon {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--purple-ink);
+}
+
+@media (hover: hover) {
+  .trace-chip:hover {
+    border-color: var(--purple-ink);
+    background: rgba(111, 66, 193, 0.28);
+  }
+}
+
+.trace-chip:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.owner-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.owner-stats > div {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.owner-stats dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.owner-stats dd {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+}
+
+/* Task 050: /owner/dashboard. One series at a time in --purple-ink (no categorical palette needed); the heatmap and
+   the rank bars are the same hue at varying strength. */
+.owner-dash {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.owner-dash__now {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.owner-dash__now > div {
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.owner-dash__now dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.owner-dash__now dd {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+
+.owner-dash__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 128px), 1fr));
+  gap: 8px;
+}
+
+.owner-dash__tile {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-top: 3px solid transparent;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink-soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.owner-dash__tile:hover {
+  border-color: var(--line-strong);
+}
+
+.owner-dash__tile[aria-selected='true'] {
+  border-color: var(--line-strong);
+  border-top-color: var(--purple-ink);
+  background: var(--bg-card);
+}
+
+.owner-dash__tile-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.owner-dash__tile-label .icon {
+  flex: none;
+  color: var(--purple-ink);
+}
+
+.owner-dash__tile-value {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  line-height: 1.1;
+}
+
+.owner-dash__tile-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.owner-dash__chart {
+  position: relative;
+  min-width: 0;
+  border-radius: 8px;
+  touch-action: pan-y;
+}

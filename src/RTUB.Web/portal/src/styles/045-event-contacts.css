@@ -1,0 +1,132 @@
+/* ---------- Event contact tracking (/events/{id}/contacts, React track 013) ---------- */
+
+.contacts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contact {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 10px 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.contact--done {
+  border-color: var(--line-strong);
+}
+
+.contact__avatar {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--royal);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-card);
+}
+
+.contact__who {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.contact__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.contact__full,
+.contact__when {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.contact__phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  min-height: 32px;
+  color: var(--purple-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.contact__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+}
+
+.contact__answer {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.contact__answer--yes {
+  background: rgba(64, 192, 120, 0.14);
+  color: #b9f0cf;
+}
+
+.contact__answer--no {
+  background: rgba(255, 143, 134, 0.12);
+  color: #ffd0cc;
+}
+
+.contact__answer--maybe {
+  background: rgba(168, 160, 180, 0.14);
+  color: var(--ink-soft);
+}
+
+.contact__notes {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.contact__actions {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px 16px;
+}
+
+.contact__legend {
+  margin-bottom: 10px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.contact__choices {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 479px) {
+  .contact__choices .choice__option {
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.9375rem;
+  }
+}

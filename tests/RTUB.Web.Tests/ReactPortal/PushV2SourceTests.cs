@@ -16,7 +16,12 @@ public class PushV2SourceTests
     private static readonly string Portal = Path.Combine(Root, "src", "RTUB.Web", "portal", "src");
     private static string Read(params string[] parts) => File.ReadAllText(Path.Combine(parts));
     private static string Push => Read(Portal, "data/push.ts");
-    private static string Profile => Read(Portal, "pages/Profile.tsx");
+    // Task 113 split pages/Profile.tsx into components/Profile*.tsx; the page comes first so its own order checks still hold.
+    private static string Profile => string.Join("\n", new[]
+    {
+        "pages/Profile.tsx", "components/ProfileInstruments.tsx", "components/ProfilePersonal.tsx", "components/ProfilePhoto.tsx",
+        "components/ProfilePush.tsx", "components/ProfileSecurity.tsx", "components/ProfileShared.tsx", "components/ProfileTuna.tsx",
+    }.Select(f => Read(Portal, f)));
     private static string Worker => Read(Root, "src", "RTUB.Web", "wwwroot", "service-worker.js");
 
     [Fact]
@@ -82,7 +87,9 @@ public class PushV2SourceTests
         }
 
         Push.Should().NotContainAny("migra", "Migra");
-        var section = Profile[Profile.IndexOf("function PushSection", StringComparison.Ordinal)..Profile.IndexOf("// ---------- Segurança", StringComparison.Ordinal)];
+        // The Segurança marker moved to ProfileSecurity.tsx, so the push section now runs to the end of ProfilePush.tsx.
+        var push = Read(Portal, "components/ProfilePush.tsx");
+        var section = push[push.IndexOf("function PushSection", StringComparison.Ordinal)..];
         section.Should().NotContainAny("migra", "Migra");
     }
 

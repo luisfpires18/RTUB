@@ -15,10 +15,17 @@ public class NewsPortalTests
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Src, file));
 
+    // Task 113 split pages/Home.tsx into components/Home*.tsx and pages/News.tsx into components/NewsDialogs.tsx.
+    private static string ReadAll(params string[] files) => string.Join("\n", files.Select(Read));
+    private static string HomePage() => ReadAll("pages/Home.tsx", "components/HomeEvents.tsx", "components/HomeHero.tsx",
+        "components/HomeJoin.tsx", "components/HomeMedia.tsx", "components/HomeParts.tsx");
+    private static string NewsPage() => ReadAll("pages/News.tsx", "components/NewsDialogs.tsx");
+    private static string Css() => PortalCss.Read(Src);
+
     [Fact]
     public void Navbar_HasNovidades_LinkingToTheNewsPage()
     {
-        var app = Read("components/App.tsx");
+        var app = Read("data/sections.ts");
 
         // The section list feeds the top bar, the mobile menu and the footer.
         app.Should().Contain("{ id: 'news', label: 'Novidades' }");
@@ -30,15 +37,15 @@ public class NewsPortalTests
     [Fact]
     public void Home_ShowsTheLatestNewsRightAfterTheAgenda_AndDoesNotEndWithIt()
     {
-        var home = Read("pages/Home.tsx");
-        var body = Regex.Match(home, @"export function Home\(\) \{.*?return \((.*?)\);\s*\}", RegexOptions.Singleline).Groups[1].Value;
+        var home = HomePage();
+        var body = Regex.Match(Read("pages/Home.tsx"), @"export function Home\(\) \{.*?return \((.*?)\);\s*\}", RegexOptions.Singleline).Groups[1].Value;
         var sections = Regex.Matches(body, @"<(\w+) />").Select(m => m.Groups[1].Value).ToList();
 
         sections.Should().Contain("LatestNews");
         sections[sections.IndexOf("Events") + 1].Should().Be("LatestNews", "the preview sits right after the agenda");
         sections[^1].Should().NotBe("LatestNews", "the home must not end with a news block");
         home.Should().NotContain("NewsTeaser").And.NotContain("Em breve", "the old \"Novidades · Em breve\" strip is gone");
-        Read("styles.css").Should().NotContain("news-teaser");
+        Css().Should().NotContain("news-teaser");
 
         // Hidden while there is nothing to show; three posts at most, and a way to the full feed.
         home.Should().Contain("if (posts.length === 0) return null;").And.Contain("getLatestNews(3)").And.Contain("Ver todas");
@@ -49,22 +56,22 @@ public class NewsPortalTests
     {
         foreach (var file in new[] { "pages/News.tsx", "pages/Home.tsx" })
         {
-            Read(file).Should().NotContain("dangerouslySetInnerHTML", "{0} shows post text as text, never as markup", file);
+            (file == "pages/Home.tsx" ? HomePage() : NewsPage()).Should().NotContain("dangerouslySetInnerHTML", "{0} shows post text as text, never as markup", file);
         }
     }
 
     [Fact]
     public void Visibility_IsAnExplicitChoiceOnANewPost_TabsAreForSignedInReadersOnly_AndPrivatePostsAreBadged()
     {
-        var news = Read("pages/News.tsx");
+        var news = NewsPage();
 
         news.Should().Contain("useState<boolean | undefined>(post?.membersOnly)", "a new post has no audience until chosen (077), an edit keeps its own");
         news.Should().Contain("Escolhe quem pode ver: Público ou Apenas RTUB.");
         news.Should().Contain("Público: qualquer visitante").And.Contain("Apenas RTUB: só membros").And.Contain("Só membros");
         news.Should().Contain("{feed.signedIn && (", "visitors get no tabs and no hint that private posts exist");
         news.Should().Contain("'Todas'").And.Contain("'Públicas'").And.Contain("'Privadas'");
-        Read("pages/Home.tsx").Should().Contain("p.membersOnly && <span className=\"tag tag--private news-latest__tag\">Só membros</span>", "the home preview badges a private post like the feed");
-        Read("data/api.ts").Should().Contain("membersOnly: boolean").And.Contain("signedIn: boolean");
+        HomePage().Should().Contain("p.membersOnly && <span className=\"tag tag--private news-latest__tag\">Só membros</span>", "the home preview badges a private post like the feed");
+        Read("data/publicContentApi.ts").Should().Contain("membersOnly: boolean").And.Contain("signedIn: boolean");
     }
 
     private static string GetProjectRoot()

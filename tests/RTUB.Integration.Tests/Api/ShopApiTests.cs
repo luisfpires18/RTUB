@@ -526,7 +526,7 @@ public class ShopApiTests : IClassFixture<EventsApiFactory>
     [Fact]
     public void ReactProductForm_WiresTheAllYearsOption()
     {
-        var shop = File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src", "pages/Shop.tsx"));
+        var shop = File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src", "components/ShopProductForm.tsx"));
         shop.Should().Contain("Disponível em todos os anos letivos")
             .And.Contain("availableAllYears: false })", "a new product is year-specific")
             .And.Contain("availableAllYears: d.availableAllYears,", "edit loads the saved value")

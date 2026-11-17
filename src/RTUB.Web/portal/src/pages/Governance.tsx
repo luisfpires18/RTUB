@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useState } from 'react';
 import { getGovernance, type Governance as GovernanceData, type GovernanceMember } from '../data/api';
-import { Loading, useCurrentUser } from '../components/App';
+import { Loading, useCurrentUser } from '../components/AppShared';
 import { portal } from '../data/content';
 import {
   AssignDialog,

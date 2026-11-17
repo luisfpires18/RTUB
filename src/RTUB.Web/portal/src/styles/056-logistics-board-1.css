@@ -1,0 +1,297 @@
+/* ---- one board ---- */
+
+.lx-board-page {
+  gap: 16px;
+  padding-block: 20px 64px;
+}
+
+.lx-head {
+  display: grid;
+  gap: 10px;
+}
+
+.lx-head__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.lx-head__text {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lx-head__title {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  overflow-wrap: break-word;
+}
+
+.lx-head__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.lx-head__count {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.lx-head__desc {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--ink-soft);
+  white-space: pre-line;
+}
+
+.lx-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lx-toolbar {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-inline: calc(-1 * var(--gutter));
+  padding: 10px var(--gutter);
+  border-block: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.lx-toolbar > .control:first-child {
+  flex: 1 1 200px;
+  max-width: 320px;
+}
+
+.lx-status-filter {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+}
+
+.lx-status-filter button {
+  padding: 7px 12px;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: 600 0.8125rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.lx-status-filter button + button {
+  border-left: 1px solid var(--line);
+}
+
+.lx-status-filter button[aria-pressed="true"] {
+  background: var(--royal);
+  color: var(--ink);
+}
+
+.lx-status-filter .lx-status-filter--todo[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--st-todo) 35%, transparent);
+}
+
+.lx-status-filter .lx-status-filter--inprogress[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--st-wip) 35%, transparent);
+}
+
+.lx-status-filter .lx-status-filter--done[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--st-done) 35%, transparent);
+}
+
+.lx-jump {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.lx-jump button {
+  flex: none;
+  max-width: 180px;
+  overflow: hidden;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-raise);
+  color: var(--ink-soft);
+  font: 500 0.8125rem/1.2 var(--font-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lx-jump button:hover {
+  border-color: var(--purple-ink);
+  color: var(--ink);
+}
+
+.lx-kanban {
+  /* Contains the absolutely placed bits (screen-reader labels) so they scroll with the board, not the page. */
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-inline: calc(-1 * var(--gutter));
+  padding: 4px var(--gutter) 16px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--gutter);
+  scroll-snap-type: x proximity;
+}
+
+.lx-col {
+  display: flex;
+  flex: 0 0 clamp(272px, 84vw, 316px);
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-raise);
+  scroll-snap-align: start;
+}
+
+.lx-col--over {
+  border-color: var(--purple-ink);
+}
+
+.lx-col__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px 8px 14px;
+}
+
+.lx-col__title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font: 700 0.9375rem/1.3 var(--font-body);
+  overflow-wrap: break-word;
+}
+
+.lx-col__count {
+  flex: none;
+  min-width: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.lx-col__cards {
+  display: grid;
+  gap: 8px;
+  min-height: 56px;
+  margin: 0;
+  padding: 4px 8px 8px;
+  list-style: none;
+}
+
+.lx-col__slot {
+  display: grid;
+}
+
+.lx-col__empty {
+  padding: 14px 8px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.lx-col__add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 8px 8px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  font: 600 0.875rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.lx-col__add:hover {
+  background: var(--bg-card);
+  color: var(--ink);
+}
+
+.lx-col--new {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 72px;
+  border-style: dashed;
+  background: none;
+  color: var(--muted);
+  font: 600 0.9375rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.lx-col--new:hover {
+  border-color: var(--purple-ink);
+  color: var(--ink);
+}
+
+.lx-drop {
+  display: block;
+  height: 3px;
+  margin-bottom: 8px;
+  border-radius: 2px;
+  background: var(--purple-ink);
+}
+
+.lx-card {
+  --st: var(--st-todo);
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--st);
+  border-radius: 10px;
+  background: var(--bg-card);
+}
+
+.lx-card--inprogress {
+  --st: var(--st-wip);
+}
+
+.lx-card--done {
+  --st: var(--st-done);
+}
+
+.lx-card--open:hover {
+  border-color: var(--line-strong);
+  border-left-color: var(--st);
+}
+
+.lx-card[draggable="true"] {
+  cursor: grab;
+}
+
+.lx-card--dragging {
+  opacity: 0.4;
+}
