@@ -132,6 +132,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   Meeting: 'Reunião',
   MeetingRequest: 'Pedido de reunião',
   MeetingParticipation: 'Presença em reunião',
+  MeetingPoll: 'Votação de reunião',
   MeetingAta: 'Ata',
   MeetingAtaAttachment: 'Anexo de ata',
   Product: 'Produto',

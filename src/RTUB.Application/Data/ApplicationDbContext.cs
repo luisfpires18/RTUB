@@ -91,6 +91,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Meeting> Meetings { get; set; }
     public DbSet<MeetingRequest> MeetingRequests { get; set; }
     public DbSet<MeetingParticipation> MeetingParticipations { get; set; }
+    public DbSet<MeetingPoll> MeetingPolls { get; set; } = null!;
+    public DbSet<MeetingPollOption> MeetingPollOptions { get; set; } = null!;
+    public DbSet<MeetingPollVote> MeetingPollVotes { get; set; } = null!;
 
     // Meeting Atas DbSets
     public DbSet<MeetingAta> MeetingAtas { get; set; }
