@@ -67,6 +67,14 @@ public static class MusicEndpoints
                 ToResult(await service.NotifyPlayAlongAsync(id, input, http.User), _ => Results.NoContent()))
             .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
 
+        writes.MapPost("/songs/{id:int}/playalong/view", async (int id, HttpContext http, IMusicService service) =>
+                ToResult(await service.RecordPlayAlongViewAsync(id, http.User), _ => Results.NoContent()))
+            .WithMetadata(new RequestSizeLimitAttribute(1024));
+        writes.MapPut("/songs/{id:int}/playalong/star", async (int id, HttpContext http, IMusicService service) =>
+                ToResult(await service.SetPlayAlongStarAsync(id, true, http.User), _ => Results.NoContent()))
+            .WithMetadata(new RequestSizeLimitAttribute(1024));
+        writes.MapDelete("/songs/{id:int}/playalong/star", async (int id, HttpContext http, IMusicService service) =>
+            ToResult(await service.SetPlayAlongStarAsync(id, false, http.User), _ => Results.NoContent()));
         writes.MapDelete("/songs/{id:int}/playalong", async (int id, HttpContext http, IMusicService service) =>
             ToResult(await service.DeletePlayAlongAsync(id, http.User), _ => Results.NoContent()));
 

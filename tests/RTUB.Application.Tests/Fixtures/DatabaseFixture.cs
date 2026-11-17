@@ -66,6 +66,7 @@ public class DatabaseFixture : IDisposable
         context.MeetingPollOptions.RemoveRange(context.MeetingPollOptions);
         context.MeetingPolls.RemoveRange(context.MeetingPolls);
         context.SongYouTubeUrls.RemoveRange(context.SongYouTubeUrls);
+        context.SongPlayAlongFavorites.RemoveRange(context.SongPlayAlongFavorites);
         context.SongPlayAlongs.RemoveRange(context.SongPlayAlongs);
         context.Songs.RemoveRange(context.Songs);
         context.Albums.RemoveRange(context.Albums);

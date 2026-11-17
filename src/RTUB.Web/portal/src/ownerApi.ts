@@ -123,6 +123,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   Song: 'Música',
   SongVideo: 'Vídeo de música',
   SongPlayAlong: 'Pauta de aprender',
+  SongPlayAlongFavorite: 'Favorita de aprender',
   SongYouTubeUrl: 'Link YouTube',
   Album: 'Álbum',
   AlbumAccess: 'Acesso a álbum',
