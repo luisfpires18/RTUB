@@ -22,7 +22,7 @@ point at `/meetings`.
   newest first, 4 per page.
 - Polls ("Votações"): flexible questions with free-text options (dates, topics, or other choices), one vote per eligible
   member, changeable until close, aggregate totals only, and an optional Portugal-local closing date/time. Expired polls
-  are treated as closed on every request; no background job is required.
+  are treated as closed on every request. no background job is required.
 - Ata: number, actual start / end, location, AG quorum basis, president, secretaries (CV: chosen from those who said
   "Vou"; AG: the Mesa's secretaries), attendance, Ordem de Trabalhos (discussion, decision, votes, result), closing
   text. Save, Gerar PDF, Publicar. Publish uploads the PDF to Documentação: `docs/{Environment}/{FY}/Atas CV {FY}/`,
