@@ -11,10 +11,8 @@ namespace RTUB.Application.Tests.Helpers;
 /// Tests the complete Fundador functionality including category management,
 /// timeline display, and special business rules
 /// </summary>
-public class FundadorFeatureTests
+public partial class FundadorFeatureTests
 {
-    #region Test Data Helpers
-
     private ApplicationUser CreateFundador(string firstName = "João", string lastName = "Silva")
     {
         var user = new ApplicationUser
@@ -65,9 +63,7 @@ public class FundadorFeatureTests
         return user;
     }
 
-    #endregion
 
-    #region Fundador Category Tests
 
     [Fact]
     public void Fundador_ShouldHaveTunoAndFundadorCategories()
@@ -103,9 +99,7 @@ public class FundadorFeatureTests
         regularTuno.IsTuno().Should().BeTrue();
     }
 
-    #endregion
 
-    #region Fundador Business Rules Tests
 
     [Fact]
     public void Fundador_ShouldHaveYearTuno1991()
@@ -169,9 +163,7 @@ public class FundadorFeatureTests
         regularTuno.YearTuno.Should().Be(2020);
     }
 
-    #endregion
 
-    #region Display Categories Tests
 
     [Fact]
     public void GetDisplayCategories_ForFundador_ShouldIncludeBothTunoAndFundador()
@@ -221,9 +213,7 @@ public class FundadorFeatureTests
         badgeClass.Should().Be("badge-fundador");
     }
 
-    #endregion
 
-    #region Multiple Fundadores Tests
 
     [Theory]
     [InlineData("Manuel", "Costa")]
@@ -258,64 +248,4 @@ public class FundadorFeatureTests
         displayCategories.Should().Contain(MemberCategory.Veterano);
         displayCategories.Should().Contain(MemberCategory.Tunossauro);
     }
-
-    #endregion
-
-    #region Edge Cases
-
-    [Fact]
-    public void Fundador_WithOnlyFundadorCategory_ShouldStillBeDetected()
-    {
-        // Arrange
-        var user = new ApplicationUser
-        {
-            Id = Guid.NewGuid().ToString(),
-            FirstName = "Test",
-            LastName = "User",
-            YearTuno = 1991
-        };
-        user.Categories = new List<MemberCategory>
-        {
-            MemberCategory.Fundador
-        };
-
-        // Act & Assert
-        user.IsFundador().Should().BeTrue();
-    }
-
-    [Fact]
-    public void User_WithEmptyCategories_ShouldNotBeFundador()
-    {
-        // Arrange
-        var user = new ApplicationUser
-        {
-            Id = Guid.NewGuid().ToString(),
-            FirstName = "Test",
-            LastName = "User",
-            YearTuno = 1991
-        };
-        user.Categories = new List<MemberCategory>();
-
-        // Act & Assert
-        user.IsFundador().Should().BeFalse();
-    }
-
-    [Fact]
-    public void User_WithNullCategories_ShouldNotBeFundador()
-    {
-        // Arrange
-        var user = new ApplicationUser
-        {
-            Id = Guid.NewGuid().ToString(),
-            FirstName = "Test",
-            LastName = "User",
-            YearTuno = 1991,
-            Categories = new List<MemberCategory>()
-        };
-
-        // Act & Assert
-        user.IsFundador().Should().BeFalse();
-    }
-
-    #endregion
 }
