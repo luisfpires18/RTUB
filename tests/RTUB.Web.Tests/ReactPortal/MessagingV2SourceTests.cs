@@ -20,6 +20,10 @@ public class MessagingV2SourceTests
     // MessagingService is a partial class split over MessagingService*.cs; read all of them as one text.
     private static string MessagingServiceSource() => string.Concat(Directory.GetFiles(Path.Combine(Root, "src", "RTUB.Application", "Services"), "MessagingService*.cs").OrderBy(f => f, StringComparer.Ordinal).Select(f => File.ReadAllText(f)));
 
+    // Startup is split across Program.cs and Extensions/*.cs; checks read all of it.
+    private static string ReadStartup() => string.Concat(new[] { Path.Combine(Web, "Program.cs") }
+        .Concat(Directory.GetFiles(Path.Combine(Web, "Extensions"), "*.cs").OrderBy(f => f)).Select(f => Read(f)));
+
     // Task 113 split pages/Messages.tsx into the page, components/Message*.tsx and data/messagesApi.ts.
     private static string MessagesPage() => string.Join("\n", new[]
     {
@@ -33,7 +37,7 @@ public class MessagingV2SourceTests
         Read(Portal, "data/content.ts").Should().Contain("messages: '/messages',");
         // Task 044: the header inbox button links it (not the drawer menu).
         Read(Portal, "components/MemberShell.tsx").Should().Contain("href={portal.messages}").And.NotContain("label: 'Mensagens'");
-        Read(Web, "Program.cs").Should().Contain("\"/meetings\", \"/messages\" })").And.Contain("app.MapMessagingEndpoints();");
+        ReadStartup().Should().Contain("\"/meetings\", \"/messages\" })").And.Contain("app.MapMessagingEndpoints();");
     }
 
     [Fact]
@@ -52,7 +56,7 @@ public class MessagingV2SourceTests
 
         Directory.GetFiles(Web, "*.razor", SearchOption.AllDirectories).Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
             && !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")).Should().BeEmpty("no Blazor messaging UI");
-        Read(Web, "Program.cs").Should().NotContain("MapHub").And.NotContain("/hubs/messages\"");
+        ReadStartup().Should().NotContain("MapHub").And.NotContain("/hubs/messages\"");
         Read(Web, "RTUB.csproj").Should().NotContain("SignalR");
     }
 
@@ -77,7 +81,7 @@ public class MessagingV2SourceTests
     public void RetiredPremadeGroups_AreArchivedOnStartup_AndOnlyNotificacoesWearsTheLogo()
     {
         // VETERANOS, TUNOSSAUROS... leave the inboxes on deploy, not only at the daily job (062).
-        Read(Web, "Program.cs").Should().Contain("await MessagingGroups.SyncAsync(db, DateTime.UtcNow);");
+        ReadStartup().Should().Contain("await MessagingGroups.SyncAsync(db, DateTime.UtcNow);");
         var page = MessagesPage();
         page.Should().Contain("kind === 'system' ? RTUB_LOGO : avatarUrl").And.Contain("className=\"chat-face\"");
     }

@@ -18,6 +18,10 @@ public class IdentityAndShareSourceTests
 
     private static string Read(params string[] path) => File.ReadAllText(Path.Combine(path)).Replace("\r\n", "\n");
 
+    // Startup is split across Program.cs and Extensions/*.cs; checks read all of it.
+    private static string ReadStartup() => string.Concat(new[] { Path.Combine(Web, "Program.cs") }
+        .Concat(Directory.GetFiles(Path.Combine(Web, "Extensions"), "*.cs").OrderBy(f => f)).Select(f => Read(f)));
+
     [Fact]
     public void NoBlazorPage_IsLeft()
     {
@@ -31,7 +35,7 @@ public class IdentityAndShareSourceTests
     public void TheIdentityAndSharePages_AreReact_AndErrorIsServerOwned()
     {
         var main = Read(Portal, "main.tsx");
-        var program = Read(Web, "Program.cs");
+        var program = ReadStartup();
 
         foreach (var (route, page) in new[] { ("/forgot-password", "ForgotPassword"), ("/reset-password", "ResetPassword"), ("/confirm-email", "ConfirmEmail"), ("/share", "Share") })
         {
