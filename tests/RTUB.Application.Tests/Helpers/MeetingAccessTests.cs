@@ -149,6 +149,34 @@ public class MeetingAccessTests
     }
 
     [Theory]
+    [InlineData("Veterano", true, true, false, false, false, false)]
+    [InlineData("Magister", true, true, true, false, true, false)]
+    [InlineData("Presidente do CV", true, true, false, true, false, false)]
+    [InlineData("Presidente da Mesa", false, true, false, false, false, true)]
+    [InlineData("Admin Tuno", false, true, true, false, false, false)]
+    [InlineData("Caloiro", false, true, false, false, false, false)]
+    [InlineData("Owner", false, true, false, true, true, true)]
+    [InlineData("Leitão", false, false, false, false, false, false)]
+    public void PollAccess_SeparatesBodyVotersFromManagers(
+        string who,
+        bool cvVoter,
+        bool assemblyVoter,
+        bool directionVoter,
+        bool cvManager,
+        bool directionManager,
+        bool assemblyManager)
+    {
+        var access = Persona(who);
+
+        access.CanVoteInPoll(MeetingPollAudience.ConselhoVeteranos).Should().Be(cvVoter, $"{who} CV voter");
+        access.CanVoteInPoll(MeetingPollAudience.AssembleiaGeral).Should().Be(assemblyVoter, $"{who} AG voter");
+        access.CanVoteInPoll(MeetingPollAudience.Direcao).Should().Be(directionVoter, $"{who} Direção voter");
+        access.CanManagePoll(MeetingPollAudience.ConselhoVeteranos).Should().Be(cvManager, $"{who} CV manager");
+        access.CanManagePoll(MeetingPollAudience.Direcao).Should().Be(directionManager, $"{who} Direção manager");
+        access.CanManagePoll(MeetingPollAudience.AssembleiaGeral).Should().Be(assemblyManager, $"{who} AG manager");
+    }
+
+    [Theory]
     [InlineData("Caloiro", false, false, false, false)]
     [InlineData("Tuno", false, false, false, false)]
     [InlineData("Veterano", false, false, false, false)]

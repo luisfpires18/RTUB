@@ -3,6 +3,7 @@ import { Loading } from './App';
 import { portal } from './content';
 import { Icon, type IconName } from './icons';
 import { AtaEditorDialog, AtaViewDialog } from './MeetingAta';
+import MeetingPolls from './MeetingPolls';
 import {
   CancelDialog,
   ConfirmDialog,
@@ -290,6 +291,8 @@ export default function Meetings() {
             empty={<Empty title="Nenhuma reunião realizada." />}
             onOpen={setOpen}
           />
+
+          <MeetingPolls />
 
           {data.access.canSeeRequests && (
             <RequestsSection

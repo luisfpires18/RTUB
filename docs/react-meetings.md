@@ -1,11 +1,13 @@
 # React Reuniões (`/meetings`)
 
 Code: `portal/src/Meetings.tsx` (+ dialogs), `portal/src/meetingsApi.ts`, `Endpoints/MeetingEndpoints.cs` →
-`IMeetingBoardService` (`MeetingBoardService`), rules in `Helpers/MeetingAccess.cs`. Underneath: `MeetingService`
+`IMeetingBoardService` (`MeetingBoardService`), `IMeetingPollBoardService` (`MeetingPollBoardService`), rules in
+`Helpers/MeetingAccess.cs`. Underneath: `MeetingService`
 (visibility filter, push on a new meeting), `MeetingRequestService` (push on a new request, rejection, reminder),
 `MeetingParticipationService`, `MeetingAtaService` (`CanCreateOrEditAta`), `MeetingAtaConfirmationService`,
 `AtaPdfService`, `DocumentStorageService`, `EmailNotificationService` + `IEmailTemplateRenderer`,
-`PushNotificationService`, `AuditLogService`. Services do not check the caller; `MeetingBoardService` is the only gate.
+`PushNotificationService`, `AuditLogService`. `MeetingBoardService` and `MeetingPollBoardService` enforce caller access
+through `MeetingAccess`.
 
 Route: `/meetings`, signed-in members. Visitors: 302 to `/login?returnUrl=%2Fmeetings`; a Leitão gets "Acesso Restrito"
 (whatever the role). Member menu: `MemberShell.tsx`, Gestão group, shown when `menu.management`. Push notifications
@@ -18,6 +20,9 @@ point at `/meetings`.
 - "Próximas Reuniões" (date >= today, soonest first) and "Reuniões Realizadas" (before today, newest first), 12 per page.
 - Requests ("Pedidos de Reuniões"): status filter (Pendente / Aceite / Rejeitado), fiscal year on the proposed date,
   newest first, 4 per page.
+- Polls ("Votações"): flexible questions with free-text options (dates, topics, or other choices), one vote per eligible
+  member, changeable until close, aggregate totals only, and an optional Portugal-local closing date/time. Expired polls
+  are treated as closed on every request; no background job is required.
 - Ata: number, actual start / end, location, AG quorum basis, president, secretaries (CV: chosen from those who said
   "Vou"; AG: the Mesa's secretaries), attendance, Ordem de Trabalhos (discussion, decision, votes, result), closing
   text. Save, Gerar PDF, Publicar. Publish uploads the PDF to Documentação: `docs/{Environment}/{FY}/Atas CV {FY}/`,
@@ -118,6 +123,21 @@ reactivate only a cancelled meeting; "Vou / Não vou" only before the day; an at
 (secretaries named on it: from the next day) and read from the day after, never for a cancelled meeting; a published ata
 cannot be edited; publish needs a saved draft.
 
+### Polls
+
+Poll visibility is enforced server-side for the list and every write. CV polls are visible and voteable by
+Veterano/Tunossauro members by time, Magister, and the current Presidente do CV. There is no separate CV roster; this
+reuses the current meeting audience rules. Assembleia Geral polls are for every non-Leitão member. Direção polls are
+for Direção positions and Admins with the Tuno category. A Tuno representative is meeting-specific and is not included
+in the general CV poll audience.
+
+The relevant body's current president creates and closes its polls; Owner can create/close any poll and view its
+results, but may vote only when included in that poll's audience. The creator may vote only when eligible as well.
+Each poll requires a question (up to 300 characters) and 2–12 distinct options (up to 200 characters each). Eligible
+members choose one option and may change it while the poll is open. Results show counts only; no voter names or
+individual choices are returned. A poll can close manually or at its optional future closing date/time. Closed polls
+remain visible to their audience but accept no more votes.
+
 ## API
 
 `/api/meetings`, signed-in. Writes need `X-CSRF-TOKEN`; every answer is `no-store`. Beyond "signed in, not a Leitão":
@@ -146,6 +166,14 @@ cannot be edited; publish needs a saved draft.
 | `POST /requests` | CV: `CanProposeCv`; Direção: `CanProposeDirecao`; AGE: `CanProposeAg`; AGO: never |
 | `POST /requests/{id}/accept` / `reject` | `CanSeeRequests`; `CanDecide`; pending (409) |
 | `DELETE /requests/{id}`, `POST /requests/{id}/reminder` | `CanSeeRequests`; author or Owner; reminder only pending |
+| `GET /polls` | polls visible to the member; aggregate totals, own vote only, and poll creation choices |
+| `POST /polls` | relevant body president or Owner; valid body, question, 2–12 distinct options, optional future closing time |
+| `PUT /polls/{id}/vote` | poll audience only; one option; open poll; existing vote is replaced |
+| `POST /polls/{id}/close` | relevant body president or Owner; open poll |
+
+Poll writes require `X-CSRF-TOKEN`; all poll responses are `no-store`. A poll outside the caller's audience is not
+returned in the list and responds as not found on direct access. Owner-only management access does not make Owner a
+voter.
 
 Answers carry only what the member may use: `tunoRepresentativeId` only for managers; `ataStatus` only when the member
 may open that ata; recipient lists (names, pictures, years as Tuno; never email addresses) only to managers; no
