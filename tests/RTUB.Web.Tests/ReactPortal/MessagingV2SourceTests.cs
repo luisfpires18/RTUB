@@ -128,7 +128,7 @@ public class MessagingV2SourceTests
             log.Value.Should().NotContainAny(new[] { "body", "Body", "Title", "Preview", "Emoji" }, "a log line names ids only: {0}", log.Value);
         }
 
-        var factory = Read(Root, "src", "RTUB.Application", "Factories", "PushNotificationFactory.cs");
+        var factory = Read(Root, "src", "RTUB.Application", "Factories", "PushNotificationFactory.Messages.cs");
         var method = factory[factory.IndexOf("CreateConversationMessageNotification(", StringComparison.Ordinal)..];
         method = method[..method.IndexOf("    /// <summary>", StringComparison.Ordinal)];
         method.Should().NotContain("body").And.Contain("Title = \"Nova mensagem\"").And.Contain("Url = $\"/messages?c={conversationId}\"");

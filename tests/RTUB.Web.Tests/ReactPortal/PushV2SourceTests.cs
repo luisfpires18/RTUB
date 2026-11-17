@@ -172,7 +172,7 @@ public class PushV2SourceTests
     [Fact]
     public void Worker_ReadsEveryFieldTheServerSends_WithFallbacks()
     {
-        var service = Read(Root, "src", "RTUB.Application", "Services", "PushNotificationService.cs");
+        var service = Read(Root, "src", "RTUB.Application", "Services", "PushNotificationService.Delivery.cs");
         var push = Section(Worker, "addEventListener('push'", "function notificationTarget");
 
         foreach (var field in new[] { "title", "body", "icon", "url", "tag" })
