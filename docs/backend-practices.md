@@ -21,7 +21,10 @@ RTUB.Web          host, minimal-API endpoints, a few controllers, React portal
 - One context per operation via `IDbContextFactory<ApplicationDbContext>`. `Repository<T>` (`Application/Repositories/`)
   saves on every `AddAsync` / `UpdateAsync` / `DeleteAsync`, reads with `AsNoTracking()`, and updates by fetch then `SetValues()`.
   Use `GetByIdOrThrowAsync` (throws `EntityNotFoundException`).
-- `ApplicationDbContext` is a partial class split across files; edit the right partial.
+- One job per file, no file over 300 lines. A big service is a `partial class` split by topic into
+  `<Class>.<Topic>.cs` next to it (fields and constructor stay in `<Class>.cs`); a new method goes in the partial for
+  its topic. `ApplicationDbContext` works the same way; edit the right partial. Startup is `Program.cs` plus the
+  `Extensions/*Extensions.cs` it calls, in order.
 - Read-only queries: `AsNoTracking()`, projections instead of full entities, batch-load related rows (no queries in loops).
 - Never block on async (`.Result`, `.Wait()`).
 - Messaging tables (`Conversations`, `Messages`, `MessageReactions`, `ConversationUserSettings`) are never dropped.

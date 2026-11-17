@@ -21,7 +21,11 @@ in `data/content.ts`; one copy of `DEFAULT_AVATAR`, the Logística status/priori
 Task 113 (`chore/113/split-portal-files`, on top of 112): phase 4, every portal file at most 300 lines by pure moves
 (`styles.css` now imports `styles/NNN-area.css` in cascade order; built CSS byte-identical). Three files stay over
 300: `components/MeetingAta.tsx` (472), `MessageThread.tsx` (318), `FamilyTree.tsx` (310): one function each.
-Planned next phases (one branch each): 5 split C# files over 300 lines; 6 test files (lowest priority).
+Task 114 (`chore/114/split-csharp-files`, on top of 113): phase 5, C# under `src/` at most 300 lines: services as
+partial classes by topic, `Program.cs` → `Extensions/*Extensions.cs`, `ServiceCollectionExtensions` partials. Two stay
+over 300 (one method each): `Data/SeedData.Member.cs` (766, a 701-line seed method sharing ~75 locals) and
+`Services/AtaPdfService.cs` (447, a 344-line PDF method).
+Planned next: 6 test files over 300 lines (lowest priority).
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not
