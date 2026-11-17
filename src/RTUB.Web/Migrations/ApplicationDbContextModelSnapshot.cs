@@ -2278,6 +2278,104 @@ namespace RTUB.Migrations
                     b.ToTable("MeetingParticipations");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.MeetingPoll", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Audience")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ClosesAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Audience", "CreatedAt");
+
+                    b.ToTable("MeetingPolls");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.MeetingPollOption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MeetingPollId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MeetingPollId");
+
+                    b.ToTable("MeetingPollOptions");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.MeetingPollVote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MeetingPollId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MeetingPollOptionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("VotedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MeetingPollOptionId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("MeetingPollId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("MeetingPollVotes");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.MeetingRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -4813,6 +4911,42 @@ namespace RTUB.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.MeetingPollOption", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.MeetingPoll", "MeetingPoll")
+                        .WithMany("Options")
+                        .HasForeignKey("MeetingPollId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MeetingPoll");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.MeetingPollVote", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.MeetingPoll", "MeetingPoll")
+                        .WithMany("Votes")
+                        .HasForeignKey("MeetingPollId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.MeetingPollOption", "Option")
+                        .WithMany("Votes")
+                        .HasForeignKey("MeetingPollOptionId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("MeetingPoll");
+
+                    b.Navigation("Option");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.MeetingRequest", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
@@ -5374,6 +5508,18 @@ namespace RTUB.Migrations
                     b.Navigation("Attachments");
 
                     b.Navigation("Confirmations");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.MeetingPoll", b =>
+                {
+                    b.Navigation("Options");
+
+                    b.Navigation("Votes");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.MeetingPollOption", b =>
+                {
+                    b.Navigation("Votes");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Message", b =>

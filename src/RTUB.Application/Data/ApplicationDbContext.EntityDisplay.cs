@@ -208,6 +208,7 @@ public partial class ApplicationDbContext
                 LogisticsCard card => card.Title,
                 Meeting meeting => meeting.Title,
                 MeetingRequest meetingRequest => meetingRequest.Title,
+                MeetingPoll poll => poll.Question,
                 MbwayTransfer mbway => $"MBWAY - {mbway.Date:dd/MM/yyyy} €{mbway.Amount:F2}",
                 NerbaOrder nerba => $"Nerba - {nerba.Item} (x{nerba.Stock})",
                 FiscalYear year => $"{year.StartYear}-{year.EndYear}",

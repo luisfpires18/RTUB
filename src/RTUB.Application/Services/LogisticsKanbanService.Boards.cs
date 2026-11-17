@@ -23,9 +23,8 @@ namespace RTUB.Application.Services;
 ///   grants access; the responsible member gets no rights from being responsible.
 /// - Workflow: every column has a state (TODO / WIP / BLOQUEADO / DONE) and is authoritative: a card's status is its
 ///   column's state. Moving a card sets its status; a status change moves the card to the first column with that state.
-/// - Files: new board files live at logistics/{env}/boards/{id}/files/ (stable across renames and the 1 September
-///   rollover, not in Documentação); the pre-067 folder docs/{env}/{year}/Logistics/{LegacyFolder}/ stays listed for
-///   every year.
+/// - Files: in the board's Documentação folder, docs/{env}/{year}/Logistics/{LegacyFolder}/, every year listed
+///   (LogisticsKanbanService.Documents.cs).
 /// - Archive: boards and cards are read-only while archived (409 "closed"); managers archive and restore.
 /// </summary>
 public sealed partial class LogisticsKanbanService
@@ -164,12 +163,12 @@ public sealed partial class LogisticsKanbanService
 
         await using var db = await _contexts.CreateDbContextAsync();
         var board = LogisticsBoard.Create(input.Name?.Trim() is { Length: > 0 } n ? n : "x", input.Description?.Trim() ?? "");
-        board.LegacyFolder = "";
         if (await ApplyBoardInputAsync(db, board, input, creating: true) is { } invalid)
         {
             return invalid;
         }
 
+        board.LegacyFolder = await FolderForAsync(db, 0, board.Name, null);
         db.LogisticsBoards.Add(board);
         await db.SaveChangesAsync();
         AddDefaultColumns(db, board.Id);
@@ -188,13 +187,20 @@ public sealed partial class LogisticsKanbanService
             return refused;
         }
 
-        if (await ApplyBoardInputAsync(db, board!, input, creating: false) is { } invalid)
+        var oldName = board!.Name;
+        if (await ApplyBoardInputAsync(db, board, input, creating: false) is { } invalid)
         {
             return invalid;
         }
 
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        if (board.Name != oldName)
+        {
+            _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
+            await FollowRenameAsync(db, board);
+        }
+
         return EventResult<LogisticsBoardSummaryDto>.Ok(await SummaryAsync(db, id, user));
     }
 
@@ -314,12 +320,10 @@ public sealed partial class LogisticsKanbanService
             return refused;
         }
 
-        // Its lists and cards go with it, as before (assignments, reminders, comments, history and attachments by
-        // cascade); the cards' own files are deleted after the save. Board files stay in storage, as before.
-        var files = await AttachmentPathsAsync(db, c => c.List.BoardId == id);
+        // Its lists and cards go with it (assignments, reminders, comments, history and attachment rows by cascade). Its
+        // Documentação folder stays: board and card files alike remain there as documents.
         db.LogisticsBoards.Remove(board!);
         await db.SaveChangesAsync();
-        await DeleteStoredAsync(files);
         return EventResult<bool>.Ok(true);
     }
 
@@ -767,7 +771,7 @@ public sealed partial class LogisticsKanbanService
         board.AssociateWithEvent(source.EventId);
         board.Visibility = source.Visibility;
         board.OwnerUserId = source.OwnerUserId;
-        board.LegacyFolder = "";
+        board.LegacyFolder = await FolderForAsync(db, 0, board.Name, null);
         foreach (var member in await db.LogisticsBoardMembers.Where(m => m.BoardId == id).ToListAsync())
         {
             board.Members.Add(new LogisticsBoardMember { UserId = member.UserId });
@@ -838,7 +842,7 @@ public sealed partial class LogisticsKanbanService
         await using var db = await _contexts.CreateDbContextAsync();
         await using var transaction = await db.Database.BeginTransactionAsync();
         var board = LogisticsBoard.Create(input.Board.Name?.Trim() is { Length: > 0 } n ? n : "x");
-        board.LegacyFolder = "";
+        board.LegacyFolder = await FolderForAsync(db, 0, board.Name, null);
         if (await ApplyBoardInputAsync(db, board, input.Board, creating: true) is { } invalid)
         {
             return invalid;
@@ -938,41 +942,35 @@ public sealed partial class LogisticsKanbanService
 
     // ---------------------------------------------------------------- board files
 
-    /// <summary>The board's own, stable folder: by id, outside the fiscal-year Documentação tree.</summary>
-    private string BoardFolder(int boardId) => $"logistics/{_environment.EnvironmentName}/boards/{boardId}/files/";
-
-    private string LegacyPrefix => $"docs/{_environment.EnvironmentName}/";
-
     /// <summary>
-    /// The board's files: its stable folder, then its pre-067 folder in every fiscal year (newest first), each with an
-    /// opaque id ("f:name" or "l:year/name") - the key is always rebuilt from the board, never taken from input.
+    /// The board's files: its Documentação folder in every fiscal year, newest first, without its cards' attachments (those
+    /// show on their card). Ids are opaque: "f:name" this fiscal year, "l:year/name" an older one - the key is always rebuilt
+    /// from the board, never taken from input.
     /// </summary>
     private async Task<List<(LogisticsFileDto Dto, string Path)>> BoardFileEntriesAsync(LogisticsBoard board)
     {
         var entries = new List<(LogisticsFileDto, string)>();
-        foreach (var d in await ListAsync(BoardFolder(board.Id), board.Name))
+        if (string.IsNullOrEmpty(board.LegacyFolder))
         {
-            entries.Add((new LogisticsFileDto(d.FileName, d.Extension, d.SizeBytes, $"f:{d.FileName}", null), d.FilePath));
+            return entries;
         }
 
-        if (!string.IsNullOrEmpty(board.LegacyFolder))
+        HashSet<string> cardFiles;
+        await using (var db = await _contexts.CreateDbContextAsync())
         {
-            List<string> years;
-            try
-            {
-                years = await _storage.ListSubfoldersAsync(LegacyPrefix);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not list the fiscal years for logistics board {Board}", board.Id);
-                years = new();
-            }
+            cardFiles = (await AttachmentPathsAsync(db, c => c.List.BoardId == board.Id)).ToHashSet(StringComparer.Ordinal);
+        }
 
-            foreach (var year in years.Where(y => System.Text.RegularExpressions.Regex.IsMatch(y, @"^\d{4}-\d{4}$")).OrderByDescending(y => y, StringComparer.Ordinal))
+        var current = CurrentYear;
+        foreach (var year in await DocsYearsAsync())
+        {
+            foreach (var d in await ListAsync(DocsFolder(year, board.LegacyFolder), board.Name))
             {
-                foreach (var d in await ListAsync($"{LegacyPrefix}{year}/Logistics/{board.LegacyFolder}/", board.Name))
+                if (!cardFiles.Contains(d.FilePath))
                 {
-                    entries.Add((new LogisticsFileDto(d.FileName, d.Extension, d.SizeBytes, $"l:{year}/{d.FileName}", year), d.FilePath));
+                    entries.Add(year == current
+                        ? (new LogisticsFileDto(d.FileName, d.Extension, d.SizeBytes, $"f:{d.FileName}", null), d.FilePath)
+                        : (new LogisticsFileDto(d.FileName, d.Extension, d.SizeBytes, $"l:{year}/{d.FileName}", year), d.FilePath));
                 }
             }
         }
@@ -1024,8 +1022,8 @@ public sealed partial class LogisticsKanbanService
         }
 
         _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
-        await _storage.UploadDocumentAsync(BoardFolder(board!.Id), name, upload.Content, upload.ContentType);
-        return EventResult<LogisticsFileDto>.Ok(new LogisticsFileDto(name, Path.GetExtension(name), upload.Length, $"f:{name}", null));
+        var stored = Path.GetFileName(await StoreInDocumentationAsync(board!, name, upload.Content, upload.ContentType));
+        return EventResult<LogisticsFileDto>.Ok(new LogisticsFileDto(stored, Path.GetExtension(stored), upload.Length, $"f:{stored}", null));
     }
 
     public async Task<EventResult<DocumentLinkDto>> GetFileAsync(int boardId, string? fileId, ClaimsPrincipal user)
@@ -1063,13 +1061,12 @@ public sealed partial class LogisticsKanbanService
 
         _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
         await _storage.DeleteDocumentAsync(path);
-        _trees.Forget(path); // a legacy folder also shows in Documentação (#226 F01)
+        _trees.Forget(path); // the same document in Documentação
         return EventResult<bool>.Ok(true);
     }
 
     /// <summary>
-    /// The key of one of the board's listed files, by its id - or, for older pages, by its bare name (the stable folder
-    /// first, then the newest year).
+    /// The key of one of the board's listed files, by its id - or, for older pages, by its bare name (newest year first).
     /// </summary>
     private async Task<string?> FilePathAsync(LogisticsBoard board, string? fileId)
     {

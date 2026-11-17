@@ -47,6 +47,8 @@ public class DatabaseFixture : IDisposable
     {
         var mock = new Mock<IDbContextFactory<ApplicationDbContext>>();
         mock.Setup(f => f.CreateDbContext()).Returns(() => CreateContext());
+        mock.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .Returns((CancellationToken _) => Task.FromResult(CreateContext()));
         return mock.Object;
     }
 
@@ -60,6 +62,9 @@ public class DatabaseFixture : IDisposable
         // Remove all data but keep the database structure
         // Note: Not cleaning Users table to allow shared test user fixtures
         context.EventRepertoires.RemoveRange(context.EventRepertoires);
+        context.MeetingPollVotes.RemoveRange(context.MeetingPollVotes);
+        context.MeetingPollOptions.RemoveRange(context.MeetingPollOptions);
+        context.MeetingPolls.RemoveRange(context.MeetingPolls);
         context.SongYouTubeUrls.RemoveRange(context.SongYouTubeUrls);
         context.SongPlayAlongFavorites.RemoveRange(context.SongPlayAlongFavorites);
         context.SongPlayAlongs.RemoveRange(context.SongPlayAlongs);

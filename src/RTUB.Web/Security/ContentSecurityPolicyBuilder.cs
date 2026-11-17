@@ -6,7 +6,7 @@ namespace RTUB.Security;
 /// Builds RTUB's enforced Content-Security-Policy header value (unit 025).
 ///
 /// Every source in the policy was derived from what the browser actually loads; nothing is
-/// whitelisted "just in case", and no directive gets an origin it does not use. See STATE.md
+/// whitelisted "just in case", and no directive gets an origin it does not use. See .ai/STATE.md
 /// for the per-directive evidence.
 ///
 /// One part of the policy cannot be a constant: <b>Cloudflare R2</b> has two distinct origins, both runtime

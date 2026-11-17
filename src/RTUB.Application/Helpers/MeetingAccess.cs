@@ -92,6 +92,29 @@ public sealed class MeetingAccess
     /// <summary>The types the create / edit form offers: exactly <see cref="CanCreateType"/>.</summary>
     public IReadOnlyList<MeetingType> FormTypes => TypeOrder.Where(CanCreateType).ToList();
 
+    /// <summary>Whether the member is in a poll's audience. Owner management access is deliberately not voter access.</summary>
+    public bool CanVoteInPoll(MeetingPollAudience audience) => audience switch
+    {
+        MeetingPollAudience.ConselhoVeteranos => IsVeteranoByTime || Has(Position.Magister) || Has(Position.PresidenteConselhoVeteranos),
+        MeetingPollAudience.Direcao => HoldsDirecaoPosition(User) || (IsAdmin && User.IsTuno()),
+        MeetingPollAudience.AssembleiaGeral => !User.IsLeitao(),
+        _ => false,
+    };
+
+    /// <summary>Owner or the current president of the poll's meeting body may manage it.</summary>
+    public bool CanManagePoll(MeetingPollAudience audience) => IsOwner || audience switch
+    {
+        MeetingPollAudience.ConselhoVeteranos => Has(Position.PresidenteConselhoVeteranos),
+        MeetingPollAudience.Direcao => Has(Position.Magister),
+        MeetingPollAudience.AssembleiaGeral => Has(Position.PresidenteMesaAssembleia),
+        _ => false,
+    };
+
+    public bool CanCreatePoll(MeetingPollAudience audience) => CanManagePoll(audience);
+
+    /// <summary>Delete a poll: the member who created it, or Owner (any poll). Same shape as <see cref="OwnsRequest"/>.</summary>
+    public bool OwnsPoll(MeetingPoll poll) => IsOwner || (poll.CreatedByUserId is not null && poll.CreatedByUserId == UserId);
+
     // ---------- proposals (meeting requests) ----------
 
     /// <summary>"Propor Reunião de CV": Veterano / Tunossauro by time or Magister; never the Presidente do CV.</summary>

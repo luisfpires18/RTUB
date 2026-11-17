@@ -1,101 +1,62 @@
-# React Music (React track, task 006)
+# React Music
 
-`/music` and its album pages are React + a thin API since task 006 (DEV only). The Blazor Music UI
-is retired. Shell, route table and module rules: `docs/react-portal-pilot.md`.
+`/music` and its album pages are React plus a thin API. Shell, route table and module rules: [react-portal-pilot](react-portal-pilot.md).
+Code: `Helpers/MusicAuthorization.cs`, `Services/MusicService.cs`, `Endpoints/MusicEndpoints.cs`, `DTOs/MusicDtos.cs`, portal `Music*.tsx`.
+Tests: `MusicApiTests`, `MusicServiceCooldownTests`, `PortalRouteTests`.
 
 ## Routes
 
-| Path | Owner | Notes |
-| --- | --- | --- |
-| `/music` | **React** | Album grid. Visitors: public albums; members: + private + their exclusive albums; Owner: all. |
-| `/music/albums/{id}` | **React** | One album: songs, search, player, lyrics, links, videos (members), management. |
-| `/music/learn` | **React** | Aprender Músicas (task 095): members only; the songs that have a chart, one `/music` grid per album; a card opens `/music/play/{songId}`, whose back link returns here. In the member menu. The Owner (097) adds a song's chart here, edits it (replace the file, "Incluir dedilhado"), removes it, and sends the "new song" push (bell). |
-| `/music/play/{songId}` | **React** | Aprender (task 094): members only, a visitor is sent to sign in. Section below. |
-| `/music/songs/{id}` | redirect | Retired Blazor album page; `302` → `/music/albums/{id}`, query kept, GET/HEAD only. |
-| `/api/music/...` | API | `src/RTUB.Web/Endpoints/MusicEndpoints.cs` (below). |
+| Path | Notes |
+| --- | --- |
+| `/music` | Album grid. Visitors: public albums; members: + private + their exclusive albums; Owner: all. |
+| `/music/albums/{id}` | One album: songs, search, player, lyrics, links, videos (members), management. |
+| `/music/learn` | Aprender Músicas, members only: songs that have a chart, one grid per album; a card opens `/music/play/{songId}`, whose back link returns here. In the member menu. The Owner adds, replaces, removes a chart here ("Incluir dedilhado" toggle) and sends the "new song" push (bell). |
+| `/music/play/{songId}` | Aprender (below). Members only; a visitor is sent to sign in. |
+| `/music/songs/{id}` | `302` to `/music/albums/{id}`, query kept, GET/HEAD only. |
+| `/api/music/...` | API (below). |
 
-Pinned by `PortalRouteTests` and `MusicApiTests`.
-
-## What the Blazor pages did (audit, before 006)
-
-`Pages/Media/Albums.razor` (`/music`) and `Songs.razor` (`/music/songs/{id}`), with `SongCard`:
-public/private album sections with paging (6/12/18/24), album create/edit (Admin|Mod; exclusive +
-member picker Owner-only; cover through a 1:1 cropper, WebP), album delete (button Admin-only, but the
-handler accepted Mod), statistics modal (any member: top songs/albums with paging 5-25; Admin:
-per-member detail), song grid with search (title / lyric author / music author), Play (only when
-`HasMusic`), lyrics (songbook PDF from R2, else stored text), links (Spotify + YouTube), videos
-(members: watch, upload ≤100 MB, delete own; Admin/Owner delete any), song create/edit (Admin, Owner,
-Mod), delete (Admin, Owner), a fixed player with lock-screen controls, and an audit-log row per play.
-
-Defects found and not carried over:
-- The album page never checked exclusive access: any member could open an exclusive album by URL.
-- Visitors saw exclusive albums that were not also private (`GetPublicAlbumsAsync` = `!IsPrivate`).
-- Saving an exclusive album as a Mod or Admin silently cleared `IsExclusive`.
-- Statistics listed songs of exclusive albums to members not on the list.
-- The play cooldown lived in the Blazor circuit (`SongPlayService`, scoped): a reload reset it.
-- Stored links were rendered as `href` unchecked, and author fields through `MarkupString`.
-- Private album, signed out: redirect to `/Identity/Account/Login`, not this app's `/login`.
-
-## Data audit (real `app.db`, read-only; counts only)
-
-No migration. The React area reads and writes the existing tables through the existing entities.
-
-| Table | Field | Type / limit / null | Real data | Blazor | React | Visibility | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Albums | Title | text ≤200, required | 7 rows, max 21 chars | yes | yes | public | |
-| Albums | Year | int?, 1900..now | 4 dated, 3 undated | yes | yes | public | ordering: dated ascending, undated last, then Id |
-| Albums | Description | text? ≤1000 (entity) / 500 (EF config) | 3 set, max 25 | yes | yes | public | limits disagree; SQLite enforces neither; API keeps the entity's 1000 |
-| Albums | ImageUrl | text? ≤500 | 7, all on the public R2 host | yes | yes (`coverUrl`) | public | absolute public URL; only http(s) is passed on |
-| Albums | IsPrivate | bool | 3 private | yes | yes | members | |
-| Albums | IsExclusive | bool | 0 exclusive | yes | yes | Owner edits | |
-| AlbumAccesses | AlbumId, UserId, AddedAt | FK, user id ≤450 | 18 rows, all on album 12, which is **not** exclusive | yes | Owner form only | internal | stale (left when exclusivity was turned off); ignored unless the album is exclusive; kept |
-| Songs | Title | text ≤200, required | 95 rows, max 37 | yes | yes | album's | also part of the R2 audio/lyric object key |
-| Songs | TrackNumber | int? 1..999 | 14 null (one album), 5 duplicate pairs | yes | yes | album's | ordering: number ascending, none last, then Id |
-| Songs | LyricAuthor, MusicAuthor, Adaptation | text? ≤200 | 79, 79, 1 set | yes | yes | album's | |
-| Songs | Lyrics | text? ≤10000 | 52 set, max 1484 | yes | on demand | album's | not in the album payload |
-| Songs | Duration | int? seconds | 0 set | no | cooldown only | internal | so every cooldown is the 30 s default today |
-| Songs | SpotifyUrl | text? ≤500 | 2 set | yes | yes (`links`) | album's | http(s) only, in and out |
-| Songs | HasMusic | bool | 83 true | yes | yes (`hasAudio`) | album's | gates Play |
-| SongYouTubeUrls | Url, Description | ≤500 / ≤200 | 10 rows on 8 songs | yes | yes (`links`) | album's | Description unused |
-| SongVideos | Url, Title, MimeType, SizeBytes, SortOrder, CreatedByUserId | | 2 rows, 1 song, mp4, public R2 host, SizeBytes 0 | yes | yes | members | `canDelete` instead of the uploader id; SizeBytes not exposed |
-| SongPlayCounts | SongId, UserId?, PlayedAt | | 2920 plays, 671 anonymous, 41 members | yes | counts | members (totals) / Admin (per member) | one row per counted play |
-| EventRepertoires | SongId | FK | 43 rows, 22 songs | no | no | Events | deleting a song cascades here (unchanged) |
-| all | CreatedAt/By, UpdatedAt/By | audit | | no | no | internal | never exposed |
-
-Roles in the database: 1 Owner (also Admin), 11 Admin, 3 Mod, 94 Member.
-
-## Rules (`RTUB.Application/Helpers/MusicAuthorization.cs`, enforced in `MusicService`)
+## Permissions
 
 | | Visitor | Member | Mod | Admin | Owner |
 | --- | --- | --- | --- | --- | --- |
-| See public albums | ✓ | ✓ | ✓ | ✓ | ✓ |
-| See private albums | | ✓ | ✓ | ✓ | ✓ |
-| See an exclusive album | | if listed | if listed | if listed | ✓ |
+| See public albums | yes | yes | yes | yes | yes |
+| See private albums | | yes | yes | yes | yes |
+| See an exclusive album | | if listed | if listed | if listed | yes |
 | Play, lyrics, links | on albums they see | | | | |
-| Videos: watch, upload | | ✓ | ✓ | ✓ | ✓ |
+| Videos: watch, upload | | yes | yes | yes | yes |
 | Videos: delete | | own | own | any | any |
-| Statistics (songs, albums) | | ✓ | ✓ | ✓ | ✓ |
-| Statistics per member | | | | ✓ | ✓ |
-| Create/edit album, create/edit song | | | ✓ | ✓ | ✓ |
-| Delete album or song | | | | ✓ | ✓ |
-| Exclusive flag and access list | | | | | ✓ |
+| Statistics (songs, albums) | | yes | yes | yes | yes |
+| Statistics per member | | | | yes | yes |
+| Create/edit album and song | | | yes | yes | yes |
+| Delete album or song | | | | yes | yes |
+| Exclusive flag and access list | | | | | yes |
+| Play-along chart: view | | yes | yes | yes | yes |
+| Play-along chart: replace, remove, notify | | | | | yes |
 
-Owner is checked explicitly wherever Admin is. Every rule above also limits writes to albums the
-caller can see. A visitor asking for a members-only album gets `401` (the page offers the login);
-a member asking for an exclusive album they are not on gets `404`.
+- Owner is checked explicitly wherever Admin is. Every rule also limits writes to albums the caller can see.
+- A visitor asking for a members-only album gets `401` (the page offers the login); a member asking for an exclusive album they are not on gets `404`.
+- The event repertoire editor (`EventRepertoireAdminService`) is also open to the current Ensaiador / Magister for upcoming events; its song picker shows only what Music shows them. See [react-events](react-events.md).
+
+## Data
+
+No Music-specific schema beyond `SongPlayAlongs`. Tables: `Albums`, `AlbumAccesses`, `Songs`, `SongYouTubeUrls`, `SongVideos`, `SongPlayCounts`, `SongPlayAlongs`; `EventRepertoires` references songs.
+
+- Album ordering: dated ascending, undated last, then Id. Song ordering: track number ascending, none last, then Id.
+- `Album.Description` limit disagrees (entity 1000, EF config 500); SQLite enforces neither; the API keeps 1000.
+- `AlbumAccesses` rows are ignored unless the album is exclusive (stale rows may remain after exclusivity is turned off).
+- `Song.Duration` is only used for the play cooldown and is unset today, so the 30 s default applies.
+- Links (Spotify, YouTube) are http(s) only, in and out. Lyrics and lyric authors are never rendered as markup.
+- Deleting a song cascades to `EventRepertoires`. Deleting an album cascades songs, links, videos, plays and repertoire rows, and deletes the cover.
+- `CreatedAt/By`, `UpdatedAt/By` and uploader ids never leave the server (`canDelete` replaces the uploader id).
 
 ## API (`/api/music`)
 
-Reads are open (answers depend on the caller); every write - plays included - needs the antiforgery
-token in `X-CSRF-TOKEN` (`GET /api/public/antiforgery-token`). Everything is `Cache-Control: no-store`.
-DTOs: `RTUB.Application/DTOs/MusicDtos.cs`; no entity, user id of another member, object key or
-audit field leaves the server. Unexpected failures (e.g. storage unreachable) answer `500` as a generic
-JSON problem; details only go to the log.
+Reads are open (answers depend on the caller); every write, plays included, needs the antiforgery token in `X-CSRF-TOKEN` (`GET /api/public/antiforgery-token`). Everything is `Cache-Control: no-store`. No entity, other member's user id, object key or audit field leaves the server. Unexpected failures answer `500` as a generic JSON problem; details go to the log.
 
 | Method | Path | Who | |
 | --- | --- | --- | --- |
 | GET | `/albums` | all | visible albums + the caller's permissions |
-| GET | `/albums/{id}` | all | album, songs (links filtered to http(s)), permissions; `videoCount` for members |
+| GET | `/albums/{id}` | all | album, songs, permissions; `videoCount` for members |
 | GET | `/songs/{id}/lyrics` | all | `{pdfUrl, text}` |
 | GET | `/songs/{id}/audio` | all | short-lived audio link, nothing counted (player preloads neighbours) |
 | POST | `/songs/{id}/plays` | all | counts unless in cooldown; `{audioUrl, counted, playCount}`; `404` + `music:audio-unavailable` without audio |
@@ -104,91 +65,47 @@ JSON problem; details only go to the log.
 | GET | `/statistics` | members | songs/albums over visible albums; `members` for Admin/Owner |
 | GET | `/members` | Owner | access-list picker |
 | GET | `/albums/{id}/edit`, `/songs/{id}/edit` | Mod+ | form data |
-| POST / PUT | `/albums`, `/albums/{id}` | Mod+ | multipart: fields + optional `cover` (WebP/JPEG/PNG ≤5 MB) |
-| DELETE | `/albums/{id}` | Admin, Owner | cascades songs, links, videos, plays, repertoire rows; deletes the cover |
+| POST / PUT | `/albums`, `/albums/{id}` | Mod+ | multipart: fields + optional `cover` (WebP/JPEG/PNG, 5 MB max) |
+| DELETE | `/albums/{id}` | Admin, Owner | |
 | POST | `/albums/{id}/songs` | Mod+ | JSON |
 | PUT / DELETE | `/songs/{id}` | Mod+ / Admin, Owner | |
-| GET | `/playalongs` | members | `{ songs, canManage }`: the songs with a chart in the albums the member can see (095), newest album first; `canManage` = Owner |
-| POST | `/songs/{id}/playalong/notify` | Owner | push "Nova música para aprender" (097): optional `message` ≤300, default text otherwise; everyone, or the list of an exclusive album; `404` without a chart |
-| GET | `/songs/{id}/playalong` | members | the song's play-along chart (094); `404` when the song has none |
-| PUT / DELETE | `/songs/{id}/playalong` | Owner | JSON chart ≤512 KB, validated and rewritten by `PlayAlongChart`; replaces / removes |
-| POST | `/songs/{id}/videos` | members | multipart `file` (video, ≤100 MB) + `title`; notifies as before |
+| GET | `/playalongs` | members | `{ songs, canManage }`: songs with a chart in visible albums, newest album first; `canManage` = Owner |
+| GET | `/songs/{id}/playalong` | members | the chart; `404` when none |
+| PUT / DELETE | `/songs/{id}/playalong` | Owner | JSON chart (512 KB max), validated and rewritten by `PlayAlongChart`; replaces / removes |
+| POST | `/songs/{id}/playalong/notify` | Owner | push "Nova música para aprender": optional `message` (300 max); everyone, or the list of an exclusive album; `404` without a chart |
+| POST | `/songs/{id}/videos` | members | multipart `file` (video, 100 MB max) + `title`; notifies members |
 | DELETE | `/videos/{id}` | uploader, Admin, Owner | |
 
 ## Media (Cloudflare R2)
 
-- **Audio and lyric PDFs** come from the private bucket as pre-signed URLs (existing
-  `IAudioStorageService` / `ILyricStorageService`, 60 min), created per request for a song the caller
-  may see. The object key is derived from album and song titles inside the service, as before.
-- **Covers and videos** are absolute URLs on the public R2 host, as stored.
-- **Uploads** go through the existing `IImageStorageService` (`albums/` key from the title) and
-  `SongService.AddVideoAsync`; deletes through `AlbumService`/`SongService`. Tests and the browser
-  checks used fakes / placeholder credentials: nothing was uploaded to or deleted from R2.
-- CSP unchanged: `media-src` and `frame-src` already allow the R2 endpoint, `img-src` the public host.
-
-## Aprender (task 094; named "Tocar junto" until 095)
-
-A member plays a song's chords along with its recording: `/music/play/{songId}`, opened from the
-"Aprender" button a song shows when it has a chart (`hasPlayAlong` in the album payload, always
-`false` for visitors).
-
-- **Who:** any signed-in member who can see the song's album (the same visibility rules as the rest of
-  Music, exclusive albums included). Upload, replace and remove: whoever may edit the song (Mod, Admin,
-  Owner), in the song's edit form; both act at once, apart from "Guardar".
-- **Chart:** one row per song in `SongPlayAlongs` (migration `AddSongPlayAlongs`, additive: a new table
-  with a cascade FK to `Songs` and a unique `SongId`; the N-1 app ignores it). A table, not a `Songs`
-  column, so no song query carries 20 KB of JSON. Format version 1 = `PlayAlongChartDto`
-  (`MusicDtos.cs`): duration, bpm, beats, and sections → lines → words with a time each and chords
-  (`label` as the songbook writes it, `name` in letters, `time`, and the word / letter it sits on).
-- **Trust boundary:** `PlayAlongChart.Validate` (`RTUB.Application/Helpers`) checks every field (counts,
-  lengths, time ranges, chord names by pattern, chord times in order) and the stored JSON is the chart
-  written back from the typed model, so unknown fields are dropped. The audit log records who changed a
-  chart and when, with the chart itself redacted (`AuditConfiguration.RedactedProperties`).
-- **Making a chart:** offline, `tools/playalong` (README there): songbook PDF + the recording → vocal
-  split, forced alignment of the known lyrics, beat tracking → `chart.json`, reviewed by ear before
-  upload. It needs PyTorch and a 1.5 GB model, so it never runs on the server. Song files are never
-  committed.
-- **Page** (`MusicPlayAlong.tsx`): the strings across the screen, lowest string on top (6 for guitarra, 4 for bandolim, cavaquinho and baixo, the
-  choice kept in `localStorage`), each chord arriving at the line as a block of fret numbers; the lyric
-  line with its chords and the sung word lit; a section timeline that seeks; 60 / 80 / 100 % speed
-  (`playbackRate`, pitch kept); "Repetir secção"; space bar plays / pauses; the screen stays awake while
-  playing. One `requestAnimationFrame` loop reads the audio clock; React state changes only when the
-  line or chord does. Audio is the existing `GET /songs/{id}/audio` link: opening the page counts no play.
-- **Chord shapes** live in `MusicPlayAlong.tsx` (`SHAPES`). A chord that is not there shows its name
-  with no fingering. The bandolim shapes were written for 094 and still need a bandolim player's review. Cavaquinho (095) assumes the D G B D tuning and needs the same review; baixo has no table: it shows one note, the chord's root or the note after the slash. **Dedilhado** (guitarra only, switch "Acordes" / "Dedilhado"): each chord block shows picked notes instead of the whole chord, one built-in pattern (`pickingOf`): bass, 3rd string, 2nd + 1st together, 3rd string, then the same on the second bass string; the two bass strings follow the chord. Offered only when the chart has `picking: true` (optional field, default false), which the Owner ticks per song in the song form ("Incluir dedilhado"); the page then opens in Dedilhado. A pattern per song is not stored yet.
-- A recording whose length differs from the chart's by more than 2 s shows "A gravação mudou…": the
-  chart was made for another file.
-- **Not done:** microphone scoring, melody (the sheets carry chords only), an in-app chart editor,
-  charts for more than the prototype song (album 4, "É Esta a Tuna"; uploaded by hand per environment,
-  never seeded). Not checked: real audio from R2 (the local run has none; a stand-in file was used),
-  iPhone / Android installed app (speed change, landscape, wake lock).
+- Audio and lyric PDFs: private bucket, pre-signed URLs (`IAudioStorageService` / `ILyricStorageService`, 60 min), created per request for a song the caller may see. The object key is derived from album and song titles inside the service, so renaming affects it.
+- Covers and videos: absolute URLs on the public R2 host, as stored.
+- Uploads: `IImageStorageService` (`albums/` key from the title) and `SongService.AddVideoAsync`; deletes through `AlbumService` / `SongService`.
+- CSP: `media-src` and `frame-src` allow the R2 endpoint, `img-src` the public host.
 
 ## Player and cooldown
 
-- **Cooldown (server):** per listener (member id, or client IP for visitors) and song, for the song's
-  `Duration`, 30 s when unknown (always today). A repeat inside it still plays, it is just not
-  counted. `IMemoryCache` + one lock: per app instance (see the `ponytail:` note in `MusicService`).
-- **Player:** fixed bar with previous/next over the album's songs that have audio, auto-advance at
-  the end, and the Media Session card (title, album, cover, play/pause, previous/next, seek; no
-  seek-forward/back so iOS shows previous/next). Handlers and metadata are released when the player
-  closes or the page goes away (the iOS fix of `fix/030`, carried over).
+- Cooldown (server): per listener (member id, or client IP for visitors) and song, for the song's `Duration`, 30 s when unknown. A repeat inside it still plays, it is just not counted. `IMemoryCache` + one lock: per app instance (see the `ponytail:` note in `MusicService`).
+- Player: fixed bar with previous/next over the album's songs that have audio, auto-advance, and the Media Session card (title, album, cover, play/pause, previous/next, seek; no seek-forward/back so iOS shows previous/next). Handlers and metadata are released when the player closes or the page goes away (iOS fix, keep it).
 
-## Retired in 006
+## Aprender (Tocar junto)
 
-Pages `Albums.razor`, `Songs.razor` (+ scoped CSS); `SongCard`, `SongCardSkeleton`;
-`MediaQueueService`, `QueueTrack`, `AudioPlayerInterop`; the circuit-only services
-`SongPlayService`, `SongUrlCacheService`, `SongValidationService`, `AlbumStatisticsService`,
-`AlbumFilterService`, `AlbumImageService`; their tests (`AlbumsPageTests`, `SongsPageTests`,
-`SongCardTests`, `MediaQueueServiceTests`, `MusicPagesTests`). Kept: entities, repositories,
-`AlbumService`, `SongService`, `SongContentService`, storage services. New tests: `MusicApiTests`
-(22), `MusicServiceCooldownTests` (3), route tests in `PortalRouteTests`.
+A member plays a song's chords along with its recording at `/music/play/{songId}`, opened from the "Aprender" button a song shows when it has a chart (`hasPlayAlong` in the album payload, always `false` for visitors).
 
-## Remaining Music follow-ups
+- Who: any signed-in member who can see the song's album (same visibility as Music, exclusive included). Only the Owner uploads, replaces or removes a chart.
+- Chart storage: one row per song in `SongPlayAlongs` (migration `AddSongPlayAlongs`: additive, cascade FK to `Songs`, unique `SongId`; the previous app version ignores it). A table, not a `Songs` column, so no song query carries 20 KB of JSON.
+- Chart format, version 1 = `PlayAlongChartDto` (`MusicDtos.cs`): duration, bpm, beats, and sections > lines > words with a time each and chords (`label` as the songbook writes it, `name` in letters, `time`, and the word / letter it sits on). Optional `picking: true` enables Dedilhado.
+- Trust boundary: `PlayAlongChart.Validate` (`Helpers/PlayAlongChart.cs`) checks every field (counts, lengths, time ranges, chord names by pattern, chord times in order); the stored JSON is the chart written back from the typed model, so unknown fields are dropped. The audit log records who changed a chart and when, with the chart redacted (`AuditConfiguration.RedactedProperties`).
+- Making a chart: offline, `tools/playalong` (README there): songbook PDF + recording > vocal split, forced alignment, beat tracking > `chart.json`, reviewed by ear before upload. Needs PyTorch and a 1.5 GB model, so it never runs on the server. Song files are never committed; charts are uploaded by hand per environment, never seeded.
+- Page (`MusicPlayAlong.tsx`): strings across the screen, lowest on top (6 guitarra; 4 bandolim, cavaquinho, baixo; choice kept in `localStorage`); each chord arrives at the line as a block of fret numbers; lyric line with chords and the sung word lit; a section timeline that seeks; 60 / 80 / 100 % speed (`playbackRate`, pitch kept); "Repetir secção"; space bar plays / pauses; screen stays awake while playing. One `requestAnimationFrame` loop reads the audio clock; React state changes only when the line or chord does. Audio is the `GET /songs/{id}/audio` link: opening the page counts no play.
+- Chord shapes are in `MusicPlayAlong.tsx` (`SHAPES`). A chord not there shows its name without fingering. Cavaquinho assumes D G B D tuning; baixo has no table (shows the chord's root, or the note after the slash).
+- Dedilhado (guitarra only, switch "Acordes" / "Dedilhado"): each chord block shows picked notes instead of the whole chord, from one built-in pattern (`pickingOf`): bass, 3rd string, 2nd + 1st together, 3rd string, then the same on the second bass string; the two bass strings follow the chord. Offered only when the chart has `picking: true`, ticked by the Owner per song ("Incluir dedilhado"); the page then opens in Dedilhado.
+- A recording whose length differs from the chart's by more than 2 s shows "A gravação mudou…": the chart was made for another file.
 
-- Global CSS of the retired pages (`3-components/music.css`, `song-card.css`, `audio-player.css`)
-  and the PWA queue part of `pwaMediaSession.js` / `MediaSessionInterop` are no longer used by Music;
-  other pages still use parts of them. Clean up with care.
-- Member listening stats inside the member area (`/member/profile`) stay Blazor.
-- Album paging (6-24 per page) was dropped: 7 albums fit one grid. Add it back if the count grows.
-- No upload progress bar for videos (a plain "A enviar…" state).
-- `AlbumAccesses` rows of album 12 are stale; decide whether to delete them (data change, not done).
+## Follow-ups
+
+- Bandolim and cavaquinho shapes need a player's review.
+- Not built: microphone scoring, melody (sheets carry chords only), an in-app chart editor, a stored picking pattern per song.
+- Not verified: real R2 audio against the play-along page; installed iPhone / Android app (speed change, landscape, wake lock).
+- No upload progress bar for videos (plain "A enviar…" state).
+- Album paging was dropped (few albums fit one grid); add it back if the count grows.

@@ -208,6 +208,27 @@ export type MeetingRequestInput = { type: string; title: string; proposedDate: s
 /** An accepted request, as the create form opens prefilled with it. */
 export type MeetingDraft = { type: string; title: string; date: string; location: string | null; statement: string };
 
+export type MeetingPollAudienceOption = { value: string; label: string };
+export type MeetingPollOption = { id: number; text: string; votes: number };
+export type MeetingPoll = {
+  id: number;
+  audience: string;
+  audienceLabel: string;
+  question: string;
+  createdAt: string;
+  closesAt: string | null;
+  closed: boolean;
+  canManage: boolean;
+  canVote: boolean;
+  /** Its creator, or Owner. The server checks again on DELETE. */
+  canDelete: boolean;
+  myOptionId: number | null;
+  totalVotes: number;
+  options: MeetingPollOption[];
+};
+export type MeetingPollBoard = { createAudiences: MeetingPollAudienceOption[]; polls: MeetingPoll[] };
+export type MeetingPollInput = { audience: string; question: string; options: string[]; closesAt: string | null };
+
 const query = (params: Record<string, string | number | null | undefined>) => {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (v !== null && v !== undefined && v !== '') p.set(k, String(v));
@@ -259,6 +280,13 @@ export const meetingsApi = {
   reject: (requestId: number) => call<void>('POST', `${base}/requests/${requestId}/reject`),
   removeRequest: (requestId: number) => call<void>('DELETE', `${base}/requests/${requestId}`),
   remind: (requestId: number) => call<void>('POST', `${base}/requests/${requestId}/reminder`),
+  // Anonymous-result polls (the server stores one private ballot per eligible member).
+  polls: () => call<MeetingPollBoard>('GET', `${base}/polls`),
+  createPoll: (input: MeetingPollInput) => call<number>('POST', `${base}/polls`, input),
+  votePoll: (pollId: number, optionId: number) =>
+    call<boolean>('PUT', `${base}/polls/${pollId}/vote`, { optionId }),
+  closePoll: (pollId: number) => call<boolean>('POST', `${base}/polls/${pollId}/close`),
+  removePoll: (pollId: number) => call<void>('DELETE', `${base}/polls/${pollId}`),
 };
 
 // ---------- dates: "yyyy-MM-ddTHH:mm" local text in, Portuguese text out (no Date parsing, no time zone) ----------

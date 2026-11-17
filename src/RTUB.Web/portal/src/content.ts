@@ -39,6 +39,7 @@ export const portal = {
   requests: '/requests',
   questions: '/questions',
   meetings: '/meetings',
+  meetingPolls: '/meetings/polls',
   messages: '/messages',
   pendingActions: '/pending-actions',
   users: '/users',

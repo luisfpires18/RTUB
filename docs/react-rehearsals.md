@@ -1,110 +1,115 @@
-# React Rehearsals (`/rehearsals`, React track 014)
+# React Rehearsals (`/rehearsals`)
 
-`/rehearsals` is a React page (`portal/src/Rehearsals.tsx`) and `/rehearsals/{id}` one rehearsal
-(`RehearsalDetail.tsx`); the modals live in `RehearsalDialogs.tsx`. Everything reads a thin API
-(`Endpoints/RehearsalEndpoints.cs` → `IRehearsalAgendaService` for members, `IRehearsalAdminService` for
-Admin/Owner; rules in `Helpers/RehearsalsAuthorization.cs`). The 2,986-line Blazor `Pages/Activities/Rehearsals.razor`
-is retired. DEV only; **no schema change**.
+`/rehearsals` is the React page (`src/RTUB.Web/portal/src/Rehearsals.tsx`); `/rehearsals/{id}` is one rehearsal (`RehearsalDetail.tsx`).
+Modals live in `RehearsalDialogs.tsx`. Members read through `Endpoints/RehearsalEndpoints.cs` → `IRehearsalAgendaService`.
+Admin/Owner and the approval rules use `IRehearsalAdminService`. Rules: `Helpers/RehearsalsAuthorization.cs`.
+Also `Services/RehearsalAttendanceService.cs` (presenças, notifications) and `Services/RehearsalService.cs`.
+Background services handle reminders, approval reminders, member status and rankings.
 
-**Terminology.** Rehearsals use *attendance* / **presença** (`RehearsalAttendance`, "Presenças", "As minhas
-presenças", "Marcar presença"). Events keep *enrollment* / **inscrição**; neither borrows the other's word
-(`PortalRouteTests` checks both directions).
+**Terminology.** Rehearsals use *attendance* (presença): `RehearsalAttendance`, "Presenças", "As minhas presenças", "Marcar presença".
+Events keep *enrollment* (inscrição). Neither borrows the other's word.
 
 ## Routes
 
-| Route | Owner | Notes |
-| --- | --- | --- |
-| `/rehearsals` | React (014) | Members only: a visitor gets `302 /login?returnUrl=/rehearsals` (the Blazor page was `[Authorize]`). `?season=` (and the old `?fy=`) picks the archive season; `?q=` searches. |
-| `/rehearsals/{id}` | React (014) | New: one rehearsal with its presenças (the old page used modals). Same sign-in redirect. |
-| Push links | unchanged | Notifications still open `/rehearsals`. |
+| Route | Notes |
+| --- | --- |
+| `/rehearsals` | Members only. A visitor gets `302` to `/login?returnUrl=/rehearsals`. `?season=` (and the old `?fy=`) picks the archive season; `?q=` searches. |
+| `/rehearsals/{id}` | One rehearsal with its presenças. Same sign-in redirect. |
 
-The Blazor menu links `/rehearsals` with a full page load (`data-enhance-nav="false"`).
+Push notifications still open `/rehearsals`. The sign-in `302`s are not legacy redirects and stay at the PROD cutover.
 
-## Audit (real `app.db`, read-only scratch copy, aggregates only)
+## Data
 
-| Table | Fields | Real data |
-| --- | --- | --- |
-| `Rehearsals` | `Date` (date only, unique per day by the app), `Location` required ≤200 (default "Centro Académico"), `Theme` ≤500, `Description` ≤1000, `Notes` ≤1000, `StartTime` 21:30 / `EndTime` 00:00 (fixed, never edited), `IsCanceled`, `CancellationReason` ≤1000 | 74 rehearsals, 9 cancelled; all 21:30-00:00; 66 on Tue/Thu; 73 at "Centro Académico"; 16 with a theme, 9 a description, 0 notes |
-| `RehearsalAttendances` | `RehearsalId`, `UserId`, `WillAttend` (vou / não vou), `Attended` (confirmed by Admin), `Instrument`, `OtherInstruments` ≤200, `Notes` ≤500, `CheckedInAt`, `CategoryAtRehearsal` (snapshot) | 833 rows: 733 going (all confirmed), 100 not going, 0 pending; 45 with a note (longest 49) |
+No schema change in the current rules. Constraints that matter:
 
-No recurring-rehearsal table: rehearsals are created one by one, or as every Tuesday and Thursday of a range.
-Statuses are derived, not stored: **pending** (vou, not confirmed), **confirmed** (`Attended`), **not going**
-(`WillAttend = false`). There is no "late", "justified" or "unknown" status; a "não vou" carries an optional reason
-in its note.
+- `Rehearsals`: `Date` (date only; one rehearsal per day, the app refuses duplicates), `Location` (required, ≤200, default "Centro Académico"),
+  `Theme` (≤500), `Description` (≤1000), `Notes` (≤1000), `StartTime` 21:30 and `EndTime` 00:00 (fixed, never edited), `IsCanceled`,
+  `CancellationReason` (≤1000). No recurring-rehearsal table: rehearsals are created one by one, or as every Tuesday and Thursday of a range.
+- `RehearsalAttendances`: `RehearsalId`, `UserId`, `WillAttend`, `Attended` (confirmed by Admin or an approver), `Instrument`,
+  `OtherInstruments` (≤200), `Notes` (≤500), `CheckedInAt`, `CategoryAtRehearsal` (snapshot).
+- Statuses are derived, not stored: **pending** (vou, not confirmed), **confirmed** (`Attended`), **not going** (`WillAttend = false`).
+  No late, justified or unknown status. A "não vou" may carry a note as its reason.
 
-### Rules - old page vs React
+## Permissions
 
-| | Old Blazor `/rehearsals` | React now |
-| --- | --- | --- |
-| Who reads | any signed-in member: every rehearsal, who goes, their notes | same |
-| Own presença | upcoming (day not over), not cancelled: Vou / Não vou, "Quero tocar" + instrument (own instruments; a Leitão with none: any), note | same rules, **server-side**; one modal, as the events answer; instrument validated against the offered list; note ≤500 |
-| New "vou" | pending (`Attended = false`) until confirmed | same |
-| Remove own presença | from the list, any time; on a past card while pending | same (`DELETE /attendance`), any time |
-| Manage | `IsInRole("Admin")` in the UI only | **Admin or Owner** (Owner inherits Admin), enforced in `RehearsalAdminService`; since 059 create (one or a range) and edit are **Mod and above** (`RehearsalsAuthorization.CanEdit`, `canEdit` in the agenda and detail DTOs); the rest stays Admin / Owner |
-| Create | one date (duplicate refused) or every Tue/Thu of a range (≤90 days, from today; taken dates skipped) | same; **description and notes typed when creating are now saved** (the old create dropped them) |
-| Edit | location, theme, description, notes (never date or time) | same |
-| Cancel | reason required ≤1000; deletes every presença; no email | same (also allowed on a past rehearsal, as before) |
-| Reactivate | upcoming cancelled only; presenças not restored | same, with a confirm saying so |
-| Delete | hard delete (presenças cascade) | same, behind a confirm |
-| Push notice | upcoming: message to subscribed members, optionally Leitões and Caloiros; audited `PushNotificationSent` | same (counts instead of name lists); refused on past or cancelled |
-| Confirm / remove others / add a member | once **approvable** (past, or today starting ≥21:00): confirm pending (member gets a push, retirement status updated), remove any, add a member confirmed with their primary instrument | same; a member who already answered is not offered; expelled members not offered |
-| Statistics | members: per member confirmed and pending presenças at the range's past, not cancelled rehearsals; share; category filter; search | same (`GET /api/rehearsals/stats`), a modal |
-| "Minhas Presenças" | last 10 (or all) past, not cancelled rehearsals, confirmed share | same, a modal from the agenda data |
-| Notifications | own presença: push to others going (and on cancellation); confirm: push to the member | unchanged: the same `RehearsalAttendanceService` calls; tests use a push fake |
-| Search / filters | season (fiscal year), search both lists | season + search on the archive; upcoming always shown |
+| Who | What |
+| --- | --- |
+| Visitor | Nothing. |
+| Any signed-in member | Every rehearsal, who goes, own presença, remove own presença, statistics. |
+| Active member on `/pending-actions` | First answer to own unanswered rehearsals, upcoming or past (current fiscal year from admission month). A "Fui" is pending until Admin or Owner confirm it. |
+| Mod, Admin, Owner | Create (one date or a range) and edit a rehearsal (`RehearsalsAuthorization.CanEdit`, `canEdit` in the agenda and detail DTOs). |
+| Admin, Owner | Cancel / reactivate, delete, push notice, confirm or remove anyone's presença, add a member. |
+| Current Ensaiador or Magister (position, not role; 075) | Approve or refuse a pending presença once the rehearsal is approvable. Never their own (only Admin or Owner may). Nothing else of management. |
 
-Not kept: pagination (a season is ~70 rehearsals) and the approval filter of the old modal (pending shows as a pill).
+Approvable: a past rehearsal, or today from 21:00.
+
+**Refuse (075):** `POST /api/rehearsals/{id}/attendances/{attendanceId}/refuse`, by Admin, Owner, Ensaiador or Magister, on an approvable rehearsal
+with a pending presença. Not a deletion: the presença stays as not attended (`WillAttend = false`, audited), and the member gets the
+"Presença recusada" push, so a past "Fui" is never asked again. Removing a presença (`DELETE`) stays Admin/Owner, or the member for their own.
+
+## Own presença
+
+- Upcoming (day not over) and not cancelled: Vou / Não vou, "Quero tocar" with an instrument (own instruments; a Leitão with none: any), and a note ≤500.
+  Same rules server-side, in one modal, like the events answer. The instrument must be in the offered list.
+- A new "vou" is pending until confirmed.
+- Members may remove their own presença at any time.
+- Notifications: own presença → push to others going (and on cancellation). Confirmation → push to the member.
+
+## Create, edit, cancel, delete
+
+- Create one date (duplicate refused), or every Tuesday and Thursday of a range (≤90 days from today; taken dates are skipped).
+  Description and notes are saved on create.
+- Edit: location, theme, description, notes. Never date or time.
+- Cancel: reason required, ≤1000. Deletes every presença. No email. Allowed on a past rehearsal too.
+- Reactivate: upcoming cancelled rehearsals only. Presenças are not restored; the confirm says so.
+- Delete: hard delete, presenças cascade, behind a confirm.
+- Push notice: upcoming only (refused on past or cancelled). Message to subscribed members, optionally Leitões and Caloiros only. Audited as `PushNotificationSent`. Counts are shown, not name lists.
+
+## Approvals and management of presenças
+
+- Confirm pending: member gets a push and the retirement status updates.
+- Remove any presença. Add a member, confirmed, with their primary instrument. Members who already answered, and expelled members, are not offered.
+- Approvals are allowed only once the rehearsal is approvable (see Permissions).
+
+## Statistics and "Minhas presenças"
+
+- Statistics (`GET /api/rehearsals/stats`, modal): per member, confirmed and pending presenças at the range's past, not cancelled rehearsals; share; category filter; search.
+- "Minhas presenças": last 10 (or all) past, not cancelled rehearsals, with the confirmed share. Built from the agenda data.
+- Archive: season (fiscal year) and search. Upcoming rehearsals are always shown. No pagination; a season is about 70 rehearsals.
+
+## Pending actions
+
+`/pending-actions` answers a member's own unanswered rehearsals in place ([react-pending-actions](react-pending-actions.md)). It uses
+`IRehearsalAttendanceService.AddFirstAttendanceAsync`, create-only: same row, category snapshot and push as `MarkAttendanceAsync`.
+An existing presença is never touched. A "Fui" is `Attended = false`, pending in approval, and earns nothing until confirmed.
+
+## Calendário
+
+A new "vou" to an upcoming rehearsal offers "Adicionar ao Google Calendar" ("Presença registada, pendente de aprovação."). The detail page keeps
+"Adicionar ao calendário" while the member is going. The calendar approves nothing. Rules, link and dates: [react-events → Calendário](react-events.md).
 
 ## API
 
+Every write needs `X-CSRF-TOKEN`. Outcomes reuse `EventResult<T>`.
+
 | Endpoint | Who | Notes |
 | --- | --- | --- |
-| `GET /api/rehearsals` | member | `{ canManage, canEdit, upcoming, past }`; each with `goingCount`, `mine` (`pending`/`approved`/`notGoing`), `pendingCount` (Admin/Owner only). |
-| `GET /api/rehearsals/{id}` | member | rehearsal, notes, presenças `{ going, leitoes, notGoing }` (row id, person, status, instrument, note, `canApprove`, `canRemove`), instrument counts. No user id, email or phone. |
-| `GET`/`PUT`/`DELETE /api/rehearsals/{id}/attendance` | member | own presença; `PUT { willAttend, instrument, notes }`; 409 past or cancelled; 400 field errors. |
-| `GET /api/rehearsals/stats?from=&to=` | member | statistics. |
-| `POST /api/rehearsals`, `POST /api/rehearsals/range`, `PUT /api/rehearsals/{id}` | Mod and above (059) |
-| `DELETE /api/rehearsals/{id}` | Admin/Owner | `{ date, location, theme, description, notes }`; range `{ from, to, location, theme, description }` → `{ created, skipped }`. |
-| `POST /api/rehearsals/{id}/cancel`, `/reactivate` | Admin/Owner | `{ reason }`; 409 when not allowed. |
-| `GET`/`POST /api/rehearsals/{id}/notice` | Admin/Owner | counts; `{ message, onlyLeitoesAndCaloiros }` → `{ sent, failed }`. |
-| `POST /api/rehearsals/{id}/attendances/{attendanceId}/approve` | Admin/Owner | approvable only (409 otherwise). |
-| `DELETE /api/rehearsals/{id}/attendances/{attendanceId}` | Admin/Owner (approvable) or the member | |
-| `GET /api/rehearsals/{id}/attendances/members?q=`, `POST /api/rehearsals/{id}/attendances` | Admin/Owner | add a member, confirmed; approvable only; user ids only to Admin/Owner. |
+| `GET /api/rehearsals` | member | `{ canManage, canEdit, upcoming, past }`; each with `goingCount`, `mine` (`pending` / `approved` / `notGoing`), `pendingCount` (Admin/Owner). |
+| `GET /api/rehearsals/{id}` | member | Rehearsal, notes, presenças `{ going, leitoes, notGoing }` (row id, person, status, instrument, note, `canApprove`, `canRemove`), instrument counts. No user id, email or phone. |
+| `GET` / `PUT` / `DELETE /api/rehearsals/{id}/attendance` | member | Own presença. `PUT { willAttend, instrument, notes }`; `409` past or cancelled; `400` field errors. |
+| `GET /api/rehearsals/stats?from=&to=` | member | Statistics. |
+| `POST /api/rehearsals` | Mod and above | `{ date, location, theme, description, notes }`; duplicate refused. |
+| `POST /api/rehearsals/range` | Mod and above | `{ from, to, location, theme, description }` → `{ created, skipped }`. |
+| `PUT /api/rehearsals/{id}` | Mod and above | Edit fields, not date or time. |
+| `DELETE /api/rehearsals/{id}` | Admin/Owner | Hard delete. |
+| `POST /api/rehearsals/{id}/cancel` | Admin/Owner | `{ reason }`; `409` when not allowed. |
+| `POST /api/rehearsals/{id}/reactivate` | Admin/Owner | `409` unless cancelled and upcoming. |
+| `GET` / `POST /api/rehearsals/{id}/notice` | Admin/Owner | Counts; `{ message, onlyLeitoesAndCaloiros }` → `{ sent, failed }`; `409` past or cancelled. |
+| `POST /api/rehearsals/{id}/attendances/{attendanceId}/approve` | Admin/Owner, Ensaiador, Magister | Approvable only; `409` otherwise. |
+| `POST /api/rehearsals/{id}/attendances/{attendanceId}/refuse` | Admin/Owner, Ensaiador, Magister | Approvable and pending only (see Permissions). |
+| `DELETE /api/rehearsals/{id}/attendances/{attendanceId}` | Admin/Owner (approvable only), or the member for own | |
+| `GET /api/rehearsals/{id}/attendances/members?q=` | Admin/Owner | Add-member search. |
+| `POST /api/rehearsals/{id}/attendances` | Admin/Owner | Add a member, confirmed; approvable only. |
 
-Every write needs the antiforgery token (`X-CSRF-TOKEN`); outcomes reuse `EventResult<T>`.
-
-## Retired
-
-`Pages/Activities/Rehearsals.razor` (+ CSS); the shared `RehearsalCard`, `ParticipationModal` and `InstrumentCounter`
-(only that page used them); `IRehearsalFilterService`, `IRehearsalUrlService`, `IRehearsalAttendanceFilterService`,
-`IRehearsalStatisticsService` and their implementations; the form/display DTOs `AttendanceFormModel`,
-`RehearsalFormModel`, `RehearsalRangeFormModel`, `RehearsalAttendanceDisplay`; their bUnit/placebo tests.
-`RehearsalService`, `RehearsalAttendanceService`, the entities and the background services (reminders, approval
-reminder, member status, rankings) are unchanged.
-
-## Follow-ups
-
-- Bulk "confirmar todas" does not exist (it did not before either); pending today: 0.
-- The 302 sign-in redirects stay as they are at the PROD cutover (they are not legacy redirects).
-
-## As minhas ações pendentes (072)
-
-`/pending-actions` answers a member's own **unanswered** rehearsals in place (docs/react-pending-actions.md → Answers),
-through the new create-only `IRehearsalAttendanceService.AddFirstAttendanceAsync` (same row, category snapshot and push as
-`MarkAttendanceAsync`; an existing presença is never touched). New on purpose: a member may report a past rehearsal of the
-current fiscal year (Fui / Não fui); a "Fui" is `Attended = false`, pending in the Admin's approval like any "vou", and
-earns nothing until confirmed.
-
-## Ensaiador / Magister approvals (075)
-
-The current Ensaiador and Magister approve and refuse pending presenças without Admin
-(`RehearsalsAuthorization.CanApprove`), on the rehearsal page ("Confirmar" / "Recusar") and on `/pending-actions` →
-Presenças por aprovar (current fiscal year). Refusal keeps the presença as not attended and notifies the member (the
-existing, until now unused, `CancelAttendanceAsync` + "Presença recusada" push); approval is unchanged (push, activity
-status, XP).
-
-## Calendário (task 079)
-
-A new "vou" to an upcoming rehearsal offers "Adicionar ao Google Calendar" ("Presença registada, pendente de aprovação."); the
-detail page keeps "Adicionar ao calendário" while the member is going. The presença stays pending: the calendar approves
-nothing. Rules, link and dates: [react-events → Calendário](react-events.md).
+Code pointers: `Endpoints/RehearsalEndpoints.cs`, `Helpers/RehearsalsAuthorization.cs`, `Services/RehearsalAdminService.cs`,
+`Services/RehearsalAttendanceService.cs`.

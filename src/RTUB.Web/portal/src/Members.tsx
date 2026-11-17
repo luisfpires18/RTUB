@@ -125,7 +125,7 @@ export default function Members() {
               <Icon name="calendar" />
               Aniversários
             </button>
-            {data?.canManage && (
+            {(data?.canManage || data?.canEditInfo) && (
               <button type="button" className="btn btn--primary btn--sm" onClick={() => setTool({ kind: 'create' })}>
                 <Icon name="plus" />
                 Adicionar membro
