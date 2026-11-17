@@ -120,6 +120,7 @@ public sealed class MeetingPollBoardService(
             Audience = audience,
             Question = question,
             ClosesAt = closesAt,
+            CreatedByUserId = access.UserId,
             Options = options.Select(text => new MeetingPollOption { Text = text }).ToList(),
         };
         db.MeetingPolls.Add(poll);
@@ -248,6 +249,44 @@ public sealed class MeetingPollBoardService(
         return EventResult<bool>.Ok(true);
     }
 
+    /// <summary>
+    /// Deletes a poll, open or closed, with its options and votes. Only its creator or Owner
+    /// (<see cref="MeetingAccess.OwnsPoll"/>); a member who can see the poll but does not own it is refused, anyone else
+    /// is told it does not exist.
+    /// </summary>
+    public async Task<EventResult<bool>> DeleteAsync(int pollId, ClaimsPrincipal principal)
+    {
+        var (access, refusal) = await AccessAsync(principal);
+        if (access is null)
+        {
+            return EventResult<bool>.Fail(refusal);
+        }
+
+        await using var db = await contexts.CreateDbContextAsync();
+        // Votes are removed explicitly and first: their link to an option is NoAction, so EF refuses to drop an option
+        // that still has a vote. Options then go with the poll (cascade).
+        var poll = await db.MeetingPolls
+            .Include(item => item.Options)
+            .Include(item => item.Votes)
+            .FirstOrDefaultAsync(item => item.Id == pollId);
+        if (poll is null)
+        {
+            return EventResult<bool>.Fail(EventResultStatus.NotFound);
+        }
+
+        if (!access.OwnsPoll(poll))
+        {
+            return EventResult<bool>.Fail(access.CanVoteInPoll(poll.Audience) || access.CanManagePoll(poll.Audience)
+                ? EventResultStatus.Forbidden
+                : EventResultStatus.NotFound);
+        }
+
+        db.MeetingPollVotes.RemoveRange(poll.Votes);
+        db.MeetingPolls.Remove(poll);
+        await db.SaveChangesAsync();
+        return EventResult<bool>.Ok(true);
+    }
+
     private async Task<(MeetingAccess? Access, EventResultStatus Refusal)> AccessAsync(ClaimsPrincipal principal)
     {
         var userId = principal.Identity?.IsAuthenticated == true
@@ -295,6 +334,7 @@ public sealed class MeetingPollBoardService(
             closed,
             access.CanManagePoll(poll.Audience),
             eligible && !closed,
+            access.OwnsPoll(poll),
             ownOptionId,
             options.Sum(option => option.Votes),
             options);

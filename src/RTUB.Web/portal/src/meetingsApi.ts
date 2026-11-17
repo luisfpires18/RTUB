@@ -220,6 +220,8 @@ export type MeetingPoll = {
   closed: boolean;
   canManage: boolean;
   canVote: boolean;
+  /** Its creator, or Owner. The server checks again on DELETE. */
+  canDelete: boolean;
   myOptionId: number | null;
   totalVotes: number;
   options: MeetingPollOption[];
@@ -284,6 +286,7 @@ export const meetingsApi = {
   votePoll: (pollId: number, optionId: number) =>
     call<boolean>('PUT', `${base}/polls/${pollId}/vote`, { optionId }),
   closePoll: (pollId: number) => call<boolean>('POST', `${base}/polls/${pollId}/close`),
+  removePoll: (pollId: number) => call<void>('DELETE', `${base}/polls/${pollId}`),
 };
 
 // ---------- dates: "yyyy-MM-ddTHH:mm" local text in, Portuguese text out (no Date parsing, no time zone) ----------

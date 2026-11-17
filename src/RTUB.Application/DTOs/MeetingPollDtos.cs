@@ -16,6 +16,7 @@ public sealed record MeetingPollDto(
     bool Closed,
     bool CanManage,
     bool CanVote,
+    bool CanDelete,
     int? MyOptionId,
     int TotalVotes,
     IReadOnlyList<MeetingPollOptionDto> Options);

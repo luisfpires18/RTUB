@@ -37,6 +37,9 @@ public static class MeetingEndpoints
         writes.MapPost("/polls/{pollId:int}/close", async (int pollId, HttpContext http, IMeetingPollBoardService service) =>
             ToResult(await service.CloseAsync(pollId, http.User)));
 
+        writes.MapDelete("/polls/{pollId:int}", async (int pollId, HttpContext http, IMeetingPollBoardService service) =>
+            ToResult(await service.DeleteAsync(pollId, http.User), _ => Results.NoContent()));
+
         meetings.MapGet("/form", async (HttpContext http, IMeetingBoardService service) =>
             ToResult(await service.GetFormAsync(http.User)));
 
