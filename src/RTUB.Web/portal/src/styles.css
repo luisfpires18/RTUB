@@ -3794,6 +3794,30 @@ video.tile__media {
   margin-top: 4px;
 }
 
+.learn-album .album-card__cover--empty {
+  aspect-ratio: 16 / 9;
+}
+.album-card__star {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--muted);
+  background: rgba(10, 10, 12, 0.6);
+  cursor: pointer;
+}
+.album-card__star:hover {
+  color: var(--ink);
+}
+.album-card__star.is-on {
+  color: #f5b82e;
+}
 .album-card__manage {
   position: absolute;
   top: 10px;

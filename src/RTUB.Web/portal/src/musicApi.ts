@@ -77,7 +77,7 @@ export type PlayAlongLine = {
 export type PlayAlongSection = { name: string; kind: 'verse' | 'refrain' | 'instrumental'; start: number; end: number; lines: PlayAlongLine[] };
 export type PlayAlongChart = { version: number; duration: number; bpm: number; beats: number[]; sections: PlayAlongSection[]; picking: boolean };
 export type PlayAlong = { songId: number; title: string; albumId: number; albumTitle: string; hasAudio: boolean; chart: PlayAlongChart };
-export type LearnSong = { songId: number; title: string; albumId: number; albumTitle: string; year: number | null; coverUrl: string | null };
+export type LearnSong = { songId: number; title: string; albumId: number; albumTitle: string; year: number | null; views: number; starred: boolean };
 export type Lyrics = { pdfUrl: string | null; text: string | null };
 export type Video = { id: number; title: string; url: string; mimeType: string; canDelete: boolean };
 export type Statistics = {
@@ -218,6 +218,8 @@ export const musicApi = {
   deleteSong: (id: number) => call<void>('DELETE', `/api/music/songs/${id}`),
 
   learnSongs: () => call<{ songs: LearnSong[]; canManage: boolean }>('GET', '/api/music/playalongs'),
+  viewPlayAlong: (songId: number) => call<void>('POST', `/api/music/songs/${songId}/playalong/view`),
+  starPlayAlong: (songId: number, starred: boolean) => call<void>(starred ? 'PUT' : 'DELETE', `/api/music/songs/${songId}/playalong/star`),
   notifyPlayAlong: (songId: number, message: string) => call<void>('POST', `/api/music/songs/${songId}/playalong/notify`, { message }),
   playAlong: (songId: number) => call<PlayAlong>('GET', `/api/music/songs/${songId}/playalong`),
   /** `chart` is the parsed chart file as it is; the server validates it. */

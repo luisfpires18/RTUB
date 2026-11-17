@@ -34,13 +34,25 @@ export default function MusicLearn() {
 
   const { songs, canManage } = state;
 
-  // The list comes sorted by album (newest first), so the albums are runs of it.
-  const albums: { id: number; title: string; year: number | null; songs: LearnSong[] }[] = [];
-  for (const s of songs ?? []) {
-    const last = albums[albums.length - 1];
+  // Starred songs (098) come first, as their own group; the rest are albums. The list comes sorted by
+  // album (newest first), so the albums are runs of it.
+  const groups: { id: number | 'starred'; title: string; year: number | null; songs: LearnSong[] }[] = [];
+  const starred = (songs ?? []).filter((s) => s.starred);
+  if (starred.length > 0) groups.push({ id: 'starred', title: 'Favoritas', year: null, songs: starred });
+  for (const s of (songs ?? []).filter((x) => !x.starred)) {
+    const last = groups[groups.length - 1];
     if (last?.id === s.albumId) last.songs.push(s);
-    else albums.push({ id: s.albumId, title: s.albumTitle, year: s.year, songs: [s] });
+    else groups.push({ id: s.albumId, title: s.albumTitle, year: s.year, songs: [s] });
   }
+
+  const toggleStar = async (song: LearnSong) => {
+    const next = !song.starred;
+    const set = (starred: boolean) =>
+      setState((cur) => ({ ...cur, songs: cur.songs?.map((x) => (x.songId === song.songId ? { ...x, starred } : x)) }));
+    set(next);
+    const r = await musicApi.starPlayAlong(song.songId, next);
+    if (r.kind !== 'ok') set(!next);
+  };
 
   const remove = async () => {
     if (open?.kind !== 'delete') return;
@@ -87,7 +99,7 @@ export default function MusicLearn() {
           <p className="state__title">Ainda não há músicas para aprender.</p>
         </div>
       ) : (
-        albums.map((album) => (
+        groups.map((album) => (
           <section key={album.id} className="learn-album" aria-labelledby={`learn-album-${album.id}`}>
             <h2 id={`learn-album-${album.id}`} className="learn-album__title">
               {album.title}
@@ -97,17 +109,27 @@ export default function MusicLearn() {
               {album.songs.map((s) => (
                 <li key={s.songId} className="album-card">
                   <a className="album-card__link" href={`/music/play/${s.songId}`}>
-                    {s.coverUrl ? (
-                      <img className="album-card__cover" src={s.coverUrl} alt="" width="400" height="400" loading="lazy" />
-                    ) : (
-                      <span className="album-card__cover album-card__cover--empty" aria-hidden="true">
-                        <Icon name="disc" />
-                      </span>
-                    )}
+                    <span className="album-card__cover album-card__cover--empty" aria-hidden="true">
+                      <Icon name="music" />
+                    </span>
                     <span className="album-card__body">
                       <span className="album-card__title">{s.title}</span>
+                      <span className="album-card__meta">
+                        <span>{s.views === 1 ? '1 visualização' : `${s.views} visualizações`}</span>
+                        {album.id === 'starred' && <span>{s.albumTitle}</span>}
+                      </span>
                     </span>
                   </a>
+                  <button
+                    type="button"
+                    className={`album-card__star${s.starred ? ' is-on' : ''}`}
+                    aria-pressed={s.starred}
+                    title={s.starred ? 'Tirar das favoritas' : 'Marcar como favorita'}
+                    onClick={() => void toggleStar(s)}
+                  >
+                    <Icon name="star" />
+                    <span className="sr-only">{s.starred ? `Tirar das favoritas: ${s.title}` : `Marcar como favorita: ${s.title}`}</span>
+                  </button>
                   {canManage && (
                     <div className="album-card__manage">
                       <IconButton icon="bell" label={`Avisar os membros: ${s.title}`} onClick={() => setOpen({ kind: 'notify', song: s })} />

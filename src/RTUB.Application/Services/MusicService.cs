@@ -571,18 +571,80 @@ public sealed class MusicService : IMusicService
         }
 
         await using var ctx = await _contexts.CreateDbContextAsync();
+        var userId = MusicAuthorization.UserId(user);
         var albums = Visible(ctx, user).Select(a => a.Id);
         var songs = await ctx.Songs.AsNoTracking()
             .Where(s => albums.Contains(s.AlbumId) && ctx.SongPlayAlongs.Any(p => p.SongId == s.Id))
-            .Select(s => new { s.Id, s.Title, s.TrackNumber, s.AlbumId, AlbumTitle = s.Album!.Title, s.Album.Year, s.Album.ImageUrl })
+            .Select(s => new
+            {
+                s.Id, s.Title, s.TrackNumber, s.AlbumId, AlbumTitle = s.Album!.Title, s.Album.Year,
+                Views = ctx.SongPlayAlongs.Where(p => p.SongId == s.Id).Select(p => p.Views).FirstOrDefault(),
+                Starred = ctx.SongPlayAlongFavorites.Any(f => f.SongId == s.Id && f.UserId == userId)
+            })
             .ToListAsync();
 
         // Newest album first, then the album's own order.
         return MusicResult<MusicLearnListDto>.Ok(new MusicLearnListDto(songs
             .OrderByDescending(s => s.Year ?? int.MaxValue).ThenBy(s => s.AlbumId)
             .ThenBy(s => s.TrackNumber is null).ThenBy(s => s.TrackNumber).ThenBy(s => s.Id)
-            .Select(s => new MusicLearnSongDto(s.Id, s.Title, s.AlbumId, s.AlbumTitle, s.Year, IsWebUrl(s.ImageUrl) ? s.ImageUrl : null))
+            .Select(s => new MusicLearnSongDto(s.Id, s.Title, s.AlbumId, s.AlbumTitle, s.Year, s.Views, s.Starred))
             .ToList(), MusicAuthorization.CanManagePlayAlong(user)));
+    }
+
+    /// <summary>Counts one open of the song's Aprender page (098).</summary>
+    public async Task<MusicResult<bool>> RecordPlayAlongViewAsync(int songId, ClaimsPrincipal user)
+    {
+        if (!MusicAuthorization.IsMember(user))
+        {
+            return MusicResult<bool>.Fail(MusicResultStatus.SignInRequired);
+        }
+
+        var (status, _) = await FindSongAsync(songId, user);
+        if (status != MusicResultStatus.Ok)
+        {
+            return MusicResult<bool>.Fail(status);
+        }
+
+        await using var ctx = await _contexts.CreateDbContextAsync();
+        var changed = await ctx.SongPlayAlongs.Where(p => p.SongId == songId)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Views, p => p.Views + 1));
+        return changed == 0 ? MusicResult<bool>.Fail(MusicResultStatus.NotFound) : MusicResult<bool>.Ok(true);
+    }
+
+    /// <summary>Stars or un-stars an Aprender song for the member (098).</summary>
+    public async Task<MusicResult<bool>> SetPlayAlongStarAsync(int songId, bool starred, ClaimsPrincipal user)
+    {
+        var userId = MusicAuthorization.UserId(user);
+        if (userId is null)
+        {
+            return MusicResult<bool>.Fail(MusicResultStatus.SignInRequired);
+        }
+
+        var (status, _) = await FindSongAsync(songId, user);
+        if (status != MusicResultStatus.Ok)
+        {
+            return MusicResult<bool>.Fail(status);
+        }
+
+        await using var ctx = await _contexts.CreateDbContextAsync();
+        var row = await ctx.SongPlayAlongFavorites.FirstOrDefaultAsync(f => f.SongId == songId && f.UserId == userId);
+        if (starred && row is null)
+        {
+            if (!await ctx.SongPlayAlongs.AnyAsync(p => p.SongId == songId))
+            {
+                return MusicResult<bool>.Fail(MusicResultStatus.NotFound);
+            }
+
+            ctx.SongPlayAlongFavorites.Add(new SongPlayAlongFavorite { SongId = songId, UserId = userId });
+            await ctx.SaveChangesAsync();
+        }
+        else if (!starred && row is not null)
+        {
+            ctx.SongPlayAlongFavorites.Remove(row);
+            await ctx.SaveChangesAsync();
+        }
+
+        return MusicResult<bool>.Ok(starred);
     }
 
     public async Task<MusicResult<bool>> NotifyPlayAlongAsync(int songId, MusicLearnNoticeInput? input, ClaimsPrincipal user)
