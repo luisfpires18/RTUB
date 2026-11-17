@@ -188,36 +188,32 @@ function AddDialog({ taken, onChanged, onClose }: { taken: Set<number>; onChange
     <Dialog title="Adicionar música a Aprender" onClose={onClose}>
       <div className="form">
         <Field id="learn-album" label="Álbum">
-          <span className="control control--select">
-            <select {...fieldProps('learn-album')} value={albumId ?? ''} onChange={(e) => setAlbumId(Number(e.target.value) || null)}>
-              <option value="">Escolher álbum</option>
-              {albums.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.title}
-                </option>
-              ))}
-            </select>
-          </span>
+          <select {...fieldProps('learn-album')} value={albumId ?? ''} onChange={(e) => setAlbumId(Number(e.target.value) || null)}>
+            <option value="">Escolher álbum</option>
+            {albums.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.title}
+              </option>
+            ))}
+          </select>
         </Field>
         {albumId !== null && (
           <Field id="learn-song" label="Música" hint={songs.length === 0 ? 'Todas as músicas deste álbum já têm pauta.' : undefined}>
-            <span className="control control--select">
-              <select
-                {...fieldProps('learn-song', undefined, songs.length === 0 ? 'hint' : undefined)}
-                value={songId ?? ''}
-                onChange={(e) => {
-                  setSongId(Number(e.target.value) || null);
-                  setHas(false);
-                }}
-              >
-                <option value="">Escolher música</option>
-                {songs.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
-            </span>
+            <select
+              {...fieldProps('learn-song', undefined, songs.length === 0 ? 'hint' : undefined)}
+              value={songId ?? ''}
+              onChange={(e) => {
+                setSongId(Number(e.target.value) || null);
+                setHas(false);
+              }}
+            >
+              <option value="">Escolher música</option>
+              {songs.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title}
+                </option>
+              ))}
+            </select>
           </Field>
         )}
         {songId !== null && (
