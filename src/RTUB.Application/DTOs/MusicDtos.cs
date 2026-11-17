@@ -100,7 +100,7 @@ public sealed record PlayAlongChartDto(
     bool Picking = false);
 
 /// <summary>A song with an Aprender chart, for the Aprender Músicas list (members only).</summary>
-public sealed record MusicLearnSongDto(int SongId, string Title, int AlbumId, string AlbumTitle, int? Year, string? CoverUrl);
+public sealed record MusicLearnSongDto(int SongId, string Title, int AlbumId, string AlbumTitle, int? Year, int Views, bool Starred);
 
 /// <summary>The Aprender Músicas list; <see cref="CanManage"/> is the Owner (add, edit, remove, notify).</summary>
 public sealed record MusicLearnListDto(IReadOnlyList<MusicLearnSongDto> Songs, bool CanManage);

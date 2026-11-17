@@ -16,5 +16,8 @@ public class SongPlayAlong : BaseEntity
     [Required]
     public string Chart { get; set; } = string.Empty;
 
+    /// <summary>How many times members opened the Aprender page of the song (098).</summary>
+    public int Views { get; set; }
+
     public virtual Song Song { get; set; } = null!;
 }

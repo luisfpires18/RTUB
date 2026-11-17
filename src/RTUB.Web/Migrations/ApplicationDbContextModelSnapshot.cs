@@ -3937,12 +3937,50 @@ namespace RTUB.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Views")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("SongId")
                         .IsUnique();
 
                     b.ToTable("SongPlayAlongs", (string)null);
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.SongPlayAlongFavorite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SongId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SongId");
+
+                    b.HasIndex("UserId", "SongId")
+                        .IsUnique();
+
+                    b.ToTable("SongPlayAlongFavorites", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.SongPlayCount", b =>
@@ -5255,6 +5293,23 @@ namespace RTUB.Migrations
                     b.HasOne("RTUB.Core.Entities.Song", "Song")
                         .WithMany()
                         .HasForeignKey("SongId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Song");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.SongPlayAlongFavorite", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Song", "Song")
+                        .WithMany()
+                        .HasForeignKey("SongId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

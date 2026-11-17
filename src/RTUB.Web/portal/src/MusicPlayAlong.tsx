@@ -103,6 +103,10 @@ export default function MusicPlayAlong({ songId }: { songId: number }) {
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
 
   useEffect(() => {
+    void musicApi.viewPlayAlong(songId);
+  }, [songId]);
+
+  useEffect(() => {
     let live = true;
     Promise.all([musicApi.playAlong(songId), musicApi.audio(songId)]).then(([chart, audio]) => {
       if (!live) return;
