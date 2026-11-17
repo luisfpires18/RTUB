@@ -1,6 +1,6 @@
 # React Reuniões (`/meetings`)
 
-Code: `portal/src/Meetings.tsx` (+ dialogs), `portal/src/meetingsApi.ts`, `Endpoints/MeetingEndpoints.cs` →
+Code: `portal/src/Meetings.tsx` (+ dialogs), `portal/src/MeetingPolls.tsx` (`/meetings/polls`), `portal/src/meetingsApi.ts`, `Endpoints/MeetingEndpoints.cs` →
 `IMeetingBoardService` (`MeetingBoardService`), `IMeetingPollBoardService` (`MeetingPollBoardService`), rules in
 `Helpers/MeetingAccess.cs`. Underneath: `MeetingService`
 (visibility filter, push on a new meeting), `MeetingRequestService` (push on a new request, rejection, reminder),
@@ -20,7 +20,12 @@ point at `/meetings`.
 - "Próximas Reuniões" (date >= today, soonest first) and "Reuniões Realizadas" (before today, newest first), 12 per page.
 - Requests ("Pedidos de Reuniões"): status filter (Pendente / Aceite / Rejeitado), fiscal year on the proposed date,
   newest first, 4 per page.
-- Polls ("Votações"): flexible questions with free-text options (dates, topics, or other choices), one vote per eligible
+- Polls ("Votações") have their own page, `/meetings/polls` (members only, same sign-in redirect), reached from the
+  "Votações" button in the `/meetings` header. Two grids, "Votações em curso" and "Votações anteriores" (closed or
+  expired), each with the meetings `Pager` (6 / 12 / 18 / 24, default 12); search by question and a body filter, both
+  in memory. Each card carries the body badge in the meeting type colours (AG / CV / Direção). A new poll sends a push
+  to its audience only (`CreateMeetingPollNotification`, key `meetings.polls`).
+- Poll content: flexible questions with free-text options (dates, topics, or other choices), one vote per eligible
   member, changeable until close, aggregate totals only, and an optional Portugal-local closing date/time. Expired polls
   are treated as closed on every request. no background job is required.
 - Ata: number, actual start / end, location, AG quorum basis, president, secretaries (CV: chosen from those who said

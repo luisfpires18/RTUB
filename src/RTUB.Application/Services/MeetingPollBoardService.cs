@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
@@ -13,7 +14,10 @@ namespace RTUB.Application.Services;
 
 public sealed class MeetingPollBoardService(
     IDbContextFactory<ApplicationDbContext> contexts,
-    TimeProvider time) : IMeetingPollBoardService
+    TimeProvider time,
+    IPushNotificationService push,
+    IPushNotificationFactory pushFactory,
+    ILogger<MeetingPollBoardService> logger) : IMeetingPollBoardService
 {
     private const int MaxQuestionLength = 300;
     private const int MaxOptionLength = 200;
@@ -121,7 +125,35 @@ public sealed class MeetingPollBoardService(
         db.MeetingPolls.Add(poll);
         await db.SaveChangesAsync();
 
+        await NotifyAudienceAsync(db, poll);
         return EventResult<int>.Ok(poll.Id);
+    }
+
+    /// <summary>
+    /// Push to the members who may vote in the poll: the same rule the board and the vote use
+    /// (<see cref="MeetingAccess.CanVoteInPoll"/>), so nobody outside the audience learns the question. Owner is not a
+    /// voter by role. A failed push never fails the creation.
+    /// </summary>
+    private async Task NotifyAudienceAsync(ApplicationDbContext db, MeetingPoll poll)
+    {
+        try
+        {
+            var users = await db.Users.AsNoTracking().ToListAsync();
+            var admins = (await (from link in db.UserRoles
+                                 join role in db.Roles on link.RoleId equals role.Id
+                                 where role.Name == "Admin"
+                                 select link.UserId).ToListAsync()).ToHashSet();
+            var recipients = users
+                .Where(user => new MeetingAccess(user, isOwner: false, isAdmin: admins.Contains(user.Id)).CanVoteInPoll(poll.Audience))
+                .Select(user => user.Id)
+                .ToList();
+
+            await push.SendToSelectedUsersAsync(recipients, pushFactory.CreateMeetingPollNotification(poll, AudienceLabel(poll.Audience)));
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to send the new poll push for poll {PollId}", poll.Id);
+        }
     }
 
     public async Task<EventResult<bool>> VoteAsync(int pollId, MeetingPollVoteInput input, ClaimsPrincipal principal)

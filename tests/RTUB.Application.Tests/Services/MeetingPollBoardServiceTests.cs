@@ -1,7 +1,10 @@
 using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using RTUB.Application.DTOs;
+using RTUB.Application.Factories;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
@@ -109,8 +112,45 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
             .Status.Should().Be(EventResultStatus.Ok);
     }
 
+    [Fact]
+    public async Task NewCvPoll_PushesOnlyToItsAudience()
+    {
+        var president = Member("cv-president", position: Position.PresidenteConselhoVeteranos);
+        var veteran = Member("veteran", yearTuno: 2010);
+        var tuno = Member("tuno", yearTuno: 2026);
+        var magister = Member("magister", position: Position.Magister);
+        await SeedAsync(president, veteran, tuno, magister);
+
+        (await Service().CreateAsync(Poll("ConselhoVeteranos"), SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
+
+        _push.Verify(push => push.SendToSelectedUsersAsync(
+            It.Is<IEnumerable<string>>(ids => ids.OrderBy(id => id).SequenceEqual(new[] { "cv-president", "magister", "veteran" })),
+            It.Is<SendPushNotificationDto>(dto => dto.Url == "/meetings/polls" && dto.PreferenceKey == PushPreferenceCatalog.MeetingsPolls)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task NewAgPoll_PushesToEveryoneButLeitoes()
+    {
+        var president = Member("ag-president", position: Position.PresidenteMesaAssembleia);
+        var tuno = Member("tuno", yearTuno: 2026);
+        var leitao = Member("leitao");
+        leitao.Categories = [MemberCategory.Leitao];
+        await SeedAsync(president, tuno, leitao);
+
+        (await Service().CreateAsync(Poll("AssembleiaGeral"), SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
+
+        _push.Verify(push => push.SendToSelectedUsersAsync(
+            It.Is<IEnumerable<string>>(ids => ids.OrderBy(id => id).SequenceEqual(new[] { "ag-president", "tuno" })),
+            It.IsAny<SendPushNotificationDto>()),
+            Times.Once);
+    }
+
+    private readonly Mock<IPushNotificationService> _push = new();
+
     private IMeetingPollBoardService Service() =>
-        new MeetingPollBoardService(_database.CreateContextFactory(), _clock);
+        new MeetingPollBoardService(_database.CreateContextFactory(), _clock, _push.Object, new PushNotificationFactory(),
+            NullLogger<MeetingPollBoardService>.Instance);
 
     private async Task SeedAsync(params ApplicationUser[] users)
     {

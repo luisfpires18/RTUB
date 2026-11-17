@@ -64,6 +64,14 @@ public sealed class MeetingPollsApiTests : IClassFixture<MeetingsApiFactory>
         updated.GetProperty("myOptionId").GetInt32().Should().Be(secondOption);
     }
 
+    [Fact]
+    public async Task PollsPage_ServesTheReactPortalToMembers()
+    {
+        var tuno = await _kit.MemberAsync(Who.Tuno);
+
+        (await tuno.Client.GetStringAsync("/meetings/polls")).Should().Contain("id=\"root\"");
+    }
+
     private static JsonElement SinglePoll(JsonElement board, int id) =>
         board.GetProperty("polls").EnumerateArray()
             .Single(poll => poll.GetProperty("id").GetInt32() == id);

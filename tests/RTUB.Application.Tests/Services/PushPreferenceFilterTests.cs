@@ -182,6 +182,7 @@ public class PushPreferenceFilterTests
         if (inner == typeof(Rehearsal)) return [new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(1) }];
         if (inner == typeof(Meeting)) return [new Meeting { Id = 0, Title = "x", Date = DateTime.UtcNow.AddDays(1) }, new Meeting { Id = 1, Title = "x", Date = DateTime.UtcNow.AddDays(1) }];
         if (inner == typeof(MeetingRequest)) return [new MeetingRequest { Id = 1 }];
+        if (inner == typeof(MeetingPoll)) return [new MeetingPoll { Id = 1, Question = "x" }];
         if (inner == typeof(Request)) return [new Request { Id = 1 }];
         if (inner == typeof(Song)) return [new Song { Id = 1, Title = "x" }];
         throw new InvalidOperationException($"No sample value for {type.Name}; add one to Choices()");

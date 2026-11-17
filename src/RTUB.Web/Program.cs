@@ -604,6 +604,7 @@ public class Program
         // Task 032: /members/map (was /member/map) and /hall-of-fame, members only (both Blazor pages were [Authorize]).
         // Task 033: /naipes and /naipes/config, members only (the API keeps the settings to Admin / Owner).
         // Task 034: /meetings, members only (the Blazor page was [Authorize]; the API refuses Leitões and decides the rest).
+        // /meetings/polls (Votações), members only; the API decides which polls the member sees.
         // Task 041: /messages, Messaging v2 (React; the conversation is ?c=<id>), members only. /messages/{id} and the old
         // /hubs/messages stay 404: nothing of the 027-retired inbox comes back.
         // Task 071: /pending-actions (As minhas ações pendentes), members only; the API decides each panel.
@@ -613,7 +614,7 @@ public class Program
                      "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/tasks", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
                      "/pending-actions", "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config",
-                     "/music/play/{id:int}", "/music/learn", "/meetings", "/messages" })
+                     "/music/play/{id:int}", "/music/learn", "/meetings/polls", "/meetings", "/messages" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
             {
