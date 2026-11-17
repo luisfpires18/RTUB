@@ -16906,7 +16906,7 @@ html.app-screen .footer {
 }
 
 .playalong__word.is-sung {
-  color: #fff;
+  color: var(--purple-ink);
 }
 
 .playalong__word u {
