@@ -6,6 +6,8 @@ import { ConfirmDialog, Dialog, Field, fieldProps, IconButton } from './MusicUi'
 import { musicApi, type AlbumSummary, type LearnSong, type Song } from './musicApi';
 
 const MAX_NOTICE = 300;
+/** Group id of the starred songs (album ids start at 1). */
+const FAVORITES = 0;
 
 type Open =
   | { kind: 'add' }
@@ -36,9 +38,9 @@ export default function MusicLearn() {
 
   // Starred songs (098) come first, as their own group; the rest are albums. The list comes sorted by
   // album (newest first), so the albums are runs of it.
-  const groups: { id: number | 'starred'; title: string; year: number | null; songs: LearnSong[] }[] = [];
+  const groups: { id: number; title: string; year: number | null; songs: LearnSong[] }[] = [];
   const starred = (songs ?? []).filter((s) => s.starred);
-  if (starred.length > 0) groups.push({ id: 'starred', title: 'Favoritas', year: null, songs: starred });
+  if (starred.length > 0) groups.push({ id: FAVORITES, title: 'Favoritas', year: null, songs: starred });
   for (const s of (songs ?? []).filter((x) => !x.starred)) {
     const last = groups[groups.length - 1];
     if (last?.id === s.albumId) last.songs.push(s);
@@ -116,7 +118,7 @@ export default function MusicLearn() {
                       <span className="album-card__title">{s.title}</span>
                       <span className="album-card__meta">
                         <span>{s.views === 1 ? '1 visualização' : `${s.views} visualizações`}</span>
-                        {album.id === 'starred' && <span>{s.albumTitle}</span>}
+                        {album.id === FAVORITES && <span>{s.albumTitle}</span>}
                       </span>
                     </span>
                   </a>
