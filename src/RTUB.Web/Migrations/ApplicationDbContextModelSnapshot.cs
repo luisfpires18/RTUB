@@ -2299,6 +2299,10 @@ namespace RTUB.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsClosed")
                         .HasColumnType("INTEGER");
 

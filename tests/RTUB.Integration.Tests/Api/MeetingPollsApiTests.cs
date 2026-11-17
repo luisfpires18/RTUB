@@ -62,6 +62,15 @@ public sealed class MeetingPollsApiTests : IClassFixture<MeetingsApiFactory>
         var updated = SinglePoll(await AreaHttp.Json(veteran.Client, "/api/meetings/polls"), id);
         updated.GetProperty("totalVotes").GetInt32().Should().Be(1);
         updated.GetProperty("myOptionId").GetInt32().Should().Be(secondOption);
+
+        // Delete: the creator (or Owner) only. A voter is refused, a member outside the audience is told nothing.
+        updated.GetProperty("canDelete").GetBoolean().Should().BeFalse();
+        (await veteran.Client.DeleteAsync($"/api/meetings/polls/{id}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await magister.Client.DeleteAsync($"/api/meetings/polls/{id}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await tuno.Client.DeleteAsync($"/api/meetings/polls/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        SinglePoll(await AreaHttp.Json(president.Client, "/api/meetings/polls"), id).GetProperty("canDelete").GetBoolean().Should().BeTrue();
+        (await president.Client.DeleteAsync($"/api/meetings/polls/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await AreaHttp.Json(veteran.Client, "/api/meetings/polls")).GetProperty("polls").GetArrayLength().Should().Be(0);
     }
 
     [Fact]

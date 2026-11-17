@@ -171,7 +171,7 @@ export default function Meetings() {
 
   return (
     <section className="page wrap events-page mtg-page" aria-labelledby="meetings-title">
-      <header className="page__head events-page__head">
+      <header className="page__head events-page__head mtg-head">
         <div>
           <p className="eyebrow">Gestão</p>
           <h1 id="meetings-title" className="page__title">

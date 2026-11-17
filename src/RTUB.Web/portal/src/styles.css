@@ -12311,6 +12311,11 @@ video.tile__media {
   text-align: left;
 }
 
+/* Reuniões has five header actions: beside the title they wrap raggedly, so they take their own row under it. */
+.mtg-head {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .mtg-refusal .state__icon {
   width: 2.5rem;
   height: 2.5rem;

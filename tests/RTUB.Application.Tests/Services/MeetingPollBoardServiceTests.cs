@@ -146,6 +146,59 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
             Times.Once);
     }
 
+    [Fact]
+    public async Task Delete_IsForTheCreatorOrOwner_AndRemovesOptionsAndVotes()
+    {
+        var president = Member("cv-president", position: Position.PresidenteConselhoVeteranos);
+        var veteran = Member("veteran", yearTuno: 2010);
+        var tuno = Member("tuno", yearTuno: 2026);
+        var owner = Member("owner");
+        await SeedAsync(president, veteran, tuno, owner);
+        var service = Service();
+
+        // Created by Owner: the body's president manages it (may close) but did not create it.
+        var ownerPoll = (await service.CreateAsync(Poll("ConselhoVeteranos"), SignedIn(owner.Id, "Owner"))).Value;
+        var card = (await service.GetBoardAsync(SignedIn(president.Id))).Value!.Polls.Single();
+        card.CanManage.Should().BeTrue();
+        card.CanDelete.Should().BeFalse();
+        (await service.DeleteAsync(ownerPoll, SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Forbidden);
+        (await service.DeleteAsync(ownerPoll, SignedIn(veteran.Id))).Status.Should().Be(EventResultStatus.Forbidden);
+        (await service.DeleteAsync(ownerPoll, SignedIn(tuno.Id))).Status.Should().Be(EventResultStatus.NotFound);
+        (await service.DeleteAsync(ownerPoll, SignedIn(owner.Id, "Owner"))).Status.Should().Be(EventResultStatus.Ok);
+
+        // Created by the president: they delete it, votes included.
+        var ownPoll = (await service.CreateAsync(Poll("ConselhoVeteranos"), SignedIn(president.Id))).Value;
+        var own = (await service.GetBoardAsync(SignedIn(president.Id))).Value!.Polls.Single();
+        own.CanDelete.Should().BeTrue();
+        (await service.VoteAsync(ownPoll, new MeetingPollVoteInput(own.Options[0].Id), SignedIn(veteran.Id))).Status.Should().Be(EventResultStatus.Ok);
+        (await service.DeleteAsync(ownPoll, SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
+
+        await using var db = _database.CreateContext();
+        db.MeetingPolls.Should().BeEmpty();
+        db.MeetingPollOptions.Should().BeEmpty();
+        db.MeetingPollVotes.Should().BeEmpty();
+        (await service.DeleteAsync(ownPoll, SignedIn(president.Id))).Status.Should().Be(EventResultStatus.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_APollWithNoKnownCreator_IsForOwnerOnly()
+    {
+        var president = Member("cv-president", position: Position.PresidenteConselhoVeteranos);
+        var owner = Member("owner");
+        await SeedAsync(president, owner);
+        int pollId;
+        await using (var db = _database.CreateContext())
+        {
+            var poll = new MeetingPoll { Audience = MeetingPollAudience.ConselhoVeteranos, Question = "Antiga?", Options = [new() { Text = "Sim" }, new() { Text = "Não" }] };
+            db.MeetingPolls.Add(poll);
+            await db.SaveChangesAsync();
+            pollId = poll.Id;
+        }
+
+        (await Service().DeleteAsync(pollId, SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Forbidden);
+        (await Service().DeleteAsync(pollId, SignedIn(owner.Id, "Owner"))).Status.Should().Be(EventResultStatus.Ok);
+    }
+
     private readonly Mock<IPushNotificationService> _push = new();
 
     private IMeetingPollBoardService Service() =>

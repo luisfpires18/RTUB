@@ -112,6 +112,9 @@ public sealed class MeetingAccess
 
     public bool CanCreatePoll(MeetingPollAudience audience) => CanManagePoll(audience);
 
+    /// <summary>Delete a poll: the member who created it, or Owner (any poll). Same shape as <see cref="OwnsRequest"/>.</summary>
+    public bool OwnsPoll(MeetingPoll poll) => IsOwner || (poll.CreatedByUserId is not null && poll.CreatedByUserId == UserId);
+
     // ---------- proposals (meeting requests) ----------
 
     /// <summary>"Propor Reunião de CV": Veterano / Tunossauro by time or Magister; never the Presidente do CV.</summary>

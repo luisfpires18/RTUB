@@ -147,6 +147,13 @@ members choose one option and may change it while the poll is open. Results show
 individual choices are returned. A poll can close manually or at its optional future closing date/time. Closed polls
 remain visible to their audience but accept no more votes.
 
+Delete: the member who created the poll (`MeetingPoll.CreatedByUserId`, set on create) or Owner, nobody else, not even
+the body's president when someone else created it (`MeetingAccess.OwnsPoll`, same shape as `OwnsRequest`). Any poll,
+open or closed; options and votes go with it and there is no undo, so the page asks first (`ConfirmDialog`, with the
+vote count). Polls from before the column were matched by the audit username (`AddMeetingPollCreator`); one that did
+not match has no creator and only Owner can delete it. The column has no foreign key: removing a member leaves their
+polls in place.
+
 ## API
 
 `/api/meetings`, signed-in. Writes need `X-CSRF-TOKEN`; every answer is `no-store`. Beyond "signed in, not a Leitão":
@@ -179,6 +186,7 @@ remain visible to their audience but accept no more votes.
 | `POST /polls` | relevant body president or Owner; valid body, question, 2–12 distinct options, optional future closing time |
 | `PUT /polls/{id}/vote` | poll audience only; one option; open poll; existing vote is replaced |
 | `POST /polls/{id}/close` | relevant body president or Owner; open poll |
+| `DELETE /polls/{id}` | the poll's creator or Owner; 204. 403 for a member who sees the poll but does not own it, 404 outside its audience |
 
 Poll writes require `X-CSRF-TOKEN`; all poll responses are `no-store`. A poll outside the caller's audience is not
 returned in the list and responds as not found on direct access. Owner-only management access does not make Owner a

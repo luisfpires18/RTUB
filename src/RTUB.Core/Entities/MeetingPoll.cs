@@ -18,6 +18,13 @@ public class MeetingPoll : BaseEntity
 
     public DateTime? ClosedAt { get; set; }
 
+    /// <summary>
+    /// The member who created the poll (may delete it). Null for a poll older than this column whose creator could not
+    /// be matched; no foreign key, so removing the member leaves the poll in place.
+    /// </summary>
+    [MaxLength(450)]
+    public string? CreatedByUserId { get; set; }
+
     public List<MeetingPollOption> Options { get; set; } = new();
 
     public List<MeetingPollVote> Votes { get; set; } = new();

@@ -264,6 +264,7 @@ function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: () => voi
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => setSelected(poll.myOptionId), [poll.myOptionId]);
@@ -296,6 +297,14 @@ function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: () => voi
     const outcome = await meetingsApi.closePoll(poll.id);
     setBusy(false);
     if (outcome.kind !== 'ok') return pollProblem(outcome, 'encerrar a votação');
+    onChanged();
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    const outcome = await meetingsApi.removePoll(poll.id);
+    setBusy(false);
+    if (outcome.kind !== 'ok') return pollProblem(outcome, 'eliminar a votação');
     onChanged();
   };
 
@@ -348,7 +357,29 @@ function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: () => voi
           <Icon name={copied ? 'check' : 'link'} />
           <span role="status">{copied ? 'Link copiado' : 'Copiar link'}</span>
         </button>
+        {poll.canDelete && (
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirmDelete(true)} disabled={busy}>
+            <Icon name="trash" />
+            Eliminar
+          </button>
+        )}
       </div>
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Eliminar votação"
+          confirmLabel="Eliminar"
+          confirmIcon="trash"
+          danger
+          onClose={() => setConfirmDelete(false)}
+          onConfirm={remove}
+        >
+          <p>
+            A votação "{poll.question}" é eliminada com as suas opções
+            {poll.totalVotes > 0 ? ` e ${poll.totalVotes === 1 ? 'o voto já registado' : `os ${poll.totalVotes} votos já registados`}` : ''}. Não
+            é possível recuperá-la.
+          </p>
+        </ConfirmDialog>
+      )}
       {confirmClose && (
         <ConfirmDialog
           title="Encerrar votação"
