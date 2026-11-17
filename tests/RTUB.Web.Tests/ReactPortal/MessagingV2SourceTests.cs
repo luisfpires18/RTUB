@@ -17,6 +17,9 @@ public class MessagingV2SourceTests
     private static readonly string Portal = Path.Combine(Web, "portal", "src");
     private static string Read(params string[] parts) => File.ReadAllText(Path.Combine(parts));
 
+    // MessagingService is a partial class split over MessagingService*.cs; read all of them as one text.
+    private static string MessagingServiceSource() => string.Concat(Directory.GetFiles(Path.Combine(Root, "src", "RTUB.Application", "Services"), "MessagingService*.cs").OrderBy(f => f, StringComparer.Ordinal).Select(f => File.ReadAllText(f)));
+
     // Task 113 split pages/Messages.tsx into the page, components/Message*.tsx and data/messagesApi.ts.
     private static string MessagesPage() => string.Join("\n", new[]
     {
@@ -92,7 +95,7 @@ public class MessagingV2SourceTests
         var contracts = Read(Root, "src", "RTUB.Application", "DTOs", "MessagingDtos.cs");
         Regex.IsMatch(contracts, @"\b(Attachment|Media|File|Image|Video|Upload)\w*\s*[,)]").Should().BeFalse("v2 messages carry text only");
 
-        var service = Read(Root, "src", "RTUB.Application", "Services", "MessagingService.cs");
+        var service = MessagingServiceSource();
         service.Should().NotContain("StorageService").And.NotContain("IFormFile").And.NotContain("Stream ");
     }
 
@@ -115,14 +118,14 @@ public class MessagingV2SourceTests
         Read(Web, "Endpoints", "MessagingEndpoints.cs").Should().Contain("MapGet(\"/unread\"");
 
         // Semantics shared with the list: not mine and my id not in ReadBy, summed.
-        Read(Root, "src", "RTUB.Application", "Services", "MessagingService.cs").Should()
+        MessagingServiceSource().Should()
             .Contain("CountAsync(m => ids.Contains(m.ConversationId) && m.SenderId != me && !m.ReadBy.Contains(me))");
     }
 
     [Fact]
     public void MessageText_NeverReachesALog_OrAPush()
     {
-        var service = Read(Root, "src", "RTUB.Application", "Services", "MessagingService.cs");
+        var service = MessagingServiceSource();
         foreach (Match log in Regex.Matches(service, @"_logger\.Log\w+\([^;]*;"))
         {
             log.Value.Should().NotContainAny(new[] { "body", "Body", "Title", "Preview", "Emoji" }, "a log line names ids only: {0}", log.Value);

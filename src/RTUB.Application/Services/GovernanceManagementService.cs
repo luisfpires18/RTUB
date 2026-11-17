@@ -26,7 +26,7 @@ namespace RTUB.Application.Services;
 ///   <see cref="IRoleManagementService"/>, as before. Expelled members are no longer offered or accepted;
 /// - the RGI: a pre-signed URL of docs/rtub_rgi.pdf. No schema change.
 /// </summary>
-public sealed class GovernanceManagementService : IGovernanceManagementService
+public sealed partial class GovernanceManagementService : IGovernanceManagementService
 {
     public const int FirstStartYear = 1991;
     public const int SearchLimit = 20;
@@ -166,103 +166,6 @@ public sealed class GovernanceManagementService : IGovernanceManagementService
         }
 
         return EventResult<GovernanceManageDto>.Ok(await BuildAsync(label));
-    }
-
-    public async Task<int> SyncCurrentMandateAsync()
-    {
-        var current = FiscalYearHelper.GetCurrentFiscalYearStartYear();
-        await using var db = await _contexts.CreateDbContextAsync();
-        var held = (await db.RoleAssignments.AsNoTracking()
-                .Where(a => a.StartYear == current && a.EndYear == current + 1)
-                .Select(a => new { a.UserId, a.Position })
-                .ToListAsync())
-            .ToLookup(a => a.UserId, a => a.Position);
-        if (held.Count == 0)
-        {
-            // A new fiscal year before its first assignment: the previous mandate stays in office.
-            return 0;
-        }
-
-        // Positions is a JSON column: compared in memory (~100 members).
-        var changed = (await db.Users.AsNoTracking().Select(u => new { u.Id, u.Positions }).ToListAsync())
-            .Where(u => !(u.Positions ?? []).ToHashSet().SetEquals(held[u.Id]))
-            .Select(u => u.Id)
-            .ToList();
-
-        foreach (var id in changed)
-        {
-            if (await _users.FindByIdAsync(id) is not { } member)
-            {
-                continue;
-            }
-
-            // Promote first, so a member re-elected to another seat keeps the role while the old seat goes.
-            foreach (var position in held[id].Except(member.Positions).ToList())
-            {
-                await _roles.PromoteUserForPositionAsync(member, position, current, current);
-            }
-
-            foreach (var position in member.Positions.Except(held[id]).ToList())
-            {
-                await _roles.DemoteUserForPositionAsync(member, position, current, current);
-            }
-        }
-
-        if (changed.Count > 0)
-        {
-            _logger.LogInformation("Mandate {FiscalYear}: positions and roles synced for {Count} member(s)",
-                GovernanceService.Label(current), changed.Count);
-        }
-
-        return changed.Count;
-    }
-
-    public async Task<EventResult<GovernanceManageDto>> RemoveAsync(int assignmentId, ClaimsPrincipal user)
-    {
-        if (Refusal<GovernanceManageDto>(user) is { } refused)
-        {
-            return refused;
-        }
-
-        if (await _assignments.GetRoleAssignmentByIdAsync(assignmentId) is not { } assignment)
-        {
-            return EventResult<GovernanceManageDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        await _assignments.DeleteRoleAssignmentAsync(assignment.Id);
-        if (await _users.FindByIdAsync(assignment.UserId) is { } member)
-        {
-            await _roles.DemoteUserForPositionAsync(member, assignment.Position, assignment.StartYear, FiscalYearHelper.GetCurrentFiscalYearStartYear());
-        }
-
-        return EventResult<GovernanceManageDto>.Ok(await BuildAsync(GovernanceService.Label(assignment.StartYear)));
-    }
-
-    public async Task<EventResult<GovernanceRgiDto>> GetRgiAsync(ClaimsPrincipal user)
-    {
-        if (!GovernanceAuthorization.IsMember(user))
-        {
-            return EventResult<GovernanceRgiDto>.Fail(EventResultStatus.SignInRequired);
-        }
-
-        if (!GovernanceAuthorization.CanViewRgi(user))
-        {
-            return EventResult<GovernanceRgiDto>.Fail(EventResultStatus.Forbidden);
-        }
-
-        try
-        {
-            // Resolved here, not injected: storage that cannot be built (no R2 credentials) must not take the fiscal
-            // year and assignment endpoints down with it.
-            var documents = _services.GetRequiredService<IDocumentStorageService>();
-            return EventResult<GovernanceRgiDto>.Ok(new GovernanceRgiDto(await documents.GetDocumentUrlAsync(RgiPath)));
-        }
-        catch (Exception ex)
-        {
-            // The old page said "not available" on any storage error; so does the React one.
-            _logger.LogWarning(ex, "Could not sign the RGI URL");
-            return EventResult<GovernanceRgiDto>.Ok(new GovernanceRgiDto(null));
-        }
     }
 
     private async Task<GovernanceManageDto> BuildAsync(string? fiscalYear)
