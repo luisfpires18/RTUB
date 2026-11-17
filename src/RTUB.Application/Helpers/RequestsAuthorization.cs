@@ -6,8 +6,7 @@ namespace RTUB.Application.Helpers;
 
 /// <summary>
 /// The performance-requests admin rules (task 031, docs/react-requests-questions.md), enforced server-side by
-/// <c>RequestAdminService</c>. Same as the Blazor /requests ([Authorize]; Leitões sent away unless Admin or Owner;
-/// approve, reject and delete for Admin only), with Owner inheriting Admin as everywhere else on the React track:
+/// <c>RequestAdminService</c>, with Owner inheriting Admin as everywhere else on the React track:
 ///
 /// - Visitors: nothing (401); the page sends them to sign in.
 /// - Leitões: nothing (403), unless Admin or Owner.

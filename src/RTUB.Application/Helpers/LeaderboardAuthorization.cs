@@ -4,7 +4,7 @@ namespace RTUB.Application.Helpers;
 
 /// <summary>
 /// The classification rules (React track 019, docs/react-leaderboard.md), enforced server-side by
-/// <c>LeaderboardService</c>. Same as the Blazor /leaderboard ([Authorize]), with Owner inheriting Admin:
+/// <c>LeaderboardService</c>, with Owner inheriting Admin:
 ///
 /// - Visitors: nothing (401); the page sends them to sign in.
 /// - Any signed-in member (Mod included): the table, a member's details, the comments; comment, like, and delete their

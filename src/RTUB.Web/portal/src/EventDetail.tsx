@@ -17,7 +17,7 @@ import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 
 /**
- * ?respond=1 (from the members' Blazor page or an old link) opens the answer modal once. Read
+ * ?respond=1 (from an old link) opens the answer modal once. Read
  * without side effects: React may render and discard a first attempt (lazy pages), so the URL is
  * only cleaned once the modal actually opens.
  */

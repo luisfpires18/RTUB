@@ -113,57 +113,6 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
     #region Get Tests
 
     [Fact]
-    public async Task GetTransactionByIdAsync_ExistingTransaction_ReturnsTransaction()
-    {
-        // Arrange
-        var transaction = await _service.CreateTransactionAsync(
-            DateTime.Now, "Test", "Category", 100m, "Income");
-
-        // Act
-        var result = await _service.GetTransactionByIdAsync(transaction.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(transaction.Id);
-        result.Description.Should().Be("Test");
-    }
-
-    [Fact]
-    public async Task GetTransactionByIdAsync_NonExistingTransaction_ReturnsNull()
-    {
-        // Act
-        var result = await _service.GetTransactionByIdAsync(999);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task GetAllTransactionsAsync_WithMultipleTransactions_ReturnsAll()
-    {
-        // Arrange
-        await _service.CreateTransactionAsync(DateTime.Now, "Transaction 1", "Cat1", 100m, "Income");
-        await _service.CreateTransactionAsync(DateTime.Now, "Transaction 2", "Cat2", 200m, "Expense");
-        await _service.CreateTransactionAsync(DateTime.Now, "Transaction 3", "Cat3", 300m, "Income");
-
-        // Act
-        var result = await _service.GetAllTransactionsAsync();
-
-        // Assert
-        result.Should().HaveCount(3);
-    }
-
-    [Fact]
-    public async Task GetAllTransactionsAsync_WithNoTransactions_ReturnsEmpty()
-    {
-        // Act
-        var result = await _service.GetAllTransactionsAsync();
-
-        // Assert
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
     public async Task GetTransactionsByActivityIdAsync_FiltersByActivity_OrdersByDate()
     {
         // Arrange
@@ -234,7 +183,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         await _service.UpdateTransactionAsync(transaction.Id, newDate, newDescription, newCategory, newAmount, newType);
 
         // Assert
-        var updated = await _service.GetTransactionByIdAsync(transaction.Id);
+        var updated = await _context.Transactions.AsNoTracking().FirstOrDefaultAsync(t => t.Id == transaction.Id);
         updated!.Date.Should().Be(newDate);
         updated.Description.Should().Be(newDescription);
         updated.Category.Should().Be(newCategory);
@@ -268,7 +217,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         await _service.DeleteTransactionAsync(transaction.Id);
 
         // Assert
-        var deleted = await _service.GetTransactionByIdAsync(transaction.Id);
+        var deleted = await _context.Transactions.AsNoTracking().FirstOrDefaultAsync(t => t.Id == transaction.Id);
         deleted.Should().BeNull();
     }
 
@@ -346,7 +295,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
 
         // Assert
         _mockReceiptStorageService.Verify(x => x.DeleteReceiptAsync(receiptUrl), Times.Once);
-        var updated = await _service.GetTransactionByIdAsync(transaction.Id);
+        var updated = await _context.Transactions.AsNoTracking().FirstOrDefaultAsync(t => t.Id == transaction.Id);
         updated!.ReceiptUrl.Should().BeNull();
     }
 

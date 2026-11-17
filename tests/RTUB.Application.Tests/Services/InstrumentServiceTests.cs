@@ -235,32 +235,6 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         result.Should().BeEmpty();
     }
 
-    [Fact]
-    public async Task GetCategoryStatsAsync_ReturnsCorrectGroupedCounts()
-    {
-        _context.Instruments.AddRange(
-            Instrument.Create("String", "Guitar", InstrumentCondition.Good),
-            Instrument.Create("String", "Violin", InstrumentCondition.Excellent),
-            Instrument.Create("Wind", "Flute", InstrumentCondition.Good),
-            Instrument.Create("Brass", "Trumpet", InstrumentCondition.Worn),
-            Instrument.Create("Brass", "Trombone", InstrumentCondition.Good)
-        );
-        await _context.SaveChangesAsync();
-
-        var result = await _service.GetCategoryStatsAsync();
-        result.Should().HaveCount(3);
-        result["String"].Should().Be(2);
-        result["Wind"].Should().Be(1);
-        result["Brass"].Should().Be(2);
-    }
-
-    [Fact]
-    public async Task GetCategoryStatsAsync_WithNoInstruments_ReturnsEmptyDictionary()
-    {
-        var result = await _service.GetCategoryStatsAsync();
-        result.Should().BeEmpty();
-    }
-
     public void Dispose()
     {
         _context.Database.EnsureDeleted();

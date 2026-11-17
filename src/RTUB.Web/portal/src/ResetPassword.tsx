@@ -13,7 +13,7 @@ let link = takeLinkQuery('code', 'email');
 type Errors = { password?: string; confirmPassword?: string };
 
 /**
- * /reset-password (task 036; was a Blazor page). The emailed link opens it; the member chooses a new password. The server
+ * /reset-password. The emailed link opens it; the member chooses a new password. The server
  * checks the token and the account as before and signs nobody in.
  */
 export default function ResetPassword() {

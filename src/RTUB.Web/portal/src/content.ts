@@ -57,7 +57,7 @@ export const portal = {
 /** Sign in, then come back to the React profile. */
 export const loginToProfile = `${portal.login}?returnUrl=${encodeURIComponent(portal.profile)}`;
 
-// FACT: the store listing the Blazor PlayStorePrompt links to; package matches
+// FACT: the store listing the Play Store prompt links to; package matches
 // wwwroot/.well-known/assetlinks.json (the Android app is a TWA of this site).
 export const playStoreUrl = 'https://play.google.com/store/apps/details?id=ipb.pt.rtub.app';
 

@@ -15,16 +15,6 @@ public class RequestRepository : Repository<Request>, IRequestRepository
     {
     }
 
-    public async Task<IEnumerable<Request>> GetByStatusAsync(RequestStatus status)
-    {
-        using var context = CreateContext();
-        return await context.Set<Request>()
-            .AsNoTracking()
-            .Where(r => r.Status == status)
-            .OrderBy(r => r.PreferredDate)
-            .ToListAsync();
-    }
-
     public async Task<int> GetPendingCountAsync()
     {
         using var context = CreateContext();

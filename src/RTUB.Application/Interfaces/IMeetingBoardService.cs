@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React /meetings (task 034, docs/react-meetings.md; was the Blazor page): meetings, participations, atas and
+/// The React /meetings (task 034, docs/react-meetings.md): meetings, participations, atas and
 /// meeting requests. Every rule of the old page is decided here (<see cref="Helpers.MeetingAccess"/>), from the session:
 /// visitors get <c>SignInRequired</c>, a Leitão <c>Forbidden</c> on everything, and a meeting the member does not see is
 /// <c>NotFound</c>. Built on the existing meeting, participation, ata, request, PDF, storage, email and push services.

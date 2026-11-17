@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /inventory ("Instrumentos", React track 020; was the Blazor Inventory.razor). Signed-in
+// Contracts of the React /inventory ("Instrumentos", React track 020). Signed-in
 // members only, as before; every field here was shown to any signed-in member on the old page. No EF entity leaves
 // the server.
 

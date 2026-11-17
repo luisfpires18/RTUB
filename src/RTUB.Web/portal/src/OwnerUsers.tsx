@@ -17,7 +17,7 @@ const ROLES = [
 type Message = { text: string; error?: boolean };
 
 /**
- * /users (task 035; was the Blazor page): every account, online first, searchable; the Owner sees an account's details,
+ * /users: every account, online first, searchable; the Owner sees an account's details,
  * unlocks it, changes its role (after confirming) and syncs every member's status. The server refuses anyone but the
  * Owner.
  */

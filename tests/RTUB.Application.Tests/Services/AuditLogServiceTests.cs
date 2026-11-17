@@ -211,48 +211,6 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
-    public async Task GetEntityHistoryAsync_ReturnsLogsForSpecificEntity()
-    {
-        // Arrange
-        await SeedAuditLogs();
-
-        // Act
-        var result = await _auditLogService.GetEntityHistoryAsync("Event", 1);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().HaveCount(2);
-        result.Should().OnlyContain(log => log.EntityType == "Event" && log.EntityId == 1);
-    }
-
-    [Fact]
-    public async Task SearchChangesAsync_WithSearchTerm_ReturnsMatchingLogs()
-    {
-        // Arrange
-        await SeedAuditLogs();
-
-        // Act
-        var result = await _auditLogService.SearchChangesAsync("Concert");
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Count().Should().BeGreaterThan(0);
-    }
-
-    [Fact]
-    public async Task SearchChangesAsync_WithEmptySearchTerm_ReturnsEmpty()
-    {
-        // Arrange
-        await SeedAuditLogs();
-
-        // Act
-        var result = await _auditLogService.SearchChangesAsync("");
-
-        // Assert
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
     public async Task GetEntityTypesAsync_ReturnsDistinctEntityTypes()
     {
         // Arrange

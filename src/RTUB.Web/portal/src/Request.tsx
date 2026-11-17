@@ -3,7 +3,7 @@ import { submitRequest, type FieldErrors, type RequestForm } from './api';
 import { contactEmail, portal } from './content';
 import { Icon } from './icons';
 
-// Suggestions only: the event type stays free text, as on the Blazor form.
+// Suggestions only: the event type stays free text.
 const examples = ['Serenata', 'Casamento', 'Batizado', 'Aniversário', 'Arraial', 'Arruada', 'Convívio', 'Missa', 'Festival'];
 
 const empty: RequestForm = {

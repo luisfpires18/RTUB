@@ -7,8 +7,7 @@ namespace RTUB.Application.Helpers;
 
 /// <summary>
 /// The documentation rules (React track 022, docs/react-documentation.md), enforced server-side by
-/// <c>DocumentationService</c>. Same as the Blazor /documentation ([Authorize]; Leitões sent away; folder filter and
-/// download check in the page; management buttons for Owner (Admin added later)):
+/// <c>DocumentationService</c>:
 ///
 /// - Visitors: nothing (401); the page sends them to sign in.
 /// - Leitões: nothing (403), unless Owner.

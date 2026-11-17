@@ -188,7 +188,7 @@ public sealed class EventAgendaService : IEventAgendaService
             instrument = offered;
         }
 
-        // As the Blazor page did: the member's other instruments, by display name.
+        // The member's other instruments, by display name.
         var others = instrument is { } chosen
             ? string.Join(", ", context.Registered.Where(i => i != chosen).Select(StatusHelper.GetInstrumentDisplay))
             : null;

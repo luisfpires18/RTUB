@@ -14,18 +14,6 @@ public class ReportRepository : Repository<Report>, IReportRepository
     {
     }
 
-    public async Task<IEnumerable<Report>> GetPublishedWithActivitiesAsync()
-    {
-        using var context = CreateContext();
-        return await context.Set<Report>()
-            .AsNoTracking()
-            .Include(r => r.Activities)
-                .ThenInclude(a => a.Transactions)
-            .Where(r => r.IsPublished)
-            .OrderByDescending(r => r.Year)
-            .ToListAsync();
-    }
-
     public async Task<Report?> GetByIdWithActivitiesAsync(int id)
     {
         using var context = CreateContext();
@@ -33,15 +21,5 @@ public class ReportRepository : Repository<Report>, IReportRepository
             .Include(r => r.Activities)
                 .ThenInclude(a => a.Transactions)
             .FirstOrDefaultAsync(r => r.Id == id);
-    }
-
-    public async Task<IEnumerable<Report>> GetAllWithActivitiesAsync()
-    {
-        using var context = CreateContext();
-        return await context.Set<Report>()
-            .AsNoTracking()
-            .Include(r => r.Activities)
-                .ThenInclude(a => a.Transactions)
-            .ToListAsync();
     }
 }

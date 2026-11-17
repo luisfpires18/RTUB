@@ -184,7 +184,7 @@ export type EventDetail = {
   canManage: boolean;
   /** Admin/Owner on a past festival: prizes can be added here (012B). */
   canManagePrizes: boolean;
-  /** Mod and above: the link to the Blazor contacts page (012E). */
+  /** Mod and above: can open the contact tracking page. */
   canTrackContacts: boolean;
   /** Task 075: Admin / Owner, or the current Ensaiador / Magister for an upcoming, not cancelled event. */
   canManageRepertoire: boolean;

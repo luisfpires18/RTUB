@@ -10,7 +10,7 @@ type Message = { text: string; error?: boolean };
 type View = { kind: 'table'; table: string; grid: DbGrid } | { kind: 'query'; grid: DbGrid; page: number; pageSize: number };
 
 /**
- * /owner/db (task 035; was the Blazor page): browse any table page by page, run a read-only SELECT, or run an INSERT /
+ * /owner/db: browse any table page by page, run a read-only SELECT, or run an INSERT /
  * UPDATE / DELETE after a warning and a confirmation. The server applies the same SQL rules as before (only SELECT on the
  * first tab; only INSERT / UPDATE / DELETE, no DDL, on the second), refuses a change sent without the confirmation, and
  * refuses anyone but the Owner.

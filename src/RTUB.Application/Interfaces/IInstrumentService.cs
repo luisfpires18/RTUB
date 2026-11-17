@@ -17,5 +17,4 @@ public interface IInstrumentService
     Task UpdateAsync(Instrument instrument);
     Task DeleteAsync(int id);
     Task<Dictionary<InstrumentCondition, int>> GetConditionStatsAsync();
-    Task<Dictionary<string, int>> GetCategoryStatsAsync();
 }

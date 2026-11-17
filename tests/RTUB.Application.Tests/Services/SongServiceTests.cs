@@ -82,48 +82,6 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
-    public async Task GetSongByIdAsync_ExistingSong_ReturnsSong()
-    {
-        // Arrange
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-
-        // Act
-        var result = await _songService.GetSongByIdAsync(song.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(song.Id);
-        result.Title.Should().Be("Test Song");
-    }
-
-    [Fact]
-    public async Task GetSongByIdAsync_NonExistingSong_ReturnsNull()
-    {
-        // Act
-        var result = await _songService.GetSongByIdAsync(999);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task GetAllSongsAsync_WithMultipleSongs_ReturnsAll()
-    {
-        // Arrange
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        await _songService.CreateSongAsync("Song 1", album.Id);
-        await _songService.CreateSongAsync("Song 2", album.Id);
-        await _songService.CreateSongAsync("Song 3", album.Id);
-
-        // Act
-        var result = await _songService.GetAllSongsAsync();
-
-        // Assert
-        result.Should().HaveCount(3);
-    }
-
-    [Fact]
     public async Task GetSongsByAlbumIdAsync_ReturnsSongsOrderedByTrackNumber()
     {
         // Arrange
@@ -157,7 +115,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _songService.UpdateSongAsync(song.Id, newTitle, trackNumber, lyricAuthor, musicAuthor, adaptation, duration);
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         updated!.Title.Should().Be(newTitle);
@@ -187,7 +145,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _songService.SetSongLyricsAsync(song.Id, lyrics);
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         updated!.Lyrics.Should().Be(lyrics);
@@ -203,7 +161,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _songService.SetSongSpotifyUrlAsync(song.Id, spotifyUrl);
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         updated!.SpotifyUrl.Should().Be(spotifyUrl);
@@ -218,7 +176,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _songService.DeleteSongAsync(song.Id);
-        var deleted = await _songService.GetSongByIdAsync(song.Id);
+        var deleted = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         deleted.Should().BeNull();
@@ -265,7 +223,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _songService.AddYouTubeUrlAsync(song.Id, youtubeUrl);
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         updated.Should().NotBeNull();
@@ -285,7 +243,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _songService.AddYouTubeUrlAsync(song.Id, youtubeUrl);
 
         // Simulate page refresh by fetching song again from database
-        var reloaded = await _songService.GetSongByIdAsync(song.Id);
+        var reloaded = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         reloaded.Should().NotBeNull();
@@ -307,7 +265,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _songService.AddYouTubeUrlAsync(song.Id, url1);
         await _songService.AddYouTubeUrlAsync(song.Id, url2);
         await _songService.AddYouTubeUrlAsync(song.Id, url3);
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         updated!.YouTubeUrls.Should().HaveCount(3);
@@ -329,7 +287,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act
         await _songService.AddYouTubeUrlAsync(song.Id, youtubeUrl);
         await _songService.AddYouTubeUrlAsync(song.Id, youtubeUrl); // Try to add again
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         updated!.YouTubeUrls.Should().HaveCount(1);
@@ -347,7 +305,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act
         await _songService.AddYouTubeUrlAsync(song.Id, url1);
         await _songService.AddYouTubeUrlAsync(song.Id, url2); // Different case but same URL
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         updated!.YouTubeUrls.Should().HaveCount(1);
@@ -363,7 +321,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _songService.AddYouTubeUrlAsync(song.Id, youtubeUrl);
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert - URL should preserve exact original casing
         updated.Should().NotBeNull();
@@ -383,7 +341,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _songService.RemoveYouTubeUrlAsync(song.Id, youtubeUrl);
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         updated!.YouTubeUrls.Should().BeEmpty();
@@ -400,7 +358,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act - try to remove with different case
         await _songService.RemoveYouTubeUrlAsync(song.Id, "https://www.youtube.com/watch?v=abc123");
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         updated!.YouTubeUrls.Should().BeEmpty();
@@ -415,7 +373,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act & Assert - should not throw
         await _songService.RemoveYouTubeUrlAsync(song.Id, "https://www.youtube.com/watch?v=nonexistent");
-        var updated = await _songService.GetSongByIdAsync(song.Id);
+        var updated = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
         updated!.YouTubeUrls.Should().BeEmpty();
     }
 
@@ -432,7 +390,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _songService.DeleteSongAsync(song.Id);
 
         // Assert
-        var deleted = await _songService.GetSongByIdAsync(song.Id);
+        var deleted = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
         deleted.Should().BeNull();
 
         // Clear tracked entities so _context re-reads from the InMemory store
@@ -443,22 +401,6 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             .Where(u => u.SongId == song.Id)
             .ToListAsync();
         orphanedUrls.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GetAllSongsAsync_IncludesYouTubeUrls()
-    {
-        // Arrange
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-        await _songService.AddYouTubeUrlAsync(song.Id, "https://www.youtube.com/watch?v=test");
-
-        // Act
-        var songs = await _songService.GetAllSongsAsync();
-
-        // Assert
-        var retrieved = songs.First(s => s.Id == song.Id);
-        retrieved.YouTubeUrls.Should().HaveCount(1);
     }
 
     [Fact]
@@ -478,47 +420,6 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     #region Video Tests
-
-    [Fact]
-    public async Task GetVideosBySongIdAsync_ReturnsVideosForSong()
-    {
-        // Arrange
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-        var songId = song.Id;
-
-        var mockVideos = new List<Core.Entities.SongVideo>
-        {
-            Core.Entities.SongVideo.CreateVideo(songId, "http://test.com/video1.mp4", "video/mp4", 1024, "user1", "Video 1"),
-            Core.Entities.SongVideo.CreateVideo(songId, "http://test.com/video2.mp4", "video/mp4", 2048, "user1", "Video 2")
-        };
-
-        _mockSongVideoRepository.Setup(r => r.GetBySongIdAsync(songId))
-            .ReturnsAsync(mockVideos);
-
-        // Act
-        var result = await _songService.GetVideosBySongIdAsync(songId);
-
-        // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain(v => v.Title == "Video 1");
-        result.Should().Contain(v => v.Title == "Video 2");
-    }
-
-    [Fact]
-    public async Task GetVideoCountBySongIdAsync_ReturnsCorrectCount()
-    {
-        // Arrange
-        var songId = 1;
-        _mockSongVideoRepository.Setup(r => r.GetCountBySongIdAsync(songId))
-            .ReturnsAsync(3);
-
-        // Act
-        var result = await _songService.GetVideoCountBySongIdAsync(songId);
-
-        // Assert
-        result.Should().Be(3);
-    }
 
     [Fact]
     public async Task AddVideoAsync_CreatesVideoWithGeneratedTitle()

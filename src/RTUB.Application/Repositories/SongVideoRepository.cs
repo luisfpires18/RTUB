@@ -14,18 +14,6 @@ public class SongVideoRepository : Repository<SongVideo>, ISongVideoRepository
     {
     }
 
-    public async Task<IEnumerable<SongVideo>> GetBySongIdAsync(int songId)
-    {
-        using var context = CreateContext();
-        return await context.Set<SongVideo>()
-            .AsNoTracking()
-            .Include(sv => sv.CreatedByUser)
-            .Where(sv => sv.SongId == songId)
-            .OrderBy(sv => sv.SortOrder)
-            .ThenBy(sv => sv.CreatedAt)
-            .ToListAsync();
-    }
-
     public async Task<int> GetCountBySongIdAsync(int songId)
     {
         using var context = CreateContext();

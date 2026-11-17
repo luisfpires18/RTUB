@@ -24,8 +24,7 @@ namespace RTUB.Security;
 /// replaced with a wildcard, so bad configuration can only make R2 content unavailable, never
 /// weaken the policy or inject header text.</para>
 ///
-/// <para><c>connect-src</c> is <c>'self'</c> only. Until task 037 it also named the request's own ws:/wss: origin for
-/// the Blazor Server circuit (<c>/_blazor</c>); the Blazor host is gone and nothing opens a WebSocket.</para>
+/// <para><c>connect-src</c> is <c>'self'</c> only: nothing opens a WebSocket.</para>
 /// </summary>
 public sealed class ContentSecurityPolicyBuilder
 {
@@ -139,8 +138,7 @@ public sealed class ContentSecurityPolicyBuilder
         // The only HTML form posts are /auth/login and /auth/logout.
         Directive("form-action", "'self'");
 
-        // Own origin only. cdnjs (cropper.min.js) and unpkg (leaflet.js) served the Blazor layout until task 032 and
-        // were dropped in 042: the React Cropper is canvas-only and Leaflet is bundled with the React map.
+        // Own origin only: the React Cropper is canvas-only and Leaflet is bundled with the React map.
         // No 'unsafe-eval' and no wasm source: nothing evaluates strings or runs WebAssembly.
         Directive("script-src", "'self'");
 

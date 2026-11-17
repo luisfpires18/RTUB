@@ -161,26 +161,6 @@ public class NerbaOrderServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
     #region GetByReportIdAsync Tests
 
-    [Fact]
-    public async Task GetByReportIdAsync_ReturnsOnlyOrdersForReport()
-    {
-        // Arrange
-        var ev = await CreateTestEvent();
-        var order1 = await CreateTestOrder(ev.Id, "Item With Report");
-        order1.ReportId = 42;
-        _context.Update(order1);
-        await _context.SaveChangesAsync();
-
-        await CreateTestOrder(ev.Id, "Item Without Report");
-
-        // Act
-        var result = await _service.GetByReportIdAsync(42);
-
-        // Assert
-        result.Should().HaveCount(1);
-        result.First().Item.Should().Be("Item With Report");
-    }
-
     #endregion
 
     #region AddOrderAsync Tests

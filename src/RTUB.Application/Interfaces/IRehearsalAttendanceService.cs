@@ -8,7 +8,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface IRehearsalAttendanceService
 {
-    Task<RehearsalAttendance?> GetAttendanceByIdAsync(int id);
     Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdAsync(int rehearsalId);
     Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdsAsync(IEnumerable<int> rehearsalIds);
     Task<IEnumerable<RehearsalAttendance>> GetAttendancesByUserIdAsync(string userId);
@@ -51,6 +50,5 @@ public interface IRehearsalAttendanceService
     Task DeleteAttendanceAsync(int id);
 
     // Statistics
-    Task<int> GetUserAttendanceCountAsync(string userId, DateTime startDate, DateTime endDate);
     Task<Dictionary<string, int>> GetAttendanceStatsAsync(DateTime startDate, DateTime endDate);
 }

@@ -46,6 +46,6 @@ public interface IEventAgendaService
     /// </summary>
     Task<EventResult<EventStatsDto>> GetStatsAsync(DateOnly? from, DateOnly? to, ClaimsPrincipal user);
 
-    /// <summary>Audits a video play, as the Blazor page did; false when the video does not exist.</summary>
+    /// <summary>Audits a video play; false when the video does not exist.</summary>
     Task<bool> RecordVideoPlayAsync(int videoId, ClaimsPrincipal user);
 }

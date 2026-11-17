@@ -29,25 +29,6 @@ public class AlbumService : IAlbumService
     }
 
     /// <summary>
-    /// Gets an album by its ID
-    /// </summary>
-    /// <param name="id">The ID of the album to retrieve</param>
-    /// <returns>The album if found, null otherwise</returns>
-    public async Task<Album?> GetAlbumByIdAsync(int id)
-    {
-        return await _albumRepository.GetByIdAsync(id);
-    }
-
-    /// <summary>
-    /// Gets all albums
-    /// </summary>
-    /// <returns>Collection of all albums</returns>
-    public async Task<IEnumerable<Album>> GetAllAlbumsAsync()
-    {
-        return await _albumRepository.GetAllAsync();
-    }
-
-    /// <summary>
     /// Gets all public albums
     /// </summary>
     /// <returns>Collection of public albums</returns>
@@ -93,32 +74,6 @@ public class AlbumService : IAlbumService
             album.SetCoverImage(imageUrl);
         }
         return await _albumRepository.AddAsync(album);
-    }
-
-    /// <summary>
-    /// Creates a new exclusive album with authorized user access
-    /// </summary>
-    /// <param name="title">The title of the album</param>
-    /// <param name="year">The year of the album (optional)</param>
-    /// <param name="description">Optional description</param>
-    /// <param name="imageUrl">Optional cover image URL</param>
-    /// <param name="authorizedUserIds">List of user IDs authorized to access this exclusive album</param>
-    /// <returns>The created exclusive album</returns>
-    public async Task<Album> CreateExclusiveAlbumAsync(string title, int? year, string? description, string? imageUrl, List<string> authorizedUserIds)
-    {
-        // Filter out any empty or null user IDs
-        var validUserIds = authorizedUserIds?.Where(id => !string.IsNullOrWhiteSpace(id)).ToList() ?? new List<string>();
-
-        // Create the album as exclusive
-        var album = await CreateAlbumAsync(title, year, description, imageUrl, isPrivate: false, isExclusive: true);
-
-        // Add authorized users to the access list
-        foreach (var userId in validUserIds)
-        {
-            await _albumRepository.AddAlbumAccessAsync(album.Id, userId);
-        }
-
-        return album;
     }
 
     /// <summary>
@@ -251,29 +206,4 @@ public class AlbumService : IAlbumService
         await _albumRepository.UpdateAsync(album);
     }
 
-    /// <summary>
-    /// Sets or updates the cover image for an album
-    /// </summary>
-    /// <param name="id">The ID of the album</param>
-    /// <param name="imageStream">The image stream to upload</param>
-    /// <param name="fileName">The name of the image file</param>
-    /// <param name="contentType">The content type of the image</param>
-    /// <exception cref="EntityNotFoundException">Thrown when the album is not found</exception>
-    public async Task SetAlbumCoverAsync(int id, Stream imageStream, string fileName, string contentType)
-    {
-        var album = await _albumRepository.GetByIdOrThrowAsync(id);
-
-        // Delete old image if it exists
-        if (!string.IsNullOrEmpty(album.ImageUrl))
-        {
-            await _imageStorageService.DeleteImageAsync(album.ImageUrl);
-        }
-
-        // Upload new image to Cloudflare R2 using normalized album title
-        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(album.Title);
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", normalizedName);
-        album.SetCoverImage(imageUrl);
-
-        await _albumRepository.UpdateAsync(album);
-    }
 }

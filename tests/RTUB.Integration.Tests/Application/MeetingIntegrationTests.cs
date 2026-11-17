@@ -74,7 +74,7 @@ public class MeetingIntegrationTests : IDisposable
 
         // Assert - Updated successfully
         var veteranoId = await CreateTestUser("veterano", "VETERANO");
-        var updated = await _meetingService.GetMeetingByIdAsync(created.Id, veteranoId);
+        var updated = await _context.Meetings.AsNoTracking().FirstOrDefaultAsync(m => m.Id == created.Id);
         updated.Should().NotBeNull();
         updated!.Title.Should().Be("Updated Annual General Meeting");
         updated.Location.Should().Be("Conference Room A");
@@ -83,7 +83,7 @@ public class MeetingIntegrationTests : IDisposable
         await _meetingService.DeleteMeetingAsync(created.Id);
 
         // Assert - Deleted successfully
-        var deleted = await _meetingService.GetMeetingByIdAsync(created.Id, veteranoId);
+        var deleted = await _context.Meetings.AsNoTracking().FirstOrDefaultAsync(m => m.Id == created.Id);
         deleted.Should().BeNull();
     }
 
@@ -107,7 +107,7 @@ public class MeetingIntegrationTests : IDisposable
 
         // Assert
         var veteranoId = await CreateTestUser("veterano", "VETERANO");
-        var cancelled = await _meetingService.GetMeetingByIdAsync(created.Id, veteranoId);
+        var cancelled = await _context.Meetings.AsNoTracking().FirstOrDefaultAsync(m => m.Id == created.Id);
         cancelled.Should().NotBeNull();
         cancelled!.IsCancelled.Should().BeTrue();
         cancelled.CancellationReason.Should().Be("Insufficient quorum expected");
@@ -135,7 +135,7 @@ public class MeetingIntegrationTests : IDisposable
 
         // Assert
         var veteranoId = await CreateTestUser("veterano", "VETERANO");
-        var uncancelled = await _meetingService.GetMeetingByIdAsync(created.Id, veteranoId);
+        var uncancelled = await _context.Meetings.AsNoTracking().FirstOrDefaultAsync(m => m.Id == created.Id);
         uncancelled.Should().NotBeNull();
         uncancelled!.IsCancelled.Should().BeFalse();
         uncancelled.CancellationReason.Should().BeNull();
@@ -178,28 +178,6 @@ public class MeetingIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task CVMeeting_DirectAccessByTuno_ReturnsNull()
-    {
-        // Arrange
-        var cvMeeting = new Meeting
-        {
-            Type = MeetingType.ConselhoVeteranos,
-            Title = "CV Meeting",
-            Date = DateTime.UtcNow.AddDays(7),
-            Statement = "Restricted meeting"
-        };
-        var created = await _meetingService.CreateMeetingAsync(cvMeeting);
-
-        var tunoId = await CreateTestUser("tuno", "TUNO");
-
-        // Act
-        var result = await _meetingService.GetMeetingByIdAsync(created.Id, tunoId);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
     public async Task AssembleiaMeetings_VisibleToAllUsers()
     {
         // Arrange
@@ -230,44 +208,6 @@ public class MeetingIntegrationTests : IDisposable
         // Assert
         veteranoMeetings.Should().HaveCount(2);
         tunoMeetings.Should().HaveCount(2);
-    }
-
-    [Fact]
-    public async Task MixedMeetings_FilteredByUserRole()
-    {
-        // Arrange
-        await _meetingService.CreateMeetingAsync(new Meeting
-        {
-            Type = MeetingType.AssembleiaGeralOrdinaria,
-            Title = "AGO Meeting",
-            Date = DateTime.UtcNow.AddDays(5),
-            Statement = "AGO"
-        });
-        await _meetingService.CreateMeetingAsync(new Meeting
-        {
-            Type = MeetingType.AssembleiaGeralExtraordinaria,
-            Title = "AGE Meeting",
-            Date = DateTime.UtcNow.AddDays(10),
-            Statement = "AGE"
-        });
-        await _meetingService.CreateMeetingAsync(new Meeting
-        {
-            Type = MeetingType.ConselhoVeteranos,
-            Title = "CV Meeting",
-            Date = DateTime.UtcNow.AddDays(15),
-            Statement = "CV"
-        });
-
-        var veteranoId = await CreateTestUser("veterano", "VETERANO");
-        var tunoId = await CreateTestUser("tuno", "TUNO");
-
-        // Act
-        var veteranoCount = await _meetingService.GetTotalCountAsync(null, veteranoId);
-        var tunoCount = await _meetingService.GetTotalCountAsync(null, tunoId);
-
-        // Assert
-        veteranoCount.Should().Be(3); // Can see all meetings
-        tunoCount.Should().Be(2); // Can only see AGO and AGE
     }
 
     #endregion

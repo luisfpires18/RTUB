@@ -94,7 +94,7 @@ const submitOnCtrlEnter = (e: KeyboardEvent<HTMLTextAreaElement>) => {
 };
 
 /**
- * /events/{id}/discussion - the event's conversation (React track 013; was a Blazor page). Signed-in members
+ * /events/{id}/discussion - the event's conversation. Signed-in members
  * post notes, comment, and offer or organise lifts ("boleias"); everything is one feed, pinned posts first
  * and then whatever moved last. Every rule is the server's (GET /api/events/{id}/discussion says what the
  * caller may do); each write answers the whole conversation, so the page never drifts.

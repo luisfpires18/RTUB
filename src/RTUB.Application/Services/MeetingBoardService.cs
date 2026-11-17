@@ -16,7 +16,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /meetings (task 034, docs/react-meetings.md; was the Blazor page). The old page only hid buttons and its
+/// The React /meetings (task 034, docs/react-meetings.md). The old page only hid buttons and its
 /// services checked nothing, so every gate it had is enforced here, through <see cref="MeetingAccess"/>:
 ///
 /// - Visitors: <c>SignInRequired</c>. A Leitão: <c>Forbidden</c> on every call, whatever their role.

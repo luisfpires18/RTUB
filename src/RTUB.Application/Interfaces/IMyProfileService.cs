@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React /profile editor (task 032, docs/react-member-area.md; was the Blazor /member/profile): the signed-in
+/// The React /profile editor (task 032, docs/react-member-area.md): the signed-in
 /// member reads and edits their own profile, and only their own. Every rule is decided here, from the session.
 /// </summary>
 public interface IMyProfileService

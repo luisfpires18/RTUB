@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>Write side of the React members area (React track 018; was the Blazor /members/manage). Admin and Owner.</summary>
+/// <summary>Write side of the React members area (React track 018). Admin and Owner.</summary>
 public interface IMemberAdminService
 {
     /// <summary>Task 076: the limited member-information edit (Mod, Admin, Owner).</summary>

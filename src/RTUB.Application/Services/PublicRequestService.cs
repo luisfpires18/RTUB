@@ -6,8 +6,8 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Extracted verbatim from the handler of the retired Blazor /request page (React track 003): the
-/// entity's data annotations (what that page's EditForm enforced), the date rules of
+/// The public performance request (React track 003): the
+/// entity's data annotations, the date rules of
 /// <see cref="IRequestValidationService"/>, then create, optional date range and the RTUB email.
 /// </summary>
 public class PublicRequestService : IPublicRequestService

@@ -18,16 +18,6 @@ public class MbwayTransferService : IMbwayTransferService
     }
 
     /// <inheritdoc />
-    public async Task<List<MbwayTransfer>> GetByFiscalYearAsync(int fiscalYearId, CancellationToken cancellationToken = default)
-    {
-        using var context = _contextFactory.CreateDbContext();
-        return await context.MbwayTransfers
-            .Where(mt => mt.FiscalYearId == fiscalYearId)
-            .OrderByDescending(mt => mt.Date)
-            .ToListAsync(cancellationToken);
-    }
-
-    /// <inheritdoc />
     public async Task<List<MbwayTransfer>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         using var context = _contextFactory.CreateDbContext();

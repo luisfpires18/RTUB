@@ -7,11 +7,10 @@ using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 namespace RTUB.Controllers;
 
 /// <summary>
-/// Session state for the React portal (React track 002, docs/react-portal-pilot.md).
+/// Session state for the React portal (docs/react-portal-pilot.md).
 /// Read-only and about the caller only: never another user, never contact details, dates of
 /// birth or anything else a member's own profile page does not already show them. Roles are not
-/// listed; <c>menu</c> (task 030) says only which member-menu groups to show the caller, as the
-/// Blazor navbar already did (<see cref="MemberMenuAccess"/>).
+/// listed; <c>menu</c> says only which member-menu groups to show the caller (<see cref="MemberMenuAccess"/>).
 /// Signing in and out stay with the antiforgery-protected /auth endpoints (React /login posts there).
 /// </summary>
 [ApiController]

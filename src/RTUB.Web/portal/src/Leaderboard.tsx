@@ -93,7 +93,7 @@ export function ago(iso: string, now = Date.now()) {
 }
 
 /**
- * /leaderboard - Tabela de Classificação (React track 019; was the Blazor page). Signed-in members only. Everyone's XP
+ * /leaderboard - Tabela de Classificação. Signed-in members only. Everyone's XP
  * from rehearsals and events, ranked by level then XP, for one fiscal year or every year; a row opens the member's
  * details and comments. Admin and Owner edit the explanation shown above the levels.
  */

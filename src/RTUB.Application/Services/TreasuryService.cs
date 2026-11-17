@@ -11,7 +11,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /finance and /finance/report/{id} behind the React /treasury and /treasury/reports/{id} (React track 024,
+/// The React /treasury and /treasury/reports/{id} (React track 024,
 /// docs/react-treasury.md). Same tables, same totals, and the writes still go through the old services (reports,
 /// activities, transactions with their receipts and audit log, bank / cash), so nothing is computed or stored differently.
 /// Every rule is now checked here (<see cref="TreasuryAuthorization"/>); the old pages only hid buttons.

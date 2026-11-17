@@ -14,7 +14,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The read side of the old Blazor /members and /hierarchy behind the React /members (React track 017,
+/// The read side of the React /members (React track 017,
 /// docs/react-members.md). Same data and rules, delegated to the services the old page used:
 /// <see cref="IMemberFilterService"/> (search over name, nickname, email, phone and city; category, Tuno sub-category,
 /// instrument and "só ativos"; Tunos Honorários only when asked for or searched), <see cref="IActiveMemberFilterService"/>,

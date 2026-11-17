@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>The React /logistics and /logistics/{id} ("Logística", React track 023; were the Blazor pages).</summary>
+/// <summary>The React /logistics and /logistics/{id} ("Logística", React track 023).</summary>
 public interface ILogisticsKanbanService
 {
     Task<EventResult<LogisticsBoardsDto>> GetBoardsAsync(string? search, ClaimsPrincipal user);

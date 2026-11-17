@@ -14,7 +14,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /rehearsals management behind the React pages (React track 014, docs/react-rehearsals.md).
+/// The management side of the React /rehearsals pages (React track 014, docs/react-rehearsals.md).
 /// Same rules, now server-side and for Admin or Owner (was IsInRole("Admin") only, in the UI):
 /// - create one rehearsal (a date already taken is refused) or every Tuesday and Thursday of a range (≤90 days,
 ///   not starting in the past; taken dates skipped); 21:30-00:00 as always;

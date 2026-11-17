@@ -16,7 +16,7 @@ import {
 } from './membersApi';
 import { MemberBadge } from './MemberBadge';
 
-// The member admin tools (React track 018; were the Blazor /members/manage). Admin and Owner; Owner also deletes
+// The member admin tools. Admin and Owner; Owner also deletes
 // regular members and, with the current Magister, changes complete dates. The server decides and validates
 // everything (MemberAdminService); hiding a button here is only a convenience.
 

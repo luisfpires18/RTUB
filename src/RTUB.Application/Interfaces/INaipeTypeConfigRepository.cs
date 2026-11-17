@@ -18,8 +18,4 @@ public interface INaipeTypeConfigRepository : IRepository<NaipeTypeConfig>
     /// </summary>
     Task<List<NaipeTypeConfig>> GetVisibleOrderedAsync();
 
-    /// <summary>
-    /// Get config by InstrumentType
-    /// </summary>
-    Task<NaipeTypeConfig?> GetByInstrumentTypeAsync(InstrumentType type);
 }

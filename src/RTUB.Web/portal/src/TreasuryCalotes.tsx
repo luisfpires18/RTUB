@@ -12,7 +12,7 @@ type Debt = DebtGroup['debts'][number];
 const key = (g: DebtGroup, i: number) => g.member.id ?? `#${i}`;
 
 /**
- * /treasury/calotes - Calotes (React track 024; was the Blazor /calotes, which visitors could open). Treasury members see
+ * /treasury/calotes - Calotes. Treasury members see
  * every member's debts of a fiscal year; Caloiros and Leitões only their own. Mod, Admin and Owner add, edit, remove and
  * set the commitment date ("Compromisso de pagamento") that pauses the daily reminder.
  */

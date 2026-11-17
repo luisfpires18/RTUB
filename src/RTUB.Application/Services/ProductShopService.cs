@@ -8,7 +8,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /shop ("Loja RTUB") behind the React /shop (React track 021, docs/react-shop.md). Public reads use a
+/// The React /shop (React track 021, docs/react-shop.md). Public reads use a
 /// restricted catalogue DTO; signed-in data and actions retain the same rules through <see cref="IProductService"/> and
 /// <see cref="IProductReservationService"/>, enforced server-side
 /// (<see cref="ShopAuthorization"/>; the old page only hid buttons):

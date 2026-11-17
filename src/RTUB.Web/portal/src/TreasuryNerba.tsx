@@ -6,7 +6,7 @@ import { day, euros, problem, treasuryApi, type Nerba, type NerbaSummary } from 
 import { Confirm, Refusal, TreasuryTabs } from './TreasuryUi';
 
 /**
- * /treasury/nerba - Encomendas Nerba (React track 024; was the Blazor /nerba, which visitors could open). Treasury members:
+ * /treasury/nerba - Encomendas Nerba. Treasury members:
  * the Nerba events, upcoming (nearest first) then past (latest first), with item count and total. Mod, Admin and Owner
  * delete every order of an event.
  */

@@ -26,11 +26,4 @@ public class UserProfileRepository : Repository<ApplicationUser>, IUserProfileRe
         await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    public async Task<IEnumerable<ApplicationUser>> GetAllUsersAsync()
-    {
-        using var context = CreateContext();
-        return await context.Users
-            .AsNoTracking()
-            .ToListAsync();
-    }
 }

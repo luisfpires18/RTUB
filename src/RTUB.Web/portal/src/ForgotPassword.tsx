@@ -4,7 +4,7 @@ import { portal } from './content';
 import { Icon } from './icons';
 
 /**
- * /forgot-password (task 036; was a Blazor page). Anyone asks for a reset link by email. The answer is the same whether
+ * /forgot-password. Anyone asks for a reset link by email. The answer is the same whether
  * or not the address has an account; the server sends the link only to a confirmed account.
  */
 export default function ForgotPassword() {

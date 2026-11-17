@@ -3,8 +3,8 @@ using System.Security.Claims;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The shop rules (React track 021, docs/react-shop.md), enforced server-side by <c>ProductShopService</c>. Same as the
-/// Blazor /shop ([Authorize]; "Adicionar Produto" shown to "Admin,Mod", edit/delete/reservations to "Admin"), with Owner
+/// The shop rules (React track 021, docs/react-shop.md), enforced server-side by <c>ProductShopService</c>,
+/// with Owner
 /// inheriting Admin:
 ///
 /// - Visitors: the public product catalogue only; member detail, reservation and management queries still require a

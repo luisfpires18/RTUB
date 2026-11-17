@@ -63,7 +63,7 @@ type Open =
 type Flash = { tone: 'ok' | 'warn'; text: string };
 
 /**
- * /meetings - Reuniões (task 034; was the Blazor page). Meetings and assemblies: the upcoming and past ones the
+ * /meetings - Reuniões. Meetings and assemblies: the upcoming and past ones the
  * member sees, "Vou / Não vou", participants, atas, and for those who run them create / edit / notify / cancel; the
  * "Pedidos de Reuniões" section for Veteranos and the Magister. Every rule is the server's (MeetingBoardService): the
  * page only draws what `access` and each card's `can` allow. Signed-in members only; a Leitão is refused.

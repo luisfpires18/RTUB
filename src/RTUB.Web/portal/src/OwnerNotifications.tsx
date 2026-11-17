@@ -10,7 +10,7 @@ const TITLE_MAX = 100;
 const BODY_MAX = 500;
 
 /**
- * /notifications (task 035; was the Blazor page, an Admin page then): the Owner writes a push notification and sends it
+ * /notifications: the Owner writes a push notification and sends it
  * to the chosen accounts with a push subscription (all of them to start with), through the existing push sender. This
  * is not the members' own push settings. The server refuses anyone but the Owner and audits every send.
  */

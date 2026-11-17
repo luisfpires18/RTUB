@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { portal } from './content';
 import { Icon } from './icons';
 
-// The legal source of the Privacy Policy served at /privacy, carried verbatim from the retired Blazor
-// Pages/Public/Privacy.razor (React track 004). Edit it as legal text, not as portal copy.
+// The legal source of the Privacy Policy served at /privacy.
+// Edit it as legal text, not as portal copy.
 const toc = [
   'Introdução',
   'Dados Recolhidos',

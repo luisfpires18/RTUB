@@ -101,20 +101,6 @@ public class AlbumRepository : Repository<Album>, IAlbumRepository
         }
     }
 
-    public async Task RemoveAllAlbumAccessAsync(int albumId, bool saveChanges = true)
-    {
-        using var context = CreateContext();
-        var accessEntries = await context.AlbumAccesses
-            .Where(aa => aa.AlbumId == albumId)
-            .ToListAsync();
-
-        if (accessEntries.Count > 0)
-        {
-            context.AlbumAccesses.RemoveRange(accessEntries);
-            await context.SaveChangesAsync();
-        }
-    }
-
     public async Task<bool> HasAccessAsync(int albumId, string userId)
     {
         using var context = CreateContext();

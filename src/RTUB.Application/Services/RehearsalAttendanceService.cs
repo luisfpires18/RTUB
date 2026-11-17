@@ -45,19 +45,6 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         _logger = logger;
     }
 
-    public async Task<RehearsalAttendance?> GetAttendanceByIdAsync(int id)
-    {
-        var attendance = await _attendanceRepository.GetByIdAsync(id);
-        if (attendance != null)
-        {
-            // Load the rehearsal navigation property
-            attendance = await _attendanceRepository.QueryAsync(q => q
-                .Include(a => a.Rehearsal)
-                .FirstOrDefaultAsync(a => a.Id == id));
-        }
-        return attendance;
-    }
-
     public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdAsync(int rehearsalId)
     {
         return await _attendanceRepository.GetAttendancesByRehearsalIdAsync(rehearsalId);
@@ -247,17 +234,6 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         }
 
         await _attendanceRepository.DeleteAsync(id);
-    }
-
-    public async Task<int> GetUserAttendanceCountAsync(string userId, DateTime startDate, DateTime endDate)
-    {
-        return await _attendanceRepository.QueryAsync(q => q
-            .Include(a => a.Rehearsal)
-            .Where(a => a.UserId == userId &&
-                       a.Attended &&
-                       a.Rehearsal!.Date >= startDate.Date &&
-                       a.Rehearsal.Date <= endDate.Date)
-            .CountAsync());
     }
 
     public async Task<Dictionary<string, int>> GetAttendanceStatsAsync(DateTime startDate, DateTime endDate)

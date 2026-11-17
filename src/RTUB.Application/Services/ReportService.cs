@@ -47,25 +47,6 @@ public class ReportService : IReportService
     }
 
     /// <summary>
-    /// Gets all reports with their activities and transactions
-    /// </summary>
-    /// <returns>Collection of all reports</returns>
-    public async Task<IEnumerable<Report>> GetAllReportsAsync()
-    {
-        return await _reportRepository.GetAllWithActivitiesAsync();
-    }
-
-    /// <summary>
-    /// Gets all published reports with their activities and transactions
-    /// </summary>
-    /// <returns>Collection of published reports</returns>
-    public async Task<IEnumerable<Report>> GetPublishedReportsAsync()
-    {
-        // Get published reports with activities and transactions
-        return await _reportRepository.GetPublishedWithActivitiesAsync();
-    }
-
-    /// <summary>
     /// Creates a new report
     /// </summary>
     /// <param name="title">The title of the report</param>
@@ -79,20 +60,6 @@ public class ReportService : IReportService
     }
 
     /// <summary>
-    /// Updates the summary of a report
-    /// </summary>
-    /// <param name="id">The ID of the report to update</param>
-    /// <param name="summary">The new summary text</param>
-    /// <exception cref="EntityNotFoundException">Thrown when the report is not found</exception>
-    public async Task UpdateReportAsync(int id, string? summary)
-    {
-        var report = await _reportRepository.GetByIdOrThrowAsync(id);
-
-        report.UpdateSummary(summary);
-        await _reportRepository.UpdateAsync(report);
-    }
-
-    /// <summary>
     /// Publishes a report, making it publicly available
     /// </summary>
     /// <param name="id">The ID of the report to publish</param>
@@ -103,50 +70,6 @@ public class ReportService : IReportService
 
         report.Publish();
         await _reportRepository.UpdateAsync(report);
-    }
-
-    /// <summary>
-    /// Unpublishes a report, making it no longer publicly available
-    /// </summary>
-    /// <param name="id">The ID of the report to unpublish</param>
-    /// <exception cref="EntityNotFoundException">Thrown when the report is not found</exception>
-    public async Task UnpublishReportAsync(int id)
-    {
-        var report = await _reportRepository.GetByIdOrThrowAsync(id);
-
-        report.Unpublish();
-        await _reportRepository.UpdateAsync(report);
-    }
-
-    /// <summary>
-    /// Generates a PDF document for a report and stores it in the report entity
-    /// </summary>
-    /// <param name="reportId">The ID of the report to generate a PDF for</param>
-    /// <returns>The generated PDF as a byte array</returns>
-    /// <exception cref="EntityNotFoundException">Thrown when the report is not found</exception>
-    public async Task<byte[]> GenerateReportPdfAsync(int reportId)
-    {
-        var report = await _reportRepository.GetByIdWithActivitiesAsync(reportId);
-
-        if (report == null)
-            throw new EntityNotFoundException(nameof(Report), reportId);
-
-        var activities = report.Activities.OrderBy(a => a.Name).ToList();
-        var allTransactions = new List<(Activity activity, List<Transaction> transactions)>();
-
-        foreach (var activity in activities)
-        {
-            var transactions = activity.Transactions.OrderBy(t => t.Date).ToList();
-            allTransactions.Add((activity, transactions));
-        }
-
-        // Generate PDF using business logic
-        var pdfData = GeneratePdf(report, activities, allTransactions);
-
-        report.SetPdfData(pdfData);
-        await _reportRepository.UpdateAsync(report);
-
-        return pdfData;
     }
 
     /// <summary>

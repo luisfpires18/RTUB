@@ -5,7 +5,7 @@ import { Dialog } from './Dialog';
 import { antiforgeryToken, call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
 
-// Gallery management (React track 015; was the Blazor /member/gallery). Any signed-in member uploads; the
+// Gallery management. Any signed-in member uploads; the
 // uploader, Admin or Owner edit and delete. The server decides and validates everything (GalleryManagementService).
 
 const MAX_IMAGE = 10 * 1024 * 1024;

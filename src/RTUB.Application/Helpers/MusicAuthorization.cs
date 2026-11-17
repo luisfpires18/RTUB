@@ -3,7 +3,7 @@ using System.Security.Claims;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The Music rules (React track 006, docs/react-music.md), taken from the retired Blazor pages and
+/// The Music rules (React track 006, docs/react-music.md),
 /// enforced server-side by <c>MusicService</c>. Owner is checked explicitly wherever Admin is, so an
 /// Owner keeps Admin's Music rights even without the Admin role.
 ///

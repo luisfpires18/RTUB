@@ -25,13 +25,6 @@ public interface IMeetingRequestService
     Task<IEnumerable<MeetingRequest>> GetPagedAsync(int page, int pageSize, RequestStatus? status = null);
 
     /// <summary>
-    /// Gets total count of meeting requests with optional filtering
-    /// </summary>
-    /// <param name="status">Optional status filter</param>
-    /// <returns>Total count</returns>
-    Task<int> GetTotalCountAsync(RequestStatus? status = null);
-
-    /// <summary>
     /// Gets a meeting request by ID
     /// </summary>
     /// <param name="id">Meeting request ID</param>

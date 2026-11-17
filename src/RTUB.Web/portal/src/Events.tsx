@@ -32,8 +32,8 @@ function filtersToUrl(f: Filters) {
 }
 
 /**
- * Requests' "criar atuação" (Blazor /requests) lands here with ?openModal=true&name=&location=&date=&description=
- * (the old /member/events contract): read once, then taken out of the URL so the archive filters ignore it.
+ * Requests' "criar atuação" lands here with ?openModal=true&name=&location=&date=&description=:
+ * read once, then taken out of the URL so the archive filters ignore it.
  */
 function takeCreatePrefill() {
   const url = new URL(location.href);

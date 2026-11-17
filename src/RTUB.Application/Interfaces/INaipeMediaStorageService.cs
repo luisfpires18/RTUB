@@ -32,10 +32,4 @@ public interface INaipeMediaStorageService
     /// <param name="mediaUrl">Public URL of the media to delete</param>
     Task DeleteMediaAsync(string mediaUrl);
 
-    /// <summary>
-    /// Checks if media exists in R2 storage
-    /// </summary>
-    /// <param name="mediaUrl">Public URL of the media</param>
-    /// <returns>True if media exists, false otherwise</returns>
-    Task<bool> MediaExistsAsync(string mediaUrl);
 }

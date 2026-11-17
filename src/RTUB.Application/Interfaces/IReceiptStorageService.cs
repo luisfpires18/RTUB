@@ -22,10 +22,4 @@ public interface IReceiptStorageService
     /// <param name="receiptUrl">Public URL of the receipt to delete</param>
     Task DeleteReceiptAsync(string receiptUrl);
 
-    /// <summary>
-    /// Checks if a receipt exists in R2 storage
-    /// </summary>
-    /// <param name="receiptUrl">Public URL of the receipt</param>
-    /// <returns>True if receipt exists, false otherwise</returns>
-    Task<bool> ReceiptExistsAsync(string receiptUrl);
 }

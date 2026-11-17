@@ -7,7 +7,7 @@ import { memberAreaApi, type FameRecord, type HallOfFame as Fame } from './membe
 import { loginTo } from './musicApi';
 
 /**
- * /hall-of-fame (task 032; was the Blazor page). The tuna's twelve records, as the server computes them
+ * /hall-of-fame. The tuna's twelve records, as the server computes them
  * (HallOfFameService): a tie lists every member who shares the record, and a record nobody holds yet says so.
  * Signed-in members only.
  */

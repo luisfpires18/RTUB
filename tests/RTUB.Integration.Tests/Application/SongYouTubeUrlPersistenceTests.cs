@@ -71,7 +71,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         _context.ChangeTracker.Clear();
 
         // Retrieve song in fresh context
-        var retrievedSong = await _songService.GetSongByIdAsync(song.Id);
+        var retrievedSong = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         retrievedSong.Should().NotBeNull();
@@ -96,7 +96,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         _context.ChangeTracker.Clear();
 
         // Verify old URL exists
-        var songWithOldUrl = await _songService.GetSongByIdAsync(song.Id);
+        var songWithOldUrl = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
         songWithOldUrl!.YouTubeUrls.Should().HaveCount(1);
         songWithOldUrl.YouTubeUrls.First().Url.Should().Be(oldUrl);
 
@@ -106,35 +106,11 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         _context.ChangeTracker.Clear();
 
         // Verify update persisted
-        var updatedSong = await _songService.GetSongByIdAsync(song.Id);
+        var updatedSong = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert
         updatedSong!.YouTubeUrls.Should().HaveCount(1);
         updatedSong.YouTubeUrls.First().Url.Should().Be(newUrl);
-    }
-
-    [Fact]
-    public async Task GetAllSongsAsync_LoadsYouTubeUrlsForAllSongs()
-    {
-        // Arrange
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song1 = await _songService.CreateSongAsync("Song 1", album.Id, 1);
-        var song2 = await _songService.CreateSongAsync("Song 2", album.Id, 2);
-
-        await _songService.AddYouTubeUrlAsync(song1.Id, "https://www.youtube.com/watch?v=song1");
-        await _songService.AddYouTubeUrlAsync(song2.Id, "https://www.youtube.com/watch?v=song2a");
-        await _songService.AddYouTubeUrlAsync(song2.Id, "https://www.youtube.com/watch?v=song2b");
-
-        // Act
-        _context.ChangeTracker.Clear();
-        var allSongs = await _songService.GetAllSongsAsync();
-
-        // Assert
-        var retrievedSong1 = allSongs.First(s => s.Id == song1.Id);
-        var retrievedSong2 = allSongs.First(s => s.Id == song2.Id);
-
-        retrievedSong1.YouTubeUrls.Should().HaveCount(1);
-        retrievedSong2.YouTubeUrls.Should().HaveCount(2);
     }
 
     [Fact]
@@ -178,7 +154,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         );
 
         _context.ChangeTracker.Clear();
-        var updatedSong = await _songService.GetSongByIdAsync(song.Id);
+        var updatedSong = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert - YouTube URLs should still be there
         updatedSong!.YouTubeUrls.Should().HaveCount(1);
@@ -198,7 +174,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         await _songService.SetSongLyricsAsync(song.Id, "New lyrics here...");
 
         _context.ChangeTracker.Clear();
-        var updatedSong = await _songService.GetSongByIdAsync(song.Id);
+        var updatedSong = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert - YouTube URLs should still be there
         updatedSong!.YouTubeUrls.Should().HaveCount(1);
@@ -218,7 +194,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         await _songService.SetSongSpotifyUrlAsync(song.Id, "https://open.spotify.com/track/abc");
 
         _context.ChangeTracker.Clear();
-        var updatedSong = await _songService.GetSongByIdAsync(song.Id);
+        var updatedSong = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == song.Id);
 
         // Assert - YouTube URLs should still be there
         updatedSong!.YouTubeUrls.Should().HaveCount(1);
@@ -241,7 +217,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         _context.ChangeTracker.Clear();
 
         // Assert - Song and YouTube URLs should be gone
-        var deletedSong = await _songService.GetSongByIdAsync(songId);
+        var deletedSong = await _context.Songs.AsNoTracking().Include(s => s.YouTubeUrls).FirstOrDefaultAsync(s => s.Id == songId);
         deletedSong.Should().BeNull();
 
         var orphanedUrls = await _context.SongYouTubeUrls

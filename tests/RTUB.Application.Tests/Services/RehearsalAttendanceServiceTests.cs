@@ -101,40 +101,6 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
     }
 
     [Fact]
-    public async Task GetAttendanceByIdAsync_ExistingAttendance_ReturnsAttendance()
-    {
-        // Arrange
-        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
-        _context.Rehearsals.Add(rehearsal);
-        await _context.SaveChangesAsync();
-
-        var attendance = RehearsalAttendance.Create(rehearsal.Id, "user123");
-        _context.RehearsalAttendances.Add(attendance);
-        await _context.SaveChangesAsync();
-
-        // Clear change tracker to ensure fresh load
-        _context.ChangeTracker.Clear();
-
-        // Act
-        var result = await _attendanceService.GetAttendanceByIdAsync(attendance.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(attendance.Id);
-        result.UserId.Should().Be("user123");
-    }
-
-    [Fact]
-    public async Task GetAttendanceByIdAsync_NonExistingAttendance_ReturnsNull()
-    {
-        // Act
-        var result = await _attendanceService.GetAttendanceByIdAsync(999);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
     public async Task GetAttendancesByRehearsalIdAsync_ReturnsAllAttendances()
     {
         // Arrange
@@ -294,37 +260,6 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         var act = async () => await _attendanceService.DeleteAttendanceAsync(999);
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
-    }
-
-    [Fact]
-    public async Task GetUserAttendanceCountAsync_ReturnsCorrectCount()
-    {
-        // Arrange
-        var rehearsal1 = Rehearsal.Create(DateTime.Now.AddDays(-10), "Location 1");
-        var rehearsal2 = Rehearsal.Create(DateTime.Now.AddDays(-5), "Location 2");
-        var rehearsal3 = Rehearsal.Create(DateTime.Now.AddDays(-2), "Location 3");
-        _context.Rehearsals.AddRange(rehearsal1, rehearsal2, rehearsal3);
-        await _context.SaveChangesAsync();
-
-        var userId = "user123";
-        var attended1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
-        attended1.MarkAttendance(true); // Approve
-        var attended2 = RehearsalAttendance.Create(rehearsal2.Id, userId);
-        attended2.MarkAttendance(true); // Approve
-        var notAttended = RehearsalAttendance.Create(rehearsal3.Id, userId);
-        notAttended.MarkAttendance(false); // Not approved
-
-        _context.RehearsalAttendances.AddRange(attended1, attended2, notAttended);
-        await _context.SaveChangesAsync();
-
-        var startDate = DateTime.Now.AddDays(-15);
-        var endDate = DateTime.Now;
-
-        // Act
-        var result = await _attendanceService.GetUserAttendanceCountAsync(userId, startDate, endDate);
-
-        // Assert
-        result.Should().Be(2); // Only attended/approved rehearsals count
     }
 
     [Fact]

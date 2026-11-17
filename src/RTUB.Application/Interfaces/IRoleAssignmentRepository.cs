@@ -13,9 +13,4 @@ public interface IRoleAssignmentRepository : IRepository<RoleAssignment>
     /// Gets role assignments by user ID
     /// </summary>
     Task<IEnumerable<RoleAssignment>> GetByUserIdAsync(string userId);
-
-    /// <summary>
-    /// Gets role assignments by position
-    /// </summary>
-    Task<IEnumerable<RoleAssignment>> GetByPositionAsync(Position position);
 }

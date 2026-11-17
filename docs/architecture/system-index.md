@@ -29,7 +29,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | --- | --- |
 | `src/RTUB.Web/Program.cs` | Host bootstrap; DI delegated to extensions. |
 | `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` | Service registrations. |
-| `src/RTUB.Web/Program.cs` (route section) | Page ownership: every page is the React shell (`wwwroot/portal/index.html`) or the static `/Error` (`wwwroot/error.html`); retired URLs 302 or 404. |
+| `src/RTUB.Web/Program.cs` (route section) | Page ownership: every page is the React shell (`wwwroot/portal/index.html`) or the static `/Error` (`wwwroot/error.html`); old URLs are in `Extensions/LegacyRedirectExtensions.cs` (302 or 404). |
 | `src/RTUB.Web/Endpoints/` | Minimal-API endpoint groups behind the React pages (`/api/*`). |
 | `src/RTUB.Web/Controllers/` | React session state (`AccountController`, which also carries the build version). `/images/*` is a plain static file. |
 | `src/RTUB.Web/Services/AnnouncementService.cs` | The Owner's system announcement (in memory, a few minutes); `GET /api/announcement`, polled by the React shell. |
@@ -59,7 +59,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Web/Endpoints/AccountRecoveryEndpoints.cs`, `src/RTUB.Application/Services/AccountRecoveryService.cs`, `wwwroot/error.html` | React password recovery / email confirmation (`POST /api/account/{forgot-password,reset-password,confirm-email}`, public, antiforgery, Identity tokens never stored or echoed); the server-owned `/Error` page; `/share`, the Web Share Target (`portal/src/Share.tsx`, manifest `share_target`). `docs/react-identity.md`. |
 | `src/RTUB.Application/Helpers/MemberMenuAccess.cs` | Which member-menu groups a member sees, sent as `menu` by `/api/account/me`. Hides links only. |
 | `src/RTUB.Web/wwwroot/portal/` | Committed build output served by the host. Rebuild with `npm run build:portal`. |
-| `src/RTUB.Web/Program.cs` (React shell mapping) | Route ownership: the only paths React owns, plus the `/portal...` redirects. |
+| `src/RTUB.Web/Program.cs` (React shell mapping) | Route ownership: the only paths React owns. |
 | `src/RTUB.Web/Controllers/AccountController.cs` | `GET /api/account/me`: the caller's own session summary for React (+ `menu` flags). |
 | `src/RTUB.Web/Endpoints/PublicRequestEndpoints.cs` | `POST /api/public/requests` (+ antiforgery token): public request submission for React. |
 | `src/RTUB.Application/Services/PublicRequestService.cs` | The one public request submission path, called only by the API. |

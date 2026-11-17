@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>The React /inventory ("Instrumentos", React track 020; was the Blazor Inventory.razor).</summary>
+/// <summary>The React /inventory ("Instrumentos", React track 020).</summary>
 public interface IInstrumentInventoryService
 {
     Task<EventResult<InstrumentListDto>> GetAsync(InstrumentQuery query, ClaimsPrincipal user);

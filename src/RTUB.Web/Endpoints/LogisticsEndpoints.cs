@@ -6,9 +6,9 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /logistics and /logistics/{id} ("Logística", React track 023, docs/react-logistics.md; were the Blazor pages).
+/// The React /logistics and /logistics/{id} ("Logística", docs/react-logistics.md).
 /// Thin: every rule lives in <see cref="ILogisticsKanbanService"/>, decided from the session. Signed-in members (Leitões
-/// included since 065) read; assignees tick checklists and change status; managers do the rest. Every write needs the
+/// included) read; assignees tick checklists and change status; managers do the rest. Every write needs the
 /// antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class LogisticsEndpoints

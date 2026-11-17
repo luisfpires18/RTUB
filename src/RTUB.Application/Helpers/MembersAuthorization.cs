@@ -4,7 +4,7 @@ namespace RTUB.Application.Helpers;
 
 /// <summary>
 /// The members area rules (React tracks 017 and 018, docs/react-members.md), enforced server-side by
-/// <c>MemberDirectoryService</c> and <c>MemberAdminService</c>. Same as the Blazor /members (all [Authorize]), with
+/// <c>MemberDirectoryService</c> and <c>MemberAdminService</c>, with
 /// Owner inheriting Admin:
 ///
 /// - Visitors: nothing (401); the pages send them to sign in.

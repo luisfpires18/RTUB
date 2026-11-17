@@ -95,11 +95,4 @@ public class InstrumentService : IInstrumentService
             .ToDictionaryAsync(x => x.Condition, x => x.Count));
     }
 
-    public async Task<Dictionary<string, int>> GetCategoryStatsAsync()
-    {
-        return await _instrumentRepository.QueryAsync(q => q
-            .GroupBy(i => i.Category)
-            .Select(g => new { Category = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Category, x => x.Count));
-    }
 }

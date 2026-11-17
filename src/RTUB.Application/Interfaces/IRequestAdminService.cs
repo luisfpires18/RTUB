@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React /requests ("Gestão de Pedidos", task 031; was the Blazor Requests.razor): the performance requests sent
+/// The React /requests ("Gestão de Pedidos", task 031): the performance requests sent
 /// through the public /request form, for the members, and their answer (Admin, Owner).
 /// </summary>
 public interface IRequestAdminService

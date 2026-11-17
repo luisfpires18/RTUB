@@ -22,10 +22,4 @@ public interface ISongVideoStorageService
     /// <param name="videoUrl">Public URL of the video to delete</param>
     Task DeleteVideoAsync(string videoUrl);
 
-    /// <summary>
-    /// Checks if a video exists in R2 storage
-    /// </summary>
-    /// <param name="videoUrl">Public URL of the video</param>
-    /// <returns>True if video exists, false otherwise</returns>
-    Task<bool> VideoExistsAsync(string videoUrl);
 }

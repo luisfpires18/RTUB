@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /documentation ("Documentação", React track 022; was the Blazor Documentation.razor). Documents
+// Contracts of the React /documentation ("Documentação", React track 022). Documents
 // live only in storage (docs/{environment}/{fiscal year}/{folder}/{file}); no table. Storage keys never leave the server:
 // a document is named by its fiscal year, folder and file name, and the server checks all three against the listing.
 

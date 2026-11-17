@@ -80,7 +80,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
           : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
 
 /**
- * /questions - Perguntas aos Órgãos Sociais (task 031; was the Blazor page). Any signed-in member asks a question to
+ * /questions - Perguntas aos Órgãos Sociais. Any signed-in member asks a question to
  * whoever holds a position in the Órgãos Sociais; the two then take turns replying. The author closes, deletes, or
  * reminds the recipient while the answer is pending.
  */

@@ -65,7 +65,7 @@ const fileSize = (bytes: number) =>
 const count = (n: number) => `${n} ${n === 1 ? 'documento' : 'documentos'}`;
 
 /**
- * /documentation - Documentação (React track 022; was the Blazor page). Signed-in members, Leitões excepted. The
+ * /documentation - Documentação. Signed-in members, Leitões excepted. The
  * folders of one fiscal year (the current one by default) the member may see, the first one open; search over folder
  * and file names; download. Any member uploads into a folder; Owner creates and deletes folders and deletes documents.
  */

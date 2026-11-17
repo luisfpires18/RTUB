@@ -7,10 +7,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface IEventContactService
 {
-    /// <summary>
-    /// Gets all contacts for a given event.
-    /// </summary>
-    Task<IEnumerable<EventContact>> GetContactsByEventIdAsync(int eventId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a specific contact by event and user.

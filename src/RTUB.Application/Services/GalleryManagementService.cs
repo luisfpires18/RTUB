@@ -12,7 +12,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /member/gallery management behind the React /gallery (React track 015, docs/react-gallery.md).
+/// The management side of the React /gallery (React track 015, docs/react-gallery.md).
 /// Same behaviour, rules now server-side:
 /// - any signed-in member uploads an image or a video (by its type; images ≤10 MB, videos ≤100 MB or
 ///   GalleryMedia:MaxVideoSize), with a title (≤200), a date, members-only (the default) or public, and who appears;

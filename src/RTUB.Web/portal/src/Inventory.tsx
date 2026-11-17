@@ -103,7 +103,7 @@ function Thumb({ url, size }: { url: string | null; size: number }) {
 }
 
 /**
- * /inventory - Instrumentos (React track 020; was the Blazor page). Signed-in members only. Every instrument of the
+ * /inventory - Instrumentos. Signed-in members only. Every instrument of the
  * RTUB by name, with the old counters, search (name, type, brand) and type / condition filters; a card opens its
  * details. Mod, Admin and Owner add, edit (image included) and delete.
  */

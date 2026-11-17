@@ -44,11 +44,6 @@ public class RequestService : IRequestService
         return await _requestRepository.GetAllAsync();
     }
 
-    public async Task<IEnumerable<Request>> GetPendingRequestsAsync()
-    {
-        return await _requestRepository.GetByStatusAsync(RequestStatus.Pending);
-    }
-
     public async Task<Request> CreateRequestAsync(string name, string email, string phone, string eventType, DateTime preferredDate, string location, string message)
     {
         var request = Request.Create(name, email, phone, eventType, preferredDate, location, message);

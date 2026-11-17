@@ -32,16 +32,6 @@ public class TransactionService : ITransactionService
         _activityService = activityService;
     }
 
-    public async Task<Transaction?> GetTransactionByIdAsync(int id)
-    {
-        return await _transactionRepository.GetByIdAsync(id);
-    }
-
-    public async Task<IEnumerable<Transaction>> GetAllTransactionsAsync()
-    {
-        return await _transactionRepository.GetAllAsync();
-    }
-
     public async Task<IEnumerable<Transaction>> GetTransactionsByActivityIdAsync(int activityId)
     {
         return await _transactionRepository.GetTransactionsByActivityIdAsync(activityId);

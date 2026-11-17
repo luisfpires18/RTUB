@@ -9,7 +9,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /member/map behind the React /members/map (task 032, docs/react-member-area.md). Same data and rules:
+/// The React /members/map (task 032, docs/react-member-area.md). Same data and rules:
 /// - every account, as before (expelled accounts included; a follow-up decides whether they should be);
 /// - grouped by the profile's city text, trimmed and case-insensitive;
 /// - a city's coordinates come only from the geocoding cache (<see cref="IGeocodingService"/>): a city not cached yet

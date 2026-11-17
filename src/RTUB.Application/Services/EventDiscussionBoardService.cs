@@ -12,7 +12,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /events/{id}/discussion behind the React page (React track 013, docs/react-events.md).
+/// The React event discussion page (React track 013, docs/react-events.md).
 /// Same rules, now enforced here instead of only hidden in the UI:
 /// - any signed-in member reads, posts, comments (not on a locked post) and offers a lift;
 /// - authors edit their own posts, comments and lift offers;

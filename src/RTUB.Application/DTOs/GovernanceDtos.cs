@@ -1,7 +1,7 @@
 namespace RTUB.Application.DTOs;
 
 // Contracts of the public Órgãos Sociais page (React track 008, docs/react-portal-pilot.md). Built
-// for anonymous readers: what the Blazor /roles already showed publicly (nickname, first and last
+// for anonymous readers: only the public fields (nickname, first and last
 // name, profile photo, position) and nothing else. No user id, email, phone, birth date, notes,
 // audit field or EF entity leaves the server.
 
@@ -23,7 +23,7 @@ public sealed record GovernancePositionDto(string Title, IReadOnlyList<Governanc
 /// </summary>
 public sealed record GovernanceMemberDto(string DisplayName, string? FullName, string? AvatarUrl);
 
-// Management of the Órgãos Sociais (React track 016; was the Blazor /member/roles). Mod, Admin and Owner only
+// Management of the Órgãos Sociais (React track 016). Mod, Admin and Owner only
 // (GovernanceAuthorization); still no email, phone, birth date, note or audit field.
 
 /// <summary>

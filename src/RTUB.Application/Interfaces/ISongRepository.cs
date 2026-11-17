@@ -9,19 +9,6 @@ namespace RTUB.Application.Interfaces;
 public interface ISongRepository : IRepository<Song>
 {
     /// <summary>
-    /// Gets a song by ID with YouTubeUrls included
-    /// </summary>
-    /// <param name="id">Song ID</param>
-    /// <returns>Song with YouTubeUrls, or null if not found</returns>
-    Task<Song?> GetSongByIdWithUrlsAsync(int id);
-
-    /// <summary>
-    /// Gets all songs with album information included
-    /// </summary>
-    /// <returns>Collection of songs with album data</returns>
-    Task<IEnumerable<Song>> GetAllSongsWithAlbumAsync();
-
-    /// <summary>
     /// Gets songs by album ID ordered by track number
     /// </summary>
     /// <param name="albumId">Album ID filter</param>

@@ -12,8 +12,6 @@
 // '/'. Existing clients therefore hold private HTML on disk. The activate handler
 // deletes every `rtub-` cache outside the current set, so bumping the version is what
 // actually purges those entries from installed clients.
-// v2.8.0 (task 037): the Blazor host is gone, so its framework script left the precache list;
-// the bump drops the copy older workers stored.
 // v2.9.0 (task 046): new RTUB logo under the same /icons/* URLs. Images are cache-first here and never revalidated,
 // so only a new IMAGE_CACHE / STATIC_CACHE name stops installed apps showing the old design.
 // v2.10.0 (#226 F09 / F15): the 192 / 512 icons were recompressed (same picture, ~85% smaller) and hashed portal assets

@@ -113,49 +113,6 @@ public class RequestServiceTests
     }
 
     [Fact]
-    public async Task GetPendingRequestsAsync_OnlyReturnsPending()
-    {
-        // Arrange
-        var pendingRequests = new List<Request>
-        {
-            Request.Create("John1", "john1@test.com", "111", "Wedding", DateTime.Now.AddDays(30), "Venue1", "Msg1"),
-            Request.Create("John3", "john3@test.com", "333", "Concert", DateTime.Now.AddDays(32), "Venue3", "Msg3")
-        };
-        _mockRequestRepository.Setup(r => r.GetByStatusAsync(RequestStatus.Pending))
-            .ReturnsAsync(pendingRequests);
-
-        // Act
-        var result = await _requestService.GetPendingRequestsAsync();
-
-        // Assert
-        result.Should().HaveCount(2);
-        result.Should().OnlyContain(r => r.Status == RequestStatus.Pending);
-    }
-
-    [Fact]
-    public async Task GetPendingRequestsAsync_OrdersByPreferredDate()
-    {
-        // Arrange
-        var requests = new List<Request>
-        {
-            Request.Create("John1", "john1@test.com", "111", "Wedding", DateTime.Now.AddDays(35), "Venue1", "Msg1"),
-            Request.Create("John2", "john2@test.com", "222", "Festival", DateTime.Now.AddDays(30), "Venue2", "Msg2"),
-            Request.Create("John3", "john3@test.com", "333", "Concert", DateTime.Now.AddDays(32), "Venue3", "Msg3")
-        }.OrderBy(r => r.PreferredDate).ToList();
-
-        _mockRequestRepository.Setup(r => r.GetByStatusAsync(RequestStatus.Pending))
-            .ReturnsAsync(requests);
-
-        // Act
-        var result = (await _requestService.GetPendingRequestsAsync()).ToList();
-
-        // Assert
-        result[0].Name.Should().Be("John2"); // Earliest date
-        result[1].Name.Should().Be("John3");
-        result[2].Name.Should().Be("John1"); // Latest date
-    }
-
-    [Fact]
     public async Task SetRequestDateRangeAsync_SetsEndDate()
     {
         // Arrange

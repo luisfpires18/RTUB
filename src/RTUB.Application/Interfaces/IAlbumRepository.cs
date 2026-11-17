@@ -54,13 +54,6 @@ public interface IAlbumRepository : IRepository<Album>
     Task RemoveAlbumAccessAsync(int albumId, string userId, bool saveChanges = true);
 
     /// <summary>
-    /// Removes all access entries for an album
-    /// </summary>
-    /// <param name="albumId">The album ID</param>
-    /// <param name="saveChanges">Whether to save changes immediately</param>
-    Task RemoveAllAlbumAccessAsync(int albumId, bool saveChanges = true);
-
-    /// <summary>
     /// Checks if a user has access to an album
     /// </summary>
     /// <param name="albumId">The album ID</param>

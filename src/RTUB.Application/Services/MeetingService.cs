@@ -62,109 +62,6 @@ public class MeetingService : IMeetingService
             .PaginateAsync(pageNumber, pageSize);
     }
 
-    public async Task<Meeting?> GetMeetingByIdAsync(int id, string userId)
-    {
-        await using var ctx = _contextFactory.CreateDbContext();
-        var meeting = await ctx.Meetings
-            .AsNoTracking()
-            .Include(m => m.Organizer)
-            .Include(m => m.TunoRepresentative)
-            .FirstOrDefaultAsync(m => m.Id == id);
-
-        if (meeting == null)
-            return null;
-
-        // Task 075: Owner sees every type (the ata matrix gives Owner every body's atas, so the meetings must be reachable).
-        if (await IsOwnerAsync(ctx, userId))
-            return meeting;
-
-        // Load user once and cache for visibility checks
-        ApplicationUser? user = null;
-
-        // Check if user has permission to view this meeting
-        if (meeting.Type == MeetingType.ConselhoVeteranos)
-        {
-            user = await ctx.Users
-                .AsNoTracking()
-                .Where(u => u.Id == userId)
-                .FirstOrDefaultAsync();
-
-            if (user == null)
-                return null;
-
-            // Use CurrentRole property instead of Categories to avoid JSON deserialization issues
-            var role = user.CurrentRole;
-            var hasMagisterPosition = user.Positions != null &&
-                (user.Positions.Contains(Position.Magister) || user.Positions.Contains(Position.PresidenteConselhoVeteranos)); // 075: the CV president too
-
-            // Allow CV meetings for Veterans, Tunossauros, and Magister position holders
-            if (role != "VETERANO" && role != "TUNOSSAURO" && !hasMagisterPosition)
-                return null;
-        }
-
-        // Check if user is Leitão trying to access Assembleia Geral meetings
-        if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria ||
-            meeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
-        {
-            // Reuse cached user if already loaded
-            if (user == null)
-            {
-                user = await ctx.Users
-                    .AsNoTracking()
-                    .Where(u => u.Id == userId)
-                    .FirstOrDefaultAsync();
-            }
-
-            if (user != null && user.IsLeitao())
-                return null;
-        }
-
-        // Check if user has permission to view Direção meetings
-        if (meeting.Type == MeetingType.ReuniaoDirecao)
-        {
-            if (user == null)
-            {
-                user = await ctx.Users
-                    .AsNoTracking()
-                    .Where(u => u.Id == userId)
-                    .FirstOrDefaultAsync();
-            }
-
-            if (user == null)
-                return null;
-
-            var hasDirecaoPosition = user.Positions != null &&
-                (user.Positions.Contains(Position.Magister) ||
-                 user.Positions.Contains(Position.ViceMagister) ||
-                 user.Positions.Contains(Position.Secretario) ||
-                 user.Positions.Contains(Position.PrimeiroTesoureiro) ||
-                 user.Positions.Contains(Position.SegundoTesoureiro));
-
-            if (!hasDirecaoPosition)
-            {
-                // Check if user is Admin with Tuno category
-                var isAdminTuno = false;
-                if (user.IsTuno())
-                {
-                    var adminRoleId = await ctx.Roles
-                        .Where(r => r.Name == "Admin")
-                        .Select(r => r.Id)
-                        .FirstOrDefaultAsync();
-                    if (adminRoleId != null)
-                    {
-                        isAdminTuno = await ctx.UserRoles
-                            .AnyAsync(ur => ur.UserId == userId && ur.RoleId == adminRoleId);
-                    }
-                }
-
-                if (!isAdminTuno)
-                    return null;
-            }
-        }
-
-        return meeting;
-    }
-
     public async Task<Meeting> CreateMeetingAsync(Meeting meeting)
     {
         var createdMeeting = await _meetingRepository.AddAsync(meeting);
@@ -221,27 +118,6 @@ public class MeetingService : IMeetingService
         var meeting = await _meetingRepository.GetByIdOrThrowAsync(id);
 
         await _meetingRepository.DeleteAsync(meeting);
-    }
-
-    public async Task<int> GetTotalCountAsync(string? searchTerm, string userId)
-    {
-        await using var ctx = _contextFactory.CreateDbContext();
-        var query = ctx.Meetings
-            .AsNoTracking()
-            .AsQueryable();
-
-        // Apply visibility filtering for Veterano meetings
-        query = await ApplyVeteranoFilterAsync(ctx, query, userId);
-
-        // Apply search filter
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            query = query.Where(m =>
-                m.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                m.Statement.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
-        }
-
-        return await query.CountAsync();
     }
 
     /// <summary>

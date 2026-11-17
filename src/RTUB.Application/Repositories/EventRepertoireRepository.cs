@@ -91,17 +91,6 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
             .AnyAsync(er => er.EventId == eventId && er.SongId == songId && er.RepertoireDate.Date == dateOnly);
     }
 
-    public async Task<EventRepertoire?> GetRepertoireItemWithDetailsAsync(int id)
-    {
-        using var context = CreateContext();
-        return await context.Set<EventRepertoire>()
-            .AsNoTracking()
-            .Include(er => er.Song)
-                .ThenInclude(s => s!.Album)
-            .Include(er => er.Event)
-            .FirstOrDefaultAsync(er => er.Id == id);
-    }
-
     public async Task<IEnumerable<DateTime>> GetRepertoireDatesAsync(int eventId)
     {
         using var context = CreateContext();

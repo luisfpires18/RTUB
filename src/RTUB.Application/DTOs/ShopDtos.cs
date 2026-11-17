@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /shop ("Loja RTUB", React track 021; was the Blazor Shop.razor). Signed-in members only, as
+// Contracts of the React /shop ("Loja RTUB", React track 021). Signed-in members only, as
 // before. A reservation's member id never leaves the server; Admin/Owner see the username the old page showed.
 
 /// <summary>

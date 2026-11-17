@@ -158,7 +158,7 @@ const fullIndex = (list: List, visible: number[], index: number, dragged: number
 };
 
 /**
- * /logistics/{id} - one board (React track 023; was the Blazor page). Lists side by side in a horizontal scroll, cards
+ * /logistics/{id} - one board. Lists side by side in a horizontal scroll, cards
  * by position with a coloured status (TODO red, WIP yellow, DONE green), labels, dates, checklist progress and counts.
  * Search, status, label and "Só os meus" filters stay in a sticky bar. Mod, Admin and Owner manage everything and drag
  * cards between lists (or use "Mover…"); every member (Leitões too, task 065) opens any card to read it, and the members

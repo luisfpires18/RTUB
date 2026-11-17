@@ -19,7 +19,7 @@ const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 /**
- * /members/map (task 032; was the Blazor /member/map). Members by the city on their profile, one marker per city that
+ * /members/map. Members by the city on their profile, one marker per city that
  * the geocoding cache already knows; the others wait for the background worker and are listed below. City-level
  * only: nobody's address or own position is ever on this page. Signed-in members only.
  */

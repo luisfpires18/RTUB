@@ -86,36 +86,6 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
             || (_referenceStorage != null && await _referenceStorage.ObjectExistsAsync(documentPath));
     }
 
-    public async Task<List<string>> ListFoldersAsync(string prefix = "docs/")
-    {
-        try
-        {
-            // Add environment to prefix (e.g., "docs/" becomes "docs/Production/" or "docs/Development/")
-            var environmentPrefix = $"{prefix}{_environment}/";
-
-            var commonPrefixes = await ListCommonPrefixesAsync(environmentPrefix);
-
-            // Extract folder names from prefixes
-            var folders = new List<string>();
-            foreach (var commonPrefix in commonPrefixes)
-            {
-                // Extract folder name from prefix (e.g., "docs/Production/General/" -> "General")
-                var folderName = commonPrefix.TrimEnd('/').Substring(environmentPrefix.Length);
-                if (!string.IsNullOrEmpty(folderName))
-                {
-                    folders.Add(folderName);
-                }
-            }
-
-            return folders;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error listing folders");
-            return [];
-        }
-    }
-
     public async Task<List<string>> ListSubfoldersAsync(string folderPath)
     {
         try

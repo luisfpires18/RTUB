@@ -34,16 +34,6 @@ public interface IAuditLogService
         bool? criticalOnly = null);
 
     /// <summary>
-    /// Gets audit logs for a specific entity
-    /// </summary>
-    Task<IEnumerable<AuditLog>> GetEntityHistoryAsync(string entityType, int entityId);
-
-    /// <summary>
-    /// Searches audit logs by changes content or entity name (#220)
-    /// </summary>
-    Task<IEnumerable<AuditLog>> SearchChangesAsync(string searchTerm, int page = 1, int pageSize = 100);
-
-    /// <summary>
     /// Gets distinct entity types from audit logs
     /// </summary>
     Task<IEnumerable<string>> GetEntityTypesAsync();

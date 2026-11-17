@@ -15,7 +15,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /member/roles behind the React /roles (React track 016, docs/react-governance.md). Same behaviour,
+/// The React /roles (React track 016, docs/react-governance.md). Same behaviour,
 /// rules now server-side (<see cref="GovernanceAuthorization"/>):
 /// - fiscal years: create one from 1991 up to the current one, never twice, never in the future; no edit or delete
 ///   (the old page had neither);

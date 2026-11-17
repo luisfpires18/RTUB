@@ -7,8 +7,8 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /treasury pages ("Tesouraria", React track 024, docs/react-treasury.md; were the Blazor /finance,
-/// /finance/report/{id}, /calotes, /mbway and /nerba pages). Thin: every rule lives in <see cref="ITreasuryService"/> and
+/// The React /treasury pages ("Tesouraria": reports, calotes, MBWay, Nerba; docs/react-treasury.md).
+/// Thin: every rule lives in <see cref="ITreasuryService"/> and
 /// <see cref="ITreasuryRecordsService"/>, decided from the session. Signed-in members only; every write needs the
 /// antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>

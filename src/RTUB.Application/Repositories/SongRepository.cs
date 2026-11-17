@@ -15,25 +15,6 @@ public class SongRepository : Repository<Song>, ISongRepository
     {
     }
 
-    public async Task<Song?> GetSongByIdWithUrlsAsync(int id)
-    {
-        using var context = CreateContext();
-        return await context.Set<Song>()
-            .AsNoTracking()
-            .Include(s => s.YouTubeUrls)
-            .FirstOrDefaultAsync(s => s.Id == id);
-    }
-
-    public async Task<IEnumerable<Song>> GetAllSongsWithAlbumAsync()
-    {
-        using var context = CreateContext();
-        return await context.Set<Song>()
-            .AsNoTracking()
-            .Include(s => s.Album)
-            .Include(s => s.YouTubeUrls)
-            .ToListAsync();
-    }
-
     public async Task<IEnumerable<Song>> GetSongsByAlbumIdAsync(int albumId)
     {
         using var context = CreateContext();

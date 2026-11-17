@@ -77,16 +77,4 @@ public class CloudflareSongVideoStorageService : BaseCloudflareStorageService<Cl
         }
     }
 
-    public async Task<bool> VideoExistsAsync(string videoUrl)
-    {
-        if (string.IsNullOrEmpty(videoUrl))
-            return false;
-
-        var objectKey = ExtractObjectKeyFromUrl(videoUrl);
-        if (string.IsNullOrEmpty(objectKey))
-            return false;
-
-        return await ObjectExistsAsync(objectKey);
-    }
-
 }

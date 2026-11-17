@@ -16,12 +16,12 @@ const seasonOf = (d: Date) => {
 
 function filtersFromUrl() {
   const p = new URLSearchParams(location.search);
-  // ?fy= was the Blazor page's season filter; old links keep working.
+  // ?fy= is the legacy season filter; old links keep working.
   return { season: p.get('season') ?? p.get('fy') ?? seasonOf(new Date()), q: p.get('q') ?? '' };
 }
 
 /**
- * /rehearsals - Ensaios (React track 014; was a Blazor page). Signed-in members only. The next rehearsals with the
+ * /rehearsals - Ensaios. Signed-in members only. The next rehearsals with the
  * member's presença and a quick reply, then the past ones by season. Rehearsals speak of presenças; a "vou" stays
  * pending until Admin/Owner confirms it after the rehearsal. Admin/Owner add rehearsals here and manage each on its page.
  */

@@ -16,7 +16,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// What the Blazor /emails, /notifications, /users, /owner/tracing and /owner/db pages did, behind the React Owner tools
+/// The work behind the React Owner tools /emails, /notifications, /users, /owner/tracing and /owner/db
 /// (task 035, docs/react-owner-operations.md). The same services do the work (email sender, push sender, audit log,
 /// database viewer, member status sync); what was only checked in the browser before (lengths, required fields, the SQL
 /// rules, the "DELETE ALL" confirmation) is checked here. Owner only: the endpoints refuse everyone else first.

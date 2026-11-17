@@ -141,41 +141,6 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
 
     #region GetByFiscalYearAsync Tests
 
-    [Fact]
-    public async Task GetByFiscalYearAsync_ReturnsOnlyMatchingTransfers()
-    {
-        // Arrange
-        var user = await CreateTestUser();
-        var fy = FiscalYear.Create(2025, 2026);
-        _context.FiscalYears.Add(fy);
-        await _context.SaveChangesAsync();
-
-        var withFy = new MbwayTransfer
-        {
-            Date = DateTime.UtcNow,
-            Amount = 50.00m,
-            MemberUserId = user.Id,
-            TransferTo = "FY Recipient",
-            FiscalYearId = fy.Id
-        };
-        var withoutFy = new MbwayTransfer
-        {
-            Date = DateTime.UtcNow,
-            Amount = 30.00m,
-            MemberUserId = user.Id,
-            TransferTo = "No FY Recipient"
-        };
-        _context.MbwayTransfers.AddRange(withFy, withoutFy);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _service.GetByFiscalYearAsync(fy.Id);
-
-        // Assert
-        result.Should().HaveCount(1);
-        result.First().Amount.Should().Be(50.00m);
-    }
-
     #endregion
 
     #region AddTransferAsync Tests

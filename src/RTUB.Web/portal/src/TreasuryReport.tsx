@@ -26,7 +26,7 @@ const when = (a: Activity) =>
   a.endDate && isoDay(a.endDate) !== isoDay(a.startDate) ? `${day(a.startDate)} - ${day(a.endDate)}` : day(a.startDate);
 
 /**
- * /treasury/reports/{id} - one annual report (React track 024; was the Blazor /finance/report/{id}). Treasury members:
+ * /treasury/reports/{id} - one annual report. Treasury members:
  * money totals, activities with their transactions and receipts, PDF. Managers (Admin, Owner, treasury-team Mod) edit
  * bank / cash, activities and transactions of a draft, and lock / unlock activities; Admin and Owner see the history.
  */

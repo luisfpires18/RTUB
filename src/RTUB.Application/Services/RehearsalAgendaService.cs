@@ -13,7 +13,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /rehearsals for members, behind the React pages (React track 014, docs/react-rehearsals.md).
+/// The member side of the React /rehearsals pages (React track 014, docs/react-rehearsals.md).
 /// Reads Rehearsals and RehearsalAttendances; no schema change. Rules, as the old page:
 /// - a rehearsal is past once its day is before today; presenças can be approved once it is past, or today
 ///   when it starts at 21:00 or later (every real rehearsal starts at 21:30);
@@ -177,7 +177,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
             instrument = offered;
         }
 
-        // As the Blazor page did: the member's other instruments, by display name.
+        // The member's other instruments, by display name.
         var others = instrument is { } chosen
             ? string.Join(", ", context.Registered.Where(i => i != chosen).Select(StatusHelper.GetInstrumentDisplay))
             : null;

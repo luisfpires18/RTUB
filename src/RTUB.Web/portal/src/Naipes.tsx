@@ -31,7 +31,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
 type Editing = { kind: 'new'; isVideo: boolean } | { kind: 'edit'; item: NaipeItem };
 
 /**
- * /naipes (task 033; was the Blazor page). Each instrument's teaching videos and images: pick an instrument, search,
+ * /naipes. Each instrument's teaching videos and images: pick an instrument, search,
  * open one to watch it and comment. Any member adds content and edits or deletes what they added; Admin and Owner
  * manage everything and the instrument settings (/naipes/config). The server decides every rule (NaipeBoardService).
  */
