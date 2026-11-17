@@ -58,6 +58,10 @@ public interface IMusicService
     Task<MusicResult<bool>> NotifyPlayAlongAsync(int songId, MusicLearnNoticeInput? input, ClaimsPrincipal user);
 
     /// <summary>The song's play-along chart, for signed-in members who can see its album (task 094).</summary>
+    Task<MusicResult<bool>> RecordPlayAlongViewAsync(int songId, ClaimsPrincipal user);
+
+    Task<MusicResult<bool>> SetPlayAlongStarAsync(int songId, bool starred, ClaimsPrincipal user);
+
     Task<MusicResult<MusicPlayAlongDto>> GetPlayAlongAsync(int songId, ClaimsPrincipal user);
 
     /// <summary>Stores or replaces the chart after validating it; same rule as editing the song.</summary>

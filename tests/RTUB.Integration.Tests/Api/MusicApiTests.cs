@@ -537,6 +537,37 @@ public class MusicApiTests : IClassFixture<MusicApiFactory>
     }
 
     [Fact]
+    public async Task LearnList_CountsViews_AndKeepsEachMembersStars()
+    {
+        var seed = await SeedAsync();
+        var (member, _) = await SignInAsync("Member");
+        var (other, _) = await SignInAsync("Member");
+        var (owner, _) = await SignInAsync("Owner");
+        await WithTokenAsync(owner);
+        await WithTokenAsync(member);
+        await WithTokenAsync(other);
+        (await owner.PutAsJsonAsync($"/api/music/songs/{seed.SongWithPdf}/playalong", Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var song = $"/api/music/songs/{seed.SongWithPdf}/playalong";
+
+        async Task<JsonElement> Mine(HttpClient c) => (await c.GetFromJsonAsync<JsonElement>("/api/music/playalongs"))
+            .GetProperty("songs").EnumerateArray().Single(s => s.GetProperty("songId").GetInt32() == seed.SongWithPdf);
+
+        (await member.PostAsync(song + "/view", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await other.PostAsync(song + "/view", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await member.PutAsync(song + "/star", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await member.PutAsync(song + "/star", null)).StatusCode.Should().Be(HttpStatusCode.NoContent, "starring twice is harmless");
+
+        var mineA = await Mine(member);
+        mineA.GetProperty("views").GetInt32().Should().Be(2);
+        mineA.GetProperty("starred").GetBoolean().Should().BeTrue();
+        (await Mine(other)).GetProperty("starred").GetBoolean().Should().BeFalse("a star is the member's own");
+
+        (await member.DeleteAsync(song + "/star")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await Mine(member)).GetProperty("starred").GetBoolean().Should().BeFalse();
+        (await member.PostAsync($"/api/music/songs/{seed.SongWithText}/playalong/view", null)).StatusCode.Should().Be(HttpStatusCode.NotFound, "no chart, no view");
+    }
+
+    [Fact]
     public async Task LearnNotice_IsSentByTheOwnerOnly_ForASongWithAChart()
     {
         var seed = await SeedAsync();
