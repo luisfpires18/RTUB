@@ -25,7 +25,8 @@ Task 114 (`chore/114/split-csharp-files`, on top of 113): phase 5, C# under `src
 partial classes by topic, `Program.cs` → `Extensions/*Extensions.cs`, `ServiceCollectionExtensions` partials. Two stay
 over 300 (one method each): `Data/SeedData.Member.cs` (766, a 701-line seed method sharing ~75 locals) and
 `Services/AtaPdfService.cs` (447, a 344-line PDF method).
-Planned next: 6 test files over 300 lines (lowest priority).
+Task 115 (`chore/115/split-test-files`, on top of 114): phase 6, every test file at most 300 lines (partial test
+classes by topic, one class per file); test count unchanged (4175).
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not

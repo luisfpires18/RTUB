@@ -111,7 +111,7 @@ counts need at least one. No winner: "Sem dados suficientes".
 
 ## Tests
 
-`Integration.Tests/Api/MemberAreaApiTests.cs`; routes in `PortalRouteTests` and `MemberPagesTests`; menu contract in
+`Integration.Tests/Api/` (`ProfileApiTests`, `MembersMapApiTests`, `HallOfFameApiTests`, `MemberAreaRetirementTests`); routes in `PortalRouteTests` and `MemberPagesTests`; menu contract in
 `MemberShellTests`; the map's popup contract in `ContentSecurityPolicyTests`.
 
 ## Follow-ups
