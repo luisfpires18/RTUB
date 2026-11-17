@@ -46,7 +46,7 @@ public class BlazorHostRetirementTests : IntegrationTestBase
     public void Startup_NoLongerHostsBlazor()
     {
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web");
-        var startup = File.ReadAllText(Path.Combine(src, "Program.cs")) + File.ReadAllText(Path.Combine(src, "Extensions", "ServiceCollectionExtensions.cs"));
+        var startup = File.ReadAllText(Path.Combine(src, "Program.cs")) + string.Concat(Directory.GetFiles(Path.Combine(src, "Extensions"), "*.cs").OrderBy(f => f).Select(File.ReadAllText));
 
         startup.Should().NotContainAny("MapRazorComponents", "AddRazorComponents", "AddInteractiveServerComponents",
             "AddInteractiveServerRenderMode", "AddCascadingAuthenticationState", "ServerAuthenticationStateProvider",
