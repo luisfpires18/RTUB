@@ -75,7 +75,7 @@ public partial class DocumentationApiTests : IClassFixture<DocumentationApiFacto
         Seed();
         var before = Storage.Objects.Keys.OrderBy(k => k).ToList();
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         (await anonymous.GetAsync("/api/documentation")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await anonymous.GetAsync($"/api/documentation/file?folder=Regulamentos&name=Estatutos.pdf")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await anonymous.PostAsJsonAsync("/api/documentation/folders", new { name = "Nova" })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -105,7 +105,7 @@ public partial class DocumentationApiTests : IClassFixture<DocumentationApiFacto
         Seed();
         var (leitao, me) = await SignInAsync();
         await UpdateAsync(me.Id, u => u.Categories = new List<MemberCategory> { MemberCategory.Leitao });
-        await WithTokenAsync(leitao);
+        await AreaHttp.WithTokenAsync(leitao);
 
         (await leitao.GetAsync("/api/documentation")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await leitao.GetAsync("/api/documentation/file?folder=Regulamentos&name=Estatutos.pdf")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -135,25 +135,10 @@ public partial class DocumentationApiTests : IClassFixture<DocumentationApiFacto
         return new MultipartFormDataContent { { new StringContent(folder), "folder" }, { content, "file", fileName } };
     }
 
-    private static async Task<JsonElement> Json(HttpClient client, string path)
-    {
-        var response = await client.GetAsync(path);
-        response.StatusCode.Should().Be(HttpStatusCode.OK, path);
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
     private static async Task<JsonElement> Json(HttpResponseMessage response)
     {
         response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
         return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
-    private static async Task<Dictionary<string, string[]>> Errors(HttpResponseMessage response)
-    {
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return body.GetProperty("errors").EnumerateObject()
-            .ToDictionary(p => p.Name, p => p.Value.EnumerateArray().Select(v => v.GetString()!).ToArray());
     }
 
     private async Task UpdateAsync(string userId, Action<ApplicationUser> change)
@@ -183,17 +168,5 @@ public partial class DocumentationApiTests : IClassFixture<DocumentationApiFacto
         return CookieTestSession.SignInAsync(_factory, $"doc{Guid.NewGuid():N}"[..20], $"10.91.{n / 250}.{n % 250 + 1}", role);
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.92.0.1");
-        return client;
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.92.0.1");
 }

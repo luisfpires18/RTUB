@@ -16,7 +16,7 @@ public partial class PendingActionsApiTests
     public async Task Logistics_ShowsOnlyTheMembersOwnOpenCardsOnBoardsTheySee_AndConcluirIsTheBoardsOwnMove()
     {
         var (member, me) = await SignInAsync([MemberCategory.Leitao], retired: false); // own work: Leitões too
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (_, other) = await SignInAsync([MemberCategory.Tuno], retired: false);
         var board = await SeedBoardAsync(withDone: true);
         var owned = await AddCardAsync(board.Todo, "Comprar cordas", owner: me.Id);
@@ -58,7 +58,7 @@ public partial class PendingActionsApiTests
     public async Task Logistics_ABoardWithoutADoneColumn_RefusesHonestly_AndTheCardStays()
     {
         var (member, me) = await SignInAsync([MemberCategory.Tuno], retired: false);
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var board = await SeedBoardAsync(withDone: false);
         var card = await AddCardAsync(board.Todo, "Sem coluna feita", owner: me.Id);
 
@@ -72,8 +72,8 @@ public partial class PendingActionsApiTests
         var (author, me) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.Secretario]);
         var (recipient, them) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.Magister]);
         var (plain, _) = await SignInAsync([MemberCategory.Tuno], retired: false);
-        await WithTokenAsync(author);
-        await WithTokenAsync(recipient);
+        await AreaHttp.WithTokenAsync(author);
+        await AreaHttp.WithTokenAsync(recipient);
         (await plain.GetAsync("/api/pending-actions/panels/questions")).StatusCode.Should().Be(HttpStatusCode.NotFound,
             "Questões is the Direção's panel (087)");
         var mine = await AddQuestionAsync(me.Id, them.Id, "Quando é o jantar?");

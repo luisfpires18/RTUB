@@ -18,7 +18,7 @@ public partial class MusicApiTests
         var (owner, _) = await SignInAsync("Owner");
         var (member, _) = await SignInAsync("Member");
         var visitor = await AnonymousAsync();
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         var url = $"/api/music/songs/{seed.SongWithPdf}/playalong";
 
         (await member.GetAsync(url)).StatusCode.Should().Be(HttpStatusCode.NotFound, "the song has no chart yet");
@@ -55,8 +55,8 @@ public partial class MusicApiTests
         var url = $"/api/music/songs/{seed.SongWithPdf}/playalong";
 
         (await owner.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.BadRequest, "no antiforgery token");
-        await WithTokenAsync(owner);
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(member);
 
         (await member.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await member.DeleteAsync(url)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -66,7 +66,7 @@ public partial class MusicApiTests
         foreach (var role in new[] { "Mod", "Admin" })
         {
             var (manager, _) = await SignInAsync(role);
-            await WithTokenAsync(manager);
+            await AreaHttp.WithTokenAsync(manager);
             (await manager.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.Forbidden, $"{role} manages songs, not charts");
             (await manager.DeleteAsync(url)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
@@ -82,7 +82,7 @@ public partial class MusicApiTests
         var (owner, _) = await SignInAsync("Owner");
         var visitor = await AnonymousAsync();
         var seed = await SeedAsync(accessFor: listedUser.Id);
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
 
         (await owner.PutAsJsonAsync($"/api/music/songs/{seed.SongWithPdf}/playalong", Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await owner.PutAsJsonAsync($"/api/music/songs/{seed.ExclusiveSong}/playalong", Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -111,9 +111,9 @@ public partial class MusicApiTests
         var (member, _) = await SignInAsync("Member");
         var (other, _) = await SignInAsync("Member");
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
-        await WithTokenAsync(member);
-        await WithTokenAsync(other);
+        await AreaHttp.WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(other);
         (await owner.PutAsJsonAsync($"/api/music/songs/{seed.SongWithPdf}/playalong", Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
         var song = $"/api/music/songs/{seed.SongWithPdf}/playalong";
 
@@ -141,8 +141,8 @@ public partial class MusicApiTests
         var seed = await SeedAsync();
         var (owner, _) = await SignInAsync("Owner");
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(owner);
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(admin);
         var url = $"/api/music/songs/{seed.SongWithPdf}/playalong";
 
         (await owner.DeleteAsync(url)).StatusCode.Should().BeOneOf(HttpStatusCode.NoContent, HttpStatusCode.NotFound);
@@ -162,7 +162,7 @@ public partial class MusicApiTests
         var (other, _) = await SignInAsync("Member");
         var (owner, _) = await SignInAsync("Owner");
         var seed = await SeedAsync(accessFor: listedUser.Id);
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         var url = $"/api/music/songs/{seed.ExclusiveSong}/playalong";
         (await owner.PutAsJsonAsync(url, Chart())).StatusCode.Should().Be(HttpStatusCode.NoContent);
 

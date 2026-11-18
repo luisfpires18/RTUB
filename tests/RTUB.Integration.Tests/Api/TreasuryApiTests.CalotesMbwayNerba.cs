@@ -16,14 +16,14 @@ public partial class TreasuryApiTests
         var (_, debtor) = await SignInAsync(MemberCategory.Caloiro);
         var (_, leitao) = await SignInAsync(MemberCategory.Leitao);
         var (owner, _) = await SignInAsync(null, "Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         _factory.Push.Invocations.Clear();
 
-        (await Errors(await owner.PostAsJsonAsync("/api/treasury/calotes", new { fiscalYear = "1066-1067", userId = debtor.Id, amount = 5 }))).Keys.Should().Equal("fiscalYear");
-        (await Errors(await owner.PostAsJsonAsync("/api/treasury/calotes", new { fiscalYear = Label(fy), userId = leitao.Id, amount = 5 }))).Keys.Should().Equal(new[] { "userId" },
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/treasury/calotes", new { fiscalYear = "1066-1067", userId = debtor.Id, amount = 5 }))).Keys.Should().Equal("fiscalYear");
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/treasury/calotes", new { fiscalYear = Label(fy), userId = leitao.Id, amount = 5 }))).Keys.Should().Equal(new[] { "userId" },
             "the old picker never offered Leitões");
-        (await Errors(await owner.PostAsJsonAsync("/api/treasury/calotes", new { fiscalYear = Label(fy), userId = debtor.Id, amount = 0 }))).Keys.Should().Equal("amount");
-        (await Errors(await owner.PostAsJsonAsync("/api/treasury/calotes", new { fiscalYear = Label(fy), userId = debtor.Id, amount = 5, description = new string('d', 501) })))
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/treasury/calotes", new { fiscalYear = Label(fy), userId = debtor.Id, amount = 0 }))).Keys.Should().Equal("amount");
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/treasury/calotes", new { fiscalYear = Label(fy), userId = debtor.Id, amount = 5, description = new string('d', 501) })))
             .Keys.Should().Equal("description");
 
         var calotes = await Json(await owner.PostAsJsonAsync("/api/treasury/calotes", new { fiscalYear = Label(fy), userId = debtor.Id, amount = 5, description = " Capa " }));
@@ -54,7 +54,7 @@ public partial class TreasuryApiTests
         Group(calotes, debtor.Id).GetProperty("debts").GetArrayLength().Should().Be(1);
 
         var (mod, _) = await SignInAsync(MemberCategory.Tuno, "Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var picks = await mod.GetStringAsync($"/api/treasury/members?q={Uri.EscapeDataString(leitao.Email!)}&forDebts=true");
         picks.Should().Be("[]", "Leitões are not offered for debts");
         picks = await mod.GetStringAsync($"/api/treasury/members?q={Uri.EscapeDataString(debtor.Email!)}&forDebts=true");
@@ -69,12 +69,12 @@ public partial class TreasuryApiTests
     {
         var (_, member) = await SignInAsync(MemberCategory.Tuno);
         var (mod, _) = await SignInAsync(MemberCategory.Tuno, "Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
-        (await Errors(await mod.PostAsJsonAsync("/api/treasury/mbway", new { date = "2026-03-01", amount = 5 }))).Keys.Should().Equal(new[] { "memberUserId" },
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync("/api/treasury/mbway", new { date = "2026-03-01", amount = 5 }))).Keys.Should().Equal(new[] { "memberUserId" },
             "the old service refused a transfer without a member");
-        (await Errors(await mod.PostAsJsonAsync("/api/treasury/mbway", new { date = "2026-03-01", amount = -1, memberUserId = member.Id }))).Keys.Should().Equal("amount");
-        (await Errors(await mod.PostAsJsonAsync("/api/treasury/mbway", new { date = "2026-03-01", amount = 5, memberUserId = member.Id, phone = new string('9', 21) })))
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync("/api/treasury/mbway", new { date = "2026-03-01", amount = -1, memberUserId = member.Id }))).Keys.Should().Equal("amount");
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync("/api/treasury/mbway", new { date = "2026-03-01", amount = 5, memberUserId = member.Id, phone = new string('9', 21) })))
             .Keys.Should().Equal("phone");
         var tag = Guid.NewGuid().ToString("N")[..8];
         var transfers = await Json(await mod.PostAsJsonAsync("/api/treasury/mbway",
@@ -90,8 +90,8 @@ public partial class TreasuryApiTests
         (await mod.DeleteAsync($"/api/treasury/mbway/{id}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         var (owner, _) = await SignInAsync(null, "Owner");
-        await WithTokenAsync(owner);
-        var asOwner = (await Json(owner, "/api/treasury/mbway")).GetProperty("transfers").EnumerateArray().Single(t => t.GetProperty("id").GetInt32() == id);
+        await AreaHttp.WithTokenAsync(owner);
+        var asOwner = (await AreaHttp.Json(owner, "/api/treasury/mbway")).GetProperty("transfers").EnumerateArray().Single(t => t.GetProperty("id").GetInt32() == id);
         asOwner.GetProperty("member").GetProperty("id").GetString().Should().Be(member.Id, "the Owner edits, so the Owner gets the id");
         var edited = (await Json(await owner.PutAsJsonAsync($"/api/treasury/mbway/{id}", new { date = "2026-03-02", amount = 13, memberUserId = member.Id, description = tag })))
             .GetProperty("transfers").EnumerateArray().Single(t => t.GetProperty("id").GetInt32() == id);
@@ -106,15 +106,15 @@ public partial class TreasuryApiTests
     {
         var (eventId, _) = await AddNerbaAsync(days: 3);
         var (admin, _) = await SignInAsync(null, "Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
-        var orders = await Json(admin, $"/api/treasury/nerba/{eventId}");
+        var orders = await AreaHttp.Json(admin, $"/api/treasury/nerba/{eventId}");
         var days = orders.GetProperty("days").EnumerateArray().Select(d => d.GetString()![..10]).ToList();
         days.Should().HaveCount(3);
-        (await Errors(await admin.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = " ", stock = 1, pricePerUnit = 1 }))).Keys.Should().Equal("item");
-        (await Errors(await admin.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = "x", stock = 0, pricePerUnit = 1 }))).Keys.Should().Equal("stock");
-        (await Errors(await admin.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = "x", stock = 1, pricePerUnit = -1 }))).Keys.Should().Equal("pricePerUnit");
-        (await Errors(await admin.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = "x", stock = 1, pricePerUnit = 1, orderDate = "1999-01-01" })))
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = " ", stock = 1, pricePerUnit = 1 }))).Keys.Should().Equal("item");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = "x", stock = 0, pricePerUnit = 1 }))).Keys.Should().Equal("stock");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = "x", stock = 1, pricePerUnit = -1 }))).Keys.Should().Equal("pricePerUnit");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = "x", stock = 1, pricePerUnit = 1, orderDate = "1999-01-01" })))
             .Keys.Should().Equal("orderDate");
 
         orders = await Json(await admin.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = "Copos", type = "Plástico", stock = 3, pricePerUnit = 1.25 }));
@@ -127,7 +127,7 @@ public partial class TreasuryApiTests
         (copos.GetProperty("total").GetDecimal(), copos.GetProperty("orderDate").GetString()![..10]).Should().Be((5m, days[2]));
         copos.GetProperty("type").ValueKind.Should().Be(JsonValueKind.Null);
 
-        var summary = (await Json(admin, "/api/treasury/nerba")).GetProperty("upcoming").EnumerateArray().Single(s => s.GetProperty("event").GetProperty("id").GetInt32() == eventId);
+        var summary = (await AreaHttp.Json(admin, "/api/treasury/nerba")).GetProperty("upcoming").EnumerateArray().Single(s => s.GetProperty("event").GetProperty("id").GetInt32() == eventId);
         (summary.GetProperty("count").GetInt32(), summary.GetProperty("total").GetDecimal()).Should().Be((2, 8m), "Pratos 2 × 1,50 + Copos 4 × 1,25");
 
         var other = await AddEventAsync(EventType.Atuacao);
@@ -152,7 +152,7 @@ public partial class TreasuryApiTests
         (await owner.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = "x", stock = 1, pricePerUnit = 1 })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await DebtsOfAsync(member.Id)).Should().BeEmpty("nothing was written without the token");
 
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         (await owner.PostAsJsonAsync("/api/treasury/calotes", new { fiscalYear = Label(fy), userId = member.Id, amount = 1 })).StatusCode.Should().Be(HttpStatusCode.OK);
         (await owner.PostAsJsonAsync("/api/treasury/mbway", new { date = "2026-01-01", amount = 1, memberUserId = member.Id })).StatusCode.Should().Be(HttpStatusCode.OK);
         (await owner.PostAsJsonAsync($"/api/treasury/nerba/{eventId}/orders", new { item = "x", stock = 1, pricePerUnit = 1 })).StatusCode.Should().Be(HttpStatusCode.OK);

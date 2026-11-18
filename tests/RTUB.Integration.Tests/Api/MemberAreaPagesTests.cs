@@ -8,7 +8,7 @@ public class MemberAreaPagesTests
     [Fact]
     public void ReactPages_AreLinked_AndSayNoMigration()
     {
-        var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var portal = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         var content = File.ReadAllText(Path.Combine(portal, "data/content.ts"));
         content.Should().Contain("membersMap: '/members/map'").And.Contain("hallOfFame: '/hall-of-fame'").And.NotContain("memberProfile");
         File.ReadAllText(Path.Combine(portal, "components/MemberShell.tsx")).Should().Contain("href: portal.membersMap,").And.Contain("href: portal.hallOfFame,");
@@ -29,7 +29,7 @@ public class MemberAreaPagesTests
     [Fact]
     public void ProfilePage_Batch3_HeaderPhotoTunaInfoAndSharedBadge()
     {
-        var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var portal = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         // 113: /profile is the page plus its Profile* parts.
         var profile = PortalSource.Cat(portal, "pages/Profile.tsx", "components/Profile*.tsx");
 
@@ -84,7 +84,7 @@ public class MemberAreaPagesTests
     [Fact]
     public void EventMemberPanel_KeepsDiscussionAndContacts_AndSignedInPagesShareOneWidth()
     {
-        var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var portal = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         var detail = File.ReadAllText(Path.Combine(portal, "components/EventDetailBody.tsx")); // the member panel moved out of the page in 113
         var panel = detail[detail.IndexOf("member-panel__links", StringComparison.Ordinal)..];
         panel = panel[..panel.IndexOf("</aside>", StringComparison.Ordinal)];
@@ -103,7 +103,7 @@ public class MemberAreaPagesTests
     [Fact]
     public void Messages_OnPhones_IsAnAppScreen_WithoutTheSiteFooter()
     {
-        var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal");
+        var portal = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal");
         File.ReadAllText(Path.Combine(portal, "src", "pages/Messages.tsx")).Should().Contain("classList.add('app-screen')").And.Contain("classList.remove('app-screen')");
         var css = PortalCss.Read(Path.Combine(portal, "src"));
         css.Should().Contain("html.app-screen .footer").And.Contain("100dvh", "dynamic viewport units, not 100vh");
@@ -113,7 +113,7 @@ public class MemberAreaPagesTests
     [Fact]
     public void Messages_FillTheViewportOnDesktop_AndSystemWearsThePortalLogo()
     {
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         var messages = PortalSource.Cat(src, "pages/Messages.tsx", "components/Message*.tsx", "data/messagesApi.ts");
         messages.Should().Contain("/icons/rtub-logo-352.webp", "the logo the portal header uses").And.Contain("kind === 'system' ? RTUB_LOGO : avatarUrl", "only Notificações RTUB wears the portal logo; groups a chat icon, people their own avatar")
             .And.Contain("system: 0, group: 1, direct: 2", "Sistema RTUB, then groups, then people");
@@ -131,7 +131,7 @@ public class MemberAreaPagesTests
     [Fact]
     public void MultiPagePolish_MenuLabelsAndDecoupling()
     {
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         string R(string f) => File.ReadAllText(Path.Combine(src, f));
 
         // Menu: no "Recursos" group, no "As minhas inscrições"; Documentação once under Gestão; Instrumentos once under Tuna.
@@ -155,16 +155,5 @@ public class MemberAreaPagesTests
         System.Text.RegularExpressions.Regex.IsMatch(PortalCss.Read(src), @"\.lx-board-page\s*\{\s*max-width").Should().BeFalse("the board uses the shared container");
         R("components/MemberDialogs.tsx").Should().Contain("export const progressText");
         System.Text.RegularExpressions.Regex.IsMatch(PortalCss.Read(src), @"\.naipe-picker\s*\{[^}]*justify-content:\s*center").Should().BeTrue("the instrument picker is centred");
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

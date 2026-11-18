@@ -20,7 +20,7 @@ public partial class RehearsalsApiTests
         var (_, subscriber) = await SignInAsync();
         _factory.Push.Setup(p => p.GetSubscribedUserIdsAsync()).ReturnsAsync(new[] { subscriber.Id });
         _factory.Push.Setup(p => p.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<SendPushNotificationDto>())).ReturnsAsync((1, 0));
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         var audience = await admin.GetFromJsonAsync<JsonElement>($"/api/rehearsals/{upcoming}/notice");
         audience.GetProperty("subscribed").GetInt32().Should().Be(1);

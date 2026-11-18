@@ -18,7 +18,7 @@ public partial class EventDiscussionApiTests
         var (mod, _) = await SignInAsync("Mod");
         var (_, called) = await SignInAsync();
         await SetPhoneAsync(called.Id, "912 345 678");
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         (await Anonymous().GetAsync($"/api/events/{eventId}/contacts")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         var refused = await member.GetAsync($"/api/events/{eventId}/contacts");
@@ -39,7 +39,7 @@ public partial class EventDiscussionApiTests
         var (leitao, leitaoUser) = await SignInAsync();
         var (_, called) = await SignInAsync();
         await SetCategoriesAsync(leitaoUser.Id, MemberCategory.Leitao);
-        await WithTokenAsync(leitao);
+        await AreaHttp.WithTokenAsync(leitao);
 
         (await leitao.GetAsync($"/api/events/{eventId}/contacts")).StatusCode.Should().Be(HttpStatusCode.OK);
         (await leitao.PutAsJsonAsync($"/api/events/{eventId}/contacts/{called.Id}", new { willAttend = true, notes = "" }))
@@ -56,7 +56,7 @@ public partial class EventDiscussionApiTests
         var eventId = await AddEventAsync($"Chamadas {role}");
         var (caller, _) = await SignInAsync(role);
         var (_, called) = await SignInAsync();
-        await WithTokenAsync(caller);
+        await AreaHttp.WithTokenAsync(caller);
         var url = $"/api/events/{eventId}/contacts/{called.Id}";
 
         (await caller.PutAsJsonAsync(url, new { willAttend = true, notes = new string('n', 501) })).StatusCode.Should().Be(HttpStatusCode.BadRequest);

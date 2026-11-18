@@ -10,7 +10,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class CalendarOfferPortalTests
 {
-    private static readonly string Src = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src");
+    private static readonly string Src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Src, file));
 
@@ -41,16 +41,5 @@ public class CalendarOfferPortalTests
         Read("components/PendingActionPanel.tsx").Should().Contain("if (o.kind === 'ok' && a.answer === 'yes' && upcoming) offerCalendar(row);");
         Read("components/EventDetailBody.tsx").Should().Contain("{m.myStatus === 'going' && (").And.Contain("Adicionar ao calendário");
         Read("pages/RehearsalDetail.tsx").Should().Contain("{open && r.mine && r.mine.status !== 'notGoing' && (");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

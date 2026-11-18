@@ -11,7 +11,7 @@ public class PortalContentCoverageTests
     [Fact]
     public void HomeAnchors_LinkedByTheShell_ExistOnTheHomePage()
     {
-        var src = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         // Task 113 split pages/Home.tsx into components/Home*.tsx, and moved the section lists out of App.tsx into data/sections.ts.
         var home = string.Join("\n", new[] { "pages/Home.tsx", "components/HomeEvents.tsx", "components/HomeHero.tsx", "components/HomeJoin.tsx",
             "components/HomeMedia.tsx", "components/HomeParts.tsx" }.Select(f => File.ReadAllText(Path.Combine(src, f))));
@@ -38,16 +38,5 @@ public class PortalContentCoverageTests
         anchors.Should().Contain(new[] { "events" });
         anchors.Where(id => !home.Contains($"id=\"{id}\"", StringComparison.Ordinal))
             .Should().BeEmpty("a footer, menu or shortcut link to /#id needs that id on the home page");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

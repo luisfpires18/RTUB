@@ -40,7 +40,7 @@ public partial class PortalRouteTests
     [Fact]
     public void Rehearsals_AreReact_WithTheirOwnTerminology_AndTheBlazorPageIsGone()
     {
-        var src = Path.Combine(FindRepoRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
         var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
         var rehearsals = Directory.GetFiles(portal, "*", SearchOption.AllDirectories).Where(f => Path.GetFileName(f).StartsWith("Rehearsal", StringComparison.Ordinal)
                 || f.EndsWith("rehearsalsApi.ts")).Select(File.ReadAllText).ToList();
@@ -70,7 +70,7 @@ public partial class PortalRouteTests
     [Fact]
     public void EventPage_LinksTheReactDiscussionAndContacts_AndTheOldBlazorPartsAreGone()
     {
-        var src = Path.Combine(FindRepoRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
         var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
         var detail = PortalSource.Cat(portal, "pages/EventDetail.tsx", "components/EventDetail*.tsx");
         detail.Should().Contain("portal.eventDiscussion(event.id)").And.Contain("portal.eventContacts(event.id)")
@@ -102,7 +102,7 @@ public partial class PortalRouteTests
     [Fact]
     public void EventsLinks_GoToTheReactAgenda()
     {
-        var root = FindRepoRoot();
+        var root = RepoPaths.Root();
         var src = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
 
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("events: '/events'").And.NotContain("memberEvents");
@@ -120,7 +120,7 @@ public partial class PortalRouteTests
     [Fact]
     public void HomeMusicLink_GoesToTheReactMusicPage()
     {
-        var src = Path.Combine(FindRepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
 
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("music: '/music'");
         PortalSource.Home(src).Should().Contain("<MoreLink href={portal.music}>");

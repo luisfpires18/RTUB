@@ -21,11 +21,11 @@ public partial class EventsApiTests
         var other = await AddSongAsync("Nova para o arraial");
         var date = day.ToString("yyyy-MM-dd");
         var visitor = Anonymous();
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var (adminWithoutToken, _) = await SignInAsync("Admin");
 
         foreach (var (client, expected) in new[] { (visitor, HttpStatusCode.Unauthorized), (member, HttpStatusCode.Forbidden), (mod, HttpStatusCode.Forbidden) })
@@ -60,7 +60,7 @@ public partial class EventsApiTests
         var second = await AddSongAsync($"Fecho {role}");
         var date = day.ToString("yyyy-MM-dd");
         var (client, _) = await SignInAsync(role);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
         var (member, _) = await SignInAsync();
 
         var found = await client.GetFromJsonAsync<JsonElement>($"/api/events/{id}/repertoire/songs?q={Uri.EscapeDataString("abertura " + role)}");
@@ -99,11 +99,11 @@ public partial class EventsApiTests
         var answer = (await EnrollmentAsync(id, someoneUser.Id))!.Id;
         var (target, targetUser) = await SignInAsync();
         var visitor = Anonymous();
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var (adminWithoutToken, _) = await SignInAsync("Admin");
 
         foreach (var (client, expected) in new[] { (visitor, HttpStatusCode.Unauthorized), (member, HttpStatusCode.Forbidden), (mod, HttpStatusCode.Forbidden) })
@@ -132,9 +132,9 @@ public partial class EventsApiTests
     {
         var id = await AddEventAsync($"Serenata gerida ({role})", DateTime.Today.AddDays(role == "Admin" ? 331 : 332));
         var (client, _) = await SignInAsync(role);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
         var (member, memberUser) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (_, addedUser) = await SignInAsync();
         _factory.Push.Invocations.Clear();
 

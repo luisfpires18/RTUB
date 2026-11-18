@@ -162,13 +162,6 @@ public partial class MusicApiTests : IClassFixture<MusicApiFactory>
         return Task.FromResult(client);
     }
 
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
-
     private static MultipartFormDataContent AlbumForm(string title, string year = "", bool isPrivate = false, bool exclusive = false,
         string[]? access = null, HttpContent? cover = null, string coverType = "image/webp")
     {

@@ -29,7 +29,7 @@ public partial class MemberAdminApiTests
         };
 
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         foreach (var (method, path, body) in calls)
         {
             (await SendAsync(anonymous, method, path, body)).StatusCode.Should().Be(HttpStatusCode.Unauthorized, $"{method} {path}");
@@ -46,7 +46,7 @@ public partial class MemberAdminApiTests
         foreach (var role in new[] { "Member", "Mod" })
         {
             var (client, _) = await SignInAsync(role);
-            await WithTokenAsync(client);
+            await AreaHttp.WithTokenAsync(client);
             foreach (var (method, path, body) in calls.Concat(member))
             {
                 var status = (await SendAsync(client, method, path, body)).StatusCode;

@@ -17,8 +17,8 @@ public partial class MusicApiTests
         var seed = await SeedAsync();
         var visitor = await AnonymousAsync("10.61.0.3");
         var (member, _) = await SignInAsync("Member");
-        await WithTokenAsync(visitor);
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(member);
 
         (await visitor.PostAsync("/api/music/albums", AlbumForm("Pirata"))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await member.PostAsync("/api/music/albums", AlbumForm("Pirata"))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -32,7 +32,7 @@ public partial class MusicApiTests
     public async Task Mod_CreatesAndEditsAlbums_ButCannotDeleteThem_OrMakeThemExclusive()
     {
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
         var created = await mod.PostAsync("/api/music/albums", AlbumForm($"Novo {Guid.NewGuid():N}", year: "2020", exclusive: true));
         created.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -52,7 +52,7 @@ public partial class MusicApiTests
     {
         var (mod, modUser) = await SignInAsync("Mod");
         var seed = await SeedAsync(accessFor: modUser.Id);
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
         (await mod.PutAsync($"/api/music/albums/{seed.ExclusiveAlbum}", AlbumForm("Exclusivo editado"))).StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -67,7 +67,7 @@ public partial class MusicApiTests
     public async Task AdminAndOwner_DeleteAlbums_AndTheCoverGoesWithThem(string role)
     {
         var (client, _) = await SignInAsync(role);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
         var created = await client.PostAsync("/api/music/albums", AlbumForm($"Apagar {Guid.NewGuid():N}", cover: Webp()));
         var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
         var cover = (await AlbumAsync(id)).ImageUrl;
@@ -83,7 +83,7 @@ public partial class MusicApiTests
     {
         var (owner, _) = await SignInAsync("Owner");
         var (_, listed) = await SignInAsync("Member");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
 
         var created = await owner.PostAsync("/api/music/albums",
             AlbumForm($"Só nosso {Guid.NewGuid():N}", exclusive: true, access: new[] { listed.Id, "not-a-user" }));
@@ -99,7 +99,7 @@ public partial class MusicApiTests
     public async Task Cover_IsUploadedThroughStorage_AndValidated()
     {
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
         var ok = await mod.PostAsync("/api/music/albums", AlbumForm($"Com capa {Guid.NewGuid():N}", cover: Webp()));
         ok.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -121,7 +121,7 @@ public partial class MusicApiTests
     public async Task AStorageFailure_AnswersAsAGenericProblem_AndCreatesNothing()
     {
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var title = $"{FakeMusicStorage.FailingTitle} {Guid.NewGuid():N}";
 
         var response = await mod.PostAsync("/api/music/albums", AlbumForm(title, cover: Webp()));
@@ -142,7 +142,7 @@ public partial class MusicApiTests
     {
         var seed = await SeedAsync();
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
         var created = await mod.PostAsJsonAsync($"/api/music/albums/{seed.PublicAlbum}/songs", SongBody("Nova", youTube: new[] { "https://youtu.be/x", "" }));
         created.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -165,9 +165,9 @@ public partial class MusicApiTests
         var (mod, _) = await SignInAsync("Mod");
         var (member, _) = await SignInAsync("Member");
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(mod);
-        await WithTokenAsync(member);
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(admin);
 
         var bad = await mod.PostAsJsonAsync($"/api/music/albums/{seed.PublicAlbum}/songs",
             SongBody("", spotify: "javascript:alert(1)", track: 1000));
@@ -191,8 +191,8 @@ public partial class MusicApiTests
         var visitor = await AnonymousAsync();
         var (uploader, _) = await SignInAsync("Member");
         var (other, _) = await SignInAsync("Member");
-        await WithTokenAsync(uploader);
-        await WithTokenAsync(other);
+        await AreaHttp.WithTokenAsync(uploader);
+        await AreaHttp.WithTokenAsync(other);
 
         (await visitor.GetAsync($"/api/music/songs/{seed.SongWithPdf}/videos")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 

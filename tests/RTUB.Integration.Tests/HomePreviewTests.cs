@@ -128,7 +128,7 @@ public class HomePreviewTests : IntegrationTestBase
         var music = Source("pages/Music.tsx");
 
         music.Should().NotContain("reservados a membros").And.NotContain("Entrar como membro").And.NotContain("music__members");
-        PortalCss.Read(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src")).Should().NotContain(".music__members");
+        PortalCss.Read(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src")).Should().NotContain(".music__members");
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public class HomePreviewTests : IntegrationTestBase
         Source("pages/Privacy.tsx").Should().Contain("<BackLink"); // the back link moved to the kit in 119
         Source("components/ui/BackLink.tsx").Should().Contain("className=\"back-link\"");
 
-        var css = PortalCss.Read(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src"));
+        var css = PortalCss.Read(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src"));
         css.Should().Contain(".control {").And.Contain(".control:focus-within").And.Contain(".back-link {");
         css.Should().NotContain(".doc__back").And.NotContain(".gallery-tools__field").And.NotContain(".search {");
     }
@@ -164,10 +164,10 @@ public class HomePreviewTests : IntegrationTestBase
     // ---------- helpers ----------
 
     // The home page and its Home* parts (113 split them).
-    private static string HomeSource() => PortalSource.Home(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src"));
+    private static string HomeSource() => PortalSource.Home(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src"));
 
     private static string Source(string file) =>
-        File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src", file));
+        File.ReadAllText(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src", file));
 
     private static Event Event(string name, DateTime date, DateTime? endDate = null, bool cancelled = false)
     {
@@ -231,16 +231,5 @@ public class HomePreviewTests : IntegrationTestBase
         var response = await client.GetAsync(path);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

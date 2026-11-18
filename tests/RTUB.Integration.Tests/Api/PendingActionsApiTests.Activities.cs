@@ -59,7 +59,7 @@ public partial class PendingActionsApiTests
     public async Task AReformado_GetsThePage_WithNoPanelAtAll()
     {
         var (member, me) = await SignInAsync([MemberCategory.Tuno], retired: true, role: "Admin", positions: [Position.Magister]);
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var board = await SeedBoardAsync(withDone: true);
         var card = await AddCardAsync(board.Todo, "Trabalho meu", owner: me.Id);
 
@@ -82,7 +82,7 @@ public partial class PendingActionsApiTests
 
         (await member.PostAsJsonAsync("/api/pending-actions/dismissals", body)).StatusCode.Should().Be(HttpStatusCode.BadRequest,
             "no X-CSRF-TOKEN");
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         (await member.PostAsJsonAsync("/api/pending-actions/dismissals", body)).StatusCode.Should().Be(HttpStatusCode.Forbidden,
             "an answer is given, not dismissed, whatever the request claims");
         (await member.PostAsJsonAsync("/api/pending-actions/dismissals", new { kind = "event.response", sourceKey = "999999" }))
@@ -119,7 +119,7 @@ public partial class PendingActionsApiTests
         Assert.SkipWhen((today - new DateTime(today.Month >= 9 ? today.Year : today.Year - 1, 9, 1)).Days < 3,
             "the first days of a fiscal year have no past day to answer yet");
         var (member, me) = await SignInAsync([MemberCategory.Leitao], retired: false);
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var upcoming = await AddEventAsync(NextDay());
         var pastEvent = await AddEventAsync(-1);
         var rehearsal = await AddRehearsalAsync(NextDay());
@@ -163,7 +163,7 @@ public partial class PendingActionsApiTests
         var id = await AddEventAsync(NextDay());
 
         (await Answer(member, "event.response", id, "yes")).StatusCode.Should().Be(HttpStatusCode.BadRequest, "no X-CSRF-TOKEN");
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var answers = await Task.WhenAll(Enumerable.Range(0, 4).Select(i => Answer(member, "event.response", id, i % 2 == 0 ? "yes" : "no")));
 
         answers.Count(r => r.StatusCode == HttpStatusCode.NoContent).Should().Be(1);
@@ -177,7 +177,7 @@ public partial class PendingActionsApiTests
     public async Task AnActivityChangedSinceTheRead_IsRefusedHonestly()
     {
         var (member, me) = await SignInAsync([MemberCategory.Tuno], retired: false);
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var cancelled = await AddEventAsync(NextDay());
         var answeredElsewhere = await AddRehearsalAsync(NextDay());
         await CancelEventAsync(cancelled);

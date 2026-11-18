@@ -15,7 +15,7 @@ public partial class MemberAdminApiTests
     public async Task ExpelAndReactivate_AreForLeitoes()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var leitao = await AddAsync(MemberCategory.Leitao);
         var tuno = await AddAsync(MemberCategory.Tuno);
 
@@ -32,7 +32,7 @@ public partial class MemberAdminApiTests
     public async Task TheReminder_FollowsTheOldListsConditions_AndMakeActiveIsGone()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var activeTuno = await AddAsync(MemberCategory.Tuno, yearTuno: 2020);
         var almostBack = await AddAsync(MemberCategory.Tuno, yearTuno: 2015, retired: true);
         // Two completed months with a rehearsal, none this month: 2/3 on the way back.
@@ -58,9 +58,9 @@ public partial class MemberAdminApiTests
     public async Task Delete_IsTheOldHardDelete_OwnerAnyMember_AdminLeitoesOnly()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         var leitao = await AddAsync(MemberCategory.Leitao);
         var tuno = await AddAsync(MemberCategory.Tuno);
 
@@ -106,7 +106,7 @@ public partial class MemberAdminApiTests
             .Select(r => r.Template)
             .Should().NotContain(new[] { "/members/manage", "/member/events", "/member/gallery", "/member/roles", "/hierarchy" });
 
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         // MemberManage.tsx was split (113) into the Member*Dialog / MemberFormFields files and data/memberFormState.ts.
         var memberFiles = new[] { "pages/Members.tsx", "components/MemberDialogs.tsx", "components/MemberFormDialog.tsx", "components/MemberFormFields.tsx",
             "components/MemberInfoDialog.tsx", "components/MemberActionDialogs.tsx", "data/memberFormState.ts", "data/membersApi.ts" };

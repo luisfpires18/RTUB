@@ -28,7 +28,7 @@ public partial class MessagingApiTests : IClassFixture<EventsApiFactory>
     public async Task Visitors_GetNothing()
     {
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         foreach (var path in new[] { "/api/conversations", "/api/conversations/unread", "/api/conversations/recipients", "/api/conversations/1" })
         {
             (await anonymous.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized, path);
@@ -58,7 +58,7 @@ public partial class MessagingApiTests : IClassFixture<EventsApiFactory>
 
     // A conversation starts with its first message (nothing is stored before it).
     private async Task<int> StartAsync(HttpClient client, string userId, string body = "Olá") =>
-        (await Json(await client.PostAsJsonAsync("/api/conversations", new { userIds = new[] { userId }, body })))
+        (await AreaHttp.Json(await client.PostAsJsonAsync("/api/conversations", new { userIds = new[] { userId }, body })))
             .GetProperty("conversation").GetProperty("id").GetInt32();
 
     private async Task<int> SeedAsync(Conversation conversation, params Message[] messages)
@@ -107,27 +107,6 @@ public partial class MessagingApiTests : IClassFixture<EventsApiFactory>
             .Select(r => (r.GetProperty("emoji").GetString()!, r.GetProperty("count").GetInt32(), r.GetProperty("mine").GetBoolean()))
             .ToList();
 
-    private static async Task<JsonElement> Json(HttpClient client, string path)
-    {
-        var response = await client.GetAsync(path);
-        response.StatusCode.Should().Be(HttpStatusCode.OK, path);
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
-    private static async Task<JsonElement> Json(HttpResponseMessage response)
-    {
-        response.IsSuccessStatusCode.Should().BeTrue(await response.Content.ReadAsStringAsync());
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
-    private static async Task<Dictionary<string, string[]>> Errors(HttpResponseMessage response)
-    {
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return body.GetProperty("errors").EnumerateObject()
-            .ToDictionary(p => p.Name, p => p.Value.EnumerateArray().Select(v => v.GetString()!).ToArray());
-    }
-
     private static int _ip;
 
     private async Task<(HttpClient Client, ApplicationUser User)> SignInAsync(string? role = null, bool token = true)
@@ -136,23 +115,11 @@ public partial class MessagingApiTests : IClassFixture<EventsApiFactory>
         var session = await CookieTestSession.SignInAsync(_factory, $"msg{Guid.NewGuid():N}"[..20], $"10.47.{n / 250}.{n % 250 + 1}", role);
         if (token)
         {
-            await WithTokenAsync(session.Client);
+            await AreaHttp.WithTokenAsync(session.Client);
         }
 
         return session;
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.48.0.1");
-        return client;
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.48.0.1");
 }

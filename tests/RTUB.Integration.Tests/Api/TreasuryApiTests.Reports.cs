@@ -16,12 +16,12 @@ public partial class TreasuryApiTests
         var (admin, _) = await SignInAsync(null, "Admin");
         (await admin.PostAsJsonAsync("/api/treasury/reports", new { year = 2000 })).StatusCode.Should().Be(HttpStatusCode.BadRequest,
             "every write needs the antiforgery token");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
-        var years = (await Json(admin, "/api/treasury")).GetProperty("availableYears").EnumerateArray().Select(y => y.GetInt32()).ToList();
+        var years = (await AreaHttp.Json(admin, "/api/treasury")).GetProperty("availableYears").EnumerateArray().Select(y => y.GetInt32()).ToList();
         years.Should().NotBeEmpty().And.BeInDescendingOrder().And.OnlyContain(y => y >= 1991);
-        (await Errors(await admin.PostAsJsonAsync("/api/treasury/reports", new { year = 1990 }))).Keys.Should().Equal("year");
-        (await Errors(await admin.PostAsJsonAsync("/api/treasury/reports", new { year = DateTime.Today.Year + 2 }))).Keys.Should().Equal("year");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/treasury/reports", new { year = 1990 }))).Keys.Should().Equal("year");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/treasury/reports", new { year = DateTime.Today.Year + 2 }))).Keys.Should().Equal("year");
         var year = years.Last();
         var created = await admin.PostAsJsonAsync("/api/treasury/reports", new { year });
         created.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -29,11 +29,11 @@ public partial class TreasuryApiTests
         report.GetProperty("title").GetString().Should().Be($"Relatório de Contas {year} - {year + 1}");
         report.GetProperty("isPublished").GetBoolean().Should().BeFalse();
         var id = report.GetProperty("id").GetInt32();
-        (await Errors(await admin.PostAsJsonAsync("/api/treasury/reports", new { year })))["year"].Single().Should().StartWith("Já existe um relatório");
-        (await Json(admin, "/api/treasury")).GetProperty("availableYears").EnumerateArray().Select(y => y.GetInt32()).Should().NotContain(year);
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/treasury/reports", new { year })))["year"].Single().Should().StartWith("Já existe um relatório");
+        (await AreaHttp.Json(admin, "/api/treasury")).GetProperty("availableYears").EnumerateArray().Select(y => y.GetInt32()).Should().NotContain(year);
 
         var (owner, _) = await SignInAsync(null, "Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         await AddReceiptTransactionAsync(id);
         var receipts = _factory.Receipts.Objects.Count;
         (await owner.DeleteAsync($"/api/treasury/reports/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -83,7 +83,7 @@ public partial class TreasuryApiTests
         }
 
         var (member, _) = await SignInAsync(MemberCategory.Tuno);
-        var page = await Json(member, $"/api/treasury/reports/{reportId}");
+        var page = await AreaHttp.Json(member, $"/api/treasury/reports/{reportId}");
         var totals = page.GetProperty("totals");
         totals.GetProperty("bank").GetDecimal().Should().Be(500m);
         totals.GetProperty("cash").GetDecimal().Should().Be(20m);
@@ -95,7 +95,7 @@ public partial class TreasuryApiTests
         page.GetProperty("activities").EnumerateArray().Select(a => a.GetProperty("name").GetString())
             .Should().Equal(new[] { "Festival", "Jantar" }, "BANCO, CAIXA and CALOTES are hidden; by start date");
 
-        var card = (await Json(member, "/api/treasury")).GetProperty("reports").EnumerateArray().Single(r => r.GetProperty("id").GetInt32() == reportId);
+        var card = (await AreaHttp.Json(member, "/api/treasury")).GetProperty("reports").EnumerateArray().Single(r => r.GetProperty("id").GetInt32() == reportId);
         (card.GetProperty("totalIncome").GetDecimal(), card.GetProperty("totalExpenses").GetDecimal(), card.GetProperty("balance").GetDecimal())
             .Should().Be((170.10m, 30.05m, 140.05m), "the card and the page agree");
     }

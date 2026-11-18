@@ -38,7 +38,7 @@ public partial class InventoryApiTests : IClassFixture<EventsApiFactory>
     {
         var id = await AddAsync("Visita", InstrumentType.Guitarra);
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         (await anonymous.GetAsync("/api/inventory")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await anonymous.GetAsync($"/api/inventory/{id}")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await anonymous.PostAsJsonAsync("/api/inventory", Input("x", "Guitarra"))).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -68,7 +68,7 @@ public partial class InventoryApiTests : IClassFixture<EventsApiFactory>
         await AddAsync($"{tag} Charlie", InstrumentType.Bandolim, InstrumentCondition.Lost);
         var (member, _) = await SignInAsync("Member");
 
-        var all = await Json(member, $"/api/inventory?q={tag}");
+        var all = await AreaHttp.Json(member, $"/api/inventory?q={tag}");
         Names(all).Should().Equal($"{tag} Alfa", $"{tag} Bravo", $"{tag} Charlie");
         all.GetProperty("canManage").GetBoolean().Should().BeFalse();
         var bravo = all.GetProperty("instruments")[1];
@@ -76,9 +76,9 @@ public partial class InventoryApiTests : IClassFixture<EventsApiFactory>
             bravo.GetProperty("brand").GetString(), bravo.GetProperty("location").GetString()).Should().Be(("Bandolim", "Bandolim", "Velho", "Yamaha", "Sala 1"));
         all.GetProperty("instruments")[0].GetProperty("categoryLabel").GetString().Should().Be("Acordeão");
 
-        Names(await Json(member, "/api/inventory?q=yAmAhA")).Should().Contain($"{tag} Bravo", "the brand is searched, case-insensitive");
-        Names(await Json(member, $"/api/inventory?q={tag}&category=Bandolim")).Should().Equal($"{tag} Bravo", $"{tag} Charlie");
-        Names(await Json(member, $"/api/inventory?q={tag}&condition=Lost")).Should().Equal($"{tag} Charlie");
+        Names(await AreaHttp.Json(member, "/api/inventory?q=yAmAhA")).Should().Contain($"{tag} Bravo", "the brand is searched, case-insensitive");
+        Names(await AreaHttp.Json(member, $"/api/inventory?q={tag}&category=Bandolim")).Should().Equal($"{tag} Bravo", $"{tag} Charlie");
+        Names(await AreaHttp.Json(member, $"/api/inventory?q={tag}&condition=Lost")).Should().Equal($"{tag} Charlie");
         foreach (var bad in new[] { "category=Kazoo", "condition=Broken", "condition=3" })
         {
             (await member.GetAsync($"/api/inventory?{bad}")).StatusCode.Should().Be(HttpStatusCode.BadRequest, bad);
@@ -100,7 +100,7 @@ public partial class InventoryApiTests : IClassFixture<EventsApiFactory>
             maintenance: new DateTime(2025, 3, 4));
         var (member, _) = await SignInAsync("Member");
 
-        var detail = await Json(member, $"/api/inventory/{id}");
+        var detail = await AreaHttp.Json(member, $"/api/inventory/{id}");
 
         (detail.GetProperty("serialNumber").GetString(), detail.GetProperty("maintenanceNotes").GetString(), detail.GetProperty("lastMaintenanceDate").GetString())
             .Should().Be(("SN-1", "Cordas novas", "2025-03-04"));
@@ -118,9 +118,9 @@ public partial class InventoryApiTests : IClassFixture<EventsApiFactory>
     {
         var id = await AddAsync($"{Tag()} Papel", InstrumentType.Pandeireta);
         var (client, _) = await SignInAsync(role);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
 
-        (await Json(client, "/api/inventory?q=zzz-none")).GetProperty("canManage").GetBoolean().Should().Be(manages);
+        (await AreaHttp.Json(client, "/api/inventory?q=zzz-none")).GetProperty("canManage").GetBoolean().Should().Be(manages);
         var expected = manages ? HttpStatusCode.Created : HttpStatusCode.Forbidden;
         (await client.PostAsJsonAsync("/api/inventory", Input($"{Tag()} Novo", "Guitarra"))).StatusCode.Should().Be(expected, role);
         (await client.PutAsJsonAsync($"/api/inventory/{id}", Input("Renomeado", "Guitarra"))).StatusCode
@@ -140,8 +140,8 @@ public partial class InventoryApiTests : IClassFixture<EventsApiFactory>
             await db.SaveChangesAsync();
         }
 
-        await WithTokenAsync(client);
-        (await Json(client, "/api/inventory?q=zzz-none")).GetProperty("canManage").GetBoolean().Should().BeTrue();
+        await AreaHttp.WithTokenAsync(client);
+        (await AreaHttp.Json(client, "/api/inventory?q=zzz-none")).GetProperty("canManage").GetBoolean().Should().BeTrue();
         (await client.PostAsJsonAsync("/api/inventory", Input($"{Tag()} Novo", "Guitarra"))).StatusCode.Should().Be(HttpStatusCode.Created);
         (await client.PutAsJsonAsync($"/api/inventory/{id}", Input("Renomeado", "Guitarra"))).StatusCode.Should().Be(HttpStatusCode.OK);
         (await client.DeleteAsync($"/api/inventory/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -172,25 +172,10 @@ public partial class InventoryApiTests : IClassFixture<EventsApiFactory>
         return form;
     }
 
-    private static async Task<JsonElement> Json(HttpClient client, string path)
-    {
-        var response = await client.GetAsync(path);
-        response.StatusCode.Should().Be(HttpStatusCode.OK, path);
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
     private static async Task<JsonElement> Json(HttpResponseMessage response)
     {
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
-    private static async Task<Dictionary<string, string[]>> Errors(HttpResponseMessage response)
-    {
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return body.GetProperty("errors").EnumerateObject()
-            .ToDictionary(p => p.Name, p => p.Value.EnumerateArray().Select(v => v.GetString()!).ToArray());
     }
 
     private async Task<int> AddAsync(string name, InstrumentType type, InstrumentCondition condition = InstrumentCondition.Good, string? brand = null,
@@ -223,28 +208,5 @@ public partial class InventoryApiTests : IClassFixture<EventsApiFactory>
         return CookieTestSession.SignInAsync(_factory, $"inv{Guid.NewGuid():N}"[..20], $"10.87.{n / 250}.{n % 250 + 1}", role);
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.88.0.1");
-        return client;
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.88.0.1");
 }

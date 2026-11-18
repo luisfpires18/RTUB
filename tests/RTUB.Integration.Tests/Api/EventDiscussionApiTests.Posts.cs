@@ -13,7 +13,7 @@ public partial class EventDiscussionApiTests
     {
         var eventId = await AddEventAsync("Conversa aberta");
         var (author, authorUser) = await SignInAsync();
-        await WithTokenAsync(author);
+        await AreaHttp.WithTokenAsync(author);
 
         var posted = await author.PostAsJsonAsync($"/api/events/{eventId}/discussion/posts",
             new { title = "", body = "Levem capas pretas.\nSaída às 18h." });
@@ -45,7 +45,7 @@ public partial class EventDiscussionApiTests
     {
         var eventId = await AddEventAsync("Validação");
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var response = await member.PostAsJsonAsync($"/api/events/{eventId}/discussion/posts", new { title, body });
 
@@ -59,7 +59,7 @@ public partial class EventDiscussionApiTests
     {
         var eventId = await AddEventAsync("Limites");
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         (await member.PostAsJsonAsync($"/api/events/{eventId}/discussion/posts", new { title = "", body = new string('a', 5001) }))
             .StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -83,7 +83,7 @@ public partial class EventDiscussionApiTests
         var (owner, _) = await SignInAsync("Owner");
         foreach (var c in new[] { author, other, admin, owner })
         {
-            await WithTokenAsync(c);
+            await AreaHttp.WithTokenAsync(c);
         }
 
         var postId = await PostAsync(author, eventId, "Nota do autor");
@@ -114,8 +114,8 @@ public partial class EventDiscussionApiTests
         var otherEvent = await AddEventAsync("Outra atuação");
         var (author, _) = await SignInAsync();
         var (other, _) = await SignInAsync();
-        await WithTokenAsync(author);
-        await WithTokenAsync(other);
+        await AreaHttp.WithTokenAsync(author);
+        await AreaHttp.WithTokenAsync(other);
 
         var postId = await PostAsync(author, eventId, "Nota");
         var withComment = await other.PostAsJsonAsync($"/api/events/{eventId}/discussion/posts/{postId}/comments", new { body = "Comentário" });
@@ -140,8 +140,8 @@ public partial class EventDiscussionApiTests
         var eventId = await AddEventAsync("Boleias");
         var (driver, _) = await SignInAsync();
         var (rider, riderUser) = await SignInAsync();
-        await WithTokenAsync(driver);
-        await WithTokenAsync(rider);
+        await AreaHttp.WithTokenAsync(driver);
+        await AreaHttp.WithTokenAsync(rider);
 
         (await driver.PostAsJsonAsync($"/api/events/{eventId}/discussion/transport", new { vehicle = "", seats = 1, notes = "" }))
             .StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -179,7 +179,7 @@ public partial class EventDiscussionApiTests
         var (author, _) = await SignInAsync();
         var (_, going) = await SignInAsync();
         await AddEnrollmentAsync(eventId, going.Id);
-        await WithTokenAsync(author);
+        await AreaHttp.WithTokenAsync(author);
 
         await PostAsync(author, eventId, "Ensaio extra na quinta");
 

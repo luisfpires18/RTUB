@@ -9,7 +9,7 @@ public class NaipesLinksTests
     [Fact]
     public void ReactPages_AreLinked_AndSayNoMigration()
     {
-        var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var portal = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(portal, "data/content.ts")).Should().Contain("naipes: '/naipes'").And.Contain("naipesConfig: '/naipes/config'");
         var shell = File.ReadAllText(Path.Combine(portal, "components/MemberShell.tsx"));
         shell.Should().Contain("href: portal.naipes,").And.NotContain("blazor.naipes");
@@ -21,16 +21,5 @@ public class NaipesLinksTests
         {
             File.ReadAllText(Path.Combine(portal, file)).Should().NotContainAny(new[] { "migra", "Migra" }, file);
         }
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

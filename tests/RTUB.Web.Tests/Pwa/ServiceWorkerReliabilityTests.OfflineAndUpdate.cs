@@ -57,7 +57,7 @@ public partial class ServiceWorkerReliabilityTests
         register.Should().NotContain("location.reload(", "an update must never reload an open page");
         register.Should().Contain(".update()", "update checks still fetch new workers in the background");
 
-        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "css", "3-components", "sw-update-toast.css"))
+        File.Exists(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "wwwroot", "css", "3-components", "sw-update-toast.css"))
             .Should().BeFalse("the toast stylesheet was only used by the retired prompt");
     }
 
@@ -86,7 +86,7 @@ public partial class ServiceWorkerReliabilityTests
     [Fact]
     public void NoStylesheet_SetsOverflowHiddenOnTheViewportRoot()
     {
-        var cssRoot = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "css");
+        var cssRoot = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "wwwroot", "css");
 
         var rootRule = new Regex(
             @"(?:^|[};/*\s])(?:html|body)\s*(?:,\s*(?:html|body)\s*)?\{[^}]*overflow-x\s*:\s*hidden",

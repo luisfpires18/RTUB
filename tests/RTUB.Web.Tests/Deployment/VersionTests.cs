@@ -14,7 +14,7 @@ public class VersionTests
     [Fact]
     public void VersionFile_IsStrictSemVer_WithNothingElseInIt()
     {
-        var bytes = File.ReadAllBytes(Path.Combine(FindRepositoryRoot(), "VERSION"));
+        var bytes = File.ReadAllBytes(Path.Combine(RepoPaths.Root(), "VERSION"));
         var text = Encoding.ASCII.GetString(bytes);
 
         bytes.Take(3).Should().NotEqual(new byte[] { 0xEF, 0xBB, 0xBF }, "no BOM");
@@ -25,7 +25,7 @@ public class VersionTests
     [Fact]
     public void RunningAssembly_ReportsTheVersionFile()
     {
-        var expected = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "VERSION")).Trim();
+        var expected = File.ReadAllText(Path.Combine(RepoPaths.Root(), "VERSION")).Trim();
 
         BuildInfo.Current.Version.Should().Be(expected, "Directory.Build.props stamps every build from VERSION");
     }
@@ -39,16 +39,5 @@ public class VersionTests
     public void Parse_SplitsVersionAndCommitAtThePlus(string? informational, string version, string? commit)
     {
         BuildInfo.Parse(informational).Should().Be(new BuildInfo(version, commit));
-    }
-
-    private static string FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !File.Exists(Path.Combine(directory.FullName, "VERSION")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

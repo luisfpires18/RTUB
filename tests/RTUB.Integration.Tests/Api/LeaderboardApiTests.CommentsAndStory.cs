@@ -17,12 +17,12 @@ public partial class LeaderboardApiTests
         _factory.Push.Invocations.Clear();
         var target = await AddAsync(MemberCategory.Tuno);
         var (member, me) = await SignInAsync("Member");
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
-        (await Errors(await member.PostAsJsonAsync($"/api/leaderboard/members/{target.Id}/comments", new { text = "   " }))).Keys.Should().Contain("text");
-        (await Errors(await member.PostAsJsonAsync($"/api/leaderboard/members/{target.Id}/comments", new { text = new string('a', 1001) }))).Keys.Should().Contain("text");
+        (await AreaHttp.Errors(await member.PostAsJsonAsync($"/api/leaderboard/members/{target.Id}/comments", new { text = "   " }))).Keys.Should().Contain("text");
+        (await AreaHttp.Errors(await member.PostAsJsonAsync($"/api/leaderboard/members/{target.Id}/comments", new { text = new string('a', 1001) }))).Keys.Should().Contain("text");
         (await member.PostAsJsonAsync("/api/leaderboard/members/no-such-member/comments", new { text = "olá" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         (await member.PostAsJsonAsync($"/api/leaderboard/members/{target.Id}/comments", new { text = "  primeiro  " })).StatusCode.Should().Be(HttpStatusCode.OK);
@@ -35,7 +35,7 @@ public partial class LeaderboardApiTests
 
         await member.PostAsJsonAsync($"/api/leaderboard/members/{me.Id}/comments", new { text = "eu" });
         _factory.Push.Verify(p => p.SendToUserAsync(me.Id, It.IsAny<SendPushNotificationDto>()), Times.Never, "no push for a comment on one's own row");
-        (await Json(member, $"/api/leaderboard/members/{target.Id}/comments"))[1].GetProperty("canDelete").GetBoolean().Should().BeTrue();
+        (await AreaHttp.Json(member, $"/api/leaderboard/members/{target.Id}/comments"))[1].GetProperty("canDelete").GetBoolean().Should().BeTrue();
     }
 
     [Fact]
@@ -44,13 +44,13 @@ public partial class LeaderboardApiTests
         _factory.Push.Invocations.Clear();
         var target = await AddAsync(MemberCategory.Tuno);
         var (author, authorUser) = await SignInAsync("Member");
-        await WithTokenAsync(author);
+        await AreaHttp.WithTokenAsync(author);
         var (other, _) = await SignInAsync("Mod");
-        await WithTokenAsync(other);
+        await AreaHttp.WithTokenAsync(other);
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
 
         async Task<int> CommentAsync(string text) =>
             (await Json(await author.PostAsJsonAsync($"/api/leaderboard/members/{target.Id}/comments", new { text })))[0].GetProperty("id").GetInt32();
@@ -58,7 +58,7 @@ public partial class LeaderboardApiTests
         var first = await CommentAsync("um");
         (await Json(await other.PostAsync($"/api/leaderboard/comments/{first}/like", null))).GetProperty("liked").GetBoolean().Should().BeTrue();
         _factory.Push.Verify(p => p.SendToUserAsync(authorUser.Id, It.IsAny<SendPushNotificationDto>()), Times.Once, "the author hears of the like");
-        var liked = (await Json(other, $"/api/leaderboard/members/{target.Id}/comments")).EnumerateArray().Single(c => c.GetProperty("id").GetInt32() == first);
+        var liked = (await AreaHttp.Json(other, $"/api/leaderboard/members/{target.Id}/comments")).EnumerateArray().Single(c => c.GetProperty("id").GetInt32() == first);
         (liked.GetProperty("likes").GetInt32(), liked.GetProperty("likedByMe").GetBoolean()).Should().Be((1, true));
         (await Json(await other.PostAsync($"/api/leaderboard/comments/{first}/like", null))).GetProperty("liked").GetBoolean().Should().BeFalse();
 
@@ -66,7 +66,7 @@ public partial class LeaderboardApiTests
         (await author.DeleteAsync($"/api/leaderboard/comments/{first}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await author.DeleteAsync($"/api/leaderboard/comments/{first}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await other.PostAsync($"/api/leaderboard/comments/{first}/like", null)).StatusCode.Should().Be(HttpStatusCode.NotFound, "a deleted comment cannot be liked");
-        (await Json(author, $"/api/leaderboard/members/{target.Id}/comments")).EnumerateArray().Should().NotContain(c => c.GetProperty("id").GetInt32() == first);
+        (await AreaHttp.Json(author, $"/api/leaderboard/members/{target.Id}/comments")).EnumerateArray().Should().NotContain(c => c.GetProperty("id").GetInt32() == first);
 
         (await admin.DeleteAsync($"/api/leaderboard/comments/{await CommentAsync("dois")}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await owner.DeleteAsync($"/api/leaderboard/comments/{await CommentAsync("três")}")).StatusCode.Should().Be(HttpStatusCode.NoContent, "the Owner inherits Admin");
@@ -85,7 +85,7 @@ public partial class LeaderboardApiTests
         (await member.PostAsync("/api/leaderboard/comments/1/like", null)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await member.DeleteAsync("/api/leaderboard/comments/1")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        (await Json(member, $"/api/leaderboard/members/{target.Id}/comments")).GetArrayLength().Should().Be(0);
+        (await AreaHttp.Json(member, $"/api/leaderboard/members/{target.Id}/comments")).GetArrayLength().Should().Be(0);
     }
 
     [Fact]
@@ -96,8 +96,8 @@ public partial class LeaderboardApiTests
         foreach (var role in new[] { "Member", "Mod", "Admin", "Owner" })
         {
             var (client, _) = await SignInAsync(role);
-            await WithTokenAsync(client);
-            var body = await Json(client, "/api/leaderboard?q=zzz-none");
+            await AreaHttp.WithTokenAsync(client);
+            var body = await AreaHttp.Json(client, "/api/leaderboard?q=zzz-none");
             var story = body.GetProperty("story");
             (story.GetProperty("title").GetString(), story.GetProperty("content").GetString(), story.GetProperty("isActive").GetBoolean())
                 .Should().Be((fixedStory.Title, fixedStory.Content, true), role);
@@ -124,7 +124,7 @@ public partial class LeaderboardApiTests
     [Fact]
     public void ReactFiles_SayNothingAboutMigration_AndTheMemberMenuLinksTheClassification()
     {
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "pages/Leaderboard.tsx")).Should().NotContainAny("migra", "Migra");
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("leaderboard: '/leaderboard'");
         File.ReadAllText(Path.Combine(src, "components/MemberShell.tsx")).Should().Contain("href: portal.leaderboard,", "the member menu links it (030)");

@@ -10,7 +10,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class NewsPortalTests
 {
-    private static readonly string Src = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src");
+    private static readonly string Src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Src, file));
 
@@ -71,16 +71,5 @@ public class NewsPortalTests
         news.Should().Contain("'Todas'").And.Contain("'Públicas'").And.Contain("'Privadas'");
         HomePage().Should().Contain("p.membersOnly && <span className=\"tag tag--private news-latest__tag\">Só membros</span>", "the home preview badges a private post like the feed");
         Read("data/publicContentApi.ts").Should().Contain("membersOnly: boolean").And.Contain("signedIn: boolean");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

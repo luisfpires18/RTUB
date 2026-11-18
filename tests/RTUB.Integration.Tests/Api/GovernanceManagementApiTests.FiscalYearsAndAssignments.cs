@@ -15,7 +15,7 @@ public partial class GovernanceManagementApiTests
         const int start = 1992;
         await DeleteFiscalYearAsync(start);
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         var before = await admin.GetFromJsonAsync<JsonElement>("/api/governance/manage");
         before.GetProperty("availableStartYears").EnumerateArray().Select(y => y.GetInt32()).Should().Contain(start);
@@ -46,7 +46,7 @@ public partial class GovernanceManagementApiTests
         const int start = 1996;
         await EnsureFiscalYearAsync(start);
         var (mod, me) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var tuno = await AddMemberAsync(MemberCategory.Tuno);
         var other = await AddMemberAsync(MemberCategory.Tuno);
         var caloiro = await AddMemberAsync(MemberCategory.Caloiro);
@@ -103,7 +103,7 @@ public partial class GovernanceManagementApiTests
         var start = FiscalYearHelper.GetCurrentFiscalYearStartYear();
         await EnsureFiscalYearAsync(start);
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         var tuno = await AddMemberAsync(MemberCategory.Tuno);
         await ClearPositionAsync(start, Position.SegundoTesoureiro);
 
@@ -125,7 +125,7 @@ public partial class GovernanceManagementApiTests
         var start = FiscalYearHelper.GetCurrentFiscalYearStartYear();
         await EnsureFiscalYearAsync(start);
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         var leaving = await AddMemberAsync(MemberCategory.Tuno);
         var reElected = await AddMemberAsync(MemberCategory.Tuno);
         var newcomer = await AddMemberAsync(MemberCategory.Tuno);

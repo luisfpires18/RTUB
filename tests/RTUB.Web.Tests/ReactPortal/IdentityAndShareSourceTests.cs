@@ -11,7 +11,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class IdentityAndShareSourceTests
 {
-    private static readonly string Root = GetProjectRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Web = Path.Combine(Root, "src", "RTUB.Web");
     private static readonly string Portal = Path.Combine(Web, "portal", "src");
 
@@ -120,16 +120,5 @@ public class IdentityAndShareSourceTests
         }
 
         Read(Portal, "data/content.ts").Should().NotContain("legacy", "no Blazor page is left to link out to");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

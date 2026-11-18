@@ -13,14 +13,14 @@ public partial class InventoryApiTests
     public async Task Create_Validates_AsTheEntity_AndEditNeverChangesTheType()
     {
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
-        (await Errors(await mod.PostAsJsonAsync("/api/inventory", new { condition = "Nope" }))).Keys.Should().BeEquivalentTo("name", "category", "condition");
-        (await Errors(await mod.PostAsJsonAsync("/api/inventory", Input(new string('n', 101), "Guitarra") with
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync("/api/inventory", new { condition = "Nope" }))).Keys.Should().BeEquivalentTo("name", "category", "condition");
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync("/api/inventory", Input(new string('n', 101), "Guitarra") with
         {
             Brand = new string('b', 101), SerialNumber = new string('s', 101), Location = new string('l', 201), MaintenanceNotes = new string('m', 501),
         }))).Keys.Should().BeEquivalentTo("name", "brand", "serialNumber", "location", "maintenanceNotes");
-        (await Errors(await mod.PostAsJsonAsync("/api/inventory", Input("x", "Kazoo")))).Keys.Should().Equal("category");
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync("/api/inventory", Input("x", "Kazoo")))).Keys.Should().Equal("category");
 
         var name = $"{Tag()} Criado";
         var created = await mod.PostAsJsonAsync("/api/inventory", Input(name, "Cavaquinho") with { Brand = "", LastMaintenanceDate = new DateOnly(2024, 5, 6) });
@@ -43,11 +43,11 @@ public partial class InventoryApiTests
         _factory.Storage.Invocations.Clear();
         var id = await AddAsync($"{Tag()} Imagem", InstrumentType.Guitarra);
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         (await admin.PostAsync($"/api/inventory/{id}/image", Multipart(("image", Png, "image/png")))).StatusCode
             .Should().Be(HttpStatusCode.BadRequest, "the thumbnail must come with the image, as the old form required");
-        (await Errors(await admin.PostAsync($"/api/inventory/{id}/image", Multipart(("image", "GIF89a-not-allowed"u8.ToArray(), "image/gif"), ("thumbnail", Webp, "image/webp")))))
+        (await AreaHttp.Errors(await admin.PostAsync($"/api/inventory/{id}/image", Multipart(("image", "GIF89a-not-allowed"u8.ToArray(), "image/gif"), ("thumbnail", Webp, "image/webp")))))
             .Keys.Should().Equal("image");
 
         var first = await Json(await admin.PostAsync($"/api/inventory/{id}/image", Multipart(("image", Png, "image/png"), ("thumbnail", Webp, "image/webp"))));
@@ -86,7 +86,7 @@ public partial class InventoryApiTests
     [Fact]
     public void ReactFiles_SayNothingAboutMigration_AndTheMemberMenuLinksTheInventory()
     {
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "pages/Inventory.tsx")).Should().NotContainAny("migra", "Migra");
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("inventory: '/inventory'");
         File.ReadAllText(Path.Combine(src, "components/MemberShell.tsx")).Should().Contain("href: portal.inventory,", "the member menu links it (030)");

@@ -81,22 +81,11 @@ public class ShellPagesTests : IntegrationTestBase
     [Fact]
     public void TheAnnouncementListener_IsInTheReactShell_AndSaysNothingAboutMigration()
     {
-        var portal = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var portal = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         var app = PortalSource.Cat(portal, "components/App*.tsx");
 
         app.Should().Contain("<SystemAnnouncement />").And.Contain("getAnnouncement()");
         File.ReadAllText(Path.Combine(portal, "data/apiSession.ts")).Should().Contain("fetch('/api/announcement'");
         app.Should().NotContainAny("migra", "Migra", "Blazor");
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null && !File.Exists(Path.Combine(directory.FullName, "RTUB.sln")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

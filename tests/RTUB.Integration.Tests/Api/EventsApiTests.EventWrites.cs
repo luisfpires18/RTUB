@@ -18,9 +18,9 @@ public partial class EventsApiTests
     {
         var seed = await SeedAsync();
         var visitor = Anonymous();
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (adminWithoutToken, _) = await SignInAsync("Admin");
 
         (await visitor.PostAsJsonAsync("/api/events", NewEvent("Do visitante"))).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -43,7 +43,7 @@ public partial class EventsApiTests
     public async Task AdminOrOwner_CreatesEditsAndDeletes_AnEvent(string role)
     {
         var (client, _) = await SignInAsync(role);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
         var name = $"Arraial de {role}";
 
         var agenda = await client.GetFromJsonAsync<JsonElement>("/api/events");
@@ -77,7 +77,7 @@ public partial class EventsApiTests
     public async Task AMod_CreatesAndEditsEvents_ButCannotDeleteThem()
     {
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
         var agenda = await mod.GetFromJsonAsync<JsonElement>("/api/events");
         (agenda.GetProperty("canEdit").GetBoolean(), agenda.GetProperty("canManage").GetBoolean()).Should().Be((true, false));
@@ -102,11 +102,11 @@ public partial class EventsApiTests
     {
         var id = await AddEventAsync("Arraial protegido", DateTime.Today.AddDays(300));
         var visitor = Anonymous();
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var (adminWithoutToken, _) = await SignInAsync("Admin");
         _factory.Email.Invocations.Clear();
         _factory.Storage.Invocations.Clear();
@@ -145,7 +145,7 @@ public partial class EventsApiTests
     {
         var id = await AddEventAsync($"Com imagem ({role})", DateTime.Today.AddDays(301), imageUrl: $"https://pub-test.r2.dev/images/test/events/old-{role}.webp");
         var (client, _) = await SignInAsync(role);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
 
         (await client.PostAsync($"/api/events/{id}/image", ImageForm())).StatusCode.Should().Be(HttpStatusCode.NoContent);
 
@@ -168,10 +168,10 @@ public partial class EventsApiTests
     {
         var id = await AddEventAsync("Arraial a cancelar", DateTime.Today.AddDays(302));
         var (member, user) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         await AddEnrollmentAsync(id, user.Id, willAttend: true);
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         (await admin.PostAsJsonAsync($"/api/events/{id}/cancel", new { reason = " ", notifyByEmail = false })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var cancelled = await admin.PostAsJsonAsync($"/api/events/{id}/cancel", new { reason = "Chuva forte", notifyByEmail = false });
@@ -199,7 +199,7 @@ public partial class EventsApiTests
     {
         var id = await AddEventAsync("Arraial antigo", DateTime.Today.AddDays(-300));
         var (admin, _) = await SignInAsync("Owner");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         (await admin.PostAsJsonAsync($"/api/events/{id}/cancel", new { reason = "x", notifyByEmail = false })).StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await admin.PostAsJsonAsync($"/api/events/{id}/notices", EmailNotice())).StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -210,7 +210,7 @@ public partial class EventsApiTests
     {
         var id = await AddEventAsync("Arraial com aviso", DateTime.Today.AddDays(303));
         var (admin, adminUser) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         _factory.Push.Setup(p => p.GetSubscribedUserIdsAsync()).ReturnsAsync(new[] { adminUser.Id });
         _factory.Push.Setup(p => p.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()))
             .ReturnsAsync((1, 0));

@@ -16,7 +16,7 @@ public partial class LogisticsApiTests
     {
         var (boardId, listId, cardId) = await SeedBoardAsync();
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         foreach (var path in new[] { "/api/logistics", $"/api/logistics/boards/{boardId}", $"/api/logistics/cards/{cardId}", "/api/logistics/members?q=a" })
         {
             (await anonymous.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized, path);
@@ -55,14 +55,14 @@ public partial class LogisticsApiTests
         var (boardId, listId, cardId) = await SeedBoardAsync();
         var (leitao, me) = await SignInAsync();
         await UpdateUserAsync(me.Id, u => u.Categories = new List<MemberCategory> { MemberCategory.Leitao });
-        await WithTokenAsync(leitao);
+        await AreaHttp.WithTokenAsync(leitao);
 
-        var boards = await Json(leitao, "/api/logistics");
+        var boards = await AreaHttp.Json(leitao, "/api/logistics");
         boards.GetProperty("canManage").GetBoolean().Should().BeFalse();
         boards.GetProperty("active").EnumerateArray().Select(b => b.GetProperty("id").GetInt32()).Should().Contain(boardId);
-        (await Json(leitao, $"/api/logistics/boards/{boardId}")).GetProperty("canManage").GetBoolean().Should().BeFalse();
-        (await Json(leitao, $"/api/logistics/boards/{boardId}/file-list")).ValueKind.Should().Be(JsonValueKind.Array);
-        var detail = await Json(leitao, $"/api/logistics/cards/{cardId}");
+        (await AreaHttp.Json(leitao, $"/api/logistics/boards/{boardId}")).GetProperty("canManage").GetBoolean().Should().BeFalse();
+        (await AreaHttp.Json(leitao, $"/api/logistics/boards/{boardId}/file-list")).ValueKind.Should().Be(JsonValueKind.Array);
+        var detail = await AreaHttp.Json(leitao, $"/api/logistics/cards/{cardId}");
         (detail.GetProperty("canManage").GetBoolean(), detail.GetProperty("canWork").GetBoolean()).Should().Be((false, false));
 
         (await leitao.PostAsJsonAsync("/api/logistics/boards", new { name = "x" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -96,7 +96,7 @@ public partial class LogisticsApiTests
 
         var (worker, me) = await SignInAsync();
         await UpdateUserAsync(me.Id, u => u.Categories = new List<MemberCategory> { MemberCategory.Leitao });
-        await WithTokenAsync(worker);
+        await AreaHttp.WithTokenAsync(worker);
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -104,9 +104,9 @@ public partial class LogisticsApiTests
             await db.SaveChangesAsync();
         }
 
-        Card(await Json(worker, $"/api/logistics/boards/{boardId}"), cardId).GetProperty("mine").GetBoolean().Should().BeTrue();
-        Card(await Json(worker, $"/api/logistics/boards/{boardId}"), other).GetProperty("mine").GetBoolean().Should().BeFalse();
-        var detail = await Json(worker, $"/api/logistics/cards/{cardId}");
+        Card(await AreaHttp.Json(worker, $"/api/logistics/boards/{boardId}"), cardId).GetProperty("mine").GetBoolean().Should().BeTrue();
+        Card(await AreaHttp.Json(worker, $"/api/logistics/boards/{boardId}"), other).GetProperty("mine").GetBoolean().Should().BeFalse();
+        var detail = await AreaHttp.Json(worker, $"/api/logistics/cards/{cardId}");
         (detail.GetProperty("canManage").GetBoolean(), detail.GetProperty("canWork").GetBoolean()).Should().Be((false, true));
 
         var ticked = await Json(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/1", new { task = "Contar", done = true }));
@@ -115,8 +115,8 @@ public partial class LogisticsApiTests
             "only Done changes; text, order and the stored shape stay");
         await Json(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/1", new { task = "Contar", done = false }));
         (await CardAsync(cardId))!.ChecklistJson.Should().Be(checklist, "unticking persists too");
-        (await Errors(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/0", new { task = "Outra", done = true }))).Keys.Should().Equal("items");
-        (await Errors(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/9", new { task = "Lavar", done = true }))).Keys.Should().Equal("items");
+        (await AreaHttp.Errors(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/0", new { task = "Outra", done = true }))).Keys.Should().Equal("items");
+        (await AreaHttp.Errors(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/9", new { task = "Lavar", done = true }))).Keys.Should().Equal("items");
         (await Json(await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/status", new { status = "InProgress" })))
             .GetProperty("card").GetProperty("status").GetString().Should().Be("InProgress");
         (await CardAsync(cardId))!.Status.Should().Be(CardStatus.InProgress);
@@ -150,17 +150,17 @@ public partial class LogisticsApiTests
 
         // A manager removes the assignment: the next write is refused, the card still reads.
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         (await mod.DeleteAsync($"/api/logistics/cards/{cardId}/assignments/{me.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
         (await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/0", new { task = "Lavar", done = true })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await worker.PostAsJsonAsync($"/api/logistics/cards/{cardId}/status", new { status = "Done" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await Json(worker, $"/api/logistics/cards/{cardId}")).GetProperty("canWork").GetBoolean().Should().BeFalse();
+        (await AreaHttp.Json(worker, $"/api/logistics/cards/{cardId}")).GetProperty("canWork").GetBoolean().Should().BeFalse();
         (await CardAsync(cardId))!.Status.Should().Be(CardStatus.InProgress);
 
         // Managers keep the tick too, and anonymous callers get nothing.
         (await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/0", new { task = "Lavar", done = true })).StatusCode.Should().Be(HttpStatusCode.OK);
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         (await anonymous.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/0", new { task = "Lavar", done = false })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -171,9 +171,9 @@ public partial class LogisticsApiTests
         var (_, assignee) = await SignInAsync();
         await UpdateCardAsync(cardId, c => c.AssignToUser(assignee.Id));
         var (member, me) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
-        var boards = await Json(member, "/api/logistics");
+        var boards = await AreaHttp.Json(member, "/api/logistics");
         boards.GetProperty("canManage").GetBoolean().Should().BeFalse();
         boards.GetProperty("active").EnumerateArray().Select(b => b.GetProperty("id").GetInt32()).Should().Contain(boardId);
 
@@ -232,15 +232,10 @@ public partial class LogisticsApiTests
         foreach (var role in new[] { "Mod", "Admin", "Owner" })
         {
             var (manager, _) = await SignInAsync(role);
-            (await Json(manager, $"/api/logistics/boards/{boardId}")).GetProperty("canManage").GetBoolean().Should().BeTrue(role);
+            (await AreaHttp.Json(manager, $"/api/logistics/boards/{boardId}")).GetProperty("canManage").GetBoolean().Should().BeTrue(role);
             (await manager.GetAsync($"/api/logistics/cards/{cardId}")).StatusCode.Should().Be(HttpStatusCode.OK, $"{role} opens card details (Owner inherits Admin)");
         }
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.94.0.1");
-        return client;
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.94.0.1");
 }

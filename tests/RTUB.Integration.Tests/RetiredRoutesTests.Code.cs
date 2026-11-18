@@ -10,7 +10,7 @@ public partial class RetiredRoutesTests
     [Fact]
     public void NoRazorComponent_IsLeftInTheSource_OrTheAssembly()
     {
-        var src = Path.Combine(RepoRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
         Directory.EnumerateFiles(src, "*.razor*", SearchOption.AllDirectories)
             .Where(f => !f.Replace('\\', '/').Contains("/obj/") && !f.Replace('\\', '/').Contains("/bin/"))
             .Should().BeEmpty("App.razor, MainLayout, _Imports and every component went with the host");
@@ -23,7 +23,7 @@ public partial class RetiredRoutesTests
     [Fact]
     public void RTUBShared_IsGone_FromTheDisk_TheSolution_AndTheWebProject()
     {
-        var root = RepoRoot();
+        var root = RepoPaths.Root();
         File.Exists(Path.Combine(root, "src", "RTUB.Shared", "RTUB.Shared.csproj")).Should().BeFalse();
         File.Exists(Path.Combine(root, "tests", "RTUB.Shared.Tests", "RTUB.Shared.Tests.csproj")).Should().BeFalse();
         File.ReadAllText(Path.Combine(root, "RTUB.sln")).Should().NotContain("RTUB.Shared");
@@ -34,7 +34,7 @@ public partial class RetiredRoutesTests
     [Fact]
     public void Startup_DoesNotHostBlazor()
     {
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web");
         var startup = File.ReadAllText(Path.Combine(src, "Program.cs")) + string.Concat(Directory.GetFiles(Path.Combine(src, "Extensions"), "*.cs").OrderBy(f => f).Select(File.ReadAllText));
 
         startup.Should().NotContainAny("MapRazorComponents", "AddRazorComponents", "AddInteractiveServerComponents",
@@ -45,7 +45,7 @@ public partial class RetiredRoutesTests
     [Fact]
     public void ServiceWorker_PrecachesNoBlazorAsset()
     {
-        var sw = File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "wwwroot", "service-worker.js"));
+        var sw = File.ReadAllText(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "wwwroot", "service-worker.js"));
 
         sw.Should().NotContainAny("blazor.web.js", "_framework", "_blazor");
         sw.Should().Contain("'/offline.html'", "offline support stays");
@@ -75,7 +75,7 @@ public partial class RetiredRoutesTests
     [Fact]
     public void BlazorMeetingsPage_AndWhatOnlyItUsed_AreGone()
     {
-        var src = Path.Combine(RepoRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
         foreach (var gone in new[]
                  {
                      "RTUB.Web/Pages/Activities/Meetings.razor", "RTUB.Shared/Components/Cards/MeetingCard.razor",
@@ -92,7 +92,7 @@ public partial class RetiredRoutesTests
     [Fact]
     public void BlazorNaipesPages_AndWhatOnlyTheyUsed_AreGone()
     {
-        var src = Path.Combine(RepoRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
         foreach (var gone in new[]
                  {
                      "RTUB.Web/Pages/Activities/Naipes.razor", "RTUB.Web/Pages/Activities/NaipesConfig.razor",
@@ -113,7 +113,7 @@ public partial class RetiredRoutesTests
     [Fact]
     public void BlazorProfileMapAndHallOfFamePages_AndWhatOnlyTheyUsed_AreGone()
     {
-        var src = Path.Combine(RepoRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
         foreach (var gone in new[]
                  {
                      "RTUB.Web/Pages/Members/Profile.razor", "RTUB.Web/Pages/Members/MemberMap.razor", "RTUB.Web/Pages/Activities/HallOfFame.razor",
@@ -130,16 +130,5 @@ public partial class RetiredRoutesTests
         web.GetType("RTUB.Pages.Members.Profile").Should().BeNull();
         web.GetType("RTUB.Pages.Members.MemberMap").Should().BeNull();
         web.GetType("RTUB.Pages.Activities.HallOfFame").Should().BeNull();
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null && !File.Exists(Path.Combine(directory.FullName, "RTUB.sln")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

@@ -11,7 +11,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class MessagingV2SourceTests
 {
-    private static readonly string Root = FindRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Web = Path.Combine(Root, "src", "RTUB.Web");
     private static readonly string Portal = Path.Combine(Web, "portal", "src");
     private static string Read(params string[] parts) => File.ReadAllText(Path.Combine(parts));
@@ -138,12 +138,5 @@ public class MessagingV2SourceTests
         var method = factory[factory.IndexOf("CreateConversationMessageNotification(", StringComparison.Ordinal)..];
         method = method[..method.IndexOf("    /// <summary>", StringComparison.Ordinal)];
         method.Should().NotContain("body").And.Contain("Title = \"Nova mensagem\"").And.Contain("Url = $\"/messages?c={conversationId}\"");
-    }
-
-    private static string FindRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "RTUB.sln"))) dir = dir.Parent;
-        return dir?.FullName ?? throw new InvalidOperationException("repository root not found");
     }
 }

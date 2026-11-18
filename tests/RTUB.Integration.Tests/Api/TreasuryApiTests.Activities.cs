@@ -15,11 +15,11 @@ public partial class TreasuryApiTests
         var (reportId, _, _) = await SeedReportAsync();
         var (manager, treasurer) = await SignInAsync(MemberCategory.Tuno, "Mod");
         await UpdateUserAsync(treasurer.Id, u => u.Positions = new List<Position> { Position.PrimeiroTesoureiro });
-        await WithTokenAsync(manager);
+        await AreaHttp.WithTokenAsync(manager);
 
-        (await Errors(await manager.PostAsJsonAsync($"/api/treasury/reports/{reportId}/activities", new { name = " ", startDate = "2026-01-01" }))).Keys.Should().Equal("name");
-        (await Errors(await manager.PostAsJsonAsync($"/api/treasury/reports/{reportId}/activities", new { name = "x" }))).Keys.Should().Equal("startDate");
-        (await Errors(await manager.PostAsJsonAsync($"/api/treasury/reports/{reportId}/activities",
+        (await AreaHttp.Errors(await manager.PostAsJsonAsync($"/api/treasury/reports/{reportId}/activities", new { name = " ", startDate = "2026-01-01" }))).Keys.Should().Equal("name");
+        (await AreaHttp.Errors(await manager.PostAsJsonAsync($"/api/treasury/reports/{reportId}/activities", new { name = "x" }))).Keys.Should().Equal("startDate");
+        (await AreaHttp.Errors(await manager.PostAsJsonAsync($"/api/treasury/reports/{reportId}/activities",
             new { name = "x", startDate = "2026-02-02", endDate = "2026-02-01" }))).Keys.Should().Equal("endDate");
         var report = await Json(await manager.PostAsJsonAsync($"/api/treasury/reports/{reportId}/activities",
             new { name = " Arraial ", startDate = "2026-02-01", endDate = "2026-02-03", description = "Barraca" }));
@@ -27,11 +27,11 @@ public partial class TreasuryApiTests
         var activityId = activity.GetProperty("id").GetInt32();
         activity.GetProperty("endDate").GetString().Should().StartWith("2026-02-03");
 
-        (await Errors(await manager.PostAsync($"/api/treasury/activities/{activityId}/transactions", Form(Fields(amount: "0"))))).Keys.Should().Equal("amount");
-        (await Errors(await manager.PostAsync($"/api/treasury/activities/{activityId}/transactions", Form(Fields(amount: "1.005"))))).Keys.Should().Equal("amount");
-        (await Errors(await manager.PostAsync($"/api/treasury/activities/{activityId}/transactions", Form(Fields(type: "Gift"))))).Keys.Should().Equal("type");
-        (await Errors(await manager.PostAsync($"/api/treasury/activities/{activityId}/transactions", Form(Fields(description: " "))))).Keys.Should().Equal("description");
-        (await Errors(await manager.PostAsync($"/api/treasury/activities/{activityId}/transactions", Form(Fields(), ("recibo.exe", "application/x-msdownload", 10)))))
+        (await AreaHttp.Errors(await manager.PostAsync($"/api/treasury/activities/{activityId}/transactions", Form(Fields(amount: "0"))))).Keys.Should().Equal("amount");
+        (await AreaHttp.Errors(await manager.PostAsync($"/api/treasury/activities/{activityId}/transactions", Form(Fields(amount: "1.005"))))).Keys.Should().Equal("amount");
+        (await AreaHttp.Errors(await manager.PostAsync($"/api/treasury/activities/{activityId}/transactions", Form(Fields(type: "Gift"))))).Keys.Should().Equal("type");
+        (await AreaHttp.Errors(await manager.PostAsync($"/api/treasury/activities/{activityId}/transactions", Form(Fields(description: " "))))).Keys.Should().Equal("description");
+        (await AreaHttp.Errors(await manager.PostAsync($"/api/treasury/activities/{activityId}/transactions", Form(Fields(), ("recibo.exe", "application/x-msdownload", 10)))))
             .Keys.Should().Equal("receipt");
         _factory.Receipts.Objects.Keys.Should().NotContain(k => k.Contains("recibo"), "nothing is uploaded for a refused form");
 
@@ -61,7 +61,7 @@ public partial class TreasuryApiTests
         await Json(await manager.PostAsJsonAsync($"/api/treasury/activities/{activityId}/lock", new { locked = false }));
 
         // Bank / cash: one "Saldo" transaction in DINHEIRO NO BANCO; negative becomes an expense; the activity stays hidden.
-        (await Errors(await manager.PutAsJsonAsync($"/api/treasury/reports/{reportId}/balance", new { kind = "safe", value = 1 }))).Keys.Should().Equal("kind");
+        (await AreaHttp.Errors(await manager.PutAsJsonAsync($"/api/treasury/reports/{reportId}/balance", new { kind = "safe", value = 1 }))).Keys.Should().Equal("kind");
         var totals = (await Json(await manager.PutAsJsonAsync($"/api/treasury/reports/{reportId}/balance", new { kind = "bank", value = -15.5 }))).GetProperty("totals");
         totals.GetProperty("bank").GetDecimal().Should().Be(-15.5m);
         totals = (await Json(await manager.PutAsJsonAsync($"/api/treasury/reports/{reportId}/balance", new { kind = "bank", value = 300 }))).GetProperty("totals");
@@ -74,7 +74,7 @@ public partial class TreasuryApiTests
 
         // A published report is read-only, but activities can still be locked / unlocked (as before).
         var (owner, _) = await SignInAsync(null, "Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         await Json(await owner.PostAsync($"/api/treasury/reports/{reportId}/publish", null));
         (await manager.PostAsJsonAsync($"/api/treasury/reports/{reportId}/activities", new { name = "x", startDate = "2026-01-01" })).StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await manager.PutAsync($"/api/treasury/transactions/{txId}", Form(Fields()))).StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -91,7 +91,7 @@ public partial class TreasuryApiTests
         var receipt = (await TransactionAsync(transactionId))!.ReceiptUrl!;
         _factory.Receipts.Objects.Should().ContainKey(receipt);
         var (admin, _) = await SignInAsync(null, "Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         var report = await Json(await admin.DeleteAsync($"/api/treasury/activities/{activityId}"));
         report.GetProperty("activities").EnumerateArray().Should().NotContain(a => a.GetProperty("id").GetInt32() == activityId);
@@ -118,7 +118,7 @@ public partial class TreasuryApiTests
         }
 
         var (owner, _) = await SignInAsync(null, "Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         (await owner.DeleteAsync($"/api/treasury/reports/{reportId}")).IsSuccessStatusCode.Should().BeFalse();
 
         (await ReportAsync(reportId)).Should().NotBeNull("the failed delete rolled back");
@@ -147,7 +147,7 @@ public partial class TreasuryApiTests
         }
 
         var (admin, _) = await SignInAsync(null, "Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         _factory.Receipts.FailDeletes = true;
         try
         {

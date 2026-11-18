@@ -14,7 +14,7 @@ public partial class MusicApiTests
     {
         var seed = await SeedAsync();
         var (member, user) = await SignInAsync("Member");
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var first = await member.PostAsync($"/api/music/songs/{seed.SongWithPdf}/plays", null);
         var second = await member.PostAsync($"/api/music/songs/{seed.SongWithPdf}/plays", null);
@@ -35,7 +35,7 @@ public partial class MusicApiTests
     {
         var seed = await SeedAsync();
         var visitor = await AnonymousAsync("10.61.0.1");
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
 
         (await (await visitor.PostAsync($"/api/music/songs/{seed.SongWithText}/plays", null)).Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("counted").GetBoolean().Should().BeTrue();
@@ -54,7 +54,7 @@ public partial class MusicApiTests
         (await visitor.PostAsync($"/api/music/songs/{seed.SongWithPdf}/plays", null)).StatusCode
             .Should().Be(HttpStatusCode.BadRequest, "every Music write needs the antiforgery token");
 
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
         var noAudio = await visitor.PostAsync($"/api/music/songs/{seed.SongWithout}/plays", null);
         noAudio.StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await noAudio.Content.ReadAsStringAsync()).Should().Contain("music:audio-unavailable");

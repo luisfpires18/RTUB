@@ -57,7 +57,7 @@ public sealed class ReleaseNotesServiceTests : IDisposable
 
         // The repository's own files load, every one is at or below dev's VERSION (notes for the current version are
         // optional since 090: a release without a file shows no dialog).
-        var root = FindRoot();
+        var root = RepoPaths.Root();
         var current = File.ReadAllText(Path.Combine(root, "VERSION")).Trim();
         var real = new ReleaseNotesService(Mock.Of<IDbContextFactory<ApplicationDbContext>>(),
             Options.Create(new ReleaseNotesOptions { Directory = Path.Combine(root, "releases") }), Mock.Of<ILogger<ReleaseNotesService>>(), new BuildInfo(current, null));
@@ -75,13 +75,6 @@ public sealed class ReleaseNotesServiceTests : IDisposable
 
     private void Write(string version, string title, string item) =>
         File.WriteAllText(Path.Combine(_dir, $"{version}.json"), $$"""{"version":"{{version}}","title":"{{title}}","items":["{{item}}"]}""");
-
-    private static string FindRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "RTUB.sln"))) dir = dir.Parent;
-        return dir?.FullName ?? throw new InvalidOperationException("repository root not found");
-    }
 
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 }

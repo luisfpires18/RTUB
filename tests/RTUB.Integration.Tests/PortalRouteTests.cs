@@ -64,7 +64,7 @@ public partial class PortalRouteTests : IntegrationTestBase
     [Fact]
     public void ReactShell_CarriesNoTestBannerOrUpdatePrompt()
     {
-        var root = FindRepoRoot();
+        var root = RepoPaths.Root();
         var web = Path.Combine(root, "src", "RTUB.Web");
         var files = Directory.GetFiles(Path.Combine(web, "portal", "src"), "*", SearchOption.AllDirectories)
             .Append(Path.Combine(web, "portal", "index.html"))
@@ -124,7 +124,7 @@ public partial class PortalRouteTests : IntegrationTestBase
         // A quoted "/portal", "/portal#…" or "/portal/<page>" is a link to the pilot URLs. The build's
         // own asset base ("/portal/" + file, /portal/assets/…) is a static-file folder, not a page.
         var pilotLink = new Regex(@"[""'`(]/portal(?:/(?:privacy|profile|request)\b|[#?""'`)])");
-        var root = FindRepoRoot();
+        var root = RepoPaths.Root();
         var files = Directory.GetFiles(Path.Combine(root, "src", "RTUB.Web", "portal", "src"), "*", SearchOption.AllDirectories)
             .Append(Path.Combine(root, "src", "RTUB.Web", "portal", "index.html"))
             .Concat(Directory.GetFiles(Path.Combine(root, "src", "RTUB.Web", "wwwroot", "portal"), "*", SearchOption.AllDirectories)
@@ -150,16 +150,5 @@ public partial class PortalRouteTests : IntegrationTestBase
             (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
                 "{0} is GET/HEAD only", path);
         }
-    }
-
-    private static string FindRepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }
