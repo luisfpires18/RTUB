@@ -10,6 +10,7 @@ import { RetryNotice } from './Notice';
 import { Loading } from './ui/Loading';
 import { Pager } from './ui/Pager';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
+import { Banner } from './ui/Banner';
 
 const REQUEST_PAGE_SIZES = [4, 8, 12, 16, 20];
 
@@ -110,11 +111,7 @@ export function RequestsSection({
           </button>
         </div>
       )}
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
+      <Banner text={error} />
 
       {data === undefined ? (
         <Loading label="A carregar os pedidos…" />

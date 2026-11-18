@@ -1,0 +1,1 @@
+import{j as n}from"./vendor-react-DI41Mul8.js";import{D as r}from"./index-CBqeREW_.js";function c({src:o,size:t=32,className:i}){return n.jsx("img",{className:i,src:o||r,alt:"",width:t,height:t,loading:"lazy",onError:a=>{a.currentTarget.src.endsWith(r)||(a.currentTarget.src=r)}})}export{c as A};

@@ -4,11 +4,11 @@ import { Dialog } from './Dialog';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingBoard, MeetingCard, MeetingDraft, MeetingForm, MeetingOption } from '../data/meetingsTypes';
 import { localDateTime } from '../data/meetingsDates';
-import { MAX_TITLE, MAX_LOCATION, MAX_STATEMENT, problem, type Errors, fieldClass } from './MeetingUi';
+import { MAX_TITLE, MAX_LOCATION, MAX_STATEMENT, problem, type Errors } from './MeetingUi';
 import { Loading } from './ui/Loading';
 import { Banner } from './ui/Banner';
-import { FieldError } from './ui/FieldError';
-import { Spinner } from './ui/Spinner';
+import { FormField } from './ui/FormField';
+import { DialogFooter } from './ui/DialogFooter';
 
 const TYPE_LABELS: Record<string, string> = {
   AssembleiaGeralOrdinaria: 'Assembleia Geral Ordinária',
@@ -97,15 +97,7 @@ export function MeetingFormDialog({
       size="lg"
       onClose={onClose}
       footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy || !form}>
-            {busy && <Spinner small />}
-            Guardar
-          </button>
-        </>
+        <DialogFooter form={`${id}-form`} busy={busy} disabled={!form} onClose={onClose} />
       }
     >
       {form === undefined ? (
@@ -115,8 +107,7 @@ export function MeetingFormDialog({
           <Banner text={banner} />
           {form && (
             <>
-              <div className={fieldClass(errors, 'type')}>
-                <label htmlFor={`${id}-type`}>Tipo de Reunião</label>
+              <FormField id={`${id}-type`} label="Tipo de Reunião" error={errors.type} alert>
                 <span className="control control--select">
                   <select id={`${id}-type`} value={type} onChange={(e) => setType(e.target.value)}>
                     <option value="" disabled>
@@ -129,20 +120,14 @@ export function MeetingFormDialog({
                     ))}
                   </select>
                 </span>
-                <FieldError text={errors.type} />
-              </div>
-              <div className={fieldClass(errors, 'title')}>
-                <label htmlFor={`${id}-title`}>Título</label>
+              </FormField>
+              <FormField id={`${id}-title`} label="Título" error={errors.title} alert>
                 <input id={`${id}-title`} type="text" maxLength={MAX_TITLE} placeholder="Inserir título..." value={title} onChange={(e) => setTitle(e.target.value)} />
-                <FieldError text={errors.title} />
-              </div>
-              <div className={fieldClass(errors, 'date')}>
-                <label htmlFor={`${id}-date`}>Data e Hora</label>
+              </FormField>
+              <FormField id={`${id}-date`} label="Data e Hora" error={errors.date} alert>
                 <input id={`${id}-date`} type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
-                <FieldError text={errors.date} />
-              </div>
-              <div className={fieldClass(errors, 'location')}>
-                <label htmlFor={`${id}-location`}>Localização (Opcional)</label>
+              </FormField>
+              <FormField id={`${id}-location`} label="Localização (Opcional)" error={errors.location} alert>
                 <input
                   id={`${id}-location`}
                   type="text"
@@ -151,11 +136,9 @@ export function MeetingFormDialog({
                   value={place}
                   onChange={(e) => setPlace(e.target.value)}
                 />
-                <FieldError text={errors.location} />
-              </div>
+              </FormField>
               {isCouncil && (
-                <div className={fieldClass(errors, 'tunoRepresentativeId')}>
-                  <label htmlFor={`${id}-rep`}>Representante de Tunos (Opcional)</label>
+                <FormField id={`${id}-rep`} label="Representante de Tunos (Opcional)" error={errors.tunoRepresentativeId} hint="Este tuno poderá ver e participar nesta reunião de CV." alert>
                   <span className="control control--select">
                     <select id={`${id}-rep`} value={representative} onChange={(e) => setRepresentative(e.target.value)}>
                       <option value="">Nenhum representante selecionado</option>
@@ -169,12 +152,9 @@ export function MeetingFormDialog({
                       ))}
                     </select>
                   </span>
-                  <p className="form__hint">Este tuno poderá ver e participar nesta reunião de CV.</p>
-                  <FieldError text={errors.tunoRepresentativeId} />
-                </div>
+                </FormField>
               )}
-              <div className={fieldClass(errors, 'statement')}>
-                <label htmlFor={`${id}-statement`}>Declaração</label>
+              <FormField id={`${id}-statement`} label="Declaração" error={errors.statement} hint={`Máximo ${MAX_STATEMENT} caracteres (${statement.length} / ${MAX_STATEMENT})`} alert>
                 <textarea
                   id={`${id}-statement`}
                   rows={10}
@@ -183,11 +163,7 @@ export function MeetingFormDialog({
                   value={statement}
                   onChange={(e) => setStatement(e.target.value)}
                 />
-                <p className="form__hint">
-                  Máximo {MAX_STATEMENT} caracteres ({statement.length} / {MAX_STATEMENT})
-                </p>
-                <FieldError text={errors.statement} />
-              </div>
+              </FormField>
             </>
           )}
         </form>

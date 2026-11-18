@@ -4,6 +4,7 @@ import { Icon } from './icons';
 import { type Question, type QuestionPage, api, stamp, statusLabel, statusPill } from '../data/questionsApi';
 import { Loading } from './ui/Loading';
 import { Avatar } from './ui/Avatar';
+import { Banner } from './ui/Banner';
 
 export function QuestionList({
   closed,
@@ -46,9 +47,7 @@ export function QuestionList({
       {data === undefined ? (
         <Loading label="A carregar…" />
       ) : data === null ? (
-        <p className="form__banner" role="alert">
-          Não foi possível carregar esta lista.
-        </p>
+        <Banner text="Não foi possível carregar esta lista." />
       ) : data.items.length === 0 ? (
         <p className="note">{q || recipient ? 'Nenhuma pergunta corresponde à pesquisa.' : 'Ainda não há perguntas abertas.'}</p>
       ) : (

@@ -8,6 +8,7 @@ import type { MeetingAtaView, MeetingCard } from '../data/meetingsTypes';
 import { numericDateTime } from '../data/meetingsDates';
 import { Block } from './MeetingAtaParts';
 import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
 
 /** "Ver Ata": the ata as published (or a writer's own draft), and the attendee's confirm / refuse. */
 export function AtaViewDialog({ card, onClose }: { card: MeetingCard; onClose: () => void }) {
@@ -181,11 +182,7 @@ export function AtaViewDialog({ card, onClose }: { card: MeetingCard; onClose: (
                 )}
               </div>
             )}
-            {error && (
-              <p className="form__banner" role="alert">
-                {error}
-              </p>
-            )}
+            <Banner text={error} />
           </Block>
 
           {ata.agendaPoints.length > 0 && (

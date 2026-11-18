@@ -10,7 +10,9 @@ import { Block, SecretarySelect } from './MeetingAtaParts';
 import { Loading } from './ui/Loading';
 import { Banner } from './ui/Banner';
 import { FieldError } from './ui/FieldError';
+import { FormField } from './ui/FormField';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
+import { Spinner } from './ui/Spinner';
 
 // The ata of a meeting: the editor for whoever may write it (a draft is only theirs, decision A1) and
 // "Ver Ata" for readers of a published one. The server decides who writes, reads, publishes and confirms.
@@ -124,11 +126,11 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
               {editor && !published && (
                 <>
                   <button type="button" className="btn btn--primary btn--sm" onClick={onSave} disabled={busy !== undefined}>
-                    {busy === 'save' ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="check" />}
+                    {busy === 'save' ? <Spinner small /> : <Icon name="check" />}
                     Guardar Ata
                   </button>
                   <button type="button" className="btn btn--ghost btn--sm" onClick={onPdf} disabled={busy !== undefined}>
-                    {busy === 'pdf' ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="filePdf" />}
+                    {busy === 'pdf' ? <Spinner small /> : <Icon name="filePdf" />}
                     Gerar PDF
                   </button>
                   {editor.id !== null && (
@@ -191,8 +193,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
               <legend className="sr-only">Ata</legend>
               <Block icon="file" title="Dados da Ata">
                 <div className="form mtg-form">
-                  <div className={fieldClass(errors, 'ataNumber')}>
-                    <label htmlFor={`${id}-number`}>Número da Ata</label>
+                  <FormField id={`${id}-number`} label="Número da Ata" error={errors.ataNumber} alert>
                     <input
                       id={`${id}-number`}
                       type="text"
@@ -201,8 +202,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                       value={values.ataNumber}
                       onChange={(e) => set({ ataNumber: e.target.value })}
                     />
-                    <FieldError text={errors.ataNumber} />
-                  </div>
+                  </FormField>
                   <div className="form__row">
                     <div className={fieldClass(errors, 'actualStartTime')}>
                       <label htmlFor={`${id}-start`}>
@@ -211,11 +211,9 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                       <input id={`${id}-start`} type="datetime-local" value={values.actualStartTime} onChange={(e) => set({ actualStartTime: e.target.value })} />
                       <FieldError text={errors.actualStartTime} />
                     </div>
-                    <div className={fieldClass(errors, 'actualEndTime')}>
-                      <label htmlFor={`${id}-end`}>Hora de Término</label>
+                    <FormField id={`${id}-end`} label="Hora de Término" error={errors.actualEndTime} alert>
                       <input id={`${id}-end`} type="datetime-local" value={values.actualEndTime} onChange={(e) => set({ actualEndTime: e.target.value })} />
-                      <FieldError text={errors.actualEndTime} />
-                    </div>
+                    </FormField>
                   </div>
                   <div className={fieldClass(errors, 'location')}>
                     <label htmlFor={`${id}-location`}>
@@ -225,16 +223,14 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                     <FieldError text={errors.location} />
                   </div>
                   {kind === 'ag' && (
-                    <div className={fieldClass(errors, 'quorumBasis')}>
-                      <label htmlFor={`${id}-quorum`}>Base do Quórum</label>
+                    <FormField id={`${id}-quorum`} label="Base do Quórum" error={errors.quorumBasis} alert>
                       <span className="control control--select">
                         <select id={`${id}-quorum`} value={values.quorumBasis} onChange={(e) => set({ quorumBasis: e.target.value })}>
                           <option value="HoraAgendada">Iniciada à hora agendada</option>
                           <option value="HoraAgendadaMais30Minutos">Iniciada 30 minutos após hora agendada</option>
                         </select>
                       </span>
-                      <FieldError text={errors.quorumBasis} />
-                    </div>
+                    </FormField>
                   )}
                 </div>
               </Block>
@@ -436,8 +432,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
               </Block>
 
               <Block icon="journal" title="Encerramento">
-                <div className={fieldClass(errors, 'closingText')}>
-                  <label htmlFor={`${id}-closing`}>Texto de Encerramento</label>
+                <FormField id={`${id}-closing`} label="Texto de Encerramento" error={errors.closingText} alert>
                   <textarea
                     id={`${id}-closing`}
                     rows={4}
@@ -446,8 +441,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                     value={values.closingText}
                     onChange={(e) => set({ closingText: e.target.value })}
                   />
-                  <FieldError text={errors.closingText} />
-                </div>
+                </FormField>
               </Block>
             </fieldset>
 

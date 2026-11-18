@@ -7,6 +7,7 @@ import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingPoll } from '../data/meetingsTypes';
 import { longDateTime } from '../data/meetingsDates';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
+import { FieldError } from './ui/FieldError';
 
 export const pollProblem = (outcome: Parameters<typeof problem>[0], what: string) =>
   outcome.kind === 'closed'
@@ -95,7 +96,7 @@ export function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: ()
           </label>
         ))}
       </fieldset>
-      {error && <p className="form__error" role="alert">{error}</p>}
+      <FieldError text={error} />
       <div className="mtg-poll__actions">
         {poll.canVote && (
           <button type="button" className="btn btn--primary btn--sm" onClick={vote} disabled={selected === null || busy}>

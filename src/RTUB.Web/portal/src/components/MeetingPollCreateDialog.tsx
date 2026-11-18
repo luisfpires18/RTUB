@@ -5,6 +5,7 @@ import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingPollAudienceOption } from '../data/meetingsTypes';
 import { pollProblem } from './MeetingPollCard';
+import { Banner } from './ui/Banner';
 
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 12;
@@ -61,7 +62,7 @@ export function CreatePollDialog({
       }
     >
       <form id="meeting-poll-form" className="form" onSubmit={submit}>
-        {error && <p className="form__banner" role="alert">{error}</p>}
+        <Banner text={error} />
         <label className="form__field">
           <span>Órgão</span>
           <select value={audience} onChange={(event) => setAudience(event.target.value)} required>
