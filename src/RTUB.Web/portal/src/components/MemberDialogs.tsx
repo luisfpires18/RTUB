@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { EmptyNote } from './ui/EmptyNote';
 import { FactRow } from './ui/FactRow';
 import { Banner } from './ui/Banner';
 import { Dialog } from './Dialog';
@@ -151,7 +152,7 @@ export function ActivityList({ activities }: { activities: MemberState['activiti
     <details className="who__more">
       <summary>Ver atuações e ensaios detalhados</summary>
       {activities.length === 0 ? (
-        <p className="note">Nenhuma atividade registada</p>
+        <EmptyNote>Nenhuma atividade registada</EmptyNote>
       ) : (
         <ol className="activity-feed">
           {activities.map((a, i) => {

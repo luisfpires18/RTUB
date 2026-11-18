@@ -125,9 +125,7 @@ export function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string |
         <Banner text="O áudio desta música não está disponível. A pauta fica parada." />
       )}
       {stale && (
-        <p className="form__banner" role="status">
-          A gravação mudou desde que esta pauta foi feita. Os acordes podem estar fora do tempo.
-        </p>
+        <Banner role="status" text="A gravação mudou desde que esta pauta foi feita. Os acordes podem estar fora do tempo." />
       )}
 
       <div className="playalong__lane" ref={lane} style={{ '--strings': strings } as CSSProperties} aria-hidden="true">

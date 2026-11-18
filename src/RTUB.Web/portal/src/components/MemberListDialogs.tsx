@@ -1,5 +1,7 @@
 // Member list dialogs: active members (with search) and upcoming birthdays.
 import { Banner } from './ui/Banner';
+import { EmptyNote } from './ui/EmptyNote';
+import { ToolsBar, SearchField, SelectField } from './ui/SearchTools';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -37,27 +39,20 @@ export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => vo
 
   return (
     <Dialog title="Membros ativos" size="lg" onClose={onClose}>
-      <div className="events-tools" role="search">
-        <label className="control" htmlFor={ids.q}>
-          <span className="sr-only">Procurar</span>
-          <Icon name="search" />
-          <input id={ids.q} type="search" placeholder="Procurar por nome ou alcunha" value={search.text} onChange={(e) => search.setText(e.target.value)} />
-        </label>
-        <label className="control control--select" htmlFor={ids.status}>
-          <span className="sr-only">Estado</span>
-          <select id={ids.status} value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Todos os estados</option>
-            <option value="active">No ativo</option>
-            <option value="retired">Reformado</option>
-          </select>
-        </label>
-      </div>
+      <ToolsBar>
+        <SearchField id={ids.q} label="Procurar" placeholder="Procurar por nome ou alcunha" value={search.text} onChange={search.setText} />
+        <SelectField id={ids.status} label="Estado" value={status} onChange={setStatus}>
+          <option value="">Todos os estados</option>
+          <option value="active">No ativo</option>
+          <option value="retired">Reformado</option>
+        </SelectField>
+      </ToolsBar>
       {list === undefined ? (
         <Loading label="A carregar…" />
       ) : list === null ? (
         <Banner text="Não foi possível carregar a lista." />
       ) : list.length === 0 ? (
-        <p className="note">Nenhum membro ativo encontrado.</p>
+        <EmptyNote>Nenhum membro ativo encontrado.</EmptyNote>
       ) : (
         <ul className="member-rows">
           {list.map((m) => (
@@ -116,19 +111,15 @@ export function BirthdaysDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog title="Aniversários" size="lg" onClose={onClose}>
-      <div className="events-tools" role="search">
-        <label className="control" htmlFor={id}>
-          <span className="sr-only">Procurar</span>
-          <Icon name="search" />
-          <input id={id} type="search" placeholder="Procurar por nome ou alcunha" value={search.text} onChange={(e) => search.setText(e.target.value)} />
-        </label>
-      </div>
+      <ToolsBar>
+        <SearchField id={id} label="Procurar" placeholder="Procurar por nome ou alcunha" value={search.text} onChange={search.setText} />
+      </ToolsBar>
       {list === undefined ? (
         <Loading label="A carregar…" />
       ) : list === null ? (
         <Banner text="Não foi possível carregar os aniversários." />
       ) : list.length === 0 ? (
-        <p className="note">Nenhum aniversário encontrado.</p>
+        <EmptyNote>Nenhum aniversário encontrado.</EmptyNote>
       ) : (
         <ul className="member-rows">
           {list.map((b) => (

@@ -1,5 +1,6 @@
 // Lyrics, links and members-only videos dialogs opened from an album song.
 import { Banner } from './ui/Banner';
+import { EmptyNote } from './ui/EmptyNote';
 import { FieldError } from './ui/FieldError';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExternalLink } from './AppShared';
@@ -159,7 +160,7 @@ export function VideosDialog({ song, onClose, onCount }: { song: Song; onClose: 
         ) : (
           <div className="videos">
             {videos.length === 0 ? (
-              <p className="note">Ainda não há vídeos desta música.</p>
+              <EmptyNote>Ainda não há vídeos desta música.</EmptyNote>
             ) : (
               <ul className="videos__list">
                 {videos.map((v) => (

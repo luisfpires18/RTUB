@@ -1,6 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { FieldError } from './ui/FieldError';
 import { DialogFooter } from './ui/DialogFooter';
 import { Banner } from './ui/Banner';
+import { CheckField } from './ui/CheckField';
+import { IconAction } from './ui/IconAction';
 import { Icon } from './icons';
 import { Dialog } from './MusicUi';
 import { musicApi, type FieldErrors, type SongInput } from '../data/musicApi';
@@ -121,10 +124,9 @@ export function SongForm({
               />
             </FormField>
           </div>
-          <label className="form__check">
-            <input type="checkbox" checked={form.hasAudio} onChange={(e) => set('hasAudio', e.target.checked)} />
+          <CheckField checked={form.hasAudio} onChange={(c) => set('hasAudio', c)}>
             Tem ficheiro de áudio disponível
-          </label>
+          </CheckField>
 
           <fieldset className="urls">
             <legend className="form__label">Endereços do YouTube</legend>
@@ -139,15 +141,12 @@ export function SongForm({
                   value={url}
                   onChange={(e) => set('youTubeUrls', form.youTubeUrls.map((u, j) => (j === i ? e.target.value : u)))}
                 />
-                <button
-                  type="button"
-                  className="icon-btn icon-btn--sm"
-                  onClick={() => set('youTubeUrls', form.youTubeUrls.filter((_, j) => j !== i))}
+                <IconAction
+                  icon="trash"
+                  label={`Remover endereço ${i + 1}`}
                   title="Remover"
-                >
-                  <Icon name="trash" />
-                  <span className="sr-only">Remover endereço {i + 1}</span>
-                </button>
+                  onClick={() => set('youTubeUrls', form.youTubeUrls.filter((_, j) => j !== i))}
+                />
               </div>
             ))}
             {form.youTubeUrls.length < 10 && (
@@ -156,7 +155,7 @@ export function SongForm({
                 Adicionar endereço
               </button>
             )}
-            {errors.youTubeUrls && <p className="form__error">{errors.youTubeUrls}</p>}
+            <FieldError text={errors.youTubeUrls} alert={false} />
           </fieldset>
 
           <FormField id="song-lyrics" label="Letra" hint="Só quando a música não está no cancioneiro em PDF." error={errors.lyrics}>

@@ -145,7 +145,9 @@ public class HomePreviewTests : IntegrationTestBase
     public void SearchAndFilterFields_ShareOneControl_AndBackLinksOneStyle()
     {
         // The gallery toolbar moved out of the page in 113.
-        Source("components/GalleryToolbar.tsx").Should().Contain("className=\"control\"").And.Contain("className=\"control control--select\"");
+        // Its search and selects moved to the kit (SearchTools) in 119.
+        Source("components/GalleryToolbar.tsx").Should().Contain("<SearchField").And.Contain("<SelectField");
+        Source("components/ui/SearchTools.tsx").Should().Contain("'control control--sm' : 'control'").And.Contain("'control control--select'");
         Source("pages/Governance.tsx").Should().Contain("className=\"control control--select\"");
         Source("pages/MusicAlbum.tsx").Should().Contain("className=\"control album-tools__search\"").And.Contain("<BackLink href=\"/music\">");
         Source("components/ui/BackLink.tsx").Should().Contain("className=\"back-link\""); // the music back link moved to the kit in 119

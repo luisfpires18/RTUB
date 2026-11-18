@@ -1,5 +1,6 @@
 // One titled group of member cards on the /members page.
 import { Icon } from './icons';
+import { LoadMore } from './ui/LoadMore';
 import { MemberBadge } from './MemberBadge';
 import { type MemberCard } from '../data/membersApi';
 import { Avatar } from './ui/Avatar';
@@ -36,11 +37,7 @@ export function Group({ title, people, limit, onMore, onOpen }: { title: string;
           </li>
         ))}
       </ul>
-      {people.length > limit && (
-        <button type="button" className="btn btn--ghost btn--sm members-more" onClick={onMore}>
-          Mostrar mais ({people.length - limit})
-        </button>
-      )}
+      <LoadMore remaining={people.length - limit} onMore={onMore} />
     </section>
   );
 }

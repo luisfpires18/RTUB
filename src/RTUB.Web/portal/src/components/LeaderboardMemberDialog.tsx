@@ -1,5 +1,7 @@
 // Leaderboard member details dialog.
 import { Banner } from './ui/Banner';
+import { EmptyNote } from './ui/EmptyNote';
+import { FactRow } from './ui/FactRow';
 import { useEffect, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -40,10 +42,7 @@ export function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYe
           <section className="member-section" aria-label="Estatísticas">
             <h3 className="member-section__title">Estatísticas</h3>
             <dl className="member-fields">
-              <div className="member-field">
-                <dt>XP total</dt>
-                <dd>{detail.breakdown.totalXp}</dd>
-              </div>
+              <FactRow label="XP total">{detail.breakdown.totalXp}</FactRow>
             </dl>
             {detail.breakdown.totalXp > 0 && (
               <ul className="member-rows leaderboard-xp">
@@ -80,7 +79,7 @@ export function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYe
           <details className="who__more" open>
             <summary>Ver atuações e ensaios detalhados</summary>
             {detail.activities.length === 0 ? (
-              <p className="note">Nenhuma atividade registada</p>
+              <EmptyNote>Nenhuma atividade registada</EmptyNote>
             ) : (
               <ul className="member-activities">
                 {detail.activities.map((a, i) => (
@@ -102,25 +101,16 @@ export function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYe
           <details className="who__more">
             <summary>Nível de alcoolismo</summary>
             <dl className="member-fields">
-              <div className="member-field">
-                <dt>Nível atual</dt>
-                <dd>
-                  {detail.progress.level} – {detail.progress.rankName}
-                  {detail.progress.isMaxLevel && ' (nível máximo)'}
-                </dd>
-              </div>
-              <div className="member-field">
-                <dt>XP</dt>
-                <dd>{detail.progress.xp}</dd>
-              </div>
+              <FactRow label="Nível atual">
+                {detail.progress.level} – {detail.progress.rankName}
+                {detail.progress.isMaxLevel && ' (nível máximo)'}
+              </FactRow>
+              <FactRow label="XP">{detail.progress.xp}</FactRow>
               {!detail.progress.isMaxLevel && (
-                <div className="member-field">
-                  <dt>Próximo nível</dt>
-                  <dd>
-                    {detail.progress.level + 1}
-                    {detail.progress.nextRankName && ` – ${detail.progress.nextRankName}`}, faltam {detail.progress.xpToNextLevel} XP
-                  </dd>
-                </div>
+                <FactRow label="Próximo nível">
+                  {detail.progress.level + 1}
+                  {detail.progress.nextRankName && ` – ${detail.progress.nextRankName}`}, faltam {detail.progress.xpToNextLevel} XP
+                </FactRow>
               )}
             </dl>
             {!detail.progress.isMaxLevel && (

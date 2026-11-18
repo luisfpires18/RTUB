@@ -1,5 +1,6 @@
 // Home page agenda (upcoming events) and latest news sections.
 import { useEffect, useState } from 'react';
+import { EmptyBlock } from './ui/EmptyNote';
 import { getLatestNews, getUpcomingEvents, newsDate, type NewsPost, type UpcomingEvent } from '../data/api';
 import { portal } from '../data/content';
 import { Icon } from './icons';
@@ -25,13 +26,12 @@ export function Events() {
         {events === undefined ? (
           <Loading label="A carregar a agenda…" />
         ) : !events?.length ? (
-          <div className="upcoming-empty">
-            <Icon name="calendar" />
+          <EmptyBlock className="upcoming-empty" icon="calendar">
             <p>
               {events ? 'Ainda não há atuações marcadas.' : 'Não foi possível carregar as próximas datas.'} A agenda
               completa tem as datas confirmadas e o histórico.
             </p>
-          </div>
+          </EmptyBlock>
         ) : (
           <ul className="upcoming">
             {events.slice(0, 3).map((e, i) => (

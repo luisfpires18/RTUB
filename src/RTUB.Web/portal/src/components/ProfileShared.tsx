@@ -1,5 +1,6 @@
 // Pieces shared by the /profile sections: section frame, form state, saved note, form buttons, fact cell.
 import { Spinner } from './ui/Spinner';
+import { FieldError } from './ui/FieldError';
 import { useState, type ReactNode, type Ref } from 'react';
 import { outcomeText } from '../data/api';
 import type { Outcome } from '../data/eventsApi';
@@ -43,11 +44,7 @@ export function useFormState() {
   const [busy, setBusy] = useState(false);
   const field = (key: string) => (errors[key] ? 'form__field form__field--error' : 'form__field');
   const error = (key: string) =>
-    errors[key] && (
-      <p className="form__error" role="alert">
-        {errors[key]}
-      </p>
-    );
+    <FieldError text={errors[key]} />;
   return { errors, setErrors, banner, setBanner, busy, setBusy, field, error };
 }
 

@@ -1,5 +1,6 @@
 // Leaderboard comments list and delete dialog.
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import { EmptyNote } from './ui/EmptyNote';
 import { FieldError } from './ui/FieldError';
 import { Banner } from './ui/Banner';
 import { Spinner } from './ui/Spinner';
@@ -76,7 +77,7 @@ export function Comments({ memberId }: { memberId: string }) {
       ) : list === null ? (
         <Banner text="Não foi possível carregar os comentários." />
       ) : list.length === 0 ? (
-        <p className="note">Ainda não há comentários.</p>
+        <EmptyNote>Ainda não há comentários.</EmptyNote>
       ) : (
         <ul className="member-rows leaderboard-comments">
           {list.map((c) => (

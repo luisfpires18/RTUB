@@ -1,8 +1,10 @@
 import { useEffect, useId, useState } from 'react';
+import { LoadMore } from '../components/ui/LoadMore';
+import { ToolsBar, SearchField, SelectField } from '../components/ui/SearchTools';
+import { EmptyNote } from '../components/ui/EmptyNote';
 import { PageHead } from '../components/ui/PageHead';
 import { useLatest } from '../components/AppShared';
 import { portal } from '../data/content';
-import { Icon } from '../components/icons';
 import { MemberBadge } from '../components/MemberBadge';
 import { RetryNotice, SignInNotice } from '../components/Notice';
 import { type Table, api, PAGE, medal } from '../data/leaderboardApi';
@@ -63,27 +65,20 @@ export default function Leaderboard() {
         <>
           <Levels levels={data.levels} story={data.story} me={data.me} />
 
-          <div className="events-tools" role="search">
-            <label className="control" htmlFor={ids.q}>
-              <span className="sr-only">Procurar na classificação</span>
-              <Icon name="search" />
-              <input id={ids.q} type="search" placeholder="Procurar por nome, alcunha ou nível" value={text} onChange={(e) => setText(e.target.value)} />
-            </label>
-            <label className="control control--select" htmlFor={ids.year}>
-              <span className="sr-only">Ano letivo</span>
-              <select id={ids.year} value={fiscalYear} onChange={(e) => setFiscalYear(e.target.value)}>
-                <option value="">Todos os anos</option>
-                {data.fiscalYears.map((y) => (
-                  <option key={y.value} value={y.value}>
-                    {y.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <ToolsBar>
+            <SearchField id={ids.q} label="Procurar na classificação" placeholder="Procurar por nome, alcunha ou nível" value={text} onChange={setText} />
+            <SelectField id={ids.year} label="Ano letivo" value={fiscalYear} onChange={setFiscalYear}>
+              <option value="">Todos os anos</option>
+              {data.fiscalYears.map((y) => (
+                <option key={y.value} value={y.value}>
+                  {y.label}
+                </option>
+              ))}
+            </SelectField>
+          </ToolsBar>
 
           {data.entries.length === 0 ? (
-            <p className="note">{data.total === 0 ? 'Ainda não há membros classificados.' : 'Ninguém na classificação corresponde à pesquisa.'}</p>
+            <EmptyNote>{data.total === 0 ? 'Ainda não há membros classificados.' : 'Ninguém na classificação corresponde à pesquisa.'}</EmptyNote>
           ) : (
             <>
               <ol className="leaderboard-rows" aria-label="Classificação">
@@ -111,11 +106,7 @@ export default function Leaderboard() {
                   </li>
                 ))}
               </ol>
-              {data.entries.length > shown && (
-                <button type="button" className="btn btn--ghost btn--sm members-more" onClick={() => setShown(shown + PAGE)}>
-                  Mostrar mais ({data.entries.length - shown})
-                </button>
-              )}
+              <LoadMore remaining={data.entries.length - shown} onMore={() => setShown(shown + PAGE)} />
             </>
           )}
 

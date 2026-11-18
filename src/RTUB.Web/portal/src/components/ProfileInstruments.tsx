@@ -1,5 +1,6 @@
 // The /profile instruments and newsletter-subscription sections.
 import { FieldError } from './ui/FieldError';
+import { EmptyNote } from './ui/EmptyNote';
 import { useId, useState } from 'react';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
@@ -57,7 +58,7 @@ export function InstrumentsSection({ profile, onChange }: { profile: MyProfile; 
           ))}
         </ul>
       ) : (
-        <p className="note">Ainda não juntaste nenhum instrumento. O primeiro fica como principal.</p>
+        <EmptyNote>Ainda não juntaste nenhum instrumento. O primeiro fica como principal.</EmptyNote>
       )}
       {available.length > 0 && (
         <div className="instrument-add">

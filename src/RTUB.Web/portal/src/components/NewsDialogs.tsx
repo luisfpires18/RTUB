@@ -1,5 +1,6 @@
 // Create/edit and delete dialogs for a news post.
 import { DialogFooter } from './ui/DialogFooter';
+import { FieldError } from './ui/FieldError';
 import { Banner } from './ui/Banner';
 import { useId, useState, type FormEvent } from 'react';
 import { type NewsPost } from '../data/api';
@@ -41,11 +42,7 @@ export function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClos
 
   const field = (key: string) => (errors[key] ? 'form__field form__field--error' : 'form__field');
   const error = (key: string) =>
-    errors[key] && (
-      <p className="form__error" role="alert">
-        {errors[key]}
-      </p>
-    );
+    <FieldError text={errors[key]} />;
 
   return (
     <Dialog

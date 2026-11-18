@@ -1,5 +1,6 @@
 // Song form field to upload or remove the song's play-along chart.
 import { useEffect, useState } from 'react';
+import { CheckField } from './ui/CheckField';
 import { Icon } from './icons';
 import { musicApi, type PlayAlongChart } from '../data/musicApi';
 import { failedMessage } from '../data/musicFormHelpers';
@@ -106,10 +107,9 @@ export function PlayAlongField({ songId, has, onChange }: { songId: number; has:
         )}
       </div>
       {has && (
-        <label className="form__check">
-          <input type="checkbox" checked={picking} disabled={busy || !chart} onChange={(e) => void togglePicking(e.target.checked)} />
+        <CheckField checked={picking} disabled={busy || !chart} onChange={(c) => void togglePicking(c)}>
           Incluir dedilhado (guitarra)
-        </label>
+        </CheckField>
       )}
       {message && (
         <p className={message.error ? 'form__error' : 'form__hint'} role={message.error ? 'alert' : 'status'}>

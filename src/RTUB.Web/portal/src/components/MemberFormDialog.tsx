@@ -1,5 +1,7 @@
 // The create/edit member dialog (Members admin).
 import { DialogFooter } from './ui/DialogFooter';
+import { FieldError } from './ui/FieldError';
+import { CheckField } from './ui/CheckField';
 import { Banner } from './ui/Banner';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
@@ -56,7 +58,7 @@ export function MemberFormDialog({
   if (form === undefined || form === 'failed') {
     return (
       <Dialog title="Editar membro" size="lg" onClose={onClose}>
-        {form === undefined ? <Loading label="A carregar o membro…" /> : <p className="form__banner">Não foi possível abrir este membro para editar.</p>}
+        {form === undefined ? <Loading label="A carregar o membro…" /> : <Banner role="none" text="Não foi possível abrir este membro para editar." />}
       </Dialog>
     );
   }
@@ -108,11 +110,7 @@ export function MemberFormDialog({
 
   const field = (key: string) => (errors[key] ? 'form__field form__field--error' : 'form__field');
   const error = (key: string) =>
-    errors[key] && (
-      <p className="form__error" role="alert">
-        {errors[key]}
-      </p>
-    );
+    <FieldError text={errors[key]} />;
   const text = (id: string, key: 'firstName' | 'lastName' | 'phoneNumber' | 'city' | 'degree', label: string, max?: number) => (
     <div className={field(key)}>
       <label htmlFor={id}>{label}</label>
@@ -190,26 +188,18 @@ export function MemberFormDialog({
         </div>
 
         {creating && form.category === 'Leitao' && (
-          <label className="form__check" htmlFor={ids.noNick}>
-            <input
-              id={ids.noNick}
-              type="checkbox"
-              checked={form.noNickname}
-              onChange={(e) => set({ noNickname: e.target.checked, ...(e.target.checked && { nickname: emailPrefix(form.email) }) })}
-            />
+          <CheckField id={ids.noNick} checked={form.noNickname} onChange={(c) => set({ noNickname: c, ...(c && { nickname: emailPrefix(form.email) }) })}>
             Sem alcunha (recém-entrada): o username vem do email
-          </label>
+          </CheckField>
         )}
         {form.category === 'Tuno' && (
           <>
-            <label className="form__check" htmlFor={ids.fundador}>
-              <input id={ids.fundador} type="checkbox" checked={form.fundador} onChange={(e) => setFundador(e.target.checked)} />
+            <CheckField id={ids.fundador} checked={form.fundador} onChange={setFundador}>
               Fundador
-            </label>
-            <label className="form__check" htmlFor={ids.honorario}>
-              <input id={ids.honorario} type="checkbox" checked={form.honorario} onChange={(e) => setHonorario(e.target.checked)} />
+            </CheckField>
+            <CheckField id={ids.honorario} checked={form.honorario} onChange={setHonorario}>
               Tuno Honorário
-            </label>
+            </CheckField>
           </>
         )}
 

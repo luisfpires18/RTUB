@@ -55,9 +55,7 @@ export function MemberInfoDialog({
   if (info === null || info === 'missing' || !form) {
     return (
       <Dialog title="Completar informação" onClose={onClose}>
-        <p className="form__banner" role="alert">
-          {info === 'missing' ? 'Este membro não está disponível para esta edição.' : 'Não foi possível abrir. Tenta de novo.'}
-        </p>
+        <Banner text={info === 'missing' ? 'Este membro não está disponível para esta edição.' : 'Não foi possível abrir. Tenta de novo.'} />
       </Dialog>
     );
   }

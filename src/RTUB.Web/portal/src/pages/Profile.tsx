@@ -13,6 +13,7 @@ import { ProfilePhoto } from '../components/ProfilePhoto';
 import { PushSection } from '../components/ProfilePush';
 import { TunaSection } from '../components/ProfileTuna';
 import { Loading } from '../components/ui/Loading';
+import { PageHead } from '../components/ui/PageHead';
 
 /**
  * /profile - the members-only corner of a public portal. RTUB has no public accounts: the tuna creates its members'
@@ -33,12 +34,12 @@ export default function Profile() {
 
   return (
     <section className="page wrap profile-page" aria-labelledby="profile-title">
-      <header className="page__head">
-        <p className="eyebrow">{user ? 'Área de membros' : 'RTUB'}</p>
-        <h1 id="profile-title" className="page__title">
-          {!user ? 'Área de membros' : signedIn ? 'O meu perfil' : 'Área reservada a membros'}
-        </h1>
-      </header>
+      <PageHead
+        plain
+        eyebrow={user ? 'Área de membros' : 'RTUB'}
+        title={!user ? 'Área de membros' : signedIn ? 'O meu perfil' : 'Área reservada a membros'}
+        titleId="profile-title"
+      />
 
       {failed ? (
         <RetryNotice onRetry={retry}>Não conseguimos confirmar a sessão agora.</RetryNotice>
