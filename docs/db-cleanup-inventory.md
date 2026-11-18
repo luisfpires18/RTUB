@@ -39,6 +39,22 @@ Left behind on purpose: the R2 objects under `images/{env}/bets/`, `images/{env}
 `images/{env}/bet-comments/{images,videos}/`, `item-configs/{env}/images/` and the slideshow images. Nothing reads them;
 delete by hand if wanted. The old URLs (`/images`, `/labels`, the game pages) are plain 404s.
 
+## Pending drop: five unused columns (task 131)
+
+No code read or wrote `AspNetUsers.ExperiencePoints` / `Level`, `MemberStatuses.OverrideRetired`,
+`MeetingAtaAttachments.FileUrl` or `Reports.PdfData` (all empty or at their defaults on the local snapshot). Release N
+(task 131) stops mapping them:
+- `UserXpLevelDefaults` rebuilds `AspNetUsers` to give `ExperiencePoints` a default of 0 and `Level` 1 (both NOT NULL,
+  no default before), so inserts work without them. Expand-compatible: every column stays.
+- `StopMappingUnusedColumns` changes only the model snapshot; `Up` and `Down` are empty. The five columns stay in every
+  existing database. A database created from the Baseline after task 131 has them too.
+
+The drop (release N+1, a MAJOR bump) goes only after N is live on PROD and its rollback window is over. It must be
+written by hand: the snapshot no longer lists the columns, so `migrations add` generates nothing. Five `DropColumn`
+operations in their own migration; take the production backup first. Until then, an EF-generated rebuild of
+`AspNetUsers`, `MemberStatuses`, `MeetingAtaAttachments` or `Reports` would drop the column early: check any migration
+on those tables.
+
 ## Pending decision: `PostMedia`, `CommentImages`
 
 Photos/videos once attached to event-discussion posts and comments. Nothing creates or returns rows any more; the only

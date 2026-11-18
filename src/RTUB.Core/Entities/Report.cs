@@ -8,7 +8,6 @@ public class Report : BaseEntity
     public string Title { get; set; } = string.Empty;
     public int Year { get; set; }
     public string? Summary { get; set; }
-    public byte[]? PdfData { get; set; }
     public DateTime? PublishedAt { get; set; }
     public bool IsPublished { get; set; }
 

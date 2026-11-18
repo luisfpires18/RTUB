@@ -22,7 +22,7 @@ public sealed partial class MemberStatusServiceTests
             db.MemberStatuses.Add(new MemberStatus
             {
                 UserId = id, IsRetired = false, HasAnyActivity = true, LastActivityDate = Now.AddDays(-1),
-                ProgressMonths = 6, ProgressTotalMonths = 6, OverrideRetired = true, LastUpdatedAt = Now.AddMinutes(-5),
+                ProgressMonths = 6, ProgressTotalMonths = 6, LastUpdatedAt = Now.AddMinutes(-5),
             });
             await db.SaveChangesAsync();
         }

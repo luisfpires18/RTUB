@@ -143,40 +143,6 @@ public partial class AuditLogAppenderTests
         changes.Should().NotContainKey("Id");
     }
 
-    [Fact]
-    public void CreateAuditLog_HandlesBinaryData()
-    {
-        // Arrange - Use Report with PdfData (binary property) instead
-        var report = Report.Create("Test Report", 2024);
-        _context.Reports.Add(report);
-        _context.SaveChanges();
-
-        var binaryData = new byte[1000];
-        report.PdfData = binaryData;
-        _context.Reports.Update(report);
-        var entry = _context.Entry((BaseEntity)report);
-
-        // Act
-        var auditLog = _appender.CreateAuditLog(
-            entry,
-            "Modified",
-            _testUsername,
-            _testUserId,
-            ResolveUserIdToNickname,
-            GetEntityDisplayName);
-
-        // Assert
-        auditLog.Should().NotBeNull();
-        auditLog!.Changes.Should().NotBeNull();
-
-        var changes = JsonSerializer.Deserialize<Dictionary<string, object>>(auditLog.Changes!);
-        changes.Should().ContainKey("PdfData");
-
-        // Verify binary data is described, not serialized
-        var pdfDataChange = changes["PdfData"];
-        pdfDataChange.Should().NotBeNull();
-    }
-
     [Theory]
     [InlineData("Created")]
     [InlineData("Deleted")]
