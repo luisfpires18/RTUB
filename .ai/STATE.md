@@ -14,6 +14,9 @@ Task 120 (`chore/120/test-speed`): phase 1 of the second cleanup round (audit of
 the application's 13 background workers; one copy of the shared test helpers (`tests/Shared/RepoPaths.cs`,
 `Api/AreaHttp.cs`); the sleep, the skipped tests and the tests that asserted nothing are gone (4,048 → 4,038 tests).
 Full suite on the same machine: 3 m 28 s → 2 m 11 s. No production code changed.
+Task 121 (`perf/121/backend-queries`, on top of 120): the treasury report history loads the report's transactions in
+one query (was one per audit log); seven notification loops send one batch (`SendToSelectedUsersAsync`: discussion post
+and comment, event and song video, new meeting, meeting request, public request). Same recipients and same output.
 
 Last: tasks 110-119 (PRs #314-#325, merged into `dev`): the first cleanup round. No Blazor leftovers; `portal/src` in
 `pages/`, `components/`, `data/`, `styles/`; one shared UI set in `components/ui/`; no file over 300 lines except
@@ -128,6 +131,15 @@ five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx
 - Play cooldown and the system announcement live in one app instance's memory (a scale-out needs a shared store).
 
 **Performance** (`docs/performance-gate.md`)
+- Left by task 121. `TreasuryService.Reports.cs:28` loads every activity and transaction for the reports list: SQLite
+  cannot sum `decimal` in SQL, and a narrow projection would copy the `IsHiddenFromCalculations` rule. Push loops kept per
+  recipient: mentions (a member named twice gets two pushes today), the reminder workers (cancellation between sends,
+  one log line each) and `MeetingBoardService.Messages.cs:219` (failure isolated per recipient). Not done, low traffic:
+  `Notify*` methods loading whole entities (`EnrollmentService.Notifications.cs`,
+  `RehearsalAttendanceService.Notifications.cs`), per-row `UpdateAsync` in the reorder loops
+  (`EventRepertoireService.cs:59`, `EventService.Videos.cs`), `CalotesNotificationBackgroundService.cs:138`,
+  `RehearsalAdminService.cs:148`, `PendingActionsReminderService.cs:125`.
+- The report history still reads every `Transaction` audit log (a deleted transaction is matched by its JSON).
 - Hot reads: messaging unread/list/thread shapes and a `Messages(ConversationId, Id)` index, `/api/members` full load,
   leaderboard recompute per request, `/profile` ≈ 14 queries, meetings loaded with `int.MaxValue`, `AuditLogs.Action` /
   `PushSubscriptions.Endpoint` indexes, `.Date.Date` range compares.
@@ -152,7 +164,6 @@ five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 121 backend
-queries (report history, reports list, push fan-out loops), 122 shared backend helpers (endpoint result mapping, claims
+Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 122 shared backend helpers (endpoint result mapping, claims
 helpers, repository overrides), 123 dead code and stale docs, 124 portal data layer (one load hook, shared types),
 125 UI kit leftovers, 126 portal lazy loading, 127 CSS merges, 128 tests for money, permissions and push gaps.
