@@ -14,7 +14,7 @@ Task 133 (`fix/133/data-loss`), second phase of the audit round. Each fix has a 
 - Member delete: refused with `409 members:in-use`, before anything is deleted, while an MBWay transfer names the
   member; likes on other members' leaderboard comments are now really deleted (they blocked the delete too).
 - Treasury: deleting a draft report a NERBA order points at answers `409 treasury:in-use`, not 500.
-- Report PDF: the cache key follows the newest change of the report, its activities and its transactions.
+- Report PDF: the cache key is a hash of the content the PDF prints (report, activities, transactions, calotes total).
 - Profile photo and instrument image: the new file is stored and saved before the old one is deleted.
 - A second submit at the same moment: a shop reservation answers the usual "Já existe uma reserva", a poll vote counts
   once; neither answers 500.

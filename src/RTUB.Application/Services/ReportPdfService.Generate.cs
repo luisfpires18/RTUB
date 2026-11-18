@@ -1,11 +1,13 @@
 // Report PDF: builds the QuestPDF document and caches it.
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using RTUB.Core.Constants;
 using Activity = RTUB.Core.Entities.Activity;
-using BaseEntity = RTUB.Core.Entities.BaseEntity;
 using Report = RTUB.Core.Entities.Report;
 using Transaction = RTUB.Core.Entities.Transaction;
 
@@ -15,11 +17,20 @@ public partial class ReportPdfService
 {
     public byte[] GenerateReportPdf(Report report, List<Activity> activities, List<(Activity activity, List<Transaction> transactions)> allTransactions, decimal calotesTotal = 0)
     {
-        // The key follows everything the PDF shows. Saving a transaction or an activity stamps that row, not the
-        // report, so the newest stamp of all of them changes on an edit or an addition, and the counts on a deletion.
-        var rows = allTransactions.SelectMany(a => a.transactions).ToList();
-        var newest = rows.Cast<BaseEntity>().Concat(activities).Append(report).Max(e => e.UpdatedAt ?? e.CreatedAt);
-        var cacheKey = $"report-pdf-{report.Id}-{newest.Ticks}-{activities.Count}-{rows.Count}-{calotesTotal}";
+        // The key is the content: every value the PDF prints, in the order it prints it, so an edit, an addition or a
+        // deletion is a new PDF (saving a transaction does not stamp the report). A value this document starts to print
+        // goes here too; the row stamps are the net for one that is forgotten.
+        var content = JsonSerializer.Serialize(new
+        {
+            report.Id, report.Title, report.Year, report.Summary, report.PublishedAt, report.UpdatedAt, calotesTotal,
+            Activities = activities.Select(a => new { a.Name, a.StartDate, a.EndDate, a.Description, a.UpdatedAt }),
+            Transactions = allTransactions.Select(group => new
+            {
+                group.activity.Name,
+                Rows = group.transactions.Select(t => new { t.Date, t.Description, t.Category, t.Amount, t.Type, t.UpdatedAt }),
+            }),
+        });
+        var cacheKey = $"report-pdf-{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(content)))}";
 
         if (_cache.TryGetValue<byte[]>(cacheKey, out var cachedPdf) && cachedPdf != null)
         {

@@ -61,8 +61,8 @@ role).
 - History ("Histórico de Transações", Admin/Owner) reads the `Transaction` audit log of the report's activities (bank/cash
   rows only as "modified").
 - PDF: QuestPDF summary + activities and transactions. `ReportPdfService` caches it for up to an hour under a key
-  that follows the newest change of the report, its activities and its transactions, their counts and the calotes
-  total, so an edit, an addition or a deletion gives a new PDF.
+  made from the content it prints (the report, its activities, its transactions and the calotes total), so an edit, an
+  addition or a deletion gives a new PDF. A value the PDF starts to print must be added to that key.
 - Deleting an activity (or a draft report) with transactions: `Transactions.ActivityId` has no ON DELETE action, so the
   service deletes the activity (or report and activities) and its transactions in one database transaction (rows and
   audit log commit or roll back together). Their receipts are deleted from storage after the commit, best effort.
