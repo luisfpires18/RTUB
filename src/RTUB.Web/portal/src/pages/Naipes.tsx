@@ -9,6 +9,7 @@ import { ViewDialog } from '../components/NaipeViewDialog';
 import { EditDialog, DeleteDialog } from '../components/NaipeEditDialogs';
 import { Loading } from '../components/ui/Loading';
 import { Pager } from '../components/ui/Pager';
+import { PageHead } from '../components/ui/PageHead';
 
 /**
  * /naipes. Each instrument's teaching videos and images: pick an instrument, search,
@@ -70,14 +71,7 @@ export default function Naipes() {
 
   return (
     <section className="page wrap events-page naipes-page" aria-labelledby="naipes-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="naipes-title" className="page__title">
-            Naipes
-          </h1>
-          <p className="page__lead">Vídeos e imagens para estudar cada instrumento, partilhados pelos membros.</p>
-        </div>
+      <PageHead eyebrow="Área de membros" title="Naipes" titleId="naipes-title" lead="Vídeos e imagens para estudar cada instrumento, partilhados pelos membros.">
         {data && (
           <div className="events-page__actions">
             {data.canConfigure && (
@@ -96,7 +90,7 @@ export default function Naipes() {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {board === undefined ? (
         <Loading label="A carregar os naipes…" />

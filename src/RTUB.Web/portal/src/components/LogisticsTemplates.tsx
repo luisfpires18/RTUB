@@ -5,6 +5,10 @@ import { AccessFields } from './LogisticsAccessFields';
 import { EventField } from './LogisticsEventField';
 import { logisticsApi, PRIORITY, problem, STATUS, type LogisticsEvent, type Priority, type Template, type Visibility, PRIORITIES_LOW_FIRST } from '../data/logisticsApi';
 import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
+import { FieldError } from './ui/FieldError';
+import { FormField } from './ui/FormField';
+import { Spinner } from './ui/Spinner';
 
 type Person = { id: string; name: string; avatar: string | null };
 type Draft = { include: boolean; title: string; priority: Priority; dueDate: string; checklist: string };
@@ -116,7 +120,7 @@ export function TemplateDialog({ onClose }: { onClose: () => void }) {
             Cancelar
           </button>
           <button type="button" className="btn btn--primary" onClick={create} disabled={busy || !template || !name.trim()}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+            {busy && <Spinner small />}
             Criar quadro
           </button>
         </>
@@ -128,11 +132,7 @@ export function TemplateDialog({ onClose }: { onClose: () => void }) {
         <p className="form__banner">Não foi possível carregar os modelos.</p>
       ) : (
         <div className="form lx-template">
-          {errors.form && (
-            <p className="form__banner" role="alert">
-              {errors.form}
-            </p>
-          )}
+          <Banner text={errors.form} />
           <fieldset className="form__field">
             <legend>Modelo</legend>
             <div className="lx-template__choices">
@@ -157,11 +157,9 @@ export function TemplateDialog({ onClose }: { onClose: () => void }) {
                   <input id={`${fid}-anchor`} type="date" value={anchor} onChange={(e) => setAnchorDate(e.target.value)} />
                   <small className="note">Os prazos contam a partir daqui (ex.: 14 dias antes).</small>
                 </div>
-                <div className={errors.name ? 'form__field form__field--error' : 'form__field'}>
-                  <label htmlFor={`${fid}-name`}>Nome do quadro</label>
+                <FormField id={`${fid}-name`} label="Nome do quadro" error={errors.name}>
                   <input id={`${fid}-name`} type="text" maxLength={200} value={name} onChange={(e) => setName(e.target.value)} />
-                  {errors.name && <p className="form__error">{errors.name}</p>}
-                </div>
+                </FormField>
               </div>
 
               <section className="lx-detail__section" aria-labelledby={`${fid}-preview`}>
@@ -207,11 +205,7 @@ export function TemplateDialog({ onClose }: { onClose: () => void }) {
                     </li>
                   ))}
                 </ol>
-                {(errors.cards || errors.lists) && (
-                  <p className="form__error" role="alert">
-                    {errors.cards ?? errors.lists}
-                  </p>
-                )}
+                <FieldError text={errors.cards || errors.lists} />
               </section>
 
               <AccessFields

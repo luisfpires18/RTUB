@@ -8,6 +8,8 @@ import { MemberBadge } from './MemberBadge';
 import { MAX_COMMENT, problem } from '../data/naipesShared';
 import { Loading } from './ui/Loading';
 import { Avatar } from './ui/Avatar';
+import { FieldError } from './ui/FieldError';
+import { Spinner } from './ui/Spinner';
 
 /** One item: the video or image, its description and numbers, and the comments. */
 export function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onClose: () => void; onChanged: () => void }) {
@@ -90,16 +92,12 @@ export function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onCl
                 {draft.length} / {MAX_COMMENT}
               </small>
               <button type="submit" className="btn btn--primary btn--sm" disabled={busy || !draft.trim()}>
-                {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+                {busy && <Spinner small />}
                 Publicar
               </button>
             </span>
           </form>
-          {error && (
-            <p className="form__error" role="alert">
-              {error}
-            </p>
-          )}
+          <FieldError text={error} />
           {comments === undefined ? (
             <Loading label="A carregar os comentários…" />
           ) : comments === null ? (

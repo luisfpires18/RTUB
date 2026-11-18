@@ -1,1 +1,0 @@
-import{j as m}from"./vendor-react-DI41Mul8.js";function r({label:e,role:s,wrap:t,children:a}){return m.jsx("div",{className:t?"segmented segmented--wrap":"segmented",role:s,"aria-label":e,children:a})}export{r as S};

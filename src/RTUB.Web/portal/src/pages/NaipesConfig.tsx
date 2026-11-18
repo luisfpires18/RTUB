@@ -8,6 +8,11 @@ import { MemberBadge } from '../components/MemberBadge';
 import { outcomeText } from '../data/api';
 import { Notice, SignInNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
+import { BackLink } from '../components/ui/BackLink';
+import { Banner } from '../components/ui/Banner';
+import { DialogFooter } from '../components/ui/DialogFooter';
+import { FieldError } from '../components/ui/FieldError';
+import { FormField } from '../components/ui/FormField';
 
 const MAX_PICTURE = 5 * 1024 * 1024;
 const PICTURE_ACCEPT = 'image/jpeg,image/png,image/webp';
@@ -34,10 +39,9 @@ export default function NaipesConfig() {
     <section className="page wrap events-page naipes-page" aria-labelledby="naipes-config-title">
       <header className="page__head events-page__head">
         <div>
-          <a className="back-link" href={portal.naipes}>
-            <Icon name="arrowLeft" />
+          <BackLink href={portal.naipes} icon="arrowLeft">
             Naipes
-          </a>
+          </BackLink>
           <h1 id="naipes-config-title" className="page__title">
             Configurar naipes
           </h1>
@@ -151,35 +155,15 @@ function SettingDialog({ setting, onClose, onChanged }: { setting: NaipeSetting;
   };
 
   const field = (key: string) => (errors[key] ? 'form__field form__field--error' : 'form__field');
-  const error = (key: string) =>
-    errors[key] && (
-      <p className="form__error" role="alert">
-        {errors[key]}
-      </p>
-    );
 
   return (
     <Dialog
       title={`Editar ${setting.label}`}
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Guardar
-          </button>
-        </>
-      }
+      footer={<DialogFooter form={`${id}-form`} busy={busy} onClose={onClose} />}
     >
       <form id={`${id}-form`} className="form" onSubmit={submit} noValidate>
-        {banner && (
-          <p className="form__banner" role="alert">
-            {banner}
-          </p>
-        )}
+        <Banner text={banner} />
         <div className={field('picture')}>
           <span className="naipe-setting__picture naipe-setting__picture--lg">
             {setting.pictureUrl ? <img src={setting.pictureUrl} alt={setting.label} width="96" height="96" /> : <Icon name="music" />}
@@ -187,7 +171,7 @@ function SettingDialog({ setting, onClose, onChanged }: { setting: NaipeSetting;
           <label htmlFor={`${id}-picture`}>Imagem</label>
           <input id={`${id}-picture`} type="file" accept={PICTURE_ACCEPT} onChange={(e) => picture(e.target.files?.[0])} disabled={busy} />
           <p className="form__hint">JPEG, PNG ou WebP, até 5 MB. Fica guardada logo que a escolhes.</p>
-          {error('picture')}
+          <FieldError text={errors.picture} />
           {setting.pictureUrl && (
             <button type="button" className="btn btn--ghost btn--sm" onClick={removePicture} disabled={busy}>
               <Icon name="trash" />
@@ -195,12 +179,9 @@ function SettingDialog({ setting, onClose, onChanged }: { setting: NaipeSetting;
             </button>
           )}
         </div>
-        <div className={field('sortOrder')}>
-          <label htmlFor={`${id}-order`}>Ordem</label>
+        <FormField id={`${id}-order`} label="Ordem" hint="De 0 a 999; os números mais baixos aparecem primeiro." error={errors.sortOrder} alert>
           <input id={`${id}-order`} type="number" inputMode="numeric" step="1" min="0" max="999" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
-          <p className="form__hint">De 0 a 999; os números mais baixos aparecem primeiro.</p>
-          {error('sortOrder')}
-        </div>
+        </FormField>
         <label className="form__check">
           <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} disabled={busy} />
           {visible ? 'Aparece na página dos naipes' : 'Escondido da página dos naipes'}

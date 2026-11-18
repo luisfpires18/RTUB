@@ -3,6 +3,10 @@ import { useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { logisticsApi, problem, type BoardSummary } from '../data/logisticsApi';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
+import { Banner } from './ui/Banner';
+import { DialogFooter } from './ui/DialogFooter';
+import { FormField } from './ui/FormField';
 
 /** "Duplicar quadro": says what is copied (and what is not) before creating it. */
 export function DuplicateBoardDialog({ board, onClose }: { board: BoardSummary; onClose: () => void }) {
@@ -24,23 +28,12 @@ export function DuplicateBoardDialog({ board, onClose }: { board: BoardSummary; 
     <Dialog
       title="Duplicar quadro"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${fid}-form`} className="btn btn--primary" disabled={busy || !name.trim()}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Criar cópia
-          </button>
-        </>
-      }
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!name.trim()} label="Criar cópia" onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={create} noValidate>
-        <div className="form__field">
-          <label htmlFor={`${fid}-name`}>Nome da cópia</label>
+        <FormField id={`${fid}-name`} label="Nome da cópia">
           <input id={`${fid}-name`} type="text" maxLength={200} value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
+        </FormField>
         <div className="lx-copy-preview">
           <p>
             <strong>Copia:</strong> as colunas, os cartões ativos (título, detalhes, etiquetas, prioridade, datas, checklist por fazer), a visibilidade
@@ -51,44 +44,20 @@ export function DuplicateBoardDialog({ board, onClose }: { board: BoardSummary; 
             ficheiros do quadro.
           </p>
         </div>
-        {error && (
-          <p className="form__banner" role="alert">
-            {error}
-          </p>
-        )}
+        <Banner text={error} />
       </form>
     </Dialog>
   );
 }
 
 export function DeleteBoardDialog({ board, onClose, onDone }: { board: BoardSummary; onClose: () => void; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
   const remove = async () => {
-    setBusy(true);
     const o = await logisticsApi.removeBoard(board.id);
-    setBusy(false);
-    if (o.kind === 'ok' || o.kind === 'notfound') {
-      onDone();
-      onClose();
-    } else setError(problem(o, 'eliminar o quadro'));
+    if (o.kind !== 'ok' && o.kind !== 'notfound') return problem(o, 'eliminar o quadro');
+    onDone();
   };
   return (
-    <Dialog
-      title="Eliminar quadro"
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={remove} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Eliminar
-          </button>
-        </>
-      }
-    >
+    <AsyncConfirmDialog title="Eliminar quadro" confirmLabel="Eliminar" danger onConfirm={remove} onClose={onClose}>
       <p>
         Eliminar o quadro <strong>{board.name}</strong>?
       </p>
@@ -96,11 +65,6 @@ export function DeleteBoardDialog({ board, onClose, onDone }: { board: BoardSumm
         <Icon name="warning" />
         Apaga também as colunas, os cartões e os seus anexos. Para guardar sem apagar, use Arquivar. Não dá para desfazer.
       </p>
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </AsyncConfirmDialog>
   );
 }

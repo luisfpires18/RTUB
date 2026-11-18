@@ -3,6 +3,7 @@ import { useEffect, useId, useState } from 'react';
 import { Icon } from './icons';
 import { logisticsApi, type LogisticsEvent } from '../data/logisticsApi';
 import { day } from '../data/format';
+import { FormField } from './ui/FormField';
 
 /** The optional event (by name search), shared with the template dialog. */
 export function EventField({ event, setEvent, error, label = 'Atuação associada (opcional)' }: { event: LogisticsEvent | null; setEvent: (e: LogisticsEvent | null) => void; error?: string; label?: string }) {
@@ -21,8 +22,7 @@ export function EventField({ event, setEvent, error, label = 'Atuação associad
   }, [query]);
 
   return (
-    <div className={error ? 'form__field form__field--error' : 'form__field'}>
-      <label htmlFor={`${fid}-event`}>{label}</label>
+    <FormField id={`${fid}-event`} label={label} error={error} alert>
       {event ? (
         <span className="chip chip--removable">
           <Icon name="calendar" />
@@ -62,11 +62,6 @@ export function EventField({ event, setEvent, error, label = 'Atuação associad
           )}
         </>
       )}
-      {error && (
-        <p className="form__error" role="alert">
-          {error}
-        </p>
-      )}
-    </div>
+    </FormField>
   );
 }

@@ -7,6 +7,7 @@ import { logisticsApi, problem, STATUS, STATUSES, type List, type MemberOption, 
 import { MemberPicker } from './LogisticsFields';
 import { FieldError } from './ui/FieldError';
 import { PersonChip } from './ui/PersonChip';
+import { FormField } from './ui/FormField';
 import { DialogFooter } from './ui/DialogFooter';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
@@ -63,11 +64,9 @@ export function ListDialog({ boardId, list, onClose, onSaved }: { boardId: numbe
   return (
     <Dialog title={list ? 'Editar coluna' : 'Nova coluna'} onClose={onClose} footer={<DialogFooter onClose={onClose} busy={busy} form={`${fid}-form`} label="Guardar" disabled={!name.trim()} />}>
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        <div className={error ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${fid}-name`}>Nome da coluna</label>
+        <FormField id={`${fid}-name`} label="Nome da coluna" error={error} alert>
           <input id={`${fid}-name`} type="text" maxLength={100} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-          <FieldError text={error} />
-        </div>
+        </FormField>
         <fieldset className="form__field">
           <legend>Estado dos cartões nesta coluna</legend>
           <div className="lx-segment lx-segment--four" role="radiogroup">
@@ -110,16 +109,12 @@ export function CreateCardDialog({ boardId, list, onClose, onCreated }: { boardI
     <Dialog title={`Novo cartão · ${list.name}`} onClose={onClose} footer={<DialogFooter onClose={onClose} busy={busy} form={`${fid}-form`} label="Criar" disabled={!title.trim()} />}>
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         <FieldError text={errors.form} />
-        <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${fid}-title`}>Título</label>
+        <FormField id={`${fid}-title`} label="Título" error={errors.title} alert>
           <input id={`${fid}-title`} type="text" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
-          <FieldError text={errors.title} />
-        </div>
-        <div className={errors.description ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${fid}-desc`}>Descrição (opcional)</label>
+        </FormField>
+        <FormField id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description} alert>
           <textarea id={`${fid}-desc`} rows={3} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
-          <FieldError text={errors.description} />
-        </div>
+        </FormField>
         <div className="form__field">
           <span className="form__label">Atribuir a (opcional)</span>
           {assignee ? (

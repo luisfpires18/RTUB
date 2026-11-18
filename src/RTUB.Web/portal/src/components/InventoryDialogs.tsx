@@ -5,6 +5,7 @@ import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
 import { type Card, type Detail, api, problem, conditionClass } from '../data/inventoryApi';
 import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 export function Thumb({ url, size }: { url: string | null; size: number }) {
@@ -37,13 +38,9 @@ export function DetailDialog({ id, onClose }: { id: number; onClose: () => void 
       {detail === undefined ? (
         <Loading label="A carregar…" />
       ) : detail === 'missing' ? (
-        <p className="form__banner" role="alert">
-          Este instrumento já não existe.
-        </p>
+        <Banner text="Este instrumento já não existe." />
       ) : detail === null ? (
-        <p className="form__banner" role="alert">
-          Não foi possível carregar o instrumento.
-        </p>
+        <Banner text="Não foi possível carregar o instrumento." />
       ) : (
         <div className="member-detail">
           <div className="member-detail__head">

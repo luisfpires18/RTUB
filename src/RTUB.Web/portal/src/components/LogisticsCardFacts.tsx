@@ -3,6 +3,7 @@ import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, PRIORITIES_LOW_FIRST, PRIORITY, STATUS, STATUSES, type Board, type CardDetail, type Priority } from '../data/logisticsApi';
 import { day } from '../data/format';
 import { FieldError } from './ui/FieldError';
+import { FormField } from './ui/FormField';
 import type { Draft } from '../data/logisticsCardDraft';
 
 /** Status buttons of the card workspace side column. */
@@ -44,8 +45,7 @@ export function CardFacts({ fid, detail, draft, errors, set }: { fid: string; de
   const card = detail.card;
   return (
       <div className="lx-ws__facts">
-        <div className={errors.priority ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${fid}-prio`}>Prioridade</label>
+        <FormField id={`${fid}-prio`} label="Prioridade" error={errors.priority} alert>
           {detail.canWork ? (
             <span className="control control--select control--sm">
               <select id={`${fid}-prio`} value={draft.priority} onChange={(e) => set({ priority: e.target.value as Priority })}>
@@ -61,10 +61,8 @@ export function CardFacts({ fid, detail, draft, errors, set }: { fid: string; de
               {PRIORITY[card.priority]}
             </p>
           )}
-          <FieldError text={errors.priority} />
-        </div>
-        <div className={errors.startDate ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${fid}-start`}>Início</label>
+        </FormField>
+        <FormField id={`${fid}-start`} label="Início" error={errors.startDate} alert>
           {detail.canWork ? (
             <input id={`${fid}-start`} type="date" value={draft.startDate} onChange={(e) => set({ startDate: e.target.value })} />
           ) : (
@@ -72,10 +70,8 @@ export function CardFacts({ fid, detail, draft, errors, set }: { fid: string; de
               {day(card.startDate) || '—'}
             </p>
           )}
-          <FieldError text={errors.startDate} />
-        </div>
-        <div className={errors.dueDate ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${fid}-due`}>Prazo</label>
+        </FormField>
+        <FormField id={`${fid}-due`} label="Prazo" error={errors.dueDate} alert>
           {detail.canWork ? (
             <input id={`${fid}-due`} type="date" value={draft.dueDate} onChange={(e) => set({ dueDate: e.target.value })} />
           ) : (
@@ -83,8 +79,7 @@ export function CardFacts({ fid, detail, draft, errors, set }: { fid: string; de
               {day(card.dueDate) || '—'}
             </p>
           )}
-          <FieldError text={errors.dueDate} />
-        </div>
+        </FormField>
       </div>
   );
 }

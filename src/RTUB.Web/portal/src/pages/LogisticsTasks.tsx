@@ -5,6 +5,8 @@ import { cardUrl, logisticsApi, PRIORITY, STATUS, type MyTask, type MyTasks } fr
 import { day, lisbonToday } from '../data/format';
 import { Notice, RetryNotice, SignInNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
+import { BackLink } from '../components/ui/BackLink';
+import { PageHead } from '../components/ui/PageHead';
 
 type Filter = 'open' | 'late' | 'soon' | 'blocked' | 'unowned' | 'done';
 
@@ -52,19 +54,8 @@ export default function LogisticsTasks() {
 
   return (
     <section className="page wrap events-page lx-page" aria-labelledby="lx-tasks-title">
-      <a className="back-link" href="/logistics">
-        <Icon name="arrow" />
-        Quadros
-      </a>
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Logística</p>
-          <h1 id="lx-tasks-title" className="page__title">
-            As minhas tarefas
-          </h1>
-          <p className="page__lead">Os cartões de que és responsável ou em que colaboras, em todos os quadros.</p>
-        </div>
-      </header>
+      <BackLink href="/logistics">Quadros</BackLink>
+      <PageHead eyebrow="Logística" title="As minhas tarefas" titleId="lx-tasks-title" lead="Os cartões de que és responsável ou em que colaboras, em todos os quadros." />
 
       {data === 'signin' ? (
         <SignInNotice path={'/logistics/tasks'}>A logística é da área de membros.</SignInNotice>

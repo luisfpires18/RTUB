@@ -4,6 +4,9 @@ import { Dialog } from './Dialog';
 import { naipesApi, type NaipeBoard, type NaipeItem } from '../data/naipesApi';
 import { MAX_VIDEO, MAX_IMAGE, VIDEO_ACCEPT, IMAGE_ACCEPT, problem, type Editing } from '../data/naipesShared';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
+import { Banner } from './ui/Banner';
+import { DialogFooter } from './ui/DialogFooter';
+import { FormField } from './ui/FormField';
 
 /** "Adicionar vídeo" / "Adicionar imagem" (instrument, file, title, description, order) and "Editar". */
 export function EditDialog({ board, editing, onClose, onSaved }: { board: NaipeBoard; editing: Editing; onClose: () => void; onSaved: (item: NaipeItem) => void }) {
@@ -50,40 +53,18 @@ export function EditDialog({ board, editing, onClose, onSaved }: { board: NaipeB
     }
   };
 
-  const field = (key: string) => (errors[key] ? 'form__field form__field--error' : 'form__field');
-  const error = (key: string) =>
-    errors[key] && (
-      <p className="form__error" role="alert">
-        {errors[key]}
-      </p>
-    );
 
   return (
     <Dialog
       title={creating ? (isVideo ? 'Adicionar vídeo' : 'Adicionar imagem') : 'Editar conteúdo'}
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            {busy && creating ? 'A enviar…' : 'Guardar'}
-          </button>
-        </>
-      }
+      footer={<DialogFooter form={`${id}-form`} busy={busy} label={busy && creating ? 'A enviar…' : 'Guardar'} onClose={onClose} />}
     >
       <form id={`${id}-form`} className="form" onSubmit={submit} noValidate>
-        {banner && (
-          <p className="form__banner" role="alert">
-            {banner}
-          </p>
-        )}
+        <Banner text={banner} />
         {creating && (
           <>
-            <div className={field('instrument')}>
-              <label htmlFor={`${id}-instrument`}>Instrumento</label>
+            <FormField id={`${id}-instrument`} label="Instrumento" error={errors.instrument} alert>
               <span className="control control--select">
                 <select id={`${id}-instrument`} value={instrument} onChange={(e) => setInstrument(e.target.value)}>
                   {board.instrumentOptions.map((o) => (
@@ -93,18 +74,19 @@ export function EditDialog({ board, editing, onClose, onSaved }: { board: NaipeB
                   ))}
                 </select>
               </span>
-              {error('instrument')}
-            </div>
-            <div className={field('file')}>
-              <label htmlFor={`${id}-file`}>{isVideo ? 'Ficheiro de vídeo' : 'Ficheiro de imagem'}</label>
+            </FormField>
+            <FormField
+              id={`${id}-file`}
+              label={isVideo ? 'Ficheiro de vídeo' : 'Ficheiro de imagem'}
+              hint={isVideo ? 'MP4, MOV, WebM ou 3GP, até 100 MB.' : 'JPEG, PNG, WebP ou GIF, até 10 MB.'}
+              error={errors.file}
+              alert
+            >
               <input id={`${id}-file`} type="file" accept={isVideo ? VIDEO_ACCEPT : IMAGE_ACCEPT} onChange={(e) => pickFile(e.target.files?.[0])} />
-              <p className="form__hint">{isVideo ? 'MP4, MOV, WebM ou 3GP, até 100 MB.' : 'JPEG, PNG, WebP ou GIF, até 10 MB.'}</p>
-              {error('file')}
-            </div>
+            </FormField>
           </>
         )}
-        <div className={field('title')}>
-          <label htmlFor={`${id}-title`}>Título</label>
+        <FormField id={`${id}-title`} label="Título" error={errors.title} alert>
           <input
             id={`${id}-title`}
             type="text"
@@ -113,19 +95,13 @@ export function EditDialog({ board, editing, onClose, onSaved }: { board: NaipeB
             placeholder={creating ? 'Se ficar vazio, recebe um nome automático' : undefined}
             onChange={(e) => setTitle(e.target.value)}
           />
-          {error('title')}
-        </div>
-        <div className={field('description')}>
-          <label htmlFor={`${id}-description`}>Descrição</label>
+        </FormField>
+        <FormField id={`${id}-description`} label="Descrição" error={errors.description} alert>
           <textarea id={`${id}-description`} rows={3} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} />
-          {error('description')}
-        </div>
-        <div className={field('sortOrder')}>
-          <label htmlFor={`${id}-order`}>Ordem</label>
+        </FormField>
+        <FormField id={`${id}-order`} label="Ordem" hint="Os números mais baixos aparecem primeiro; usa decimais (1.5) para pôr entre dois." error={errors.sortOrder} alert>
           <input id={`${id}-order`} type="number" inputMode="decimal" step="0.1" min="0.1" max="999.9" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
-          <p className="form__hint">Os números mais baixos aparecem primeiro; usa decimais (1.5) para pôr entre dois.</p>
-          {error('sortOrder')}
-        </div>
+        </FormField>
       </form>
     </Dialog>
   );
