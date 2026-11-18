@@ -207,4 +207,26 @@ public partial class ShopApiTests
 
         (await ProductAsync(cd))!.Stock.Should().Be(2, "reserving never changed the stock");
     }
+
+    /// <summary>
+    /// Task 134: the fiscal year turns at 00:00 on 1 September in Portugal. CreatedAt is stored in UTC, and in summer
+    /// Portugal is one hour ahead: 31 August 23:30 UTC is already 1 September there.
+    /// </summary>
+    [Fact]
+    public async Task AProductCreatedInTheFirstHourOfSeptemberInPortugal_BelongsToTheNewFiscalYear()
+    {
+        var tag = Tag();
+        var current = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        await EnsureFiscalYearAsync(current - 1);
+        var (admin, _) = await SignInAsync("Admin");
+        await AreaHttp.WithTokenAsync(admin);
+        var first = await CreateAsync(admin, Input($"{tag} Primeiro", "Roupa"));
+        var last = await CreateAsync(admin, Input($"{tag} Último", "Roupa"));
+        await SetCreatedAsync(first, new DateTime(current, 8, 31, 23, 30, 0, DateTimeKind.Utc)); // 1 Sep 00:30 in Portugal
+        await SetCreatedAsync(last, new DateTime(current, 8, 31, 22, 30, 0, DateTimeKind.Utc)); // 31 Aug 23:30 in Portugal
+
+        Names(await AreaHttp.Json(admin, $"/api/shop?fiscalYear={current}-{current + 1}&q={tag}")).Should().Equal($"{tag} Primeiro");
+        Names(await AreaHttp.Json(admin, $"/api/shop?fiscalYear={current - 1}-{current}&q={tag}")).Should().Equal($"{tag} Último");
+        (await AreaHttp.Json(admin, $"/api/shop/products/{first}")).GetProperty("fiscalYear").GetString().Should().Be($"{current}-{current + 1}");
+    }
 }

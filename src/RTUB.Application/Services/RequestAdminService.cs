@@ -6,6 +6,7 @@ using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -81,7 +82,11 @@ public sealed class RequestAdminService : IRequestAdminService
         IEnumerable<Request> shown = (await _requests.GetAllRequestsAsync()).ToList();
         if (selected != "" && _fiscalYearRanges.GetFiscalYearDateRange(selected) is { } range)
         {
-            shown = shown.Where(r => r.CreatedAt >= range.startDate && r.CreatedAt <= range.endDate);
+            shown = shown.Where(r =>
+            {
+                var created = PortugalTime.FromUtc(r.CreatedAt); // stored in UTC; the year's bounds are Portugal's calendar
+                return created >= range.startDate && created <= range.endDate;
+            });
         }
 
         if (statusKey != "")

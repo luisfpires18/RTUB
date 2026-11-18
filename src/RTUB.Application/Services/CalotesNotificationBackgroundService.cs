@@ -75,7 +75,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
         }
     }
 
-    private async Task CheckAndSendCalotesNotificationsAsync(CancellationToken cancellationToken)
+    internal async Task CheckAndSendCalotesNotificationsAsync(CancellationToken cancellationToken)
     {
         var today = PortugalTime.Today(_time);
 
@@ -96,8 +96,8 @@ public class CalotesNotificationBackgroundService : BackgroundService
         try
         {
             // 1. Get the current fiscal year
-            var currentFiscalYearString = FiscalYearHelper.GetCurrentFiscalYearString();
-            var fiscalYearStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+            var currentFiscalYearString = FiscalYearHelper.GetCurrentFiscalYearString(_time);
+            var fiscalYearStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear(_time);
 
             var fiscalYear = await fiscalYearRepository.GetByStartYearAsync(fiscalYearStartYear);
 

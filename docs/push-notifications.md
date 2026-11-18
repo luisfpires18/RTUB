@@ -62,7 +62,7 @@ contact calls skip them (`skipNotification`).
 | `CreateDiscussionCommentNotification` | new comment (`CommentService`) | one (post owner, earlier commenters) | "Novo comentário de {nick}" | `/events/{id}/discussion` | `event-discussion-{id}` |
 | `CreateMentionNotification` | @mention in post / comment, any event date | one | "{nick} mencionou-te" | `/events/{id}/discussion` | `mention-{id}` |
 
-Posts and comments push only while `Event.Date >= DateTime.UtcNow` (stops at the event's start, UTC).
+Posts and comments push only while `Event.Date >= PortugalTime.Now` (stops at the event's start, on Portugal's clock).
 
 ### Ensaios
 | Factory method | Trigger | Recipients | Title | Opens | Tag |

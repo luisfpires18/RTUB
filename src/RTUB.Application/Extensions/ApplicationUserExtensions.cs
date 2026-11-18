@@ -1,5 +1,6 @@
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Extensions;
 
@@ -139,13 +140,14 @@ public static class ApplicationUserExtensions
     /// <summary>
     /// Gets the number of years as Tuno (from YearTuno+MonthTuno to current year+month)
     /// Returns null if YearTuno is not set
-    /// Uses month-aware calculation if MonthTuno is available, otherwise defaults to January
+    /// Uses month-aware calculation if MonthTuno is available, otherwise defaults to January.
+    /// The current month is Portugal's, not the server's. <paramref name="time"/> is for tests; callers use the clock.
     /// </summary>
-    public static int? GetYearsAsTuno(this ApplicationUser user)
+    public static int? GetYearsAsTuno(this ApplicationUser user, TimeProvider? time = null)
     {
         if (user.YearTuno == null) return null;
 
-        var now = DateTime.Now;
+        var now = PortugalTime.Now(time ?? TimeProvider.System);
         var tunoStartYear = user.YearTuno.Value;
         var tunoStartMonth = user.MonthTuno ?? 1; // Default to January if month not set
 

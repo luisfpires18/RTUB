@@ -52,12 +52,14 @@ PROD runs on UTC. Anything that means a Portuguese day or clock uses `RTUB.Core.
 `TimeProvider`:
 
 - `Today(time)` for "today", past / future, ages and the fiscal year (`FiscalYearHelper.GetCurrentFiscalYearStartYear`).
-- `Now(time)` for times shown to people ("Gerado em").
+- `Now(time)` for times shown to people ("Gerado em") and to compare with a stored Portugal clock time (`Event.Date`).
+- `FromUtc(utc)` to put a stored UTC timestamp on Portugal's calendar. For the fiscal year of a `CreatedAt`, use
+  `FiscalYearHelper.GetFiscalYearStartYearOfUtc`: the year turns at 00:00 on 1 September in Portugal (23:00 UTC on 31 August).
 - `NextUtc(time, localTime, day?)` for a hosted job's next run at a configured Portugal clock time. DST-safe: a time the
   spring change skips runs an hour later, a time the autumn change repeats runs once.
 
 Stored technical timestamps (audit, `CreatedAt`, tokens, expirations) stay `DateTime.UtcNow`. Never `DateTime.Today` /
-`DateTime.Now` in new code. Services take `TimeProvider? time = null` (DI passes `TimeProvider.System`; tests pass a fixed clock).
+`DateTime.Now` in new code. Services take `TimeProvider? time = null` (DI passes `TimeProvider.System`; tests pass `TestClock`, `tests/Shared/TestClock.cs`).
 
 ## Caching
 

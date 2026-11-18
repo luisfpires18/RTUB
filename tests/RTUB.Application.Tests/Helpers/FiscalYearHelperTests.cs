@@ -115,4 +115,13 @@ public class FiscalYearHelperTests
         // Assert
         result.Should().Be(expected);
     }
+
+    [Theory]
+    [InlineData(2026, 8, 31, 22, 59, 2025)] // 23:59 on 31 August in Portugal (summer: UTC+1)
+    [InlineData(2026, 8, 31, 23, 0, 2026)] // 00:00 on 1 September in Portugal
+    [InlineData(2026, 12, 31, 23, 30, 2026)] // winter: Portugal is UTC
+    public void GetFiscalYearStartYearOfUtc_TurnsAtMidnightInPortugal(int year, int month, int day, int hour, int minute, int expected)
+    {
+        FiscalYearHelper.GetFiscalYearStartYearOfUtc(new DateTime(year, month, day, hour, minute, 0, DateTimeKind.Utc)).Should().Be(expected);
+    }
 }

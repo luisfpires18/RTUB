@@ -10,6 +10,16 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 134 (`fix/134/portugal-time`), third phase of the audit round. Each fix has a test; those that could fail first did.
+- Fiscal year of a stored UTC `CreatedAt`: one rule, `FiscalYearHelper.GetFiscalYearStartYearOfUtc` (the year turns at
+  00:00 on 1 September in Portugal). The shop filter and product details use it; the requests filter converts
+  `CreatedAt` with `PortugalTime.FromUtc` before it compares.
+- Discussion posts and comments push while `Event.Date >= PortugalTime.Now` (it was `DateTime.UtcNow`: one hour too
+  long in summer). `PostService` / `CommentService` take `TimeProvider? time = null`.
+- The calotes reminder reads the fiscal year from its injected clock; it has its first test.
+- `GetYearsAsTuno` reads Portugal's clock, not `DateTime.Now`.
+- Tests: one clock, `tests/Shared/TestClock.cs`, replaces the 9 private `FixedClock` / `Clock` classes.
+
 Task 133 (`fix/133/data-loss`), second phase of the audit round. Each fix has a test that failed first.
 - Member delete: refused with `409 members:in-use`, before anything is deleted, while an MBWay transfer names the
   member; likes on other members' leaderboard comments are now really deleted (they blocked the delete too).
@@ -27,19 +37,6 @@ squash point as known to a build that has the Baseline (same two ids as `Migrati
 `ReleaseWorkflowTests`). Checked on the real id lists: refused before, passes after; a rollback to 2.3.12 is still
 refused without `allow_newer_schema`. Also: the refusal text and the runbook name 2.3.12 (not 2.3.13) as the last
 release with the old chain; the runbook says how to keep a backup outside the app's rotation before a drop.
-
-Task 131 (`chore/131/unused-columns`, on top of 130): the app stops using `AspNetUsers.ExperiencePoints` / `Level`,
-`MemberStatuses.OverrideRetired`, `MeetingAtaAttachments.FileUrl` and `Reports.PdfData`. `UserXpLevelDefaults` gives the
-two NOT NULL ones a database default (an `AspNetUsers` rebuild); `StopMappingUnusedColumns` changes only the snapshot.
-The columns stay until the drop release (`docs/db-cleanup-inventory.md` → *Pending drop*). Rehearsed on a real-data
-copy: same 31,537 rows, no foreign-key violations, defaults 0 / 1, and the build before task 131 still starts on the
-result.
-Task 130 (`chore/130/squash-migrations`): the 180 migrations are one `20261118134743_Baseline` (same tables, columns,
-foreign keys and indexes; 686,048 → 14,890 lines). Startup gives a database that ran the old chain only the Baseline's
-history row (`Data/MigrationBaseline.cs`); one that stopped earlier is refused. Rehearsed on a copy of the local
-database brought to the chain's end: schema unchanged, one history row added. Rollback • PROD to 2.3.12 or older needs
-`allow_newer_schema` (the Baseline changes no schema). Next: task 131 stops using the five unused columns; the drop
-itself goes one release later.
 
 Before it: the second cleanup round, tasks 120-129 (PRs #326-#334, merged into `dev`; audit of 2026-11-18). No
 behaviour change except where noted.
@@ -268,9 +265,10 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   (owner decision: keep, or clear the member on the transfer). A reservation never lowers stock (owner decision).
   Meeting atas are last-write-wins (a 409 needs a version column, as `LogisticsCard.Version`). `EnrollmentService.cs:67`
   was not checked for the same double-submit 500.
-- Dates: `RequestAdminService.cs:82` compares UTC `CreatedAt` with Portugal fiscal-year bounds (as the shop does);
-  `CalotesNotificationBackgroundService.cs:99` reads the fiscal year from the system clock, not its injected clock;
-  `ApplicationUserExtensions.cs:148` uses `DateTime.Now`.
+- Dates: still on the server's clock (`DateTime.Now` / `Today`): the latest year a member form accepts
+  (`MemberAdminService.Info.cs:68`, `.Rules.cs:68,77`, `MyProfileService.Profile.cs:51,122`), "not in the past" on a
+  public request (`RequestValidationService.cs:23,37`), `Album.cs:41,59`. `FiscalYearHelperService` ends the year at
+  23:59:59, so the last second of 31 August is in no year (requests filter only).
 - Security: `DownloadMediaController` fetches any URL for any signed-in account and the portal never calls it; the
   password-reset link is built from the request Host (`AccountRecoveryEndpoints.cs:20`), as the event links are;
   `GalleryManagementService.cs:107` trusts the browser's `image/` / `video/` prefix (the profile photo checks the type
@@ -283,7 +281,7 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - Release: the daily backup keeps two generations, needs Always On and alerts nobody on failure; no test restores a
   backup; `release.sh` checks only that VERSION goes up, not the MAJOR bump of a drop release; `AdoptAsync` writes the
   Baseline row before the pre-migration snapshot.
-- Tests: 10 copies of a private `FixedClock` / `Clock`; `TestPrincipal` has no name claim (10 private `SignedIn`
+- Tests: `TestPrincipal` has no name claim (10 private `SignedIn`
   helpers, not 20); the Push items above are out of date (`PushDeliveryTests`, `NotificationInboxTests` cover sends and
   the inbox copy); test hosts hash passwords at Identity's default cost; 75 integration classes boot 75 hosts.
 - Local: a database that stopped before `20261117191014_AddAprenderViewsAndStars` is refused by `dev`; start commit
@@ -292,8 +290,7 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   `/api/me/profile` 15 queries, `/api/members` 7, `/api/leaderboard` 7. Every route loads 137 kB gzip first.
 
 ## Next
-Phases the audit proposed, each waiting for the owner's "yes, phase N": 134 Portugal time, 135
-security, 136 rule tests for the 14 `*Authorization` helpers, 137 test speed and a local launch profile, 138 a shared
+Phases the audit proposed, each waiting for the owner's "yes, phase N": 135 security, 136 rule tests for the 14 `*Authorization` helpers, 137 test speed and a local launch profile, 138 a shared
 portal load hook, 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
 portal intro animation is not to be removed or shortened. The drop release does not go to 3.0.0 (owner, 2026-11-18): the
 "MAJOR bump" wording in the docs changes with phase 142. Not proposed: the CSS merges, backend query work.
