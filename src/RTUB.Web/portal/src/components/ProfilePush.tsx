@@ -1,4 +1,5 @@
 // The /profile push-notification section.
+import { FieldError } from './ui/FieldError';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from './icons';
 import { PushPreferencesDialog } from './PushPreferences';
@@ -141,11 +142,7 @@ export function PushSection() {
           {message}
         </p>
       )}
-      {error && (
-        <p className="form__error" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError text={error} />
       {/* Account-wide content preferences, apart from this device's switch above. */}
       <div className="push-prefs__open">
         <p className="note">O que receber vale para a tua conta, em todos os dispositivos.</p>

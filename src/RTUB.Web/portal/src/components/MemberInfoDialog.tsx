@@ -1,4 +1,7 @@
 // The member info dialog (Members admin).
+import { FormField } from './ui/FormField';
+import { DialogFooter } from './ui/DialogFooter';
+import { Banner } from './ui/Banner';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { memberAdminApi, type MemberInfo, type MemberInfoInput, type MemberInstrument, type Option } from '../data/membersApi';
@@ -85,15 +88,9 @@ export function MemberInfoDialog({
   };
 
   const textField = (id: string, key: 'city' | 'phoneNumber', f: string, text: string, max: number) => (
-    <div className={errors[f] ? 'form__field form__field--error' : 'form__field'}>
-      <label htmlFor={id}>{label(text, f)}</label>
+    <FormField id={id} label={label(text, f)} error={errors[f]} alert>
       <input id={id} type="text" maxLength={max} value={form[key] ?? ''} onChange={(e) => set({ [key]: e.target.value })} aria-invalid={errors[f] ? true : undefined} />
-      {errors[f] && (
-        <p className="form__error" role="alert">
-          {errors[f]}
-        </p>
-      )}
-    </div>
+    </FormField>
   );
 
   return (
@@ -101,24 +98,10 @@ export function MemberInfoDialog({
       title={`Completar informação · ${info.displayName}`}
       size="lg"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${ids.form}-form`} className="btn btn--primary" disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Guardar
-          </button>
-        </>
-      }
+      footer={<DialogFooter form={`${ids.form}-form`} busy={busy} onClose={onClose} />}
     >
       <form id={`${ids.form}-form`} className="form member-form" onSubmit={submit} noValidate>
-        {banner && (
-          <p className="form__banner" role="alert">
-            {banner}
-          </p>
-        )}
+        <Banner text={banner} />
         {info.missing.length > 0 && (
           <p className="note">Em falta: {info.missing.map((f) => INFO_LABELS[f] ?? f).join(', ')}.</p>
         )}

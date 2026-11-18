@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageHead } from '../components/ui/PageHead';
 import { Icon } from '../components/icons';
 import { AlbumForm } from '../components/MusicAlbumForm';
 import { Badge, IconButton } from '../components/MusicUi';
@@ -44,14 +46,7 @@ export default function Music() {
 
   return (
     <section className="page wrap music" aria-labelledby="music-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Discografia</p>
-          <h1 id="music-title" className="page__title">
-            Música
-          </h1>
-          <p className="page__lead">Os discos da RTUB, faixa a faixa: ouvir, ler a letra e ver os vídeos.</p>
-        </div>
+      <PageHead eyebrow="Discografia" title="Música" titleId="music-title" lead="Os discos da RTUB, faixa a faixa: ouvir, ler a letra e ver os vídeos.">
         {can && (can.canSeeStatistics || can.canManage) && (
           <div className="music__actions">
             {can.canSeeStatistics && (
@@ -68,22 +63,18 @@ export default function Music() {
             )}
           </div>
         )}
-      </header>
+      </PageHead>
 
       {state.failed ? (
-        <div className="state" role="alert">
-          <p className="state__title">Não foi possível carregar os álbuns.</p>
+        <EmptyState role="alert" title="Não foi possível carregar os álbuns.">
           <button type="button" className="btn btn--primary" onClick={load}>
             Tentar novamente
           </button>
-        </div>
+        </EmptyState>
       ) : !albums ? (
         <Loading label="A carregar os álbuns…" />
       ) : albums.length === 0 ? (
-        <div className="state">
-          <Icon name="disc" className="state__icon" />
-          <p className="state__title">Ainda não há álbuns.</p>
-        </div>
+        <EmptyState icon="disc" title="Ainda não há álbuns." />
       ) : (
         <ul className="albums">
           {albums.map((a) => (

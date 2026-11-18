@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageHead } from '../components/ui/PageHead';
 import { Icon } from '../components/icons';
 import { PlayAlongField } from '../components/MusicPlayAlongField';
 import { Dialog, IconButton } from '../components/MusicUi';
@@ -69,14 +71,7 @@ export default function MusicLearn() {
 
   return (
     <section className="page wrap music" aria-labelledby="learn-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Música</p>
-          <h1 id="learn-title" className="page__title">
-            Aprender Músicas
-          </h1>
-          <p className="page__lead">As músicas com pauta para aprender: os acordes a acompanhar a gravação.</p>
-        </div>
+      <PageHead eyebrow="Música" title="Aprender Músicas" titleId="learn-title" lead="As músicas com pauta para aprender: os acordes a acompanhar a gravação.">
         {canManage && (
           <div className="music__actions">
             <button type="button" className="btn btn--primary" onClick={() => setOpen({ kind: 'add' })}>
@@ -85,22 +80,18 @@ export default function MusicLearn() {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {state.failed ? (
-        <div className="state" role="alert">
-          <p className="state__title">Não foi possível carregar as músicas.</p>
+        <EmptyState role="alert" title="Não foi possível carregar as músicas.">
           <button type="button" className="btn btn--primary" onClick={() => load()}>
             Tentar novamente
           </button>
-        </div>
+        </EmptyState>
       ) : !songs ? (
         <Loading label="A carregar as músicas…" />
       ) : songs.length === 0 ? (
-        <div className="state">
-          <Icon name="disc" className="state__icon" />
-          <p className="state__title">Ainda não há músicas para aprender.</p>
-        </div>
+        <EmptyState icon="disc" title="Ainda não há músicas para aprender." />
       ) : (
         groups.map((album) => (
           <section key={album.id} className="learn-album" aria-labelledby={`learn-album-${album.id}`}>

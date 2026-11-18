@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
+import { FieldError } from './ui/FieldError';
 import { ExternalLink } from './AppShared';
 import { Dialog } from './Dialog';
 import { call, type Outcome } from '../data/eventsApi';
@@ -202,11 +203,7 @@ export function AssignDialog({
           )}
         </div>
         {picked && <p className="note">Escolhido: {picked.displayName}</p>}
-        {error && (
-          <p className="form__error" role="alert">
-            {error}
-          </p>
-        )}
+        <FieldError text={error} />
       </form>
     </Dialog>
   );
@@ -253,11 +250,7 @@ export function RemoveDialog({
         Remover {holder.displayName} do cargo de {title}?
       </p>
       <p className="note">Se for do ano letivo atual, o perfil do membro também é atualizado.</p>
-      {error && (
-        <p className="form__error" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError text={error} />
     </Dialog>
   );
 }

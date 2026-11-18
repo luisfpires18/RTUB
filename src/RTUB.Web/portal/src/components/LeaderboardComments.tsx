@@ -1,6 +1,9 @@
 // Leaderboard comments list and delete dialog.
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { FieldError } from './ui/FieldError';
+import { Banner } from './ui/Banner';
+import { Spinner } from './ui/Spinner';
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { type Comment, api, MAX_COMMENT, problem, ago } from '../data/leaderboardApi';
 import { Loading } from './ui/Loading';
@@ -60,14 +63,10 @@ export function Comments({ memberId }: { memberId: string }) {
           <p className="form__hint">
             {text.length} / {MAX_COMMENT}
           </p>
-          {error && (
-            <p className="form__error" role="alert">
-              {error}
-            </p>
-          )}
+          <FieldError text={error} />
         </div>
         <button type="submit" className="btn btn--primary btn--sm" disabled={busy || !text.trim()}>
-          {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+          {busy && <Spinner small />}
           Publicar
         </button>
       </form>
@@ -75,9 +74,7 @@ export function Comments({ memberId }: { memberId: string }) {
       {list === undefined ? (
         <Loading label="A carregar os comentários…" />
       ) : list === null ? (
-        <p className="form__banner" role="alert">
-          Não foi possível carregar os comentários.
-        </p>
+        <Banner text="Não foi possível carregar os comentários." />
       ) : list.length === 0 ? (
         <p className="note">Ainda não há comentários.</p>
       ) : (
@@ -128,27 +125,8 @@ function DeleteComment({ comment, onClose, onDone }: { comment: Comment; onClose
   };
 
   return (
-    <Dialog
-      title="Eliminar comentário"
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={remove} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Eliminar
-          </button>
-        </>
-      }
-    >
+    <ConfirmDialog title="Eliminar comentário" confirmLabel="Eliminar" busy={busy} error={error} onConfirm={remove} onClose={onClose}>
       <p>Eliminar o comentário de {comment.authorName}? Deixa de aparecer para todos.</p>
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </ConfirmDialog>
   );
 }

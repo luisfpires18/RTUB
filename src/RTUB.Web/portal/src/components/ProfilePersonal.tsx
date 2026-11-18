@@ -1,4 +1,5 @@
 // The /profile personal-data section and its edit form.
+import { Banner } from './ui/Banner';
 import { useId, useState, type FormEvent } from 'react';
 import { Icon } from './icons';
 import { memberAreaApi, type MyProfile, type PersonalInput } from '../data/memberAreaApi';
@@ -107,11 +108,7 @@ function PersonalForm({ profile, onCancel, onSaved }: { profile: MyProfile; onCa
 
   return (
     <form className="form profile-form" onSubmit={submit} noValidate>
-      {f.banner && (
-        <p className="form__banner" role="alert">
-          {f.banner}
-        </p>
-      )}
+      <Banner text={f.banner} />
       <div className="form__row">
         {text('firstName', 'Primeiro nome', 80, 'text', 'given-name')}
         {text('lastName', 'Último nome', 80, 'text', 'family-name')}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PageHead } from '../components/ui/PageHead';
 import { getGallery, getGalleryItem, type GalleryFilters, type GalleryItem, type GalleryTimeline } from '../data/api';
 import { useLatest } from '../components/AppShared';
 import { EditDialog, UploadDialog } from '../components/GalleryManage';
@@ -111,21 +112,14 @@ export default function Gallery() {
 
   return (
     <section className="page wrap gallery-page" aria-labelledby="gallery-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Memórias</p>
-          <h1 id="gallery-title" className="page__title">
-            Galeria
-          </h1>
-          <p className="page__lead">Atuações, viagens e noites de estrada: a RTUB ao longo dos anos, do mais recente para trás.</p>
-        </div>
+      <PageHead eyebrow="Memórias" title="Galeria" titleId="gallery-title" lead="Atuações, viagens e noites de estrada: a RTUB ao longo dos anos, do mais recente para trás.">
         {data?.isMember && (
           <button type="button" className="btn btn--primary btn--sm" onClick={() => setManaging('upload')}>
             <Icon name="upload" />
             Carregar foto ou vídeo
           </button>
         )}
-      </header>
+      </PageHead>
 
       {data && (
         <Toolbar

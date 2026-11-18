@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import { PageHead } from '../components/ui/PageHead';
 import { useLatest } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
@@ -50,15 +51,7 @@ export default function Leaderboard() {
 
   return (
     <section className="page wrap events-page leaderboard-page" aria-labelledby="leaderboard-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="leaderboard-title" className="page__title">
-            Tabela de Classificação
-          </h1>
-          <p className="page__lead">Cada ensaio e cada atuação contam XP; o XP sobe o nível.</p>
-        </div>
-      </header>
+      <PageHead eyebrow="Área de membros" title="Tabela de Classificação" titleId="leaderboard-title" lead="Cada ensaio e cada atuação contam XP; o XP sobe o nível." />
 
       {table === 'signin' ? (
         <SignInNotice path={portal.leaderboard}>A classificação é da área de membros.</SignInNotice>

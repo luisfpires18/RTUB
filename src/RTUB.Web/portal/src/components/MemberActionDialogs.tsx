@@ -1,4 +1,6 @@
 // Member admin dialogs: change nickname and confirm an action.
+import { DialogFooter } from './ui/DialogFooter';
+import { FieldError } from './ui/FieldError';
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Dialog } from './Dialog';
 import type { Outcome } from '../data/eventsApi';
@@ -29,17 +31,7 @@ export function NicknameDialog({ member, onClose, onDone }: { member: { id: stri
     <Dialog
       title="Definir alcunha"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Guardar
-          </button>
-        </>
-      }
+      footer={<DialogFooter form={`${id}-form`} busy={busy} onClose={onClose} />}
     >
       <form id={`${id}-form`} className="form" onSubmit={submit} noValidate>
         <p>
@@ -49,11 +41,7 @@ export function NicknameDialog({ member, onClose, onDone }: { member: { id: stri
           <label htmlFor={id}>Nome de tuna</label>
           <input id={id} type="text" maxLength={80} value={nickname} onChange={(e) => setNickname(e.target.value)} aria-invalid={error ? true : undefined} />
           <p className="form__hint">O username passa a ser gerado a partir da alcunha e o membro recebe um email com o novo.</p>
-          {error && (
-            <p className="form__error" role="alert">
-              {error}
-            </p>
-          )}
+          <FieldError text={error} />
         </div>
         {username(nickname) && (
           <p className="note">

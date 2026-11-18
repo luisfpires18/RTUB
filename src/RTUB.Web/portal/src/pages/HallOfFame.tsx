@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { PageHead } from '../components/ui/PageHead';
 import { portal } from '../data/content';
 import { memberAreaApi, type FameRecord, type HallOfFame as Fame } from '../data/memberAreaApi';
 import { Notice, SignInNotice } from '../components/Notice';
@@ -20,15 +21,7 @@ export default function HallOfFame() {
 
   return (
     <section className="page wrap fame-page" aria-labelledby="fame-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="fame-title" className="page__title">
-            Hall of Fame
-          </h1>
-          <p className="page__lead">Os recordes da RTUB, de quem passou a Tuno mais depressa a quem mais ensaios somou.</p>
-        </div>
-      </header>
+      <PageHead eyebrow="Área de membros" title="Hall of Fame" titleId="fame-title" lead="Os recordes da RTUB, de quem passou a Tuno mais depressa a quem mais ensaios somou." />
 
       {fame === undefined ? (
         <Loading label="A calcular os recordes…" />

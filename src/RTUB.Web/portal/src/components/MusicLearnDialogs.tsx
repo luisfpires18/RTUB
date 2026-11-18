@@ -1,4 +1,5 @@
 // Owner dialogs of the Aprender page: add a play-along chart to a song and notify members.
+import { Spinner } from './ui/Spinner';
 import { useEffect, useState } from 'react';
 import { Icon } from './icons';
 import { PlayAlongField } from './MusicPlayAlongField';
@@ -108,7 +109,7 @@ export function NotifyDialog({ song, onClose }: { song: LearnSong; onClose: () =
           </button>
           {!sent && (
             <button type="button" className="btn btn--primary" onClick={send} disabled={busy || message.trim().length === 0}>
-              {busy ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="bell" />}
+              {busy ? <Spinner small /> : <Icon name="bell" />}
               Enviar
             </button>
           )}

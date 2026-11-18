@@ -1,4 +1,5 @@
 // One song row of the album list: title, credits, play count and the action buttons.
+import { Spinner } from './ui/Spinner';
 import { Icon } from './icons';
 import { type NowPlaying } from './MusicPlayer';
 import { IconButton, plays } from './MusicUi';
@@ -73,7 +74,7 @@ export function MusicSongRow({
           disabled={!s.hasAudio || playing === s.id}
           title={s.hasAudio ? undefined : 'Áudio não disponível'}
         >
-          {playing === s.id ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="playFill" />}
+          {playing === s.id ? <Spinner small /> : <Icon name="playFill" />}
           Ouvir<span className="sr-only"> {s.title}</span>
         </button>
         <button type="button" className="song__btn" onClick={() => setLyricsFor(s)}>

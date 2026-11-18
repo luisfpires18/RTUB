@@ -1,4 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { DialogFooter } from './ui/DialogFooter';
+import { Banner } from './ui/Banner';
 import { Icon } from './icons';
 import { Dialog } from './MusicUi';
 import { musicApi, type FieldErrors, type SongInput } from '../data/musicApi';
@@ -72,23 +74,9 @@ export function SongForm({
       title={songId === null ? 'Nova música' : 'Editar música'}
       size="lg"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form="song-form" className="btn btn--primary" disabled={busy || !form}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Guardar
-          </button>
-        </>
-      }
+      footer={<DialogFooter form="song-form" busy={busy} disabled={!form} onClose={onClose} />}
     >
-      {banner && (
-        <p className="form__banner" role="alert">
-          {banner}
-        </p>
-      )}
+      <Banner text={banner} />
       {!form ? (
         !banner && <p className="note">A carregar…</p>
       ) : (

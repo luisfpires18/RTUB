@@ -1,4 +1,5 @@
 import * as L from 'leaflet';
+import { PageHead } from '../components/ui/PageHead';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef, useState } from 'react';
 import { portal } from '../data/content';
@@ -34,21 +35,14 @@ export default function MembersMap() {
 
   return (
     <section className="page wrap events-page map-page" aria-labelledby="map-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="map-title" className="page__title">
-            Mapa de membros
-          </h1>
-          <p className="page__lead">De onde vêm os membros da RTUB, cidade a cidade.</p>
-        </div>
+      <PageHead eyebrow="Área de membros" title="Mapa de membros" titleId="map-title" lead="De onde vêm os membros da RTUB, cidade a cidade.">
         <div className="events-page__actions">
           <a className="btn btn--ghost btn--sm" href={portal.members}>
             <Icon name="people" />
             Membros
           </a>
         </div>
-      </header>
+      </PageHead>
 
       {map === undefined ? (
         <Loading label="A carregar o mapa…" />

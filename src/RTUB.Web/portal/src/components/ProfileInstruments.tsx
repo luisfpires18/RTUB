@@ -1,4 +1,5 @@
 // The /profile instruments and newsletter-subscription sections.
+import { FieldError } from './ui/FieldError';
 import { useId, useState } from 'react';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
@@ -76,11 +77,7 @@ export function InstrumentsSection({ profile, onChange }: { profile: MyProfile; 
           </ul>
         </div>
       )}
-      {error && (
-        <p className="form__error" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError text={error} />
     </Section>
   );
 }

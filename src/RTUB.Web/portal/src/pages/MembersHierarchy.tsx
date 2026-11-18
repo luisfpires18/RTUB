@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
+import { BackLink } from '../components/ui/BackLink';
 import { portal } from '../data/content';
-import { Icon } from '../components/icons';
 import { membersApi, type TreeNode } from '../data/membersApi';
 import { RetryNotice, SignInNotice } from '../components/Notice';
 import { FamilyTree } from '../components/FamilyTree';
@@ -31,10 +31,7 @@ export default function MembersHierarchy() {
 
   return (
     <section className="page wrap events-page hierarchy-page" aria-labelledby="hierarchy-title">
-      <a className="back-link" href={portal.members}>
-        <Icon name="arrow" />
-        Membros
-      </a>
+      <BackLink href={portal.members}>Membros</BackLink>
       <header className="page__head">
         <p className="eyebrow">Área de membros</p>
         <h1 id="hierarchy-title" className="page__title">

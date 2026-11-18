@@ -1,4 +1,7 @@
 // The /profile passkey and security sections.
+import { FormField } from './ui/FormField';
+import { FieldError } from './ui/FieldError';
+import { Banner } from './ui/Banner';
 import { useEffect, useId, useState, type FormEvent, type ReactNode, type Ref } from 'react';
 import { Icon } from './icons';
 import { memberAreaApi } from '../data/memberAreaApi';
@@ -87,8 +90,7 @@ export function PasskeySection() {
       </div>
       {supported ? (
         <form className="form profile-form" onSubmit={add} noValidate>
-          <div className={passwordError ? 'form__field form__field--error' : 'form__field'}>
-            <label htmlFor={`${id}-password`}>Palavra-passe atual</label>
+          <FormField id={`${id}-password`} label="Palavra-passe atual" error={passwordError} alert>
             <input
               id={`${id}-password`}
               type="password"
@@ -97,12 +99,7 @@ export function PasskeySection() {
               onChange={(e) => setPassword(e.target.value)}
               aria-invalid={passwordError ? true : undefined}
             />
-            {passwordError && (
-              <p className="form__error" role="alert">
-                {passwordError}
-              </p>
-            )}
-          </div>
+          </FormField>
           <p className="form__hint">Pedida só para ativar, para que ninguém o faça com a tua sessão aberta.</p>
           <div className="push-actions">
             <button type="submit" className="btn btn--primary btn--sm" disabled={busy}>
@@ -119,11 +116,7 @@ export function PasskeySection() {
           {message}
         </p>
       )}
-      {error && (
-        <p className="form__error" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError text={error} />
     </Section>
   );
 }
@@ -174,11 +167,7 @@ export function SecuritySection({ ref, onChanged }: { ref: Ref<HTMLElement>; onC
   return (
     <Section id="security" title="Segurança" icon="lock" sectionRef={ref}>
       <form className="form profile-form" onSubmit={submit} noValidate>
-        {f.banner && (
-          <p className="form__banner" role="alert">
-            {f.banner}
-          </p>
-        )}
+        <Banner text={f.banner} />
         {secret('currentPassword', 'Palavra-passe atual', 'current-password')}
         <div className="form__row">
           {secret('newPassword', 'Nova palavra-passe', 'new-password')}
