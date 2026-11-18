@@ -129,6 +129,9 @@ public class Program
         // Map API controllers
         app.MapControllers();
 
+        // After the last Map call: the endpoints are built once, not once per reader (faster start).
+        app.BuildEndpointsOnce();
+
         app.Run();
     }
 

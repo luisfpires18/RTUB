@@ -36,6 +36,9 @@ Pinned by `tests/RTUB.Web.Tests/ReactPortal/PerformanceGateSourceTests.cs`.
   `/health`, non-GET and non-http requests; registered on `load`.
 - Hero logo: 512 px for 1x and the 1024 px for 2x with `fetchpriority="high"`; default avatar is 256 px.
 - The linux-x64 publish uses `-p:PublishReadyToRun=true` (cold start on a one-core B1).
+- The endpoints are built once per start (`app.BuildEndpointsOnce()`, `Extensions/EndpointsBuiltOnceExtensions.cs`).
+  ASP.NET reads the endpoint sources twice (authorization policy cache, then the router) and a minimal-API source
+  compiles every handler on each read. Pinned by `ApiEndpointsTests.TheEndpoints_AreBuiltOnce_HoweverManyTimesTheSourcesAreRead`.
 - Intro (`.splash*`, `:root.intro`, `revealApp`, the italic face it uses) is by owner decision shown on every session.
 - Owner decisions: cookie validation is gated but not cached; no client router until measurements justify it.
 

@@ -65,6 +65,17 @@ A local run without `Cloudflare:R2:*` starts, but storage-backed routes answer 5
 `ConnectionStrings:SqliteConnection` at a scratch copy before trying things out, or the run writes to
 `src/RTUB.Web/app.db`.
 
+The `Local` launch profile does that for you:
+
+```bash
+dotnet run --project src/RTUB.Web/RTUB.csproj --launch-profile Local
+```
+
+It serves `http://localhost:5178` from the database `.local/app.db` at the repository root (git-ignored; created on
+the first run, or copy an existing `app.db` there first). It names a bucket that does not exist, a mail server that
+does not exist and no backups, so the run cannot write to production storage or send mail whatever your user-secrets
+hold. Details: [`docs/configuration-runbook.md`](docs/configuration-runbook.md) → *Local run*.
+
 ### Resetting a local development database (destructive, opt-in)
 
 `SeedData.ResetDevDataAsync` clears every push subscription, resets **every** user's password to one configured value

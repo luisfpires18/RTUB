@@ -82,6 +82,28 @@ which makes `dotnet test` drive MTP instead of VSTest. Report filenames are left
 purpose: all test projects write into one results directory and MTP assigns unique names. Some
 tests are skipped on Windows; the bash script self-tests run on the Linux runner.
 
+Where the time goes (16 logical processors, each project run alone, task 137): Integration about 72 s, Application
+about 21 s, Web about 6 s, Core under 1 s. Integration is 75 test classes with one host each. A host's cost is the
+app's own start, so anything that slows the start slows every class: before task 137 each host built the 384
+endpoints twice and Integration took about 175 s (`Extensions/EndpointsBuiltOnceExtensions.cs`). Measured and not
+kept: a lower password-hash cost in test hosts, workstation GC and a larger thread pool changed nothing.
+
+### Disk and temp on a developer machine
+
+Builds and tests do not need the system disk. What they write, and how to move it:
+
+| What | Default place | Move it with |
+| --- | --- | --- |
+| `bin` / `obj`, `node_modules`, `./coverage` | the checkout | (already where the checkout is) |
+| NuGet packages (about 1 GB) | `%USERPROFILE%\.nuget\packages` | `NUGET_PACKAGES` |
+| NuGet HTTP cache | `%LOCALAPPDATA%\NuGet` | `NUGET_HTTP_CACHE_PATH` |
+| npm cache (about 1 GB) | `%LOCALAPPDATA%\npm-cache` | `npm config set cache <folder>` |
+| MSBuild, Roslyn and test temp files | `%TEMP%` | `TEMP` and `TMP` |
+
+Set `TEMP` / `TMP` to a folder **outside** the repository: two `ConfigurationAuditTests` fail when the temp folder is
+inside it (the audit scripts refuse to write in the repository outside `.local/`). A full system disk starves the page
+file and crashes the parallel test run with out-of-memory errors that look like test failures.
+
 ## Build and packaging
 
 Publish needs no Node. The React portal build, `wwwroot/portal`, is committed and published as-is;

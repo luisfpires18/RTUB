@@ -137,4 +137,22 @@ public class ApiEndpointsTests : IntegrationTestBase
     }
 
     #endregion
+
+    /// <summary>
+    /// Task 137: ASP.NET reads the endpoint sources twice at startup (the authorization policy cache, then the router).
+    /// A second reader must get the endpoints already built, not a fresh copy of each: building them compiles every
+    /// handler, which was half of a test host's start (Extensions/EndpointsBuiltOnceExtensions.cs).
+    /// </summary>
+    [Fact]
+    public void TheEndpoints_AreBuiltOnce_HoweverManyTimesTheSourcesAreRead()
+    {
+        var registered = Factory.Services.GetRequiredService<EndpointDataSource>().Should().BeOfType<CompositeEndpointDataSource>().Subject;
+        using var secondReader = new CompositeEndpointDataSource(registered.DataSources);
+
+        var first = registered.Endpoints;
+        var second = secondReader.Endpoints;
+
+        second.Should().HaveSameCount(first).And.HaveCountGreaterThan(300, "the whole API is there");
+        second.Zip(first).Should().OnlyContain(pair => ReferenceEquals(pair.First, pair.Second), "both readers get the same built endpoints");
+    }
 }

@@ -10,6 +10,16 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 137 (`chore/137/test-speed`), sixth phase of the audit round.
+- Measured first: a test host's cost is the app's start, and the app built its 384 endpoints twice per start.
+  `app.BuildEndpointsOnce()` (owner approved the `Program.cs` change, 2026-11-18) builds them once: Integration tests
+  about 175 s → about 72 s, and every real start is shorter.
+- Measured and not kept: password-hash cost in test hosts, workstation GC, thread-pool size (no change). Not tried:
+  one shared host for the 28 `IntegrationTestBase` classes (it shares one database between classes, and the bigger
+  gain is in); `ConfigurationAuditTests` once per class (5.7 s of a project that is not the slow one).
+- `Local` launch profile: one command, port 5178, `.local/app.db`, no real bucket, no mail, no backup.
+- Docs: where the test time goes, disk and temp (`docs/ci-cd-and-azure-environments.md`), *Local run* (runbook).
+
 Task 136 (`test/136/rule-tests`), fifth phase of the audit round. Tests only: no file under `src/` changed.
 - Rule tests for the 14 `*Authorization` helpers that had none (`tests/RTUB.Application.Tests/Helpers/`): one row per
   role, a visitor, and role claims on an identity nobody signed in. `EventsAuthorization.CanTrackContactsAsync` (a
@@ -18,30 +28,15 @@ Task 136 (`test/136/rule-tests`), fifth phase of the audit round. Tests only: no
   helpers of the Application tests are gone.
 - `NotificationInboxTests`: only `PushNotificationService` may use the WebPush library, so no sender skips the inbox.
 
-Task 135 (`fix/135/security`), fourth phase of the audit round. Each fix has a test that failed first.
-- `DownloadMediaController` is deleted: it fetched any URL for any signed-in account, and no page called it.
-- `/api/account/*` (forgot-password, reset-password, confirm-email) spends the login budget of its client; 429 past it.
-- Email links (password reset, event cancellation, event notice) carry the configured `App:BaseUrl`
-  (`Endpoints/SiteAddress.cs`), not the request's Host header. PROD `https://www.rtub.pt` and DEV
-  `https://rtub-dev.azurewebsites.net` (owner, 2026-11-18), in `appsettings.Production.json` / `appsettings.Staging.json`.
-- Gallery uploads: a short list of types, checked against the file's first bytes (`GalleryUploadTypes`,
-  `MediaSignature`); the stored extension comes from the type.
-
-Task 134 (`fix/134/portugal-time`), third phase of the audit round. Each fix has a test; those that could fail first did.
-- Fiscal year of a stored UTC `CreatedAt`: one rule, `FiscalYearHelper.GetFiscalYearStartYearOfUtc` (the year turns at
-  00:00 on 1 September in Portugal). The shop filter and product details use it; the requests filter converts
-  `CreatedAt` with `PortugalTime.FromUtc` before it compares.
-- Discussion posts and comments push while `Event.Date >= PortugalTime.Now` (it was `DateTime.UtcNow`: one hour too
-  long in summer). `PostService` / `CommentService` take `TimeProvider? time = null`.
-- The calotes reminder reads the fiscal year from its injected clock; it has its first test.
-- `GetYearsAsTuno` reads Portugal's clock, not `DateTime.Now`.
-- Tests: one clock, `tests/Shared/TestClock.cs`, replaces the 9 private `FixedClock` / `Clock` classes.
-
 Merged and not released yet (they matter at the next release): task 130 squashed the 180 migrations into
 `20261118134743_Baseline` (`Data/MigrationBaseline.cs`; Rollback • PROD to 2.3.12 or older needs `allow_newer_schema`);
 task 131 stopped using five columns, which stay until the drop release (`docs/db-cleanup-inventory.md` → *Pending
 drop*); task 132 taught `release.sh` `cmd_schema_gate` the squash; task 133 fixed five data-loss bugs
-(`docs/react-members.md`, `docs/react-treasury.md`, `docs/react-member-area.md`).
+(`docs/react-members.md`, `docs/react-treasury.md`, `docs/react-member-area.md`); task 134 put fiscal years, discussion
+pushes and the calotes reminder on Portugal's clock (`docs/backend-practices.md` → *Portugal time*); task 135 deleted
+the download proxy, rate-limited `/api/account/*`, built email links from `App:BaseUrl` (PROD `https://www.rtub.pt`,
+DEV `https://rtub-dev.azurewebsites.net`, owner 2026-11-18) and limited gallery uploads to seven checked types
+(`docs/react-identity.md`, `docs/react-gallery.md`).
 
 Before it: the second cleanup round, tasks 120-129 (PRs #326-#334, merged into `dev`; audit of 2026-11-18). No
 behaviour change except where noted.
@@ -138,10 +133,13 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   `FinanceManagementService` are tested only through the API. `TreasuryAuthorization`'s role checks do not ask
   `IsMember` themselves (the services check the sign-in first). `GovernanceAuthorization.CanViewRgi` asks for a system
   role, "Member" included: an account with no role does not read the RGI.
-- One host per integration test class (about 68 boots, about 7 s each alone). One shared host for the 28
-  `IntegrationTestBase` classes cut the Integration project from about 130 s to 87 s, but 3 tests failed
-  (`HomePreviewTests` needs an empty database; `AuthAntiforgeryTests` hit the login rate limit, which is per IP).
-  Sharing only the 9 read-only classes gained nothing measurable.
+- One host per integration test class (75 hosts; a warm host starts in about 2 s since task 137, half of it building
+  the endpoints). A shared host for the 28 `IntegrationTestBase` classes was tried before 137 (130 s → 87 s, 3 tests
+  failed: `HomePreviewTests` needs an empty database, `AuthAntiforgeryTests` hit the per-IP login limit); not retried.
+- A new database is broken for member status: the Baseline creates `MemberStatuses.OverrideRetired` NOT NULL with no
+  default, and the app no longer writes the column (task 131), so every insert fails ("NOT NULL constraint failed",
+  seen on an empty `.local/app.db`). PROD and DEV are not affected: their column has `DEFAULT 0` from the old chain.
+  Fix: a migration that gives it a default, as `UserXpLevelDefaults` did, or the drop of phase 142.
 - Sleeps that make two timestamps differ: `LeaderboardCommentServiceTests.cs:147`,
   `PostServiceTests.PinLockDelete.cs:178`, `RehearsalAttendanceAdminWorkflowTests.InstrumentAndConsistency.cs:142`,
   `RTUB.Core.Tests/Entities/PostTests.cs:175`; `ApplicationUserExtensionsTests.*` compute expectations from
@@ -282,14 +280,13 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - Release: the daily backup keeps two generations, needs Always On and alerts nobody on failure; no test restores a
   backup; `release.sh` checks only that VERSION goes up, not the MAJOR bump of a drop release; `AdoptAsync` writes the
   Baseline row before the pre-migration snapshot.
-- Tests: test hosts hash passwords at Identity's default cost; 75 integration classes boot 75 hosts.
 - Local: a database that stopped before `20261117191014_AddAprenderViewsAndStars` is refused by `dev`; start commit
   `5d1b9cb9` (or release 2.3.12) against it once.
 - Measured on a local copy (108 users, 17,761 messages): no `/api` GET over 95 ms, every SQL command 0 ms;
   `/api/me/profile` 15 queries, `/api/members` 7, `/api/leaderboard` 7. Every route loads 137 kB gzip first.
 
 ## Next
-Phases the audit proposed, each waiting for the owner's "yes, phase N": 137 test speed and a local launch profile, 138 a shared portal load hook, 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
+Phases the audit proposed, each waiting for the owner's "yes, phase N": 138 a shared portal load hook, 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
 portal intro animation is not to be removed or shortened. The drop release does not go to 3.0.0 (owner, 2026-11-18): the
 "MAJOR bump" wording in the docs changes with phase 142. Not proposed: the CSS merges, backend query work.
 
