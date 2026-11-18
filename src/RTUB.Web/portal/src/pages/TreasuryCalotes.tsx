@@ -9,6 +9,8 @@ import { type Debt, key } from '../data/treasuryCalotesView';
 import { DebtsDialog, DebtDialog } from '../components/TreasuryCalotesDialogs';
 import { Loading } from '../components/ui/Loading';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
+import { PageHead } from '../components/ui/PageHead';
+import { BackLink } from '../components/ui/BackLink';
 
 /**
  * /treasury/calotes - Calotes. Treasury members see
@@ -51,20 +53,13 @@ export default function TreasuryCalotes() {
 
   return (
     <section className="page wrap events-page tr-page" aria-labelledby="tr-title">
-      {!own && (
-        <a className="back-link" href={portal.treasury}>
-          <Icon name="arrow" />
-          Tesouraria
-        </a>
-      )}
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="tr-title" className="page__title">
-            {own ? 'Os meus calotes' : 'Calotes'}
-          </h1>
-          <p className="page__lead">{own ? 'O que deves à tuna, por ano letivo.' : 'Registo das dívidas dos membros à tuna.'}</p>
-        </div>
+      {!own && <BackLink href={portal.treasury}>Tesouraria</BackLink>}
+      <PageHead
+        eyebrow="Área de membros"
+        title={own ? 'Os meus calotes' : 'Calotes'}
+        titleId="tr-title"
+        lead={own ? 'O que deves à tuna, por ano letivo.' : 'Registo das dívidas dos membros à tuna.'}
+      >
         {c?.canManage && c.fiscalYear && (
           <div className="events-page__actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setForm({})}>
@@ -73,7 +68,7 @@ export default function TreasuryCalotes() {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {typeof data === 'string' ? (
         <Refusal state={data} path={portal.treasuryCalotes} onRetry={() => load()} />

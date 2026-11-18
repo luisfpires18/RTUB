@@ -3,6 +3,9 @@ import { signIn, type SignInFailure } from '../data/api';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { passkeysSupported, signInWithPasskey } from '../data/passkey';
+import { Spinner } from '../components/ui/Spinner';
+import { Banner } from '../components/ui/Banner';
+import { FormField, fieldProps } from '../components/ui/FormField';
 
 type Banner = SignInFailure;
 type Errors = { username?: string; password?: string };
@@ -94,7 +97,6 @@ export default function Login() {
     requestAnimationFrame(() => bannerRef.current?.focus());
   };
 
-  const describedBy = (key: keyof Errors) => (errors[key] ? `login-${key}-error` : undefined);
 
   return (
     <section className="page wrap" aria-labelledby="login-title">
@@ -115,10 +117,9 @@ export default function Login() {
               </div>
             )}
 
-            <div className={errors.username ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor="login-username">Nome de utilizador ou email</label>
+            <FormField id="login-username" label="Nome de utilizador ou email" error={errors.username}>
               <input
-                id="login-username"
+                {...fieldProps('login-username', errors.username)}
                 name="username"
                 type="text"
                 autoComplete="username"
@@ -126,34 +127,19 @@ export default function Login() {
                 spellCheck={false}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                aria-invalid={errors.username ? true : undefined}
-                aria-describedby={describedBy('username')}
               />
-              {errors.username && (
-                <p id="login-username-error" className="form__error">
-                  {errors.username}
-                </p>
-              )}
-            </div>
+            </FormField>
 
-            <div className={errors.password ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor="login-password">Palavra-passe</label>
+            <FormField id="login-password" label="Palavra-passe" error={errors.password}>
               <input
-                id="login-password"
+                {...fieldProps('login-password', errors.password)}
                 name="password"
                 type="password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                aria-invalid={errors.password ? true : undefined}
-                aria-describedby={describedBy('password')}
               />
-              {errors.password && (
-                <p id="login-password-error" className="form__error">
-                  {errors.password}
-                </p>
-              )}
-            </div>
+            </FormField>
 
             <label className="form__check">
               <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
@@ -163,7 +149,7 @@ export default function Login() {
             <button type="submit" className="btn btn--primary btn--lg form__submit" disabled={submitting} aria-busy={submitting}>
               {submitting ? (
                 <>
-                  <span className="spinner spinner--small" aria-hidden="true" />A entrar…
+                  <Spinner small />A entrar…
                 </>
               ) : (
                 <>

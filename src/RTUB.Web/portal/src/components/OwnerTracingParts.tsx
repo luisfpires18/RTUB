@@ -3,6 +3,8 @@ import { useId, useState } from 'react';
 import { Icon } from './icons';
 import { ownerApi, ownerProblem } from '../data/ownerApi';
 import { Flash } from './OwnerUi';
+import { Spinner } from './ui/Spinner';
+import { FormField } from './ui/FormField';
 
 /** A member field that suggests usernames as you type (native datalist: no list of 100 options to scroll). */
 export function UserField({
@@ -21,8 +23,7 @@ export function UserField({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="form__field">
-      <label htmlFor={id}>{label}</label>
+    <FormField id={id} label={label}>
       <span className="control control--sm">
         <Icon name="person" />
         <input id={id} type="search" list={`${id}-list`} autoComplete="off" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
@@ -32,7 +33,7 @@ export function UserField({
           <option key={u} value={u} />
         ))}
       </datalist>
-    </div>
+    </FormField>
   );
 }
 
@@ -54,8 +55,7 @@ export function Select({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="form__field">
-      <label htmlFor={id}>{label}</label>
+    <FormField id={id} label={label}>
       <span className="control control--sm control--select">
         <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
           <option value="">{all}</option>
@@ -66,7 +66,7 @@ export function Select({
           ))}
         </select>
       </span>
-    </div>
+    </FormField>
   );
 }
 
@@ -109,7 +109,7 @@ export function Announcement() {
       </div>
       <div className="owner-actions">
         <button type="button" className="btn btn--primary btn--sm" onClick={send} disabled={busy || !text.trim()}>
-          {busy ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="megaphone" />}
+          {busy ? <Spinner small /> : <Icon name="megaphone" />}
           {busy ? 'A enviar…' : 'Transmitir a todos'}
         </button>
       </div>

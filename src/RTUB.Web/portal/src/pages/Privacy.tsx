@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { portal } from '../data/content';
-import { Icon } from '../components/icons';
+import { BackLink } from '../components/ui/BackLink';
 
 // The legal source of the Privacy Policy served at /privacy.
 // Edit it as legal text, not as portal copy.
@@ -24,10 +24,7 @@ export default function Privacy() {
   return (
     <article className="doc wrap" aria-labelledby="privacy-title">
       <header className="doc__head">
-        <a className="back-link" href={portal.home}>
-          <Icon name="arrow" />
-          Portal RTUB
-        </a>
+        <BackLink href={portal.home}>Portal RTUB</BackLink>
         <h1 id="privacy-title" className="doc__title">
           Política de Privacidade
         </h1>

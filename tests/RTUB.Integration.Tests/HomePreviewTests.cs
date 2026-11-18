@@ -151,7 +151,8 @@ public class HomePreviewTests : IntegrationTestBase
         Source("components/ui/BackLink.tsx").Should().Contain("className=\"back-link\""); // the music back link moved to the kit in 119
         Source("components/ui/Pager.tsx").Should().Contain("control control--select control--sm"); // the music TextPager moved to the kit in 119
         Source("components/MusicStatistics.tsx").Should().Contain("<TextPager");
-        Source("pages/Privacy.tsx").Should().Contain("className=\"back-link\"");
+        Source("pages/Privacy.tsx").Should().Contain("<BackLink"); // the back link moved to the kit in 119
+        Source("components/ui/BackLink.tsx").Should().Contain("className=\"back-link\"");
 
         var css = PortalCss.Read(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src"));
         css.Should().Contain(".control {").And.Contain(".control:focus-within").And.Contain(".back-link {");

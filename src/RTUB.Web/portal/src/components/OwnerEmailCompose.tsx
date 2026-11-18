@@ -6,6 +6,7 @@ import { ownerApi, ownerProblem } from '../data/ownerApi';
 import { Flash } from './OwnerUi';
 import { TITLE_MAX, CONTENT_MAX, type Message } from '../data/ownerEmailsView';
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import { FormField } from './ui/FormField';
 
 export function Compose({ count }: { count: number }) {
   const id = useId();
@@ -58,8 +59,7 @@ export function Compose({ count }: { count: number }) {
       </h2>
       <Flash message={message} onDismiss={() => setMessage(undefined)} />
       <form className="form" onSubmit={ask} noValidate>
-        <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${id}-title`}>Título</label>
+        <FormField id={`${id}-title`} label="Título" error={errors.title} hint={`É o assunto do email: [RTUB] ${title.trim() || '{título}'}`}>
           <input
             id={`${id}-title`}
             value={title}
@@ -69,13 +69,13 @@ export function Compose({ count }: { count: number }) {
             aria-invalid={errors.title ? true : undefined}
             aria-describedby={`${id}-title-hint`}
           />
-          <p id={`${id}-title-hint`} className="form__hint">
-            É o assunto do email: [RTUB] {title.trim() || '{título}'}
-          </p>
-          {errors.title && <p className="form__error">{errors.title}</p>}
-        </div>
-        <div className={errors.content ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${id}-content`}>Conteúdo</label>
+        </FormField>
+        <FormField
+          id={`${id}-content`}
+          label="Conteúdo"
+          error={errors.content}
+          hint={`Vai para ${count} ${count === 1 ? 'utilizador subscrito' : 'utilizadores subscritos'}. ${content.length}/${CONTENT_MAX}`}
+        >
           <textarea
             id={`${id}-content`}
             rows={8}
@@ -86,11 +86,7 @@ export function Compose({ count }: { count: number }) {
             aria-invalid={errors.content ? true : undefined}
             aria-describedby={`${id}-content-hint`}
           />
-          <p id={`${id}-content-hint`} className="form__hint">
-            Vai para {count} {count === 1 ? 'utilizador subscrito' : 'utilizadores subscritos'}. {content.length}/{CONTENT_MAX}
-          </p>
-          {errors.content && <p className="form__error">{errors.content}</p>}
-        </div>
+        </FormField>
         <p className="note owner-note">
           <Icon name="bell" />O email vai para todos os utilizadores com as notificações por email ativas.
         </p>

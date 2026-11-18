@@ -5,6 +5,7 @@ import { OwnerPage, useOwnerLoad } from '../components/OwnerUi';
 import { lisbonToday } from '../data/format';
 import { RANGES, PAGE_LABELS, addDays, shortDay, number } from '../data/ownerDashboardView';
 import { Tile, LineChart, Heatmap, Ranking } from '../components/OwnerDashboardCharts';
+import { Segmented } from '../components/ui/Segmented';
 
 /**
  * /owner/dashboard: sign-ins, active members, movements, uploads, plays and enrollments per day for the
@@ -28,7 +29,7 @@ export default function OwnerDashboard() {
       state={state}
       loadingLabel="A carregar as estatísticas…"
       actions={
-        <div className="segmented" role="group" aria-label="Período">
+        <Segmented label="Período" role="group">
           {RANGES.map((r) => (
             <button
               key={r.days}
@@ -39,7 +40,7 @@ export default function OwnerDashboard() {
               {r.label}
             </button>
           ))}
-        </div>
+        </Segmented>
       }
     >
       {(data) => <DashboardBody data={data} metric={metric} onMetric={setMetric} />}

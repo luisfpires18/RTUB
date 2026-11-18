@@ -9,6 +9,8 @@ import { euros } from '../data/format';
 import { Loading } from '../components/ui/Loading';
 import { DialogFooter } from '../components/ui/DialogFooter';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
+import { PageHead } from '../components/ui/PageHead';
+import { FieldError } from '../components/ui/FieldError';
 /**
  * /treasury - Tesouraria. Treasury members: the annual reports, newest first,
  * with income, expenses and balance, search and PDF. Admin, Owner and treasury-team Mods create a report; Owner and the
@@ -38,14 +40,12 @@ export default function Treasury() {
 
   return (
     <section className="page wrap events-page tr-page" aria-labelledby="tr-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="tr-title" className="page__title">
-            Tesouraria
-          </h1>
-          <p className="page__lead">As contas da tuna, ano letivo a ano letivo: atividades, receitas, despesas e saldo.</p>
-        </div>
+      <PageHead
+        eyebrow="Área de membros"
+        title="Tesouraria"
+        titleId="tr-title"
+        lead="As contas da tuna, ano letivo a ano letivo: atividades, receitas, despesas e saldo."
+      >
         {reports?.canCreate && (
           <div className="events-page__actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setCreating(true)}>
@@ -54,7 +54,7 @@ export default function Treasury() {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {typeof data === 'string' ? (
         <Refusal state={data} path={portal.treasury} onRetry={load} />
@@ -205,11 +205,7 @@ function CreateReportDialog({ years, onClose, onSaved }: { years: number[]; onCl
                 ))}
               </select>
             </span>
-            {error && (
-              <p className="form__error" role="alert">
-                {error}
-              </p>
-            )}
+            <FieldError text={error} />
           </div>
         )}
       </form>

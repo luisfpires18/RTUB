@@ -2,6 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { accountApi } from '../data/accountApi';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
+import { FormField, fieldProps } from '../components/ui/FormField';
+import { Spinner } from '../components/ui/Spinner';
+import { AccountDone } from '../components/ui/AccountDone';
 
 /**
  * /forgot-password. Anyone asks for a reset link by email. The answer is the same whether
@@ -55,14 +58,12 @@ export default function ForgotPassword() {
 
       <div className="request__form-card account-card">
         {sent ? (
-          <div ref={doneRef} tabIndex={-1} className="account-done" role="status">
-            <Icon name="envelope" />
-            <p>{sent}</p>
+          <AccountDone focusRef={doneRef} icon="envelope" message={sent}>
             <a className="btn btn--ghost" href={portal.login}>
               <Icon name="arrowLeft" />
               Voltar ao login
             </a>
-          </div>
+          </AccountDone>
         ) : (
           <form className="form" noValidate onSubmit={onSubmit}>
             {banner && (
@@ -70,10 +71,9 @@ export default function ForgotPassword() {
                 {banner}
               </div>
             )}
-            <div className={error ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor="forgot-email">Email</label>
+            <FormField id="forgot-email" label="Email" error={error}>
               <input
-                id="forgot-email"
+                {...fieldProps('forgot-email', error)}
                 name="email"
                 type="email"
                 autoComplete="email"
@@ -81,17 +81,10 @@ export default function ForgotPassword() {
                 spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? 'forgot-email-error' : undefined}
               />
-              {error && (
-                <p id="forgot-email-error" className="form__error">
-                  {error}
-                </p>
-              )}
-            </div>
+            </FormField>
             <button type="submit" className="btn btn--primary btn--lg form__submit" disabled={submitting} aria-busy={submitting}>
-              {submitting ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="send" />}
+              {submitting ? <Spinner small /> : <Icon name="send" />}
               Enviar o link
             </button>
             <p className="note">

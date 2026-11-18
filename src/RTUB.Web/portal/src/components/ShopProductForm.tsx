@@ -7,6 +7,10 @@ import { Icon } from './icons';
 import { type ProductInput, api, MAX_SOURCE, CROP_TEXT, problem } from '../data/shopApi';
 import { Loading } from './ui/Loading';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
+import { DialogFooter } from './ui/DialogFooter';
+import { FormField } from './ui/FormField';
+import { FieldError } from './ui/FieldError';
+import { Banner } from './ui/Banner';
 
 export function Confirm({
   title,
@@ -111,62 +115,31 @@ export function ProductForm({ id, canManage, onClose, onSaved }: { id?: number; 
     onClose();
   };
 
-  const field = (key: string) => (errors[key] ? 'form__field form__field--error' : 'form__field');
-  const error = (key: string) =>
-    errors[key] && (
-      <p className="form__error" role="alert">
-        {errors[key]}
-      </p>
-    );
-
   return (
     <>
       <Dialog
         title={savedId === undefined ? 'Novo produto' : 'Editar produto'}
         size="lg"
         onClose={onClose}
-        footer={
-          <>
-            <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-              Cancelar
-            </button>
-            <button type="submit" form={`${fid}-form`} className="btn btn--primary" disabled={busy}>
-              {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-              Guardar
-            </button>
-          </>
-        }
+        footer={<DialogFooter form={`${fid}-form`} busy={busy} onClose={onClose} />}
       >
         <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-          {banner && (
-            <p className="form__banner" role="alert">
-              {banner}
-            </p>
-          )}
+          <Banner text={banner} />
           <div className="form__row">
-            <div className={field('name')}>
-              <label htmlFor={`${fid}-name`}>Nome</label>
+            <FormField alert id={`${fid}-name`} label="Nome" error={errors.name}>
               <input id={`${fid}-name`} type="text" maxLength={200} value={form.name} onChange={(e) => set({ name: e.target.value })} />
-              {error('name')}
-            </div>
-            <div className={field('type')}>
-              <label htmlFor={`${fid}-type`}>Tipo</label>
+            </FormField>
+            <FormField alert id={`${fid}-type`} label="Tipo" error={errors.type}>
               <input id={`${fid}-type`} type="text" maxLength={50} placeholder="Roupa, Álbum, Pin, Outro…" value={form.type} onChange={(e) => set({ type: e.target.value })} />
-              {error('type')}
-            </div>
+            </FormField>
           </div>
           <div className="form__row">
-            <div className={field('price')}>
-              <label htmlFor={`${fid}-price`}>Preço (€)</label>
+            <FormField alert id={`${fid}-price`} label="Preço (€)" error={errors.price}>
               <input id={`${fid}-price`} type="number" min="0.01" step="0.01" inputMode="decimal" value={priceText} onChange={(e) => setPriceText(e.target.value)} />
-              {error('price')}
-            </div>
-            <div className={field('stock')}>
-              <label htmlFor={`${fid}-stock`}>Stock</label>
+            </FormField>
+            <FormField alert id={`${fid}-stock`} label="Stock" error={errors.stock} hint="Com stock 0 o produto fica esgotado e indisponível.">
               <input id={`${fid}-stock`} type="number" min="0" step="1" value={form.stock} onChange={(e) => set({ stock: Math.trunc(Number(e.target.value) || 0) })} />
-              <p className="form__hint">Com stock 0 o produto fica esgotado e indisponível.</p>
-              {error('stock')}
-            </div>
+            </FormField>
           </div>
           <label className="form__check" htmlFor={`${fid}-public`}>
             <input id={`${fid}-public`} type="checkbox" checked={form.isPublic} onChange={(e) => set({ isPublic: e.target.checked })} />
@@ -191,13 +164,11 @@ export function ProductForm({ id, canManage, onClose, onSaved }: { id?: number; 
                   : 'Aparece só no ano letivo em que é criado.'}
             </p>
           </div>
-          <div className={field('description')}>
-            <label htmlFor={`${fid}-description`}>Descrição</label>
+          <FormField alert id={`${fid}-description`} label="Descrição" error={errors.description}>
             <textarea id={`${fid}-description`} rows={3} maxLength={1000} value={form.description} onChange={(e) => set({ description: e.target.value })} />
-            {error('description')}
-          </div>
+          </FormField>
           {canPickImage && (
-            <div className={field('image')}>
+            <div className={errors.image ? 'form__field form__field--error' : 'form__field'}>
               <span className="form__label">Imagem</span>
               <span className="inventory-image-pick">
                 {image ? (
@@ -225,7 +196,7 @@ export function ProductForm({ id, canManage, onClose, onSaved }: { id?: number; 
                 />
               </span>
               <p className="form__hint">A imagem é recortada em quadrado.</p>
-              {error('image')}
+              <FieldError text={errors.image} />
             </div>
           )}
         </form>

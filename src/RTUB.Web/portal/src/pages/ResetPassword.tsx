@@ -2,6 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { accountApi, takeLinkQuery } from '../data/accountApi';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
+import { Spinner } from '../components/ui/Spinner';
+import { FormField } from '../components/ui/FormField';
+import { AccountDone } from '../components/ui/AccountDone';
 
 const MIN = 8;
 const MAX = 100;
@@ -74,22 +77,18 @@ export default function ResetPassword() {
 
       <div className="request__form-card account-card">
         {!valid ? (
-          <div className="account-done account-done--error" role="alert">
-            <Icon name="warning" />
-            <p>Link de redefinição de palavra-passe inválido.</p>
+          <AccountDone error role="alert" icon="warning" message="Link de redefinição de palavra-passe inválido.">
             <a className="btn btn--ghost" href={portal.forgotPassword}>
               Pedir um novo link
             </a>
-          </div>
+          </AccountDone>
         ) : done ? (
-          <div ref={doneRef} tabIndex={-1} className="account-done" role="status">
-            <Icon name="checkCircle" />
-            <p>{done}</p>
+          <AccountDone focusRef={doneRef} icon="checkCircle" message={done}>
             <a className="btn btn--primary" href={portal.login}>
               <Icon name="login" />
               Ir para o login
             </a>
-          </div>
+          </AccountDone>
         ) : (
           <form className="form" noValidate onSubmit={onSubmit}>
             {banner && (
@@ -97,12 +96,10 @@ export default function ResetPassword() {
                 {banner}
               </div>
             )}
-            <div className="form__field">
-              <label htmlFor="reset-email">Email</label>
+            <FormField id="reset-email" label="Email">
               <input id="reset-email" type="email" autoComplete="username" value={email} readOnly />
-            </div>
-            <div className={errors.password ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor="reset-password">Nova palavra-passe</label>
+            </FormField>
+            <FormField id="reset-password" label="Nova palavra-passe" error={errors.password} hint={`Pelo menos ${MIN} caracteres.`}>
               <input
                 id="reset-password"
                 type="password"
@@ -113,13 +110,8 @@ export default function ResetPassword() {
                 aria-invalid={errors.password ? true : undefined}
                 aria-describedby="reset-password-hint"
               />
-              <p id="reset-password-hint" className="form__hint">
-                Pelo menos {MIN} caracteres.
-              </p>
-              {errors.password && <p className="form__error">{errors.password}</p>}
-            </div>
-            <div className={errors.confirmPassword ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor="reset-confirm">Confirmar a palavra-passe</label>
+            </FormField>
+            <FormField id="reset-confirm" label="Confirmar a palavra-passe" error={errors.confirmPassword}>
               <input
                 id="reset-confirm"
                 type="password"
@@ -129,10 +121,9 @@ export default function ResetPassword() {
                 onChange={(e) => setConfirm(e.target.value)}
                 aria-invalid={errors.confirmPassword ? true : undefined}
               />
-              {errors.confirmPassword && <p className="form__error">{errors.confirmPassword}</p>}
-            </div>
+            </FormField>
             <button type="submit" className="btn btn--primary btn--lg form__submit" disabled={submitting} aria-busy={submitting}>
-              {submitting ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="lock" />}
+              {submitting ? <Spinner small /> : <Icon name="lock" />}
               Redefinir
             </button>
             <p className="note">

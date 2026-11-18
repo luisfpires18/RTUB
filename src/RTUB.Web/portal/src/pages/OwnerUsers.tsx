@@ -7,6 +7,8 @@ import { type Message } from '../data/ownerUsersView';
 import { UserCard } from '../components/OwnerUserCard';
 import { DetailsDialog, RoleDialog } from '../components/OwnerUserDialogs';
 import { Pager } from '../components/ui/Pager';
+import { Spinner } from '../components/ui/Spinner';
+import { EmptyState } from '../components/ui/EmptyState';
 
 /**
  * /users: every account, online first, searchable; the Owner sees an account's details,
@@ -57,7 +59,7 @@ export default function OwnerUsers() {
       loadingLabel="A carregar os utilizadores…"
       actions={
         <button type="button" className="btn btn--ghost btn--sm" onClick={sync} disabled={syncing}>
-          {syncing ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="restore" />}
+          {syncing ? <Spinner small /> : <Icon name="restore" />}
           {syncing ? 'A sincronizar…' : 'Sincronizar estado da Tuna'}
         </button>
       }
@@ -83,11 +85,9 @@ export default function OwnerUsers() {
             </div>
           </div>
           {data.items.length === 0 ? (
-            <div className="state" role="status">
-              <Icon name="people" className="state__icon" />
-              <p className="state__title">Nenhum utilizador encontrado</p>
+            <EmptyState icon="people" title="Nenhum utilizador encontrado" role="status">
               <p>Ajusta a pesquisa.</p>
-            </div>
+            </EmptyState>
           ) : (
             <ul className="owner-users">
               {data.items.map((u) => (

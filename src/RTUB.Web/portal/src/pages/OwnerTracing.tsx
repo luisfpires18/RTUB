@@ -8,6 +8,7 @@ import { UserField, Select, Announcement } from '../components/OwnerTracingParts
 import { DetailsDialog, DeleteDialog, TruncateDialog } from '../components/OwnerTracingDialogs';
 import { LoginsDialog } from '../components/OwnerLoginsDialog';
 import { Pager } from '../components/ui/Pager';
+import { EmptyState } from '../components/ui/EmptyState';
 
 const EMPTY: AuditFilter = { user: '', excludeUser: '', entityType: '', action: '', critical: false, hideSystem: false, q: '', page: 1, pageSize: 20 };
 const NO_TEXT = { q: '', user: '', excludeUser: '' };
@@ -173,10 +174,7 @@ export default function OwnerTracing() {
           </dl>
 
           {page.items.length === 0 ? (
-            <div className="state" role="status">
-              <Icon name="inbox" className="state__icon" />
-              <p className="state__title">Nenhum registo corresponde aos filtros.</p>
-            </div>
+            <EmptyState icon="inbox" title="Nenhum registo corresponde aos filtros." role="status" />
           ) : (
             <ul className="owner-logs">
               {page.items.map((entry) => (

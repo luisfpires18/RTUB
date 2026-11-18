@@ -2,11 +2,12 @@
 import { Icon } from './icons';
 import { dateTime, type OwnerUserCard } from '../data/ownerApi';
 import { MemberBadge } from './MemberBadge';
+import { Avatar } from './ui/Avatar';
 
 export function UserCard({ user, onDetails, onEdit }: { user: OwnerUserCard; onDetails: () => void; onEdit: () => void }) {
   return (
     <article className="owner-user">
-      <img className="owner-user__avatar" src={user.avatarUrl} alt="" width="64" height="64" loading="lazy" />
+      <Avatar className="owner-user__avatar" src={user.avatarUrl} size={64} />
       <div className="owner-user__body">
         <p className={user.online ? 'owner-user__status is-online' : 'owner-user__status'}>
           <span aria-hidden="true" />

@@ -8,6 +8,7 @@ import { PAGE } from '../data/treasuryReportView';
 import { Loading } from './ui/Loading';
 import { FormField } from './ui/FormField';
 import { DialogFooter } from './ui/DialogFooter';
+import { Banner } from './ui/Banner';
 
 const MAX_RECEIPT = 10 * 1024 * 1024;
 
@@ -62,11 +63,7 @@ export function TransactionDialog({
       footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!description.trim() || !category.trim() || !amount || !date} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        {errors.form && (
-          <p className="form__banner" role="alert">
-            {errors.form}
-          </p>
-        )}
+        <Banner text={errors.form} />
         <div className="form__row">
           <FormField alert id={`${fid}-date`} label="Data" error={errors.date}>
             <input id={`${fid}-date`} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -133,9 +130,7 @@ export function HistoryDialog({ reportId, onClose }: { reportId: number; onClose
   return (
     <Dialog title="Histórico de transações" size="lg" onClose={onClose}>
       {data === 'failed' ? (
-        <p className="form__banner" role="alert">
-          Não foi possível abrir o histórico.
-        </p>
+        <Banner text="Não foi possível abrir o histórico." />
       ) : !data ? (
         <Loading label="A carregar o histórico…" />
       ) : data.entries.length === 0 ? (
