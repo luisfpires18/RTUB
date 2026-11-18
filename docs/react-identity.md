@@ -18,13 +18,16 @@ Code: `Services/AccountRecoveryService.cs`, `Endpoints/AccountRecoveryEndpoints.
 | POST | `/confirm-email` | `{userId, code}` | 200 `{succeeded, message}` |
 
 Every call needs `X-CSRF-TOKEN` (from `/api/public/antiforgery-token`), and every answer is `no-store`.
+The three calls spend the login budget of their client (`LoginRateLimitPolicy`: 10 per 5 minutes per address, shared
+with `/auth/login`); past it they answer `429` with `Retry-After`, and the pages show their usual "tenta de novo".
 `GET /api/account/me` lives in `AccountController`.
 
 ## Behavior
 
 - Forgot password: validates the email (required, well-formed). An unknown or unconfirmed address gets the neutral
   sentence and no email. A confirmed account gets a reset token (`GeneratePasswordResetTokenAsync`) and the link
-  `{scheme}://{host}{pathBase}/reset-password?code={UrlEncode(token)}&email={UrlEncode(email)}`, rendered by
+  `{App:BaseUrl}/reset-password?code={UrlEncode(token)}&email={UrlEncode(email)}` (`Endpoints/SiteAddress.cs`: the
+  configured address, never the request's Host header where one is configured), rendered by
   `IEmailTemplateRenderer.RenderPasswordResetAsync` and sent with `IEmailSender` ("Recuperação de palavra-passe"). A
   failed send is logged without token or link and answered with the same neutral sentence, so it never reveals that an
   account exists.
@@ -103,8 +106,8 @@ dispositivo"), and from then on `/login` → "Entrar com Face ID / impressão di
 
 ## Follow-ups
 
-- No rate limit on forgot-password and reset-password: anyone can trigger reset emails to an address, one per request.
-  Consider the per-IP login limiter.
+- forgot-password answers a real account more slowly than an unknown address (it awaits the email send), and the
+  limit is per client address only: there is no per-email cooldown.
 - `/confirm-email` has no link generator in the app. Decide: keep it for old links, or drop it.
 - Passkeys: autofill (conditional mediation) on the username field; a real-device check (iPhone Face ID, Android
   fingerprint, the Play Store TWA) on DEV.

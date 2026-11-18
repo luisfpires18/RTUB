@@ -161,7 +161,8 @@ environment also holds the four refresh secrets listed in the backups document.
   Free-tier limits.
 - `Staging` behaves like production (`!IsDevelopment()`): HSTS, exception page, response
   compression, 30-day static caching. It is not `Test`: migrations and seeding run at startup.
-  There is no `appsettings.Staging.json`.
+  `appsettings.Staging.json` holds only `App:BaseUrl` (DEV's address for email links); `appsettings.Production.json`
+  is not read on DEV.
 - DEV holds real personal data after a refresh: treat access to it as production-equivalent, and
   never give it production R2 or backup credentials.
 

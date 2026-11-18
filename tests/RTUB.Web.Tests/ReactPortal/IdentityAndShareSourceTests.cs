@@ -57,7 +57,8 @@ public class IdentityAndShareSourceTests
     {
         var endpoints = Read(Web, "Endpoints", "AccountRecoveryEndpoints.cs");
 
-        endpoints.Should().Contain(".AddEndpointFilter(EventEndpoints.NoStore)").And.Contain(".AddEndpointFilter(EventEndpoints.RequireAntiforgery);");
+        endpoints.Should().Contain(".AddEndpointFilter(EventEndpoints.NoStore)").And.Contain(".AddEndpointFilter(EventEndpoints.RequireAntiforgery)")
+            .And.Contain(".RequireRateLimiting(RTUB.Web.Extensions.ServiceCollectionExtensions.LoginRateLimitPolicy);", "the whole group is limited (135)");
         Regex.Matches(endpoints, @"account\.Map(Get|Put|Delete)\(").Should().BeEmpty("only POSTs: tokens travel in the body");
     }
 

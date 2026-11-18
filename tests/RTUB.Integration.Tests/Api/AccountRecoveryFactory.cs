@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RTUB.Application.Interfaces;
 
@@ -11,9 +12,14 @@ public sealed class AccountRecoveryFactory : TestWebApplicationFactory
     public ConcurrentBag<(string To, string Subject, string Html)> Sent { get; } = new();
     public ConcurrentBag<string> FailFor { get; } = new();
 
+    /// <summary>The configured <c>App:BaseUrl</c>: the address the email links must carry.</summary>
+    public const string BaseUrl = "https://www.rtub.test";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);
+        builder.ConfigureAppConfiguration((_, config) =>
+            config.AddInMemoryCollection(new Dictionary<string, string?> { ["App:BaseUrl"] = BaseUrl }));
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<IEmailSender>();

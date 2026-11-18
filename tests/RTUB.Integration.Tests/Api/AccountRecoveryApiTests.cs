@@ -74,6 +74,47 @@ public partial class AccountRecoveryApiTests : IClassFixture<AccountRecoveryFact
         result.GetProperty("message").GetString().Should().Be(Neutral);
     }
 
+    /// <summary>Task 135: the link carries the configured address. The Host header is the caller's word.</summary>
+    [Fact]
+    public async Task Forgot_BuildsTheLinkFromTheConfiguredAddress_NotFromTheHostHeader()
+    {
+        var client = await VisitorAsync();
+        var user = await UserAsync(confirmed: true);
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/account/forgot-password") { Content = JsonContent.Create(new { email = user.Email }) };
+        request.Headers.Host = "evil.example";
+
+        (await client.SendAsync(request)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        _factory.Sent.Single(m => m.To == user.Email).Html.Should()
+            .Contain($"href=\"{AccountRecoveryFactory.BaseUrl}/reset-password?").And.NotContain("evil.example");
+    }
+
+    /// <summary>
+    /// Task 135: the account calls spend the login budget of their client (10 per 5 minutes, as
+    /// <see cref="LoginRateLimitTests"/>), so a script cannot fill a member's inbox.
+    /// </summary>
+    [Fact]
+    public async Task Forgot_IsLimitedPerClient_AndSendsNothingOnceRefused()
+    {
+        const int permitLimit = 10;
+        var client = await VisitorAsync();
+        var user = await UserAsync(confirmed: true);
+
+        for (var i = 1; i <= permitLimit; i++)
+        {
+            (await client.PostAsJsonAsync("/api/account/forgot-password", new { email = user.Email }))
+                .StatusCode.Should().Be(HttpStatusCode.OK, $"request {i} is inside the limit");
+        }
+
+        var refused = await client.PostAsJsonAsync("/api/account/forgot-password", new { email = user.Email });
+
+        refused.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        refused.Headers.RetryAfter.Should().NotBeNull();
+        (await client.PostAsJsonAsync("/api/account/reset-password", new { email = user.Email, code = "x", password = "x", confirmPassword = "x" }))
+            .StatusCode.Should().Be(HttpStatusCode.TooManyRequests, "the three account calls share one budget");
+        _factory.Sent.Count(m => m.To == user.Email).Should().Be(permitLimit);
+    }
+
     // ---------- reset-password ----------
 
     [Fact]
