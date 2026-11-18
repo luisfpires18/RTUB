@@ -4,7 +4,8 @@
 
 - **N-1 / expand-contract.** A table or column goes only after the release that stopped using it is live in production
   and its rollback window is over; otherwise a rollback to the previous build fails at startup or on first query.
-- **Production backup first**, kept outside the app's rotation. Rolling back across a drop is a database restore
+- **Production backup first**, kept outside the app's rotation (how: `docs/release-and-rollback.md` → *Migrations: the
+  N-1 rule*). Rolling back across a drop is a database restore
   (`docs/release-and-rollback.md`).
 - Delete the entity, its configuration, its `DbSet`, its `EntityDisplay` case and any `AuditConfiguration` entry in the
   same change as the migration; then `dotnet ef migrations has-pending-model-changes` must report none.

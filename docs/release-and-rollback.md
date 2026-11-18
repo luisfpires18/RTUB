@@ -239,7 +239,8 @@ Read the run log, then either roll back or fix forward with the next PATCH.
 
 Production SQLite: `/home/site/data/app.db` (App Service setting
 `ConnectionStrings__SqliteConnection`), on the persistent `/home` share. EF Core migrations run at
-startup, before the app serves a request (`Program.cs`). Nothing in the pipeline reads, copies or
+startup, before the app serves a request (`Extensions/DatabaseStartupExtensions.cs`). Nothing in the pipeline reads,
+copies or
 downloads the production database.
 
 Before a production deployment:
@@ -253,7 +254,7 @@ Before a production deployment:
 
 ### Pre-migration snapshot
 
-When migrations are pending and the database already has migration history, `Program.cs` calls
+When migrations are pending and the database already has migration history, `DatabaseStartupExtensions.cs` calls
 `PreMigrationSnapshot.Take` before `MigrateAsync`:
 
 - SQLite online backup API (`SqliteConnection.BackupDatabase`), never a file copy of a live WAL
@@ -279,8 +280,12 @@ leftover backfill defaults differ, and nothing reads those). The old files are i
   (`MigrationBaseline.AdoptAsync`, before `GetPendingMigrationsAsync`); its schema and its old history rows stay, so an
   older release started against it still finds every migration it knows.
 - A database that stopped earlier in the old chain is refused at startup, with the migration it stopped at. Start
-  release 2.3.13 or older against it once, or restore a newer backup.
-- Rollback • PROD's schema check compares migration ids: from a release with the Baseline back to 2.3.13 or older it
+  release 2.3.12 or older against it once (2.3.12 is the last release with the old chain), or restore a newer backup.
+- Deploy • PROD's schema check compares the migration ids of the two builds. A release with the Baseline lists none of
+  the 180 old ids, so the check counts every id up to the squash point as known to it (`scripts/release.sh`
+  `cmd_schema_gate`, which holds the same two ids as `MigrationBaseline`; `ReleaseWorkflowTests` pins them). A live
+  migration newer than the squash point that the release does not list is still refused.
+- Rollback • PROD uses the same check: from a release with the Baseline back to 2.3.12 or older it
   reports the Baseline as unknown. The Baseline changes no schema, so `allow_newer_schema` is safe for it; check any
   later migration against the N-1 rule as usual.
 
@@ -306,6 +311,16 @@ For a contract change: release N stops using the old shape (and still tolerates 
 release N+1 removes it. N+1 is a MAJOR bump, noted in its PR. Rolling back across a contract
 release is not an app rollback (Rollback • PROD refuses it by default): it is a database restore
 to a snapshot taken before N+1, losing everything written since.
+
+Before a contract release, keep one copy of the production database outside the app's own rotation. The daily R2
+backup keeps two generations and runs only if the process is alive at 03:30 UTC; the pre-migration snapshots keep the
+newest 5, on the same `/home` share as the database; a failed backup only writes an error log. So, before the release PR is merged:
+
+1. Check that `rtub-db/database/current.db` is from today, and download it. If it is not, download the newest file
+   under `/home/site/data/backups/pre-migration/` with the Kudu VFS `GET` of *Restoring the database*.
+2. Put the copy somewhere that is neither Azure nor that bucket.
+3. Run `PRAGMA quick_check;` on the copy: it must say `ok`.
+4. Keep it until the release's rollback window is over.
 
 SQLite cannot `ALTER` most things; EF Core rebuilds the table instead. A rebuild is only
 expand-compatible if the rebuilt table keeps every column the previous release reads and writes.

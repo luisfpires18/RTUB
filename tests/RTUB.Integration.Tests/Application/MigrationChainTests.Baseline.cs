@@ -36,7 +36,7 @@ public partial class MigrationChainTests
 
         var adopt = () => MigrationBaseline.AdoptAsync(context.Database);
 
-        (await adopt.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*20261101211252_AddUserPasskeys*2.3.13 or older*");
+        (await adopt.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*20261101211252_AddUserPasskeys*2.3.12 or older*");
         (await ScalarsAsync(context, "SELECT MigrationId FROM __EFMigrationsHistory")).Should().Equal("20261101211252_AddUserPasskeys");
     }
 
