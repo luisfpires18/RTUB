@@ -40,6 +40,10 @@ public partial class LogisticsApiTests
             });
         }
 
+        // The files went straight into the fake storage, past the service's cache invalidation: forget the cached
+        // tree, or an earlier test's listing of this year hides them (the test failed only after others ran).
+        _factory.Services.GetRequiredService<DocumentTreeCache>().Forget($"docs/Test/{year}/");
+
         var (member, _) = await SignInAsync();
         var (mod, _) = await SignInAsync("Mod");
         var managed = await mod.GetStringAsync("/api/documentation");
