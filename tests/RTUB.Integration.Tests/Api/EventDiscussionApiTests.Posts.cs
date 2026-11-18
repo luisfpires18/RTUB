@@ -183,6 +183,7 @@ public partial class EventDiscussionApiTests
 
         await PostAsync(author, eventId, "Ensaio extra na quinta");
 
-        _factory.Push.Verify(p => p.SendToUserAsync(going.Id, It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()), Times.Once);
+        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.Is<IEnumerable<string>>(ids => ids.Contains(going.Id)),
+            It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()), Times.Once);
     }
 }

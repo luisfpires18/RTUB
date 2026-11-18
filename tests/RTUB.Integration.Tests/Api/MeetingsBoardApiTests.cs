@@ -38,7 +38,8 @@ public partial class MeetingsBoardApiTests : IClassFixture<MeetingsApiFactory>
         (await owner.Client.PostAsJsonAsync("/api/meetings/requests", NewRequest(Age, title: title))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         (await _kit.StoredMeetingAsync(meeting)).Should().NotBeNull("nothing was deleted");
-        _factory.Push.Verify(p => p.SendToUserAsync(It.IsAny<string>(), It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))), Times.Never);
+        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))),
+            Times.Never);
     }
 
     [Fact]

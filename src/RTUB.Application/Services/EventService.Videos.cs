@@ -59,10 +59,7 @@ public partial class EventService
                 .ToListAsync(cancellationToken);
 
             // Send to each user
-            foreach (var userId in allUserIds.Where(id => id != createdByUserId))
-            {
-                await _pushNotificationService.SendToUserAsync(userId, notification);
-            }
+            await _pushNotificationService.SendToSelectedUsersAsync(allUserIds.Where(id => id != createdByUserId), notification);
         }
         catch
         {

@@ -144,10 +144,7 @@ public partial class SongService
             }
 
             // Send to each user (excluding the uploader)
-            foreach (var userId in targetUserIds.Where(id => id != createdByUserId))
-            {
-                await _pushNotificationService.SendToUserAsync(userId, notification);
-            }
+            await _pushNotificationService.SendToSelectedUsersAsync(targetUserIds.Where(id => id != createdByUserId), notification);
         }
         catch (Exception ex)
         {

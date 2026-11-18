@@ -121,8 +121,10 @@ public class MeetingsPresidencyApiTests : IClassFixture<MeetingsApiFactory>
         (await magister.Client.PostAsJsonAsync("/api/meetings", NewMeeting(Direcao, title: title, days: -10))).StatusCode.Should().Be(HttpStatusCode.Created);
         (await magister.Client.PostAsJsonAsync("/api/meetings", NewMeeting(Direcao, title: upcomingTitle, days: 10))).StatusCode.Should().Be(HttpStatusCode.Created);
 
-        _factory.Push.Verify(p => p.SendToUserAsync(It.IsAny<string>(), It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))), Times.Never);
-        _factory.Push.Verify(p => p.SendToUserAsync(It.IsAny<string>(), It.Is<SendPushNotificationDto>(n => n.Body.Contains(upcomingTitle))), Times.AtLeastOnce,
+        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))),
+            Times.Never);
+        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(),
+                It.Is<SendPushNotificationDto>(n => n.Body.Contains(upcomingTitle))), Times.Once,
             "an upcoming meeting is still announced");
     }
 

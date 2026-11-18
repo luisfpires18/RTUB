@@ -21,11 +21,10 @@ public partial class MeetingsBoardApiTests
 
         await AreaHttp.Json(await owner.Client.PostAsJsonAsync("/api/meetings", NewMeeting(Ago, title: title)));
 
-        _factory.Push.Verify(p => p.SendToUserAsync(member.Id, It.Is<SendPushNotificationDto>(n => n.Body.Contains(title) && n.Url!.StartsWith("/meetings?meeting="))),
-            Times.Once);
-        _factory.Push.Verify(p => p.SendToUserAsync(owner.Id, It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))), Times.Once);
-        _factory.Push.Verify(p => p.SendToUserAsync(leitao.Id, It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))), Times.Never,
-            "an assembly is not announced to a Leitão");
+        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.Is<IEnumerable<string>>(ids => ids.Contains(member.Id) && ids.Contains(owner.Id)),
+            It.Is<SendPushNotificationDto>(n => n.Body.Contains(title) && n.Url!.StartsWith("/meetings?meeting="))), Times.Once);
+        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.Is<IEnumerable<string>>(ids => ids.Contains(leitao.Id)),
+            It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))), Times.Never, "an assembly is not announced to a Leitão");
     }
 
     [Fact]
@@ -36,7 +35,8 @@ public partial class MeetingsBoardApiTests
         var title = $"Conselho {Tag()}";
 
         var id = await CreatedIdAsync(await author.Client.PostAsJsonAsync("/api/meetings/requests", NewRequest(Cv, title: title)));
-        _factory.Push.Verify(p => p.SendToUserAsync(president.Id, It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))), Times.Once);
+        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.Is<IEnumerable<string>>(ids => ids.Contains(president.Id)),
+            It.Is<SendPushNotificationDto>(n => n.Body.Contains(title))), Times.Once);
         var stored = (await _kit.StoredRequestAsync(id))!;
         stored.AuthorUserId.Should().Be(author.Id);
         stored.Status.Should().Be(RequestStatus.Pending);

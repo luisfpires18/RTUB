@@ -107,10 +107,7 @@ public class CommentService : ICommentService
                             if (post.AuthorId != authorId)
                                 recipientIds.Add(post.AuthorId);
 
-                            foreach (var userId in recipientIds)
-                            {
-                                await _pushNotificationService.SendToUserAsync(userId, notification);
-                            }
+                            await _pushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
                         }
 
                         // Send mention notifications (always, regardless of event date)
