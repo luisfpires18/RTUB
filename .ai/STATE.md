@@ -10,7 +10,14 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-None. Last: the second cleanup round, tasks 120-128 (PRs #326-#333, merged into `dev`; audit of 2026-11-18). No
+Task 130 (`chore/130/squash-migrations`): the 180 migrations are one `20261118134743_Baseline` (same tables, columns,
+foreign keys and indexes; 686,048 → 14,890 lines). Startup gives a database that ran the old chain only the Baseline's
+history row (`Data/MigrationBaseline.cs`); one that stopped earlier is refused. Rehearsed on a copy of the local
+database brought to the chain's end: schema unchanged, one history row added. Rollback • PROD to 2.3.13 or older needs
+`allow_newer_schema` (the Baseline changes no schema). Next: task 131 stops using the five unused columns; the drop
+itself goes one release later.
+
+Before it: the second cleanup round, tasks 120-129 (PRs #326-#334, merged into `dev`; audit of 2026-11-18). No
 behaviour change except where noted.
 - 120: test hosts without the 13 background workers; one copy of the test helpers (`tests/Shared/RepoPaths.cs`,
   `Api/AreaHttp.cs`); full suite 3 m 28 s → 2 m 11 s.
@@ -232,7 +239,8 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Owner decides the next task (GitHub Issues). Decisions the 2026-11-18 audit left to the owner: squash the 180 migrations
-(363 files, 686,048 lines); drop the unused columns (`MemberStatus.OverrideRetired`, `AspNetUsers.ExperiencePoints` /
-`Level`, `MeetingAtaAttachment.FileUrl`, `Report.PdfData`); the empty 401 of `PushEndpoints` / `ReleaseEndpoints`; the
-`NoStore` filter missing on the two public Gallery GETs; a lazy `Home`; splitting the five files over 300 lines.
+Task 131: stop using the unused columns (`AspNetUsers.ExperiencePoints` / `Level` get a database default first;
+`MemberStatuses.OverrideRetired`, `MeetingAtaAttachments.FileUrl`, `Reports.PdfData` leave the model). After that
+release is live on PROD: the drop migration (MAJOR bump). Other owner decisions left by the audit: the empty 401 of
+`PushEndpoints` / `ReleaseEndpoints`; the `NoStore` filter missing on the two public Gallery GETs; a lazy `Home`; the
+five files over 300 lines.

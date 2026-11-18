@@ -66,7 +66,7 @@ dotnet ef migrations add <Name> --project src/RTUB.Web
   the next `migrations add`.
 - `PendingModelChangesWarning` is suppressed in `AddDatabaseServices`, so a drifted model will
   **not** fail the build. Verify the generated migration by reading it.
-- SQLite cannot do most `ALTER TABLE` operations. Several existing migrations drop to raw SQL to
+- SQLite cannot do most `ALTER TABLE` operations. Several old migrations (git history, before the Baseline) dropped to raw SQL to
   avoid EF emitting `PRAGMA` statements inside a transaction — follow that precedent when
   altering or dropping columns.
 - Migrations and seeding run at startup in `Program.cs`, guarded by
@@ -78,9 +78,11 @@ dotnet ef migrations add <Name> --project src/RTUB.Web
   `docs/release-and-rollback.md` (Pre-migration snapshot).
 - Every migration must work with the previous production release (N-1, expand/contract): an app
   rollback never changes the schema. Rule and restore procedure: `docs/release-and-rollback.md`.
-- Only classes carrying `[Migration("…")]` are migrations. `UpdateCardStatusEnumValues` and
-  `NerbaOrderEventRequired` have no attribute and have never run anywhere; the release manifest
-  lists attribute IDs, not file names.
+- The chain starts at `20261118134743_Baseline`: the 180 older migrations were squashed into it
+  (task 130). `MigrationBaseline.AdoptAsync` (`src/RTUB.Application/Data/MigrationBaseline.cs`)
+  runs before `GetPendingMigrationsAsync` and gives a database that ran the old chain only the
+  Baseline's history row; a database that stopped earlier is refused. Never squash again without
+  checking PROD ran the last migration. The release manifest lists `[Migration]` ids.
 
 ## Tests — two different databases
 

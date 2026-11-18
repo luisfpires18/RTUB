@@ -267,6 +267,23 @@ If the snapshot cannot be taken or validated, startup aborts and nothing is migr
 smoke test fails, and the previous release still matches the schema, so rolling back is safe. The
 app never rolls a database back by itself.
 
+### The Baseline (task 130)
+
+The 180 migrations up to `20261117191014_AddAprenderViewsAndStars` were squashed into one `20261118134743_Baseline`
+(built from the same model: tables, columns, foreign keys and indexes match the old chain; only column order and 29
+leftover backfill defaults differ, and nothing reads those). The old files are in git history (`git show
+5d1b9cb9:src/RTUB.Web/Migrations/<file>`).
+
+- A new database runs the Baseline.
+- A database that ran the old chain (PROD, DEV, a DEV refresh) gets only the Baseline's history row at startup
+  (`MigrationBaseline.AdoptAsync`, before `GetPendingMigrationsAsync`); its schema and its old history rows stay, so an
+  older release started against it still finds every migration it knows.
+- A database that stopped earlier in the old chain is refused at startup, with the migration it stopped at. Start
+  release 2.3.13 or older against it once, or restore a newer backup.
+- Rollback • PROD's schema check compares migration ids: from a release with the Baseline back to 2.3.13 or older it
+  reports the Baseline as unknown. The Baseline changes no schema, so `allow_newer_schema` is safe for it; check any
+  later migration against the N-1 rule as usual.
+
 ### Migrations: the N-1 rule
 
 Rolling production back across a contract (drop) migration is a full database restore from the
