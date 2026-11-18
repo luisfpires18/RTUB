@@ -89,16 +89,20 @@ public partial class ProfileApiTests
     public async Task Password_IsChecked_ClearsRequirePasswordChange_AndKeepsTheSessionSignedIn()
     {
         var (me, user, password) = await SignInWithPasswordAsync(requirePasswordChange: true);
+        // Generated, so no credential-shaped literal is committed (tests/Shared/TestSecret.cs).
+        var wrongPassword = TestSecret.NewPassword();
+        var newPassword = TestSecret.NewPassword();
+        var otherPassword = TestSecret.NewPassword();
         await AreaHttp.WithTokenAsync(me);
         (await AreaHttp.Json(me, "/api/me/profile")).GetProperty("requirePasswordChange").GetBoolean().Should().BeTrue();
 
-        (await AreaHttp.Errors(await me.PostAsJsonAsync("/api/me/password", Password("errada", "novaPalavra1", "novaPalavra1"))))
+        (await AreaHttp.Errors(await me.PostAsJsonAsync("/api/me/password", Password(wrongPassword, newPassword, newPassword))))
             .Keys.Should().Equal("currentPassword");
         (await AreaHttp.Errors(await me.PostAsJsonAsync("/api/me/password", Password(password, "curta", "curta")))).Keys.Should().Equal("newPassword");
-        (await AreaHttp.Errors(await me.PostAsJsonAsync("/api/me/password", Password(password, "novaPalavra1", "outraPalavra1"))))
+        (await AreaHttp.Errors(await me.PostAsJsonAsync("/api/me/password", Password(password, newPassword, otherPassword))))
             .Keys.Should().Equal("confirmPassword");
 
-        var changed = await me.PostAsJsonAsync("/api/me/password", Password(password, "novaPalavra1", "novaPalavra1"));
+        var changed = await me.PostAsJsonAsync("/api/me/password", Password(password, newPassword, newPassword));
         changed.StatusCode.Should().Be(HttpStatusCode.NoContent);
         CookieTestSession.RenewsIdentityCookie(changed).Should().BeTrue("the sign-in is refreshed with the new security stamp");
 
@@ -107,7 +111,7 @@ public partial class ProfileApiTests
         using (var scope = _factory.Services.CreateScope())
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            (await users.CheckPasswordAsync(stored, "novaPalavra1")).Should().BeTrue();
+            (await users.CheckPasswordAsync(stored, newPassword)).Should().BeTrue();
         }
 
         var after = await me.GetAsync("/api/me/profile");
@@ -119,10 +123,11 @@ public partial class ProfileApiTests
     public async Task Writes_NeedTheAntiforgeryHeader()
     {
         var (me, user) = await SignInAsync();
+        var newPassword = TestSecret.NewPassword();
 
         (await me.PutAsJsonAsync("/api/me/profile/personal", Personal(user, firstName: "Sem token"))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await me.PutAsJsonAsync("/api/me/subscription", new { subscribed = false })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await me.PostAsJsonAsync("/api/me/password", Password("a", "novaPalavra1", "novaPalavra1"))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await me.PostAsJsonAsync("/api/me/password", Password("a", newPassword, newPassword))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await UserAsync(user.Id)).FirstName.Should().Be(user.FirstName);
     }
 
