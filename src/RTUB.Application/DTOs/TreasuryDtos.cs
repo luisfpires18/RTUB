@@ -1,7 +1,7 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /treasury pages ("Tesouraria", React track 024; were the Blazor Finance, Report, Calotes,
-// MbwayTransfers, Nerba and NerbaOrderDetail pages). Signed-in members only; who sees what is in TreasuryAuthorization.
+// Contracts of the React /treasury pages ("Tesouraria", React track 024.
+// Signed-in members only; who sees what is in TreasuryAuthorization.
 // No entity leaves the server. A member id reaches only a manager who needs it to change a record; members see names
 // and avatars. Amounts are euros as stored (decimal, no rounding).
 

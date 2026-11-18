@@ -23,7 +23,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
           : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
 
 /**
- * /naipes/config (task 033; was the Blazor page). Admin and Owner choose which instruments /naipes shows, their order
+ * /naipes/config. Admin and Owner choose which instruments /naipes shows, their order
  * and picture. Any other member gets a clear refusal; the server decides (NaipeBoardService).
  */
 export default function NaipesConfig() {

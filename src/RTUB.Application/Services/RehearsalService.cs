@@ -27,16 +27,6 @@ public class RehearsalService : IRehearsalService
     }
 
     /// <summary>
-    /// Gets a rehearsal by its ID with attendance information
-    /// </summary>
-    /// <param name="id">The ID of the rehearsal to retrieve</param>
-    /// <returns>The rehearsal if found, null otherwise</returns>
-    public async Task<Rehearsal?> GetRehearsalByIdAsync(int id)
-    {
-        return await _rehearsalRepository.GetByIdAsync(id);
-    }
-
-    /// <summary>
     /// Gets a rehearsal by its date
     /// </summary>
     /// <param name="date">The date of the rehearsal</param>

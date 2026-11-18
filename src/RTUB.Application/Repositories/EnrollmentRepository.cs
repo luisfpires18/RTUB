@@ -106,17 +106,6 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
             .FirstOrDefaultAsync(e => e.EventId == eventId && e.UserId == userId);
     }
 
-    public async Task<IEnumerable<Enrollment>> GetByAttendanceAsync(bool willAttend)
-    {
-        using var context = CreateContext();
-        return await context.Enrollments
-            .AsNoTracking()
-            .Where(e => e.WillAttend == willAttend)
-            .Include(e => e.User)
-            .Include(e => e.Event)
-            .ToListAsync();
-    }
-
     public async Task DeleteByEventIdAsync(int eventId)
     {
         using var context = CreateContext();

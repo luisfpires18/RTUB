@@ -11,7 +11,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /hall-of-fame calculations behind the React /hall-of-fame (task 032, docs/react-member-area.md). Same
+/// The calculations behind the React /hall-of-fame (task 032, docs/react-member-area.md). Same
 /// twelve records, same data, same rules:
 /// - every account counts, as before (no category or expelled filter);
 /// - ties: every member who shares the best value wins;

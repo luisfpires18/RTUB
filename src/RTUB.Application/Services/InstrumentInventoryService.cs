@@ -13,7 +13,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /inventory ("Instrumentos") behind the React /inventory (React track 020, docs/react-inventory.md).
+/// The React /inventory (React track 020, docs/react-inventory.md).
 /// Same data and rules, through <see cref="IInstrumentService"/>, now enforced server-side
 /// (<see cref="InventoryAuthorization"/>; the old page only hid buttons):
 /// - who manages: Mod, Admin, Owner and every Leitão; everyone else reads;

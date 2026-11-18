@@ -85,38 +85,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
-    public async Task GetEventByIdAsync_ExistingEvent_ReturnsEvent()
-    {
-        // Arrange
-        var eventEntity = Event.Create("Test Event", DateTime.Now, "Test Location", EventType.Festival);
-        _context.Events.Add(eventEntity);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _eventService.GetEventByIdAsync(eventEntity.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(eventEntity.Id);
-        result.Name.Should().Be("Test Event");
-    }
-
-    [Fact]
-    public async Task GetAllEventsAsync_WithMultipleEvents_ReturnsAllEvents()
-    {
-        // Arrange
-        _context.Events.Add(Event.Create("Event 1", DateTime.Now, "Location 1", EventType.Festival));
-        _context.Events.Add(Event.Create("Event 2", DateTime.Now.AddDays(1), "Location 2", EventType.Atuacao));
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _eventService.GetAllEventsAsync();
-
-        // Assert
-        result.Should().HaveCount(2);
-    }
-
-    [Fact]
     public async Task CancelEventAsync_WithValidReason_CancelsEvent()
     {
         // Arrange
@@ -184,81 +152,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
-    public async Task UpdateEventWithImageAsync_UpdatesEventDetailsAndImage()
-    {
-        // Arrange
-        var eventEntity = await _eventService.CreateEventAsync("Original Name", DateTime.Now, "Original Location", EventType.Atuacao);
-        var newName = "Updated Name";
-        var newDate = DateTime.Now.AddDays(7);
-        var newLocation = "Updated Location";
-        var newDescription = "Updated description";
-        var newEndDate = DateTime.Now.AddDays(8);
-        var imageUrl = "https://example.com/test-image.webp";
-
-        _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(imageUrl);
-
-        // Act
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        await _eventService.UpdateEventWithImageAsync(eventEntity.Id, newName, newDate, newLocation, newDescription, EventType.Atuacao, newEndDate, imageStream, "test.webp", "image/webp");
-        var updated = await _eventService.GetEventByIdAsync(eventEntity.Id);
-
-        // Assert
-        updated!.Name.Should().Be(newName);
-        updated.Date.Should().Be(newDate);
-        updated.Location.Should().Be(newLocation);
-        updated.Description.Should().Be(newDescription);
-        updated.EndDate.Should().Be(newEndDate);
-        updated.ImageUrl.Should().Be(imageUrl);
-
-        // Verify image was uploaded with normalized name (not ID)
-        _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "events", "updated_name"),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task UpdateEventWithImageAsync_WithExistingImage_DeletesOldImage()
-    {
-        // Arrange
-        var eventEntity = await _eventService.CreateEventAsync("Test Event", DateTime.Now, "Test Location", EventType.Festival);
-        var oldImageUrl = "https://example.com/old-image.webp";
-        var newImageUrl = "https://example.com/new-image.webp";
-
-        // Set initial image
-        eventEntity.SetImage(oldImageUrl);
-        _context.Events.Update(eventEntity);
-        await _context.SaveChangesAsync();
-
-        _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(newImageUrl);
-
-        // Act
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        await _eventService.UpdateEventWithImageAsync(eventEntity.Id, "New Name", DateTime.Now.AddDays(5), "New Location", "New desc", EventType.Festival, null, imageStream, "test.webp", "image/webp");
-
-        // Assert
-        _mockImageStorageService.Verify(
-            x => x.DeleteImageAsync(oldImageUrl),
-            Times.Once,
-            "Old image should be deleted");
-    }
-
-    [Fact]
-    public async Task UpdateEventWithImageAsync_WithInvalidId_ThrowsException()
-    {
-        // Arrange
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-
-        // Act & Assert
-        var act = async () => await _eventService.UpdateEventWithImageAsync(999, "Name", DateTime.Now, "Location", "Description", EventType.Atuacao, null, imageStream, "test.webp", "image/webp");
-        await act.Should().ThrowAsync<EntityNotFoundException>()
-            .WithMessage("*not found*");
-    }
-
-    [Fact]
     public async Task CreateEventAsync_WithEndDate_CreatesEventWithEndDate()
     {
         // Arrange
@@ -284,10 +177,10 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var eventEntity = await _eventService.CreateEventAsync("Surpresa", DateTime.Now.AddDays(5), "Location", EventType.Festival, isPublic: false);
 
         await _eventService.UpdateEventAsync(eventEntity.Id, "Surpresa", DateTime.Now.AddDays(5), "Castelo", "", EventType.Festival);
-        (await _eventService.GetEventByIdAsync(eventEntity.Id))!.IsPublic.Should().BeFalse("no visibility given keeps it private");
+        (await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id))!.IsPublic.Should().BeFalse("no visibility given keeps it private");
 
         await _eventService.UpdateEventAsync(eventEntity.Id, "Surpresa", DateTime.Now.AddDays(5), "Castelo", "", EventType.Festival, isPublic: true);
-        (await _eventService.GetEventByIdAsync(eventEntity.Id))!.IsPublic.Should().BeTrue();
+        (await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id))!.IsPublic.Should().BeTrue();
     }
 
     [Fact]
@@ -303,7 +196,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _eventService.UpdateEventAsync(eventEntity.Id, newName, newDate, newLocation, newDescription, newType);
-        var updated = await _eventService.GetEventByIdAsync(eventEntity.Id);
+        var updated = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
 
         // Assert
         updated.Should().NotBeNull();
@@ -352,7 +245,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         await act.Should().NotThrowAsync();
 
-        var updated = await _eventService.GetEventByIdAsync(eventEntity.Id);
+        var updated = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
         updated.Should().NotBeNull();
         updated!.Name.Should().Be("Updated Name");
     }
@@ -368,7 +261,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _eventService.DeleteEventAsync(eventId);
 
         // Assert
-        var deleted = await _eventService.GetEventByIdAsync(eventId);
+        var deleted = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventId);
         deleted.Should().BeNull();
     }
 
@@ -436,7 +329,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
         await _eventService.SetEventImageAsync(eventEntity.Id, imageStream, "test.webp", "image/webp");
-        var updated = await _eventService.GetEventByIdAsync(eventEntity.Id);
+        var updated = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
 
         // Assert
         updated!.ImageUrl.Should().Be(imageUrl);
@@ -479,7 +372,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         await _eventService.RemoveEventImageAsync(eventEntity.Id);
 
-        (await _eventService.GetEventByIdAsync(eventEntity.Id))!.ImageUrl.Should().BeNull();
+        (await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id))!.ImageUrl.Should().BeNull();
         _mockImageStorageService.Verify(x => x.DeleteImageAsync("https://example.com/old-image.webp"), Times.Once);
     }
 
@@ -564,7 +457,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _eventService.UpdateEventAsync(eventEntity.Id, "Test Event", DateTime.Now.AddDays(5), "Location", "Description", EventType.Festival, newEndDate);
-        var updated = await _eventService.GetEventByIdAsync(eventEntity.Id);
+        var updated = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
 
         // Assert
         updated.Should().NotBeNull();
@@ -576,12 +469,12 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     {
         // Arrange
         var eventEntity = await _eventService.CreateEventAsync("Test Event", DateTime.Now.AddDays(5), "Location", EventType.Festival, "Description", DateTime.Now.AddDays(7));
-        var updatedEvent = await _eventService.GetEventByIdAsync(eventEntity.Id);
+        var updatedEvent = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
         updatedEvent!.EndDate.Should().NotBeNull(); // Verify it was set
 
         // Act
         await _eventService.UpdateEventAsync(eventEntity.Id, "Test Event", DateTime.Now.AddDays(5), "Location", "Description", EventType.Festival, null);
-        var updated = await _eventService.GetEventByIdAsync(eventEntity.Id);
+        var updated = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
 
         // Assert
         updated.Should().NotBeNull();
@@ -630,7 +523,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var enrollments = await _context.Enrollments.Where(e => e.EventId == eventEntity.Id).ToListAsync();
         enrollments.Should().BeEmpty();
 
-        var cancelledEvent = await _eventService.GetEventByIdAsync(eventEntity.Id);
+        var cancelledEvent = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
         cancelledEvent!.IsCancelled.Should().BeTrue();
     }
 
@@ -641,16 +534,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var act = async () => await _eventService.UpdateEventAsync(9999, "Name", DateTime.Now, "Location", "Description", EventType.Festival);
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
-    }
-
-    [Fact]
-    public async Task GetEventByIdAsync_WithNonExistentEvent_ReturnsNull()
-    {
-        // Act
-        var result = await _eventService.GetEventByIdAsync(9999);
-
-        // Assert
-        result.Should().BeNull();
     }
 
     [Fact]
@@ -685,118 +568,6 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         result.Should().NotBeNull();
         result.ImageUrl.Should().BeNullOrEmpty();
-    }
-
-    [Fact]
-    public async Task GetVideosByEventIdAsync_WithExistingVideos_ReturnsVideos()
-    {
-        // Arrange
-        var eventEntity = await _eventService.CreateEventAsync("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Festival);
-        var mockEventVideoRepository = new Mock<IEventVideoRepository>();
-        var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
-        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
-        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-
-        var video1 = EventVideo.CreateVideo(eventEntity.Id, "https://example.com/video1.mp4", "video/mp4", 1000, "user-1", "Video 1", 0);
-        video1.Id = 1;
-        var video2 = EventVideo.CreateVideo(eventEntity.Id, "https://example.com/video2.mp4", "video/mp4", 2000, "user-2", "Video 2", 1);
-        video2.Id = 2;
-
-        mockEventVideoRepository
-            .Setup(x => x.GetByEventIdAsync(eventEntity.Id))
-            .ReturnsAsync(new[] { video1, video2 });
-
-        var videoService = new EventService(
-            _eventRepository,
-            _mockImageStorageService.Object,
-            _enrollmentRepository,
-            mockEventVideoRepository.Object,
-            mockEventVideoStorageService.Object,
-            mockPushNotificationFactory.Object,
-            mockPushNotificationService.Object,
-            mockUserManager.Object,
-            _fixture.CreateContextFactory());
-
-        // Act
-        var result = await videoService.GetVideosByEventIdAsync(eventEntity.Id);
-
-        // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain(v => v.Id == 1);
-        result.Should().Contain(v => v.Id == 2);
-    }
-
-    [Fact]
-    public async Task GetVideosByEventIdAsync_WithNoVideos_ReturnsEmpty()
-    {
-        // Arrange
-        var eventEntity = await _eventService.CreateEventAsync("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Festival);
-        var mockEventVideoRepository = new Mock<IEventVideoRepository>();
-        var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
-        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
-        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-
-        mockEventVideoRepository
-            .Setup(x => x.GetByEventIdAsync(eventEntity.Id))
-            .ReturnsAsync(Enumerable.Empty<EventVideo>());
-
-        var videoService = new EventService(
-            _eventRepository,
-            _mockImageStorageService.Object,
-            _enrollmentRepository,
-            mockEventVideoRepository.Object,
-            mockEventVideoStorageService.Object,
-            mockPushNotificationFactory.Object,
-            mockPushNotificationService.Object,
-            mockUserManager.Object,
-            _fixture.CreateContextFactory());
-
-        // Act
-        var result = await videoService.GetVideosByEventIdAsync(eventEntity.Id);
-
-        // Assert
-        result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GetVideoCountByEventIdAsync_ReturnsCorrectCount()
-    {
-        // Arrange
-        var eventEntity = await _eventService.CreateEventAsync("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Festival);
-        var mockEventVideoRepository = new Mock<IEventVideoRepository>();
-        var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
-        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
-        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-
-        mockEventVideoRepository
-            .Setup(x => x.GetCountByEventIdAsync(eventEntity.Id))
-            .ReturnsAsync(5);
-
-        var videoService = new EventService(
-            _eventRepository,
-            _mockImageStorageService.Object,
-            _enrollmentRepository,
-            mockEventVideoRepository.Object,
-            mockEventVideoStorageService.Object,
-            mockPushNotificationFactory.Object,
-            mockPushNotificationService.Object,
-            mockUserManager.Object,
-            _fixture.CreateContextFactory());
-
-        // Act
-        var result = await videoService.GetVideoCountByEventIdAsync(eventEntity.Id);
-
-        // Assert
-        result.Should().Be(5);
     }
 
     [Fact]

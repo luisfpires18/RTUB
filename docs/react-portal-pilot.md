@@ -67,7 +67,7 @@ Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD 
 | `/Error` | Static server page for any method, no script, no details. |
 | `/portal/assets/*` | Content-hashed Vite output, normal static caching. Any other `/portal/*` is 404. |
 
-Old URLs kept as `302` redirects (GET/HEAD only): `/portal[/privacy\|/profile\|/request]` → same path without
+Old URLs kept as `302` redirects (GET/HEAD only, `Extensions/LegacyRedirectExtensions.cs`): `/portal[/privacy\|/profile\|/request]` → same path without
 `/portal` (query kept); `/music/songs/{id}` → `/music/albums/{id}`; `/events/{id}/enrollment` → `/events/{id}?respond=1`;
 `/events/{id}/enrollments` → `/events/{id}#who-title`; `/member/events` → `/events`; `/member/gallery` → `/gallery`;
 `/member/roles` → `/roles`; `/member/profile` → `/profile`; `/member/map` → `/members/map`; `/hierarchy` →

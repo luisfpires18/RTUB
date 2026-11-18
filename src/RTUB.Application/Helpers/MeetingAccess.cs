@@ -5,9 +5,8 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// Who may do what on /meetings (task 034, docs/react-meetings.md). A line-by-line port of the gates of the retired
-/// Blazor page (<c>Meetings.razor</c>, <c>MeetingCard</c>, <c>MeetingRequestCard</c>), which only hid buttons; the API now
-/// enforces them through <c>MeetingBoardService</c>. Which meetings a member sees at all stays
+/// Who may do what on /meetings (task 034, docs/react-meetings.md), enforced server-side by
+/// <c>MeetingBoardService</c>. Which meetings a member sees at all stays
 /// <c>MeetingService.GetAllMeetingsAsync</c>'s filter, unchanged.
 ///
 /// The old page's words, kept on purpose:

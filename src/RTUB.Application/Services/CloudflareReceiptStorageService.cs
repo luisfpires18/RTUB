@@ -50,7 +50,7 @@ public class CloudflareReceiptStorageService : BaseCloudflareStorageService<Clou
             { "x-amz-meta-transaction-id", transactionId.ToString() }
         };
 
-        // Note: Receipt uploads use DisablePayloadSigning for non-seekable streams from Blazor
+        // Note: Receipt uploads use DisablePayloadSigning for non-seekable streams
         // This requires a custom implementation, so we'll keep the existing logic for now
         // but could extend UploadMediaAsync to support this in the future
         try
@@ -127,18 +127,6 @@ public class CloudflareReceiptStorageService : BaseCloudflareStorageService<Clou
             // Don't throw - deletion failure shouldn't block operations
             // Error already logged in base class
         }
-    }
-
-    public async Task<bool> ReceiptExistsAsync(string receiptUrl)
-    {
-        if (string.IsNullOrEmpty(receiptUrl))
-            return false;
-
-        var objectKey = ExtractObjectKeyFromUrl(receiptUrl);
-        if (string.IsNullOrEmpty(objectKey))
-            return false;
-
-        return await ObjectExistsAsync(objectKey);
     }
 
     /// <summary>

@@ -13,7 +13,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /calotes, /mbway, /nerba and /nerba/event/{id} behind the React /treasury/calotes, /treasury/mbway and
+/// The React /treasury/calotes, /treasury/mbway and
 /// /treasury/nerba[/{eventId}] (React track 024, docs/react-treasury.md). Same tables; the writes go through the old
 /// services. Rules are server-side now (<see cref="TreasuryAuthorization"/>); three of these pages had no sign-in at all.
 /// - calotes: treasury members see every debt of a fiscal year, Caloiros and Leitões only their own; Mod / Admin / Owner

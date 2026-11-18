@@ -12,7 +12,7 @@ const CONTENT_MAX = 5000;
 type Message = { text: string; error?: boolean };
 
 /**
- * /emails (task 035; was the Blazor page, an Admin page then): the Owner writes an announcement and sends it by email to
+ * /emails: the Owner writes an announcement and sends it by email to
  * every account with a confirmed address and "Notificações por email" on, and chooses who those are. The server decides
  * the recipients when it sends and refuses anyone but the Owner.
  */

@@ -49,63 +49,6 @@ public class ActivityServiceTests
     }
 
     [Fact]
-    public async Task GetActivityByIdAsync_ExistingActivity_ReturnsActivity()
-    {
-        // Arrange
-        var activity = Activity.Create(1, "Test Activity", TestDate, "Description");
-        _mockActivityRepository.Setup(r => r.GetWithTransactionsAsync(activity.Id))
-            .ReturnsAsync(activity);
-
-        // Act
-        var result = await _service.GetActivityByIdAsync(activity.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(activity.Id);
-        result.Name.Should().Be("Test Activity");
-    }
-
-    [Fact]
-    public async Task GetActivityByIdAsync_NonExistingActivity_ReturnsNull()
-    {
-        // Arrange
-        _mockActivityRepository.Setup(r => r.GetWithTransactionsAsync(999))
-            .ReturnsAsync((Activity?)null);
-
-        // Act
-        var result = await _service.GetActivityByIdAsync(999);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task GetAllActivitiesAsync_ReturnsAllActivities()
-    {
-        // Arrange
-        var activities = new List<Activity>
-        {
-            Activity.Create(1, "Activity 1", TestDate),
-            Activity.Create(1, "Activity 2", TestDate.AddDays(1))
-        };
-
-        var mockDbSet = activities.BuildMockDbSet();
-        _mockActivityRepository
-            .Setup(r => r.QueryAsync(It.IsAny<Func<IQueryable<Activity>, Task<It.IsAnyType>>>(), It.IsAny<CancellationToken>()))
-            .Returns(new InvocationFunc(invocation =>
-            {
-                var queryFunc = (Delegate)invocation.Arguments[0];
-                return queryFunc.DynamicInvoke(mockDbSet.Object)!;
-            }));
-
-        // Act
-        var result = await _service.GetAllActivitiesAsync();
-
-        // Assert
-        result.Should().HaveCount(2);
-    }
-
-    [Fact]
     public async Task GetActivitiesByReportIdAsync_ReturnsActivitiesForReport()
     {
         // Arrange

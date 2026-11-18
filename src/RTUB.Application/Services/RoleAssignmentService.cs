@@ -33,28 +33,10 @@ public class RoleAssignmentService : IRoleAssignmentService
         return await _roleAssignmentRepository.GetAllAsync();
     }
 
-    public async Task<IEnumerable<RoleAssignment>> GetRoleAssignmentsByUserIdAsync(string userId)
-    {
-        return await _roleAssignmentRepository.GetByUserIdAsync(userId);
-    }
-
-    public async Task<IEnumerable<RoleAssignment>> GetRoleAssignmentsByPositionAsync(Position position)
-    {
-        return await _roleAssignmentRepository.GetByPositionAsync(position);
-    }
-
     public async Task<RoleAssignment> CreateRoleAssignmentAsync(string userId, Position position, int startYear, int endYear, string? notes = null, string? createdBy = null)
     {
         var roleAssignment = RoleAssignment.Create(userId, position, startYear, endYear, notes, createdBy);
         return await _roleAssignmentRepository.AddAsync(roleAssignment);
-    }
-
-    public async Task UpdateRoleAssignmentAsync(int id, Position position, int startYear, int endYear, string? notes)
-    {
-        var roleAssignment = await _roleAssignmentRepository.GetByIdOrThrowAsync(id);
-
-        roleAssignment.UpdateDetails(position, startYear, endYear, notes);
-        await _roleAssignmentRepository.UpdateAsync(roleAssignment);
     }
 
     public async Task DeleteRoleAssignmentAsync(int id)

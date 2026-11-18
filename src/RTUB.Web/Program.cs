@@ -409,7 +409,7 @@ public class Program
 
         // --------- System announcement (task 037) ---------
         // The Owner's latest announcement while it is fresh (AnnouncementService), for every open React page, signed in or
-        // not, as the Blazor banner was. 204 when there is none. Polled, so never stored by anything.
+        // not. 204 when there is none. Polled, so never stored by anything.
         app.MapGet("/api/announcement", (HttpContext context, RTUB.Web.Services.AnnouncementService announcements) =>
         {
             context.Response.Headers.CacheControl = "no-store";
@@ -552,12 +552,12 @@ public class Program
         // --------- Release notes for signed-in members (task 083, #264) ---------
         app.MapReleaseEndpoints();
 
-        // --------- React public shell (React track, tasks 001-004) ---------
-        // Route ownership: React owns exactly the paths mapped from here down to /login (public ones first, then the
-        // members-only ones that 302 visitors to sign in). /Error is a static server page; nothing else renders HTML
-        // (task 037 retired the Blazor host). Retired Blazor URLs 302 to their React page further down. Current list: docs/react-portal-pilot.md.
-        // Its hashed /portal/assets/* are ordinary static files (cached above); the shell itself
-        // is no-cache so a deploy is picked up at once. See docs/react-portal-pilot.md.
+        // --------- React shell routes ---------
+        // React owns exactly the paths mapped from here down to /login: public ones first, then the members-only ones
+        // that send visitors to sign in. /Error is a static server page; nothing else renders HTML. Old addresses
+        // redirect to their page today (MapLegacyRedirects). List: docs/react-portal-pilot.md.
+        // The hashed /portal/assets/* are ordinary static files (cached above); the shell itself is no-cache so a
+        // deploy is picked up at once.
         var portalShell = new StaticFileOptions
         {
             OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
@@ -566,22 +566,9 @@ public class Program
         {
             app.MapFallbackToFile(route, "portal/index.html", portalShell)
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));
-
-            // The pilot's /portal... URLs (tasks 001-003) land on the clean route. Temporary (302)
-            // while DEV is hybrid; GET/HEAD only, so nothing is ever submitted to them.
-            app.MapMethods("/portal" + route.TrimEnd('/'), ["GET", "HEAD"], (HttpContext context) =>
-                Results.Redirect(route + context.Request.QueryString));
         }
 
-        // React Music (track 006): the album list and one album page. The retired Blazor album page
-        // lived at /music/songs/{id}; old links land on the React one (302 while DEV is hybrid).
-        // React Órgãos Sociais (track 008): /roles, public. React Gallery (track 009): /gallery.
-        // React Events (track 011): the agenda and one event; a member answers in a modal on the event
-        // page; Admin/Owner manage events there and on the agenda (011.5-012E). A member's own answers
-        // are the "Onde estiveste" modal on /events. The discussion and contact tracking are
-        // React too since 013: no Blazor event page is left. React Novidades (track 025): /news, public.
-        // Task 053: /share is the PWA Web Share Target again (React page, public; manifest share_target, GET only, so
-        // a POST answers 405 like /request). Removed in 036, back by the owner's decision.
+        // Public pages. /share is the PWA Web Share Target (manifest share_target, GET only, so a POST answers 405).
         foreach (var route in new[] { "/music", "/music/albums/{id:int}", "/roles", "/gallery", "/shop",
                      "/events", "/events/{id:int}", "/news", "/share" })
         {
@@ -589,27 +576,8 @@ public class Program
                .WithMetadata(new HttpMethodMetadata(["GET", "HEAD"]));
         }
 
-        // The event discussion and contact tracking (React since 013) are for signed-in members, as the Blazor
-        // pages were: a visitor goes to sign in and comes back. Contacts is Mod and above; the API enforces it
-        // and the page tells anyone else. GET/HEAD only.
-        // React Rehearsals (track 014): the list and one rehearsal, members only (the Blazor page was [Authorize]).
-        // React Members (track 017): the directory and the Padrinho → Afilhado tree, members only (both Blazor pages were
-        // [Authorize]). React Classificação (track 019): /leaderboard, members only (the Blazor page was [Authorize]).
-        // React Instrumentos (track 020): /inventory; React Loja (track 021): /shop is public read-only, while member
-        // actions remain service-authorized; React Documentação (track 022):
-        // /documentation; React Logística (track 023): /logistics, /logistics/{id} and (069) /logistics/tasks; members only (the Blazor pages were
-        // [Authorize]; Leitões are refused by the API). React Tesouraria (track 024): reports, one report, calotes, MBWay and
-        // Nerba; members only (the old calotes, MBWay and Nerba pages were open to visitors; the API decides the rest).
-        // Task 031: /requests (Gestão de Pedidos) and /questions (Perguntas), members only (both Blazor pages were [Authorize]).
-        // Task 032: /members/map (was /member/map) and /hall-of-fame, members only (both Blazor pages were [Authorize]).
-        // Task 033: /naipes and /naipes/config, members only (the API keeps the settings to Admin / Owner).
-        // Task 034: /meetings, members only (the Blazor page was [Authorize]; the API refuses Leitões and decides the rest).
-        // /meetings/polls (Votações), members only; the API decides which polls the member sees.
-        // Task 041: /messages, Messaging v2 (React; the conversation is ?c=<id>), members only. /messages/{id} and the old
-        // /hubs/messages stay 404: nothing of the 027-retired inbox comes back.
-        // Task 071: /pending-actions (As minhas ações pendentes), members only; the API decides each panel.
-        // Task 094: /music/play/{id} (Aprender), members only; the API decides which songs the member may open.
-        // Task 095: /music/learn (Aprender Músicas), members only: the songs that have a chart.
+        // Members-only pages: a visitor goes to sign in and comes back to the same address (query included). The API
+        // decides everything else (who may see or change what).
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
                      "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/tasks", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
@@ -629,10 +597,8 @@ public class Program
             });
         }
 
-        // Task 035: the Owner tools, Owner only (/users, /owner/tracing and /owner/db were Owner pages; /emails and
-        // /notifications were Admin pages and are Owner only now). A visitor goes to sign in; any other member gets the
-        // shell with 403, and the page shows the refusal. The API refuses them every call (OwnerEndpoints).
-        // Task 050 adds /owner/dashboard on the same terms.
+        // Owner tools, Owner only. A visitor goes to sign in; any other member gets the shell with 403 and the page
+        // shows the refusal. The API refuses them every call (OwnerEndpoints).
         foreach (var route in new[] { "/emails", "/notifications", "/users", "/owner/tracing", "/owner/dashboard", "/owner/db" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
@@ -650,9 +616,9 @@ public class Program
             });
         }
 
-        // Task 036: /forgot-password, /reset-password and /confirm-email are React, public as the Blazor pages were. The
-        // links carry Identity tokens in the query, so the shell is never stored (no-store) and the page never sends its
-        // address on (no-referrer); the page clears the query from the address bar once read.
+        // /forgot-password, /reset-password and /confirm-email are public. The links carry Identity tokens in the query,
+        // so the shell is never stored (no-store) and the page never sends its address on (no-referrer); the page
+        // clears the query from the address bar once read.
         foreach (var route in new[] { "/forgot-password", "/reset-password", "/confirm-email" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>
@@ -663,7 +629,7 @@ public class Program
             });
         }
 
-        // Task 036: /Error stays server-owned on purpose (not React, not Blazor). UseExceptionHandler re-executes the
+        // /Error stays server-owned on purpose (not React). UseExceptionHandler re-executes the
         // failed request here with its own method (GET, POST, PUT, ...), and an error page must not depend on the portal
         // bundle, a session or the database. A fixed static page (wwwroot/error.html: no script, no request details,
         // no stack trace); the handler's status (500) is kept. docs/react-identity.md.
@@ -674,67 +640,7 @@ public class Program
             return Results.Content(page, "text/html", System.Text.Encoding.UTF8);
         });
 
-        app.MapMethods("/music/songs/{id:int}", ["GET", "HEAD"], (int id, HttpContext context) =>
-            Results.Redirect($"/music/albums/{id}" + context.Request.QueryString));
-
-        // The first 011 build answered on its own page; the event page now opens the answer modal
-        // (?respond=1). 302 while DEV is hybrid; GET/HEAD only.
-        app.MapMethods("/events/{id:int}/enrollment", ["GET", "HEAD"], (int id) =>
-            Results.Redirect($"/events/{id}?respond=1"));
-
-        // The Blazor list of everyone's answers (with Admin/Owner add / remove) is the React event page's
-        // "Quem vai / Quem foi" and its management modal since 012E. 302 while DEV is hybrid; GET/HEAD only.
-        app.MapMethods("/events/{id:int}/enrollments", ["GET", "HEAD"], (int id) =>
-            Results.Redirect($"/events/{id}#who-title"));
-
-        // The members' Blazor /member/events (011-012E) is retired: everything it did is on the React
-        // agenda and event pages (012F). Its query is kept, so Requests' "criar atuação" prefill
-        // (?openModal=true&name=...) opens the React create form. 302 while DEV is hybrid; GET/HEAD only.
-        app.MapMethods("/member/events", ["GET", "HEAD"], (HttpContext context) =>
-            Results.Redirect("/events" + context.Request.QueryString));
-
-        // The members' Blazor /member/gallery (009-014) is retired: upload, edit, delete and tags are on the React
-        // /gallery (015). 302 while DEV is hybrid; GET/HEAD only.
-        app.MapMethods("/member/gallery", ["GET", "HEAD"], () => Results.Redirect("/gallery"));
-
-        // The members' Blazor /member/roles (008-015) is retired: the RGI, fiscal years and position assignments are on
-        // the React /roles (016). ?fy= is kept. 302 while DEV is hybrid; GET/HEAD only.
-        app.MapMethods("/member/roles", ["GET", "HEAD"], (HttpContext context) =>
-            Results.Redirect("/roles" + context.Request.QueryString));
-
-        // The Blazor /hierarchy (until 016) is the React /members/hierarchy (017). 302 while DEV is hybrid; GET/HEAD only.
-        app.MapMethods("/hierarchy", ["GET", "HEAD"], () => Results.Redirect("/members/hierarchy"));
-
-        // The Blazor /member/profile and /member/map (until 031) are the React /profile and /members/map (032): /profile
-        // edits the member's own profile, and shows a visitor how to sign in. 302 while DEV is hybrid; GET/HEAD only.
-        app.MapMethods("/member/profile", ["GET", "HEAD"], () => Results.Redirect("/profile"));
-        app.MapMethods("/member/map", ["GET", "HEAD"], () => Results.Redirect("/members/map"));
-
-        // The Blazor /members/manage admin bridge (017) is retired: its tools are on the React /members (018). 302 while
-        // DEV is hybrid; GET/HEAD only.
-        app.MapMethods("/members/manage", ["GET", "HEAD"], () => Results.Redirect("/members"));
-
-        // The Blazor Tesouraria pages (until 023) are the React /treasury pages (024). /calotes keeps its ?fy=; the old
-        // MBWay and Nerba URLs carried a report id only for their back button. 302 while DEV is hybrid; GET/HEAD only.
-        app.MapMethods("/finance", ["GET", "HEAD"], () => Results.Redirect("/treasury"));
-        app.MapMethods("/finance/report/{id:int}", ["GET", "HEAD"], (int id) => Results.Redirect($"/treasury/reports/{id}"));
-        app.MapMethods("/calotes", ["GET", "HEAD"], (HttpContext context) =>
-            Results.Redirect("/treasury/calotes" + (context.Request.Query["fy"].ToString() is { Length: > 0 } fy ? "?fy=" + Uri.EscapeDataString(fy) : "")));
-        foreach (var route in new[] { "/mbway", "/mbway/{id:int}" })
-        {
-            app.MapMethods(route, ["GET", "HEAD"], () => Results.Redirect("/treasury/mbway"));
-        }
-
-        foreach (var route in new[] { "/nerba", "/nerba/{id:int}" })
-        {
-            app.MapMethods(route, ["GET", "HEAD"], () => Results.Redirect("/treasury/nerba"));
-        }
-
-        app.MapMethods("/nerba/event/{id:int}", ["GET", "HEAD"], (int id) => Results.Redirect($"/treasury/nerba/{id}"));
-
-        // The Blazor /images admin (homepage slideshows) was retired in 029A with no replacement: the bare URL is a plain
-        // 404 like /labels. /images/<file> is a static file (task 054 retired the ImagesController that served it).
-        app.MapMethods("/images", ["GET", "HEAD"], () => Results.NotFound());
+        app.MapLegacyRedirects();
 
         // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
         // A signed-in member never sees the form and goes to the members' landing page. The return

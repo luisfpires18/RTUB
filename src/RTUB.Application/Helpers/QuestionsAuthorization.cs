@@ -6,7 +6,7 @@ namespace RTUB.Application.Helpers;
 
 /// <summary>
 /// The "Perguntas aos Órgãos Sociais" rules (task 031, docs/react-requests-questions.md), enforced server-side by
-/// <c>QuestionBoardService</c>. Same as the Blazor /questions ([Authorize]; the rest decided by the question):
+/// <c>QuestionBoardService</c>:
 ///
 /// - Visitors: nothing (401); the page sends them to sign in.
 /// - Any signed-in member (Leitões included, as before): every question and its replies; ask a question to a member

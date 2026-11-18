@@ -4,7 +4,7 @@ import { Dialog } from './Dialog';
 import { call, type Outcome } from './eventsApi';
 import { Icon } from './icons';
 
-// Órgãos Sociais for members (React track 016; was the Blazor /member/roles). The RGI for Member, Mod, Admin and
+// Órgãos Sociais for members. The RGI for Member, Mod, Admin and
 // Owner; fiscal years and position assignments for Mod, Admin and Owner. The server decides and validates everything
 // (GovernanceManagementService); hiding a button here is only a convenience.
 

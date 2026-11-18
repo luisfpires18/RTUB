@@ -5,8 +5,7 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /forgot-password, /reset-password and /confirm-email (task 036; were Blazor pages). Public, as the pages
-/// were. Thin: the work is <see cref="AccountRecoveryService"/>. Every call is a POST with the antiforgery token in the
+/// The React /forgot-password, /reset-password and /confirm-email. Public. Thin: the work is <see cref="AccountRecoveryService"/>. Every call is a POST with the antiforgery token in the
 /// X-CSRF-TOKEN header, and nothing is cached. Tokens travel in the request body only, never back in a response.
 /// </summary>
 public static class AccountRecoveryEndpoints

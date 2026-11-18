@@ -54,26 +54,6 @@ public class UserProfileService : IUserProfileService
         return await _userManager.FindByIdAsync(userId);
     }
 
-    public async Task<IEnumerable<ApplicationUser>> GetAllUsersAsync()
-    {
-        // Note: Using ToListAsync when the underlying provider supports it (EF Core),
-        // with fallback to synchronous ToList() for mocked UserManager in tests
-        // Using AsNoTracking() for read-only operation
-        try
-        {
-            return await _userManager.Users
-                .AsNoTracking()
-                .ToListAsync();
-        }
-        catch (InvalidOperationException)
-        {
-            // Fallback for test scenarios where UserManager.Users may not support async
-            return _userManager.Users
-                .AsNoTracking()
-                .ToList();
-        }
-    }
-
     public async Task UpdateProfilePictureAsync(string userId, Stream imageStream, string fileName, string contentType)
     {
         var user = await _userManager.FindByIdAsync(userId);
@@ -96,29 +76,6 @@ public class UserProfileService : IUserProfileService
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
             throw new InvalidOperationException("Failed to update profile picture");
-    }
-
-    public async Task UpdateUserInfoAsync(string userId, string firstName, string lastName, string? nickname, DateTime? dateOfBirth, string? phoneContact)
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-            throw new EntityNotFoundException(nameof(ApplicationUser), userId);
-
-        user.FirstName = firstName;
-        user.LastName = lastName;
-        user.Nickname = nickname;
-        user.DateOfBirth = dateOfBirth;
-        user.PhoneNumber = phoneContact;
-
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-            throw new InvalidOperationException("Failed to update user information");
-    }
-
-    public async Task<bool> IsUserActiveAsync(string userId)
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-        return user != null;
     }
 
     // User Role Management methods
@@ -355,24 +312,4 @@ public class UserProfileService : IUserProfileService
         }
     }
 
-    /// <summary>
-    /// Gets a user's categories (MemberCategory) without change tracking.
-    /// Useful for read-only checks like determining if a user is a Leitão.
-    /// </summary>
-    /// <param name="userId">The user ID to get categories for</param>
-    /// <returns>The user's categories, or empty collection if user not found</returns>
-    public async Task<IEnumerable<MemberCategory>> GetUserCategoriesAsync(string userId)
-    {
-        if (string.IsNullOrWhiteSpace(userId))
-            return Enumerable.Empty<MemberCategory>();
-
-        await using var ctx = _contextFactory.CreateDbContext();
-        var user = await ctx.Users
-            .AsNoTracking()
-            .Where(u => u.Id == userId)
-            .Select(u => u.Categories)
-            .FirstOrDefaultAsync();
-
-        return user ?? Enumerable.Empty<MemberCategory>();
-    }
 }

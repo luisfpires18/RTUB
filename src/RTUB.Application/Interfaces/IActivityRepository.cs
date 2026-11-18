@@ -8,10 +8,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface IActivityRepository : IRepository<Activity>
 {
-    /// <summary>
-    /// Gets activity with related report
-    /// </summary>
-    Task<Activity?> GetWithReportAsync(int id);
 
     /// <summary>
     /// Gets activity with transactions

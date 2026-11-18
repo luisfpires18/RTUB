@@ -43,14 +43,6 @@ public class CloudflareAudioStorageService : BaseCloudflareStorageService<Cloudf
             ?? await ReferencePreSignAsync(objectKey);
     }
 
-    public async Task<bool> AudioFileExistsAsync(string albumTitle, int? trackNumber, string songTitle)
-    {
-        var objectKey = GetObjectKey(albumTitle, trackNumber, songTitle);
-
-        return await ObjectExistsAsync(objectKey)
-            || (_referenceStorage != null && await _referenceStorage.ObjectExistsAsync(objectKey));
-    }
-
     private Task<string?> ReferencePreSignAsync(string objectKey) =>
         _referenceStorage == null
             ? Task.FromResult<string?>(null)

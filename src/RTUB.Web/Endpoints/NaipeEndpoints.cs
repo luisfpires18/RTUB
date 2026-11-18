@@ -6,8 +6,8 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /naipes and /naipes/config (task 033, docs/react-naipes.md; were the Blazor pages). Thin: every rule lives
-/// in <see cref="INaipeBoardService"/>, decided from the session. Signed-in members only, as the Blazor pages were;
+/// The React /naipes and /naipes/config (docs/react-naipes.md). Thin: every rule lives
+/// in <see cref="INaipeBoardService"/>, decided from the session. Signed-in members only;
 /// the settings are Admin / Owner. Every write needs the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class NaipeEndpoints

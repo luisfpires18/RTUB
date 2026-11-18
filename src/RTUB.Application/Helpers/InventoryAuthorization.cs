@@ -4,7 +4,7 @@ namespace RTUB.Application.Helpers;
 
 /// <summary>
 /// The instruments inventory rules (React track 020, docs/react-inventory.md), enforced server-side by
-/// <c>InstrumentInventoryService</c>. Same as the Blazor /inventory ([Authorize]; management shown to "Admin,Mod"), with
+/// <c>InstrumentInventoryService</c>, with
 /// Owner inheriting Admin:
 ///
 /// - Visitors: nothing (401); the page sends them to sign in.

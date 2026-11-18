@@ -97,32 +97,6 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     }
 
     [Fact]
-    public async Task GetEnrollmentByIdAsync_ExistingEnrollment_ReturnsEnrollment()
-    {
-        // Arrange
-        var eventEntity = await _eventService.CreateEventAsync(
-            "Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
-        var enrollment = await _enrollmentService.CreateEnrollmentAsync("user123", eventEntity.Id);
-
-        // Act
-        var result = await _enrollmentService.GetEnrollmentByIdAsync(enrollment.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(enrollment.Id);
-    }
-
-    [Fact]
-    public async Task GetEnrollmentByIdAsync_NonExistingEnrollment_ReturnsNull()
-    {
-        // Act
-        var result = await _enrollmentService.GetEnrollmentByIdAsync(999);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
     public async Task GetAllEnrollmentsAsync_WithMultipleEnrollments_ReturnsAll()
     {
         // Arrange
@@ -210,7 +184,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         // Act
         await _enrollmentService.DeleteEnrollmentAsync(enrollment.Id);
-        var deleted = await _enrollmentService.GetEnrollmentByIdAsync(enrollment.Id);
+        var deleted = await _context.Enrollments.AsNoTracking().FirstOrDefaultAsync(e => e.Id == enrollment.Id);
 
         // Assert
         deleted.Should().BeNull();
@@ -822,7 +796,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         capturedRecipients.Should().NotContain("enroll_delete_user2", "user2 is the one deleting enrollment");
 
         // Verify enrollment was deleted
-        var deleted = await _enrollmentService.GetEnrollmentByIdAsync(enrollment2.Id);
+        var deleted = await _context.Enrollments.AsNoTracking().FirstOrDefaultAsync(e => e.Id == enrollment2.Id);
         deleted.Should().BeNull();
     }
 
@@ -852,7 +826,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             Times.Never);
 
         // Verify enrollment was deleted
-        var deleted = await _enrollmentService.GetEnrollmentByIdAsync(enrollment.Id);
+        var deleted = await _context.Enrollments.AsNoTracking().FirstOrDefaultAsync(e => e.Id == enrollment.Id);
         deleted.Should().BeNull();
     }
 

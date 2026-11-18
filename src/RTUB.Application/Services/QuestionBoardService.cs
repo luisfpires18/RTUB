@@ -11,7 +11,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /questions ("Perguntas aos Órgãos Sociais") behind the React /questions (task 031,
+/// The React /questions (task 031,
 /// docs/react-requests-questions.md). Same data and rules, through <see cref="IQuestionService"/> (which keeps sending
 /// the push notifications), now enforced server-side (<see cref="QuestionsAuthorization"/>; the old page only hid
 /// buttons):

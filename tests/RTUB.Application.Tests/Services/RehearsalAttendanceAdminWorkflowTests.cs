@@ -76,8 +76,8 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
             .Should().ThrowAsync<InvalidOperationException>();
         await FluentActions.Invoking(() => _attendanceService.AddFirstAttendanceAsync(approved.Id, "self-report", false))
             .Should().ThrowAsync<InvalidOperationException>();
-        (await _attendanceService.GetAttendanceByIdAsync(created.Id))!.WillAttend.Should().BeTrue("the first answer stays");
-        (await _attendanceService.GetAttendanceByIdAsync(confirmed.Id))!.Attended.Should().BeTrue("approved history stays");
+        (await _context.RehearsalAttendances.AsNoTracking().Include(a => a.Rehearsal).FirstOrDefaultAsync(a => a.Id == created.Id))!.WillAttend.Should().BeTrue("the first answer stays");
+        (await _context.RehearsalAttendances.AsNoTracking().Include(a => a.Rehearsal).FirstOrDefaultAsync(a => a.Id == confirmed.Id))!.Attended.Should().BeTrue("approved history stays");
         _mockRetirementStatusService.Verify(s => s.ReconcileMemberStatusAsync(It.IsAny<string>()), Times.Once(), "only the approval reconciles");
     }
 
@@ -97,7 +97,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         await _attendanceService.UpdateAttendanceAsync(attendance.Id, true, instrument);
 
         // Assert
-        var result = await _attendanceService.GetAttendanceByIdAsync(attendance.Id);
+        var result = await _context.RehearsalAttendances.AsNoTracking().Include(a => a.Rehearsal).FirstOrDefaultAsync(a => a.Id == attendance.Id);
         result.Should().NotBeNull();
         result!.RehearsalId.Should().Be(rehearsal.Id);
         result.UserId.Should().Be(userId);
@@ -120,7 +120,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         await _attendanceService.UpdateAttendanceAsync(attendance.Id, true, null);
 
         // Assert
-        var result = await _attendanceService.GetAttendanceByIdAsync(attendance.Id);
+        var result = await _context.RehearsalAttendances.AsNoTracking().Include(a => a.Rehearsal).FirstOrDefaultAsync(a => a.Id == attendance.Id);
         result.Should().NotBeNull();
         result!.Attended.Should().BeTrue();
         result.Instrument.Should().BeNull();
@@ -147,7 +147,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         attendance.Id.Should().Be(existingAttendance.Id, "Should update existing attendance, not create new");
         attendance.Instrument.Should().Be(InstrumentType.Guitarra, "Should update instrument");
 
-        var result = await _attendanceService.GetAttendanceByIdAsync(attendance.Id);
+        var result = await _context.RehearsalAttendances.AsNoTracking().Include(a => a.Rehearsal).FirstOrDefaultAsync(a => a.Id == attendance.Id);
         result!.Attended.Should().BeTrue("Should be marked as attended by admin");
     }
 
@@ -203,7 +203,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         await _attendanceService.DeleteAttendanceAsync(attendance.Id);
 
         // Assert
-        var result = await _attendanceService.GetAttendanceByIdAsync(attendance.Id);
+        var result = await _context.RehearsalAttendances.AsNoTracking().Include(a => a.Rehearsal).FirstOrDefaultAsync(a => a.Id == attendance.Id);
         result.Should().BeNull("Attendance should be deleted");
 
         var allAttendances = await _attendanceService.GetAttendancesByRehearsalIdAsync(rehearsal.Id);
@@ -306,7 +306,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         await _attendanceService.UpdateAttendanceAsync(attendance.Id, true, instrument);
 
         // Assert
-        var result = await _attendanceService.GetAttendanceByIdAsync(attendance.Id);
+        var result = await _context.RehearsalAttendances.AsNoTracking().Include(a => a.Rehearsal).FirstOrDefaultAsync(a => a.Id == attendance.Id);
         result!.Instrument.Should().Be(instrument);
         result.Attended.Should().BeTrue();
     }

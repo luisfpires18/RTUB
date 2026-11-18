@@ -6,9 +6,9 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /documentation ("Documentação", React track 022, docs/react-documentation.md; was the Blazor page). Thin:
+/// The React /documentation ("Documentação", docs/react-documentation.md). Thin:
 /// every rule lives in <see cref="IDocumentationService"/>, decided from the session. Signed-in members only, Leitões
-/// refused, as before. A document is addressed by fiscalYear, folder and name; every write needs the antiforgery token
+/// refused. A document is addressed by fiscalYear, folder and name; every write needs the antiforgery token
 /// in the X-CSRF-TOKEN header.
 /// </summary>
 public static class DocumentationEndpoints

@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /leaderboard (React track 019; was the Blazor "Tabela de Classificação"). Signed-in members
+// Contracts of the React /leaderboard (React track 019). Signed-in members
 // only, as before. What the old page showed: nickname, name, avatar, level, XP and attendance counts; no contact field,
 // role or audit field leaves the server.
 

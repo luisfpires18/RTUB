@@ -6,7 +6,7 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /shop ("Loja RTUB", React track 021, docs/react-shop.md; was the Blazor page). Thin: every rule lives in
+/// The React /shop ("Loja RTUB", docs/react-shop.md). Thin: every rule lives in
 /// <see cref="IProductShopService"/>, decided from the session. The catalogue is public and returns a public-only DTO
 /// to visitors; reservation and management reads and every write remain service-authorized. Every write needs the
 /// antiforgery token in the X-CSRF-TOKEN header.

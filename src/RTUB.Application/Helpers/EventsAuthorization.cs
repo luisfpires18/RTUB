@@ -7,7 +7,7 @@ namespace RTUB.Application.Helpers;
 
 /// <summary>
 /// The Events rules (React track 011, docs/react-events.md), enforced server-side by
-/// <c>EventAgendaService</c> and used by the remaining Blazor event pages. Roles inherit:
+/// <c>EventAgendaService</c>. Roles inherit:
 /// Owner includes Admin, Admin includes Mod.
 ///
 /// - Visitors: the public agenda only (no descriptions, counts, repertoire or enrollments).

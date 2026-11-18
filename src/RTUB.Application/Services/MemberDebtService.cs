@@ -18,16 +18,6 @@ public class MemberDebtService : IMemberDebtService
         _memberDebtRepository = memberDebtRepository;
     }
 
-    public async Task<IEnumerable<MemberDebt>> GetDebtsForFiscalYearAsync(int fiscalYearId)
-    {
-        return await _memberDebtRepository.GetByFiscalYearIdAsync(fiscalYearId);
-    }
-
-    public async Task<MemberDebt?> GetDebtForUserAsync(string userId, int fiscalYearId)
-    {
-        return await _memberDebtRepository.GetByUserIdAndFiscalYearIdAsync(userId, fiscalYearId);
-    }
-
     public async Task<MemberDebt> AddDebtAsync(string userId, decimal amount, string? description, int fiscalYearId, DateTime? compromisedUntil = null)
     {
         // No duplicate check - multiple debts per user per fiscal year are now allowed

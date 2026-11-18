@@ -23,13 +23,6 @@ public interface IDocumentStorageService
     Task<bool> DocumentExistsAsync(string documentPath);
 
     /// <summary>
-    /// Lists all folders under a given prefix
-    /// </summary>
-    /// <param name="prefix">The prefix path to search (e.g., "docs/")</param>
-    /// <returns>List of folder names (not full paths)</returns>
-    Task<List<string>> ListFoldersAsync(string prefix = "docs/");
-
-    /// <summary>
     /// Lists all subfolders within a given folder path (without adding environment prefix)
     /// </summary>
     /// <param name="folderPath">The full folder path to search (e.g., "docs/Production/Logistics/")</param>

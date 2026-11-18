@@ -13,8 +13,4 @@ public interface ITrophyRepository : IRepository<Trophy>
     /// </summary>
     Task<IEnumerable<Trophy>> GetByEventIdAsync(int eventId);
 
-    /// <summary>
-    /// Gets all trophies with event details
-    /// </summary>
-    Task<IEnumerable<Trophy>> GetAllWithEventAsync();
 }

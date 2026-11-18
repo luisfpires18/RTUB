@@ -7,10 +7,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface IMbwayTransferService
 {
-    /// <summary>
-    /// Gets all MBWAY transfers for a specific fiscal year
-    /// </summary>
-    Task<List<MbwayTransfer>> GetByFiscalYearAsync(int fiscalYearId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all MBWAY transfers

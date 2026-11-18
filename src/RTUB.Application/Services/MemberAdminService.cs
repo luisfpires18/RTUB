@@ -14,7 +14,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /members/manage tools behind the React /members (React track 018, docs/react-members.md). Same
+/// The member admin tools of the React /members (React track 018, docs/react-members.md). Same
 /// behaviour, rules now server-side (<see cref="MembersAuthorization"/>; the old page only hid buttons):
 /// - create: username from the nickname (or, for a Leitão "sem alcunha", the email's local part), a generated password
 ///   the member must change, role Member, the categories, the instruments, and the welcome email;

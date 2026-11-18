@@ -350,31 +350,4 @@ public class MeetingRequestServiceTests
         Assert.All(results, r => Assert.Equal(RequestStatus.Pending, r.Status));
     }
 
-    [Fact]
-    public async Task GetTotalCountAsync_ShouldReturnCorrectCount()
-    {
-        // Arrange
-        _repositoryMock.Setup(r => r.GetCountAsync(null))
-            .ReturnsAsync(3);
-
-        // Act
-        var count = await _service.GetTotalCountAsync();
-
-        // Assert
-        Assert.Equal(3, count);
-    }
-
-    [Fact]
-    public async Task GetTotalCountAsync_WithStatusFilter_ShouldReturnFilteredCount()
-    {
-        // Arrange
-        _repositoryMock.Setup(r => r.GetCountAsync(RequestStatus.Pending))
-            .ReturnsAsync(2);
-
-        // Act
-        var count = await _service.GetTotalCountAsync(RequestStatus.Pending);
-
-        // Assert
-        Assert.Equal(2, count);
-    }
 }

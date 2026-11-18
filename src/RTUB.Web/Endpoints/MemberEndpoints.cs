@@ -5,10 +5,9 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React members area (React tracks 017 and 018, docs/react-members.md; was the Blazor /members, /hierarchy and
-/// /members/manage). Thin: the read side lives in <see cref="IMemberDirectoryService"/>, the Admin/Owner tools in
-/// <see cref="IMemberAdminService"/>, every rule decided from the session. Signed-in members only, as the Blazor pages
-/// were. Every write needs the antiforgery token in the X-CSRF-TOKEN header.
+/// The React members area: /members, /members/hierarchy and the member admin tools (docs/react-members.md). Thin: the read side lives in <see cref="IMemberDirectoryService"/>, the Admin/Owner tools in
+/// <see cref="IMemberAdminService"/>, every rule decided from the session. Signed-in members only.
+/// Every write needs the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class MemberEndpoints
 {

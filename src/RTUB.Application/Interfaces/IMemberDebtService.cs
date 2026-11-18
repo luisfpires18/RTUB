@@ -8,15 +8,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface IMemberDebtService
 {
-    /// <summary>
-    /// Gets all debts for a specific fiscal year
-    /// </summary>
-    Task<IEnumerable<MemberDebt>> GetDebtsForFiscalYearAsync(int fiscalYearId);
-
-    /// <summary>
-    /// Gets the debt for a specific user in a specific fiscal year
-    /// </summary>
-    Task<MemberDebt?> GetDebtForUserAsync(string userId, int fiscalYearId);
 
     /// <summary>
     /// Adds a new debt for a member

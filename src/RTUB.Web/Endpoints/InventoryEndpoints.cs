@@ -6,8 +6,8 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /inventory ("Instrumentos", React track 020, docs/react-inventory.md; was the Blazor page). Thin: every rule
-/// lives in <see cref="IInstrumentInventoryService"/>, decided from the session. Signed-in members only, as before. Every
+/// The React /inventory ("Instrumentos", docs/react-inventory.md). Thin: every rule
+/// lives in <see cref="IInstrumentInventoryService"/>, decided from the session. Signed-in members only. Every
 /// write needs the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class InventoryEndpoints

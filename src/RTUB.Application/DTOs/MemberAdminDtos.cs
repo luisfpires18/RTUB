@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React member admin (React track 018; was the Blazor /members/manage). Admin and Owner only. The
+// Contracts of the React member admin (React track 018). Admin and Owner only. The
 // edit form carries the fields the old "Editar Membro" modal edited, nothing else: no password, role, audit or
 // Identity field leaves the server.
 

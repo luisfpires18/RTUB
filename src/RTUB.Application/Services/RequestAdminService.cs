@@ -10,7 +10,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /requests ("Gestão de Pedidos") behind the React /requests (task 031, docs/react-requests-questions.md).
+/// The React /requests (task 031, docs/react-requests-questions.md).
 /// Same data and rules, through <see cref="IRequestService"/> and <see cref="IRequestToEventService"/>, now enforced
 /// server-side (<see cref="RequestsAuthorization"/>; the old page only hid buttons):
 /// - the list: every request created in one fiscal year (the current one by default, or every year), newest first,

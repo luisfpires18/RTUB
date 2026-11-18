@@ -11,7 +11,7 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// The React /gallery timeline (React track 009). Reads the existing GalleryMedia and
-/// GalleryMediaPersonTags; no schema change. Same rule as the Blazor gallery: IsPrivate items are
+/// GalleryMediaPersonTags; no schema change. Rule: IsPrivate items are
 /// for signed-in members only (expelled members arrive anonymous: the cookie validator drops them).
 /// Person tags are member-only here, a tightening: visitors never learn who is in a photo.
 /// Writes: <see cref="IGalleryManagementService"/> (React track 015).

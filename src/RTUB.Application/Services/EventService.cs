@@ -51,16 +51,6 @@ public class EventService : IEventService
         _contextFactory = contextFactory;
     }
 
-    public async Task<Event?> GetEventByIdAsync(int id, CancellationToken cancellationToken = default)
-    {
-        return await _eventRepository.GetByIdAsync(id);
-    }
-
-    public async Task<IEnumerable<Event>> GetAllEventsAsync(CancellationToken cancellationToken = default)
-    {
-        return await _eventRepository.GetAllAsync();
-    }
-
     public async Task<IEnumerable<Event>> GetEventsByTypeAsync(EventType type, CancellationToken cancellationToken = default)
     {
         return await _eventRepository.GetEventsByTypeAsync(type);
@@ -100,36 +90,6 @@ public class EventService : IEventService
         {
             eventEntity.EndDate = null;
         }
-
-        await _eventRepository.UpdateAsync(eventEntity);
-    }
-
-    public async Task UpdateEventWithImageAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate, Stream imageStream, string fileName, string contentType, CancellationToken cancellationToken = default)
-    {
-        var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
-
-        // Update event details
-        eventEntity.UpdateDetails(name, date, location, description, type);
-
-        if (endDate.HasValue)
-        {
-            eventEntity.SetEndDate(endDate);
-        }
-        else
-        {
-            eventEntity.EndDate = null;
-        }
-
-        // Delete old image if it exists
-        if (!string.IsNullOrEmpty(eventEntity.ImageUrl))
-        {
-            await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
-        }
-
-        // Upload new image to Cloudflare R2 using normalized event name
-        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(name);
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", normalizedName);
-        eventEntity.SetImage(imageUrl);
 
         await _eventRepository.UpdateAsync(eventEntity);
     }
@@ -214,11 +174,6 @@ public class EventService : IEventService
 
         eventEntity.Uncancel();
         await _eventRepository.UpdateAsync(eventEntity);
-    }
-
-    public async Task<IEnumerable<EventVideo>> GetVideosByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
-    {
-        return await _eventVideoRepository.GetByEventIdAsync(eventId);
     }
 
     public async Task<EventVideo> AddVideoAsync(int eventId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null, CancellationToken cancellationToken = default)
@@ -349,8 +304,4 @@ public class EventService : IEventService
         await _eventVideoRepository.DeleteAsync(video);
     }
 
-    public async Task<int> GetVideoCountByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
-    {
-        return await _eventVideoRepository.GetCountByEventIdAsync(eventId);
-    }
 }

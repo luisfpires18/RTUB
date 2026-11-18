@@ -9,7 +9,7 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /events/{id}/enrollments management behind the React event page (React track 012E).
+/// The enrollments management of the React event page (React track 012E).
 /// Same rules, now server-side: Admin or Owner only; "Adicionar Membro" enrolls a member who has not
 /// answered as going, with their primary instrument and no notification (as before); any answer can be
 /// removed. New since the old page: expelled members are not offered, a duplicate is refused instead of

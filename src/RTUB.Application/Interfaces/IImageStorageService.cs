@@ -23,10 +23,4 @@ public interface IImageStorageService
     /// <param name="imageUrl">Public URL of the image to delete</param>
     Task DeleteImageAsync(string imageUrl);
 
-    /// <summary>
-    /// Checks if an image exists in R2 storage
-    /// </summary>
-    /// <param name="imageUrl">Public URL of the image</param>
-    /// <returns>True if image exists, false otherwise</returns>
-    Task<bool> ImageExistsAsync(string imageUrl);
 }

@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /requests (task 031; was the Blazor "Gestão de Pedidos"). Signed-in members except Leitões,
+// Contracts of the React /requests (task 031). Signed-in members except Leitões,
 // as before; the contact details are the ones the requester typed into the public form.
 
 /// <summary>

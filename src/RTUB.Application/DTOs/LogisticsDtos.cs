@@ -1,7 +1,7 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /logistics and /logistics/{id} ("Logística", React track 023; were the Blazor Logistics.razor and
-// LogisticsBoard.razor). Signed-in members, Leitões refused unless they manage. A member id leaves the server only
+// Contracts of the React /logistics and /logistics/{id} ("Logística", React track 023.
+// Signed-in members, Leitões refused unless they manage. A member id leaves the server only
 // where a manager needs it to change an assignment; members see names and avatars, as the old pages showed.
 
 public sealed record LogisticsEventDto(int Id, string Name, DateTime Date);

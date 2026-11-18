@@ -3,21 +3,19 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git and GitHub, durable detail
 in the docs `CLAUDE.md` links. Overwrite stale entries.
 
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-17_
 
 ## Release state
-- `master` (PROD): **2.3.7**. `dev`: **2.3.8** (unreleased).
-- On `dev`, not released: Aprender / play-along (094, 095, 097: `SongPlayAlongs` table, migration `AddSongPlayAlongs`,
-  additive), the ai-workflow adoption (100), `STATE.md` moved to `.ai/` (101), web preset settings (102), docs cleanup
-  (103).
+- `master` (PROD): **2.3.10**. `dev`: **2.3.11** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-None. Last: task 105 (PR #307, merged into `dev`): a retried file move reuses an earlier copy only when its ETag
-matches. Before it, task 104 (PR #306): every Logística file (board files, card attachments) is a
-Documentação document in `Logistics/{board}`; rename moves the folder; delete on either side removes it from both;
-startup moves older files in; folders no board owns are Mod/Admin/Owner only. Owner check on DEV: the startup move
-against real R2, an image on a card showing in Documentação, a delete there leaving the card.
+Task 110 (`chore/110/codebase-cleanup`): phase 1 of the readability cleanup. Blazor-era history comments rewritten as
+present-tense rules, old-URL redirects moved out of `Program.cs` into `Extensions/LegacyRedirectExtensions.cs`, service
+methods with no production caller removed (with their tests). No behaviour change.
+Planned next phases (one branch each): 2 portal folders `pages/` `components/` `data/`; 3 shared UI pieces (notice,
+avatar, tabs, euro/date formatting); 4 split portal files over 300 lines and `styles.css` per area; 5 split C# files
+over 300 lines; 6 test files (lowest priority).
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not
@@ -65,7 +63,7 @@ against real R2, an image on a card showing in Documentação, a delete there le
 - Decide: members (not only Admin) read requesters' email and phone; Leitões see other members' email and phone.
 - Carried: `UseHttpsRedirection` skipped outside Development (redundant, forwarded headers on); login `OnRejected` is
   global; 429 on a form POST is a bare text page; role change forces logout (`UpdateSecurityStampAsync`);
-  `ValidationInterval` 30 min; COOP/COEP/CORP not set; dead `POST /api/push/broadcast|send-to-selected`. Password-policy
+  `ValidationInterval` 30 min; COOP/COEP/CORP not set. Password-policy
   hardening skipped by owner decision.
 - `public-requests` rate limit partitions on `RemoteIpAddress`: confirm forwarded headers on DEV/PROD.
 

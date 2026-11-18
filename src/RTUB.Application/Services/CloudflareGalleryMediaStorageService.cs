@@ -129,14 +129,6 @@ public class CloudflareGalleryMediaStorageService : BaseCloudflareStorageService
         }
     }
 
-    public Task<string?> GenerateThumbnailAsync(string videoUrl)
-    {
-        // For now, return null - thumbnail generation can be implemented later
-        // This would typically involve video processing with FFmpeg or similar
-        _logger.LogWarning("Thumbnail generation not implemented yet for video {VideoUrl}", videoUrl);
-        return Task.FromResult<string?>(null);
-    }
-
     public long GetMaxFileSize(MediaType mediaType)
     {
         if (mediaType == MediaType.Video)

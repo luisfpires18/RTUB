@@ -19,7 +19,7 @@ import { readPush, sendTest, turnOff, turnOn, type PushResult, type PushState } 
  * /profile - the members-only corner of a public portal. RTUB has no public accounts: the tuna creates its members'
  * logins, so a visitor is told that first and keeps the public portal one tap away. Signing in is the React /login.
  *
- * Signed in, it is the member's own profile (task 032; was the Blazor /member/profile): who they are, their rank, and
+ * Signed in, it is the member's own profile: who they are, their rank, and
  * the sections they edit - the header (photo included), Pessoal, Informação da Tuna, Instrumentos, Notificações por
  * email, Notificações push (038) and Segurança. The server decides
  * every rule (MyProfileService); a disabled field here is only a convenience. The members' menu is the member shell.

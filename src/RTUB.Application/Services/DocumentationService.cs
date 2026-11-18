@@ -12,7 +12,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /documentation ("Documentação") behind the React /documentation (React track 022,
+/// The React /documentation (React track 022,
 /// docs/react-documentation.md). Same storage and rules, through <see cref="IDocumentStorageService"/>, now enforced
 /// server-side (<see cref="DocumentationAuthorization"/>; the old page filtered and hid buttons in the circuit):
 /// - folders of one fiscal year (the current one by default) under docs/{environment}/{year}/, in storage order, the

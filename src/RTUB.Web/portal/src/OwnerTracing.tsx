@@ -35,7 +35,7 @@ const pretty = (changes: string | null) => {
 };
 
 /**
- * /owner/tracing (task 035; was the Blazor page): the audit log with its filters, search, details, delete, "DELETE ALL"
+ * /owner/tracing: the audit log with its filters, search, details, delete, "DELETE ALL"
  * truncation and JSON export, the logins of a period, and the system announcement. The server refuses anyone but the
  * Owner and checks the truncation confirmation itself.
  */

@@ -7,10 +7,10 @@ using RTUB.Core.Entities;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The member-area pages React took over in task 032 (docs/react-member-area.md): /profile (the member's own profile,
-/// was the Blazor /member/profile), /members/map (was /member/map) and /hall-of-fame. Thin: every rule lives in
+/// The member-area pages (docs/react-member-area.md): /profile (the member's own profile), /members/map and
+/// /hall-of-fame. Thin: every rule lives in
 /// <see cref="IMyProfileService"/>, <see cref="IMemberMapService"/> and <see cref="IHallOfFameService"/>, decided from
-/// the session. Signed-in members only, as the Blazor pages were. Every write needs the antiforgery token in the
+/// the session. Signed-in members only. Every write needs the antiforgery token in the
 /// X-CSRF-TOKEN header.
 /// </summary>
 public static class MemberAreaEndpoints

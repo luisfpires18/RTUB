@@ -7,7 +7,7 @@ namespace RTUB.Application.Helpers;
 /// The Rehearsals rules (React track 014, docs/react-rehearsals.md), enforced server-side by
 /// <c>RehearsalAgendaService</c> and <c>RehearsalAdminService</c>. Roles inherit: Owner includes Admin.
 ///
-/// - Visitors: nothing (the Blazor page was [Authorize]).
+/// - Visitors: nothing.
 /// - Any signed-in member: every rehearsal and who said they go, their own presença (Vou / Não vou, instrument,
 ///   note) on an upcoming rehearsal, removing their own presença, statistics.
 /// - Mod, Admin or Owner (<see cref="CanEdit"/>): create (one or a range) and edit a rehearsal.

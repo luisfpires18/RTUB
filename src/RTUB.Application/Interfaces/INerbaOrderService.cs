@@ -7,10 +7,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface INerbaOrderService
 {
-    /// <summary>
-    /// Gets all Nerba orders for a specific report
-    /// </summary>
-    Task<List<NerbaOrder>> GetByReportIdAsync(int reportId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all Nerba orders

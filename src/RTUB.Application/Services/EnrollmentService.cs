@@ -40,11 +40,6 @@ public class EnrollmentService : IEnrollmentService
         _userManager = userManager;
     }
 
-    public async Task<Enrollment?> GetEnrollmentByIdAsync(int id, CancellationToken cancellationToken = default)
-    {
-        return await _enrollmentRepository.GetByIdAsync(id);
-    }
-
     public async Task<IEnumerable<Enrollment>> GetAllEnrollmentsAsync(CancellationToken cancellationToken = default)
     {
         return await _enrollmentRepository.GetAllAsync();
@@ -53,11 +48,6 @@ public class EnrollmentService : IEnrollmentService
     public async Task<IEnumerable<Enrollment>> GetEnrollmentsByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
     {
         return await _enrollmentRepository.GetByEventIdAsync(eventId);
-    }
-
-    public async Task<IEnumerable<Enrollment>> GetEnrollmentsByUserIdAsync(string userId, CancellationToken cancellationToken = default)
-    {
-        return await _enrollmentRepository.GetByUserIdAsync(userId);
     }
 
     public async Task<Enrollment?> GetEnrollmentByEventAndUserAsync(int eventId, string userId, CancellationToken cancellationToken = default)

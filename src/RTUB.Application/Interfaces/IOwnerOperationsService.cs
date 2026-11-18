@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The Owner's operational tools (task 035, docs/react-owner-operations.md), over the services the Blazor pages used:
+/// The Owner's operational tools (task 035, docs/react-owner-operations.md):
 /// announcement emails, custom push, accounts and roles, the audit log and the database viewer. The caller is already
 /// known to be the Owner: <c>OwnerEndpoints</c> refuses everyone else (401 / 403) before reaching this service.
 /// </summary>

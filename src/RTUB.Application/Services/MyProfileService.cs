@@ -15,7 +15,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /member/profile behind the React /profile (task 032, docs/react-member-area.md). The member edits
+/// The React /profile (task 032, docs/react-member-area.md). The member edits
 /// only their own profile, with the old page's fields and rules, now enforced here (the old page only hid inputs):
 /// - Pessoal: names, nickname, email, phone, birth date, city, degree, with the entity's own checks; a member who is
 ///   only a Leitão cannot change the nickname (it comes at Caloiro); an email another account uses is refused;

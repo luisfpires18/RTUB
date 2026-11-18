@@ -18,11 +18,6 @@ public interface IEventRepertoireRepository : IRepository<EventRepertoire>
     Task<bool> SongExistsInRepertoireAsync(int eventId, int songId, DateTime date);
 
     /// <summary>
-    /// Get repertoire item with song and event details
-    /// </summary>
-    Task<EventRepertoire?> GetRepertoireItemWithDetailsAsync(int id);
-
-    /// <summary>
     /// Get distinct repertoire dates for an event
     /// </summary>
     Task<IEnumerable<DateTime>> GetRepertoireDatesAsync(int eventId);

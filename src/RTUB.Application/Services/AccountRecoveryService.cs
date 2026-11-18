@@ -21,8 +21,8 @@ public sealed record ConfirmEmailInput(string? UserId, string? Code);
 public sealed record AccountRecoveryResult(bool Succeeded, string Message);
 
 /// <summary>
-/// The public account-recovery flows of the React /forgot-password, /reset-password and /confirm-email (task 036,
-/// were Blazor pages). The same Identity calls as before, with the same token handling and the same messages; nothing
+/// The public account-recovery flows of the React /forgot-password, /reset-password and /confirm-email (task 036).
+/// The same Identity calls as before, with the same token handling and the same messages; nothing
 /// says whether an address has an account, nothing signs anyone in, and no token is logged or returned.
 /// </summary>
 public class AccountRecoveryService

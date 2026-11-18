@@ -15,7 +15,7 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /logistics and /logistics/{id} behind the React pages (React track 023, docs/react-logistics.md). Same
+/// The React /logistics and /logistics/{id} pages (React track 023, docs/react-logistics.md). Same
 /// tables and rules, now enforced server-side (<see cref="LogisticsAuthorization"/>; the old pages re-checked in the
 /// circuit):
 /// - boards: active and completed, newest first, search over name and description; name (≤ 200) required,

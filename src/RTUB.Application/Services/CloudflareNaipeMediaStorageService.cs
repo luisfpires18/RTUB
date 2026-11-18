@@ -95,16 +95,4 @@ public class CloudflareNaipeMediaStorageService : BaseCloudflareStorageService<C
         }
     }
 
-    public async Task<bool> MediaExistsAsync(string mediaUrl)
-    {
-        if (string.IsNullOrEmpty(mediaUrl))
-            return false;
-
-        var objectKey = ExtractObjectKeyFromUrl(mediaUrl);
-        if (string.IsNullOrEmpty(objectKey))
-            return false;
-
-        return await ObjectExistsAsync(objectKey);
-    }
-
 }

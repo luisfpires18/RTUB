@@ -106,41 +106,6 @@ public class CloudflareImageStorageServiceTests
     }
 
     [Fact]
-    public async Task ImageExistsAsync_WithEmptyUrl_ReturnsFalse()
-    {
-        // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
-
-        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
-
-        // Act
-        var result = await service.ImageExistsAsync("");
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public async Task ImageExistsAsync_WithInvalidUrl_ReturnsFalse(string? invalidUrl)
-    {
-        // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
-
-        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
-
-        // Act
-        var result = await service.ImageExistsAsync(invalidUrl!);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
     public void Constructor_LogsInitializationMessage()
     {
         // This test has been removed as the constructor no longer logs an initialization message

@@ -5,9 +5,9 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /leaderboard ("Tabela de Classificação", React track 019, docs/react-leaderboard.md; was the Blazor page).
-/// Thin: every rule lives in <see cref="ILeaderboardService"/>, decided from the session. Signed-in members only, as
-/// before. Every write needs the antiforgery token in the X-CSRF-TOKEN header.
+/// The React /leaderboard ("Tabela de Classificação", docs/react-leaderboard.md).
+/// Thin: every rule lives in <see cref="ILeaderboardService"/>, decided from the session. Signed-in members only.
+/// Every write needs the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class LeaderboardEndpoints
 {

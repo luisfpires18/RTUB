@@ -5,9 +5,9 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React Rehearsals API (React track 014, docs/react-rehearsals.md). Thin by design: every rule lives in
+/// The React Rehearsals API (docs/react-rehearsals.md). Thin by design: every rule lives in
 /// <see cref="IRehearsalAgendaService"/> (members) and <see cref="IRehearsalAdminService"/> (Admin/Owner),
-/// decided from the session. Signed-in members only, as the Blazor page was. Every write needs the antiforgery
+/// decided from the session. Signed-in members only. Every write needs the antiforgery
 /// token in the X-CSRF-TOKEN header (GET /api/public/antiforgery-token). Rehearsals speak of presença
 /// (attendance); events keep inscrição (enrollment).
 /// </summary>

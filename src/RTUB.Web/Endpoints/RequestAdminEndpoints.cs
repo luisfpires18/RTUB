@@ -4,9 +4,9 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /requests ("Gestão de Pedidos", task 031, docs/react-requests-questions.md; was the Blazor page). Thin: every
-/// rule lives in <see cref="IRequestAdminService"/>, decided from the session. Signed-in members except Leitões, as
-/// before; Admin and Owner answer. Every write needs the antiforgery token in the X-CSRF-TOKEN header. The public
+/// The React /requests ("Gestão de Pedidos", docs/react-requests-questions.md). Thin: every
+/// rule lives in <see cref="IRequestAdminService"/>, decided from the session. Signed-in members except Leitões;
+/// Admin and Owner answer. Every write needs the antiforgery token in the X-CSRF-TOKEN header. The public
 /// form keeps its own POST /api/public/requests.
 /// </summary>
 public static class RequestAdminEndpoints

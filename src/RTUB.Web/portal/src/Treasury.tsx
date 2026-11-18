@@ -7,7 +7,7 @@ import { euros, matches, problem, treasuryApi, type ReportSummary, type Reports 
 import { Confirm, Refusal, SaveFooter, TreasuryTabs } from './TreasuryUi';
 
 /**
- * /treasury - Tesouraria (React track 024; was the Blazor /finance). Treasury members: the annual reports, newest first,
+ * /treasury - Tesouraria. Treasury members: the annual reports, newest first,
  * with income, expenses and balance, search and PDF. Admin, Owner and treasury-team Mods create a report; Owner and the
  * treasury team publish and delete drafts.
  */

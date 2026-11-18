@@ -199,53 +199,6 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
     }
 
     [Fact]
-    public async Task IsSongInRepertoireAsync_ExistingSong_ReturnsTrue()
-    {
-        // Arrange
-        var event1 = await _eventService.CreateEventAsync("Test Event", _testEventDate, "Test Location", EventType.Atuacao);
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song.Id, 1, _testEventDate);
-
-        // Act
-        var result = await _repertoireService.IsSongInRepertoireAsync(event1.Id, song.Id, _testEventDate);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task IsSongInRepertoireAsync_NonExistingSong_ReturnsFalse()
-    {
-        // Arrange
-        var event1 = await _eventService.CreateEventAsync("Test Event", _testEventDate, "Test Location", EventType.Atuacao);
-
-        // Act
-        var result = await _repertoireService.IsSongInRepertoireAsync(event1.Id, 999, _testEventDate);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task GetRepertoireItemAsync_ExistingItem_ReturnsWithNavigationProperties()
-    {
-        // Arrange
-        var event1 = await _eventService.CreateEventAsync("Test Event", _testEventDate, "Test Location", EventType.Atuacao);
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-        var repertoireItem = await _repertoireService.AddSongToRepertoireAsync(event1.Id, song.Id, 1, _testEventDate);
-
-        // Act
-        var result = await _repertoireService.GetRepertoireItemAsync(repertoireItem.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Song.Should().NotBeNull();
-        result.Event.Should().NotBeNull();
-    }
-
-    [Fact]
     public async Task UpdateRepertoireOrderAsync_ReordersItemsCorrectly()
     {
         // Arrange
@@ -449,69 +402,6 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
     }
 
     [Fact]
-    public async Task IsSongInRepertoireAsync_WhenSongExists_ReturnsTrue()
-    {
-        // Arrange
-        var event1 = await _eventService.CreateEventAsync("Test Event", _testEventDate, "Test Location", EventType.Atuacao);
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song.Id, 1, _testEventDate);
-
-        // Act
-        var result = await _repertoireService.IsSongInRepertoireAsync(event1.Id, song.Id, _testEventDate);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task IsSongInRepertoireAsync_WhenSongDoesNotExist_ReturnsFalse()
-    {
-        // Arrange
-        var event1 = await _eventService.CreateEventAsync("Test Event", _testEventDate, "Test Location", EventType.Atuacao);
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-
-        // Act - Song never added to repertoire
-        var result = await _repertoireService.IsSongInRepertoireAsync(event1.Id, song.Id, _testEventDate);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task GetRepertoireItemAsync_WhenExists_ReturnsItemWithNavigationProperties()
-    {
-        // Arrange
-        var event1 = await _eventService.CreateEventAsync("Test Event", _testEventDate, "Test Location", EventType.Atuacao);
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-        var addedItem = await _repertoireService.AddSongToRepertoireAsync(event1.Id, song.Id, 1, _testEventDate);
-
-        // Act
-        var result = await _repertoireService.GetRepertoireItemAsync(addedItem.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Event.Should().NotBeNull();
-        result.Event!.Name.Should().Be("Test Event");
-        result.Song.Should().NotBeNull();
-        result.Song!.Title.Should().Be("Test Song");
-        result.Song!.Album.Should().NotBeNull();
-        result.Song!.Album!.Title.Should().Be("Test Album");
-    }
-
-    [Fact]
-    public async Task GetRepertoireItemAsync_WhenDoesNotExist_ReturnsNull()
-    {
-        // Act
-        var result = await _repertoireService.GetRepertoireItemAsync(999);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
     public async Task UpdateRepertoireOrderAsync_WithEmptyList_LeavesOrderUnchanged()
     {
         // Arrange
@@ -620,47 +510,6 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
 
         // Assert
         result.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task IsSongInRepertoireAsync_SongExists_ReturnsTrue()
-    {
-        // Arrange
-        var event1 = await _eventService.CreateEventAsync("Test Event", _testEventDate, "Test Location", EventType.Atuacao);
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song.Id, 1, _testEventDate);
-
-        // Act
-        var result = await _repertoireService.IsSongInRepertoireAsync(event1.Id, song.Id, _testEventDate);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task IsSongInRepertoireAsync_SongDoesNotExist_ReturnsFalse()
-    {
-        // Arrange
-        var event1 = await _eventService.CreateEventAsync("Test Event", _testEventDate, "Test Location", EventType.Atuacao);
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-
-        // Act
-        var result = await _repertoireService.IsSongInRepertoireAsync(event1.Id, song.Id, _testEventDate);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task GetRepertoireItemAsync_NonExistentItem_ReturnsNull()
-    {
-        // Act
-        var result = await _repertoireService.GetRepertoireItemAsync(999);
-
-        // Assert
-        result.Should().BeNull();
     }
 
     [Fact]
@@ -984,24 +833,6 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
 
         // Assert
         dates.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task IsSongInRepertoireAsync_ChecksSpecificDate()
-    {
-        // Arrange
-        var event1 = await _eventService.CreateEventAsync("Multi Day Event", _testEventDate, "Test Location", EventType.Festival);
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song = await _songService.CreateSongAsync("Test Song", album.Id);
-
-        var day1 = _testEventDate;
-        var day2 = _testEventDate.AddDays(1);
-
-        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song.Id, 1, day1);
-
-        // Act & Assert
-        (await _repertoireService.IsSongInRepertoireAsync(event1.Id, song.Id, day1)).Should().BeTrue();
-        (await _repertoireService.IsSongInRepertoireAsync(event1.Id, song.Id, day2)).Should().BeFalse();
     }
 
     [Fact]

@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React members area (React track 017; was the Blazor /members and /hierarchy). Signed-in members
+// Contracts of the React members area (React track 017). Signed-in members
 // only, as before. What the old page showed every member and nothing more: the cards carry no contact field; the
 // details carry email, phone, city, birth date and degree, which the old "Detalhes do Membro" modal showed to any
 // signed-in member. No EF entity, password, role, address, note field of the user or audit field leaves the server.

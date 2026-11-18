@@ -23,16 +23,6 @@ public class EventContactService : IEventContactService
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<EventContact>> GetContactsByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
-    {
-        return await _repository.QueryAsync(
-            q => q.Where(c => c.EventId == eventId)
-                  .Include(c => c.User)
-                  .ToListAsync(cancellationToken),
-            cancellationToken);
-    }
-
-    /// <inheritdoc />
     public async Task<EventContact?> GetContactAsync(int eventId, string userId, CancellationToken cancellationToken = default)
     {
         return await _repository.QueryAsync(

@@ -1,7 +1,7 @@
 namespace RTUB.Application.DTOs;
 
 // Contracts of the React Events area (React track 011, docs/react-events.md). Built for the browser
-// and the caller: a visitor gets only what the old Blazor /events showed every visitor (name, dates,
+// and the caller: a visitor gets only the public fields (name, dates,
 // location, type, image, cancelled, trophies, videos). Descriptions, cancellation reasons, counts,
 // repertoire and the caller's own enrollment are for signed-in members. No user id, enrollment id,
 // note of another member, audit field or EF entity leaves the server. Dates are the stored local
@@ -91,7 +91,7 @@ public sealed record EventMemberSummaryDto(
 /// <summary>
 /// One event page. <c>Member</c> is null for visitors. <c>CanManagePrizes</c>: the caller is Admin/Owner
 /// and the event is a past festival, where prizes are added (012B). <c>CanTrackContacts</c>: Mod and above or a Leitão,
-/// who get the link to the Blazor /events/{id}/contacts (012E; it was linked from the retired participants page).
+/// who get the link to the event contacts page (012E).
 /// </summary>
 public sealed record EventDetailDto(
     bool IsMember,

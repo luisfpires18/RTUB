@@ -5,9 +5,8 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// Órgãos Sociais for the React /roles. Public and read-only (React track 008): <see cref="IGovernanceService"/>
-/// decides the mandate and maps only public fields. Members' side (React track 016, was the Blazor /member/roles,
-/// docs/react-governance.md): the RGI, fiscal years and position assignments, every rule in
+/// Órgãos Sociais for the React /roles. Public and read-only: <see cref="IGovernanceService"/>
+/// decides the mandate and maps only public fields. Members' side (docs/react-governance.md): the RGI, fiscal years and position assignments, every rule in
 /// <see cref="IGovernanceManagementService"/>, decided from the session. Every write needs the antiforgery token in the
 /// X-CSRF-TOKEN header.
 /// </summary>

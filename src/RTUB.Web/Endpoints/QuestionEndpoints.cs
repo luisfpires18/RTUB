@@ -5,9 +5,9 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /questions ("Perguntas aos Órgãos Sociais", task 031, docs/react-requests-questions.md; was the Blazor
-/// page). Thin: every rule lives in <see cref="IQuestionBoardService"/>, decided from the session. Signed-in members
-/// only, as before. Every write needs the antiforgery token in the X-CSRF-TOKEN header.
+/// The React /questions ("Perguntas aos Órgãos Sociais", docs/react-requests-questions.md).
+/// Thin: every rule lives in <see cref="IQuestionBoardService"/>, decided from the session. Signed-in members
+/// only. Every write needs the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class QuestionEndpoints
 {

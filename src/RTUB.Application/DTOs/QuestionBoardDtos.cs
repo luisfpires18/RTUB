@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /questions (task 031; was the Blazor "Perguntas aos Órgãos Sociais"). Signed-in members only.
+// Contracts of the React /questions (task 031). Signed-in members only.
 // People are shown by name and avatar only (GovernanceMemberDto); no contact field leaves the server.
 
 /// <summary>

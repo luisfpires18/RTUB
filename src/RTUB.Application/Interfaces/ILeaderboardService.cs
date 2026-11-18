@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>The React /leaderboard (React track 019; was the Blazor "Tabela de Classificação"). Signed-in members.</summary>
+/// <summary>The React /leaderboard (React track 019). Signed-in members.</summary>
 public interface ILeaderboardService
 {
     /// <summary><paramref name="fiscalYear"/>: "" (every year) or one of the listed years ("2025-2026").</summary>

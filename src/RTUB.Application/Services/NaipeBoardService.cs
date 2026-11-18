@@ -8,7 +8,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /naipes and /naipes/config behind the React pages (task 033, docs/react-naipes.md). Same data and
+/// The React /naipes and /naipes/config pages (task 033, docs/react-naipes.md). Same data and
 /// behaviour through <see cref="INaipeService"/> (which keeps the R2 storage, the audit log and the push to everyone on
 /// a new item), rules now enforced here (<see cref="NaipesAuthorization"/>; the old pages only hid buttons):
 /// - the picker lists the visible instruments in their display order (the settings are created on first use, as before);

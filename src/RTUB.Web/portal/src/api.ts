@@ -1,7 +1,7 @@
 // Typed contracts with the ASP.NET Core host. See docs/react-portal-pilot.md.
 
 /**
- * Which member-menu groups the caller sees (MemberMenuAccess, task 030): the Blazor navbar's rules, decided by the
+ * Which member-menu groups the caller sees (MemberMenuAccess): the navbar rules, decided by the
  * server. It only hides links; every page and API still enforces its own rule.
  */
 export type MemberMenu = { management: boolean; logistics: boolean; treasury: boolean; admin: boolean; owner: boolean };
@@ -143,7 +143,7 @@ const signInErrors: Record<string, SignInFailure> = { Invalid: 'invalid', Locked
 
 /**
  * Signs out through the existing POST /auth/logout (Program.cs): a plain form post with the antiforgery
- * token, so the browser follows its redirect to / as the Blazor menu's form did (012F). False when the
+ * token, so the browser follows its redirect to / like a regular form post. False when the
  * token could not be fetched; nothing is sent then.
  */
 export async function signOut(): Promise<boolean> {
@@ -170,7 +170,7 @@ export async function signOut(): Promise<boolean> {
 
 /**
  * The existing POST /auth/login (Program.cs): same form fields, antiforgery and per-IP limit as
- * the old Blazor form. Accept: application/json makes it answer { redirect } or 401 { error }
+ * a regular login form. Accept: application/json makes it answer { redirect } or 401 { error }
  * instead of redirecting. The server alone validates the return URL. Nothing throws.
  */
 export async function signIn(username: string, password: string, rememberMe: boolean, returnUrl: string): Promise<SignInOutcome> {

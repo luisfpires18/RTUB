@@ -51,16 +51,6 @@ public class SongService : ISongService
         _userManager = userManager;
     }
 
-    public async Task<Song?> GetSongByIdAsync(int id)
-    {
-        return await _songRepository.GetSongByIdWithUrlsAsync(id);
-    }
-
-    public async Task<IEnumerable<Song>> GetAllSongsAsync()
-    {
-        return await _songRepository.GetAllSongsWithAlbumAsync();
-    }
-
     public async Task<IEnumerable<Song>> GetSongsByAlbumIdAsync(int albumId)
     {
         return await _songRepository.GetSongsByAlbumIdAsync(albumId);
@@ -194,11 +184,6 @@ public class SongService : ISongService
         return url.Trim().ToLowerInvariant();
     }
 
-    public async Task<IEnumerable<SongVideo>> GetVideosBySongIdAsync(int songId)
-    {
-        return await _songVideoRepository.GetBySongIdAsync(songId);
-    }
-
     public async Task<SongVideo> AddVideoAsync(int songId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null)
     {
         // Validate that song exists
@@ -305,11 +290,6 @@ public class SongService : ISongService
 
         // Delete from repository
         await _songVideoRepository.DeleteAsync(video);
-    }
-
-    public async Task<int> GetVideoCountBySongIdAsync(int songId)
-    {
-        return await _songVideoRepository.GetCountBySongIdAsync(songId);
     }
 
     // Play count tracking methods

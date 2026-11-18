@@ -23,13 +23,4 @@ public class RoleAssignmentRepository : Repository<RoleAssignment>, IRoleAssignm
             .Where(ra => ra.UserId == userId)
             .ToListAsync();
     }
-
-    public async Task<IEnumerable<RoleAssignment>> GetByPositionAsync(Position position)
-    {
-        using var context = CreateContext();
-        return await context.Set<RoleAssignment>()
-            .AsNoTracking()
-            .Where(ra => ra.Position == position)
-            .ToListAsync();
-    }
 }

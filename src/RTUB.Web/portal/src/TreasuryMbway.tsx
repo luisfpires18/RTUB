@@ -9,7 +9,7 @@ import { Confirm, Field, MemberPicker, PersonChip, Refusal, SaveFooter, Treasury
 const PAGE = 12;
 
 /**
- * /treasury/mbway - MBWAY (React track 024; was the Blazor /mbway, which visitors could open). Treasury members: every
+ * /treasury/mbway - MBWAY. Treasury members: every
  * transfer, newest first, totals per recipient, search. Mod, Admin and Owner add; the Owner edits and deletes.
  * MBWay transfers never count in the report totals.
  */

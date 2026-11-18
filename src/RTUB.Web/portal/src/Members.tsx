@@ -41,11 +41,11 @@ function filtersFromUrl(): DirectoryFilters {
 }
 
 /**
- * /members - Membros (React track 017; was the Blazor /members). Signed-in members only. Everyone in the tuna with
+ * /members - Membros. Signed-in members only. Everyone in the tuna with
  * the old filters (search, category, Tuno sub-category, instrument, só ativos), members by nickname and Leitões by
  * activity; a card opens the member's details (?member=id). "Ativos" and "Aniversários" are the old lists.
  * Admin and Owner also add, edit, expel / reactivate Leitões, set a Leitão's nickname, send the
- * push reminder and delete (React track 018; was the Blazor /members/manage). Owner deletes any member, Admin Leitões.
+ * push reminder and delete. Owner deletes any member, Admin Leitões.
  */
 export default function Members() {
   const [directory, setDirectory] = useState<Directory | 'signin' | null>();

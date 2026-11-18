@@ -67,7 +67,7 @@ public class EventManagementTests
             (await _service.GetEventForEditAsync(id, user)).Status.Should().Be(expected);
         }
 
-        _events.Invocations.Where(i => i.Method.Name != nameof(IEventService.GetEventByIdAsync)).Should().BeEmpty("nothing is written for them");
+        _events.Invocations.Should().BeEmpty("nothing is written for them");
         _push.VerifyNoOtherCalls();
     }
 

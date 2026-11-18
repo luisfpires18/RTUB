@@ -16,7 +16,7 @@ import { Icon } from './icons';
 
 const DEFAULT_AVATAR = '/images/default-avatar.webp';
 
-/** ?fy=2024-2025 keeps a mandate shareable, as the Blazor page did. */
+/** ?fy=2024-2025 keeps a mandate shareable. */
 const yearFromUrl = () => new URLSearchParams(location.search).get('fy') ?? undefined;
 
 type Seat = { title: string; position?: string; holders: (GovernanceMember & { assignmentId?: number })[] };
@@ -25,7 +25,7 @@ type Open = { kind: 'rgi' } | { kind: 'year' } | { kind: 'assign'; seat: ManageP
 /**
  * /roles - Órgãos Sociais. Who held each position in one mandate (GET /api/public/governance), public fields only.
  * Signed-in members also open the RGI; Mod, Admin and Owner add fiscal years and assign or remove positions here
- * (React track 016, was the Blazor /member/roles), over GET /api/governance/manage, which also lists empty years.
+ * over GET /api/governance/manage, which also lists empty years.
  */
 export default function Governance() {
   const [data, setData] = useState<GovernanceData>();

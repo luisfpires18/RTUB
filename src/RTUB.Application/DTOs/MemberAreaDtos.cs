@@ -1,7 +1,7 @@
 namespace RTUB.Application.DTOs;
 
 // The member-area pages React took over in task 032 (docs/react-member-area.md): the Hall of Fame (/hall-of-fame), the
-// members map (/members/map, was /member/map) and the profile editor (/profile, was the Blazor /member/profile).
+// members map (/members/map) and the profile editor (/profile).
 
 // ---------- Hall of Fame (GET /api/hall-of-fame) ----------
 

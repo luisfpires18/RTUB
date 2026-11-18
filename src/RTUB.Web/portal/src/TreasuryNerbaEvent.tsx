@@ -17,7 +17,7 @@ const COLUMNS: { key: Sort; label: string; numeric?: boolean }[] = [
 const weekday = (iso: string) => new Date(`${isoDay(iso)}T12:00:00`).toLocaleDateString('pt-PT', { weekday: 'long' });
 
 /**
- * /treasury/nerba/{eventId} - one Nerba event's orders (React track 024; was the Blazor /nerba/event/{id}). Treasury
+ * /treasury/nerba/{eventId} - one Nerba event's orders. Treasury
  * members: items with quantity, unit price and total, per day of a multi-day event, sortable, searchable. Mod, Admin and
  * Owner add, edit and delete items.
  */

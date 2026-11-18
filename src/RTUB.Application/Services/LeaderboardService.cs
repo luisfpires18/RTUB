@@ -11,7 +11,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /leaderboard behind the React /leaderboard (React track 019, docs/react-leaderboard.md). Same data and
+/// The React /leaderboard (React track 019, docs/react-leaderboard.md). Same data and
 /// rules, through the services the old page used, now enforced server-side (<see cref="LeaderboardAuthorization"/>):
 /// - the table: every account (no category, retired or expelled filter, as before), XP from <see cref="IRankingService"/>
 ///   (configured XP per attended past rehearsal and per past event the member answered "vai", by event type), level

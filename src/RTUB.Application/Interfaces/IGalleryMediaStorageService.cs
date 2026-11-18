@@ -29,13 +29,6 @@ public interface IGalleryMediaStorageService
     Task DeleteMediaAsync(string mediaUrl);
 
     /// <summary>
-    /// Generate thumbnail for video
-    /// </summary>
-    /// <param name="videoUrl">URL of the video</param>
-    /// <returns>URL of the thumbnail</returns>
-    Task<string?> GenerateThumbnailAsync(string videoUrl);
-
-    /// <summary>
     /// Get maximum allowed file size for media type
     /// </summary>
     /// <param name="mediaType">Type of media</param>

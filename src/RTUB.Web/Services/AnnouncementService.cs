@@ -2,8 +2,8 @@ namespace RTUB.Web.Services;
 
 /// <summary>
 /// The Owner's system announcement (/owner/tracing → POST /api/owner/tracing/announcement). Kept in memory only, never
-/// stored, as before: the React shell polls GET /api/announcement and shows the latest one to whoever has a page open
-/// within <see cref="Lifetime"/> of the send (task 037; the Blazor banner pushed it to open circuits instead).
+/// stored: the React shell polls GET /api/announcement and shows the latest one to whoever has a page open
+/// within <see cref="Lifetime"/> of the send.
 /// One app instance holds it: a scaled-out App Service would need a shared store.
 /// </summary>
 public class AnnouncementService(TimeProvider? time = null)

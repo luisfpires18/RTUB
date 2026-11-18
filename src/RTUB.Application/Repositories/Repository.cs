@@ -8,7 +8,7 @@ namespace RTUB.Application.Repositories;
 /// <summary>
 /// Base repository implementation providing common data access operations.
 /// Uses IDbContextFactory to create short-lived DbContext instances per operation,
-/// following Microsoft's recommended "context per operation" pattern for Blazor Server.
+/// following Microsoft's recommended "context per operation" pattern.
 /// Each method creates a fresh DbContext, performs its work, and disposes it.
 /// </summary>
 /// <typeparam name="T">The entity type</typeparam>

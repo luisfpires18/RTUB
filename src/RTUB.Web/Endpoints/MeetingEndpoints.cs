@@ -5,9 +5,9 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /meetings (task 034, docs/react-meetings.md; was the Blazor page). Thin: every rule lives in
-/// <see cref="IMeetingBoardService"/>, decided from the session. Signed-in members only, as the Blazor page was
-/// (<c>[Authorize]</c>); a Leitão is refused everything (403) and a meeting the member does not see is a 404. Nothing is
+/// The React /meetings (docs/react-meetings.md). Thin: every rule lives in
+/// <see cref="IMeetingBoardService"/>, decided from the session. Signed-in members only;
+/// a Leitão is refused everything (403) and a meeting the member does not see is a 404. Nothing is
 /// cached (no-store) and every write needs the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class MeetingEndpoints

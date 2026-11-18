@@ -512,7 +512,7 @@ export function NoticeDialog({ rehearsal, onClose }: { rehearsal: RehearsalSumma
 const fold = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /**
- * "Estatísticas de presenças" (was the Blazor modal): for the dates chosen (the current season by default),
+ * "Estatísticas de presenças": for the dates chosen (the current season by default),
  * each member's confirmed and pending presenças at past, not cancelled rehearsals, and the confirmed share.
  */
 export function StatsDialog({ onClose }: { onClose: () => void }) {
@@ -614,7 +614,7 @@ export function StatsDialog({ onClose }: { onClose: () => void }) {
 
 const RECENT = 10;
 
-/** "As minhas presenças" (was the Blazor modal): the last 10 (or all) past, not cancelled rehearsals and the confirmed share. */
+/** "As minhas presenças": the last 10 (or all) past, not cancelled rehearsals and the confirmed share. */
 export function MyPresencesDialog({ past, onClose }: { past: RehearsalSummary[]; onClose: () => void }) {
   const [all, setAll] = useState(false);
   const id = useId();

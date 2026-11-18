@@ -107,29 +107,6 @@ public class AuditLogService : IAuditLogService
                 .CountAsync());
     }
 
-    public async Task<IEnumerable<AuditLog>> GetEntityHistoryAsync(string entityType, int entityId)
-    {
-        return await _auditLogRepository.QueryAsync(q =>
-            ExcludeHiddenEntities(q)
-                .Where(a => a.EntityType == entityType && a.EntityId == entityId)
-                .OrderByDescending(a => a.Timestamp)
-                .ToListAsync());
-    }
-
-    public async Task<IEnumerable<AuditLog>> SearchChangesAsync(string searchTerm, int page = 1, int pageSize = 100)
-    {
-        if (string.IsNullOrWhiteSpace(searchTerm))
-        {
-            return Enumerable.Empty<AuditLog>();
-        }
-
-        return await _auditLogRepository.QueryAsync(q =>
-            ExcludeHiddenEntities(q)
-                .Where(Matches(searchTerm))
-                .OrderByDescending(a => a.Timestamp)
-                .PaginateAsync(page, pageSize));
-    }
-
     public async Task<IEnumerable<string>> GetEntityTypesAsync()
     {
         return await _auditLogRepository.QueryAsync(q =>

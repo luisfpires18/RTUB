@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// The React /meetings (task 034, docs/react-meetings.md; was the Blazor page): meetings, participations, atas and meeting
+// The React /meetings (task 034, docs/react-meetings.md): meetings, participations, atas and meeting
 // requests. Built per caller by MeetingBoardService: a member only receives meetings they may see and fields the old page
 // showed them. No email address, EF entity or audit field leaves the server. Dates are the stored local (Portugal)
 // values as plain "yyyy-MM-ddTHH:mm" text, so no time zone can shift them. Meeting types travel as the MeetingType name.

@@ -47,11 +47,6 @@ public class MeetingRequestService : IMeetingRequestService
         return await _meetingRequestRepository.GetPagedWithAuthorAsync(page, pageSize, status);
     }
 
-    public async Task<int> GetTotalCountAsync(RequestStatus? status = null)
-    {
-        return await _meetingRequestRepository.GetCountAsync(status);
-    }
-
     public async Task<MeetingRequest?> GetByIdAsync(int id)
     {
         return await _meetingRequestRepository.GetByIdWithAuthorAsync(id);

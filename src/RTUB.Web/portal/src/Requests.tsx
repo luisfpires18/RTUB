@@ -66,7 +66,7 @@ const problem = (o: Outcome<unknown>, what: string) =>
           : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
 
 /**
- * /requests - Gestão de Pedidos (task 031; was the Blazor page). The performance requests sent through the public
+ * /requests - Gestão de Pedidos. The performance requests sent through the public
  * /request form: every signed-in member but Leitões reads them; Admin and Owner approve, reject and delete. Approving
  * offers to open the agenda's create form filled in from the request.
  */

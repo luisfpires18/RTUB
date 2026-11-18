@@ -23,13 +23,4 @@ public class TrophyRepository : Repository<Trophy>, ITrophyRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Trophy>> GetAllWithEventAsync()
-    {
-        using var context = CreateContext();
-        return await context.Set<Trophy>()
-            .AsNoTracking()
-            .Include(t => t.Event)
-            .OrderByDescending(t => t.Event!.Date)
-            .ToListAsync();
-    }
 }

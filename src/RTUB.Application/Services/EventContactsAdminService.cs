@@ -10,7 +10,7 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /events/{id}/contacts behind the React page (React track 013, docs/react-events.md).
+/// The React event contacts page (React track 013, docs/react-events.md).
 /// Same behaviour, rules now server-side: Mod and above (and any Leitão, since 049) record a call (Vai / Não vai / Indeciso, notes ≤500)
 /// through <see cref="IEventContactService"/>; an answer creates the member's enrollment (primary instrument,
 /// no notification) or flips an existing one, and "repor" clears the call and removes the enrollment, exactly
