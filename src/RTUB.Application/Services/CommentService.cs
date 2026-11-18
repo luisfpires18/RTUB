@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -21,7 +20,6 @@ public class CommentService : ICommentService
     private readonly IPostService _postService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
-    private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly IUserProfileService _userProfileService;
 
     public CommentService(
@@ -33,7 +31,6 @@ public class CommentService : ICommentService
         IPostService postService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
-        IEnrollmentRepository enrollmentRepository,
         IUserProfileService userProfileService)
     {
         _commentRepository = commentRepository;
@@ -44,7 +41,6 @@ public class CommentService : ICommentService
         _postService = postService;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
-        _enrollmentRepository = enrollmentRepository;
         _userProfileService = userProfileService;
     }
 

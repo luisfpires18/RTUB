@@ -6,7 +6,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The public performance request (React track 003): the
+/// The public performance request: the
 /// entity's data annotations, the date rules of
 /// <see cref="IRequestValidationService"/>, then create, optional date range and the RTUB email.
 /// </summary>
@@ -52,7 +52,7 @@ public class PublicRequestService : IPublicRequestService
             request.Name, request.Email, request.Phone, request.EventType,
             request.PreferredDate, request.Location, request.Message);
 
-        // As before: an end date is stored whenever one was supplied.
+        // An end date is stored whenever one was supplied.
         if (request.PreferredEndDate.HasValue)
         {
             await _requestService.SetRequestDateRangeAsync(created.Id, request.PreferredEndDate.Value);

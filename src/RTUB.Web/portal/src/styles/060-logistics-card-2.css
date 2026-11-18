@@ -1,0 +1,10 @@
+.lx-history__what {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.lx-history__meta {
+  color: var(--muted);
+  font-size: 0.75rem;
+}

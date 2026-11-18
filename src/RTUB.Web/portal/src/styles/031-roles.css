@@ -1,0 +1,160 @@
+/* ---------- /roles ---------- */
+
+/* The head is the shared events-page__head (intro on the left, tools at the right edge, as on Atuações and
+   Classificação); the year controls are one compact panel instead of a select floating at the intro's edge. */
+.governance-page__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.governance-page__year {
+  display: grid;
+  flex: 1 1 170px;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.governance-page__add {
+  flex: 1 1 auto;
+  min-height: 46px;
+  justify-content: center;
+}
+
+@media (min-width: 760px) {
+  .governance-page__tools {
+    flex-wrap: nowrap;
+  }
+
+  .governance-page__year {
+    flex: 0 0 190px;
+  }
+
+  .governance-page__add {
+    flex: none;
+  }
+}
+
+.governance-page__mandate {
+  margin: 8px 0 20px;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.governance-page__rgi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.seat__action {
+  margin-left: auto;
+  flex: none;
+}
+
+.bodies {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+}
+
+.body-card {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.body-card__name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.body-card__name svg {
+  color: var(--purple-ink);
+}
+
+.body-card__positions {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seat {
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.seat:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.seat__title {
+  margin: 0;
+  color: var(--purple-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.seat__empty {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.seat__holder {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.seat__avatar {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-raise);
+}
+
+.seat__who {
+  display: grid;
+  min-width: 0;
+}
+
+.seat__name {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.seat__full {
+  overflow-wrap: anywhere;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}

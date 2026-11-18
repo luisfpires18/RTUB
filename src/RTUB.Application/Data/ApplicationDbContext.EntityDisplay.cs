@@ -12,7 +12,7 @@ public partial class ApplicationDbContext
     private static readonly CultureInfo Pt = CultureInfo.GetCultureInfo("pt-PT");
 
     /// <summary>
-    /// Names the audit needs but the change tracker may not hold (#220): a member's nickname, an event's name, a
+    /// Names the audit needs but the change tracker may not hold: a member's nickname, an event's name, a
     /// rehearsal's date... Filled by <see cref="LoadAuditNamesAsync"/> before the save, so a deleted row is named
     /// while it still exists. Keyed by (kind, key).
     /// </summary>
@@ -111,7 +111,7 @@ public partial class ApplicationDbContext
     };
 
     /// <summary>
-    /// Before a save (#220): the names the pending audited rows need and the change tracker cannot give, loaded with at
+    /// Before a save: the names the pending audited rows need and the change tracker cannot give, loaded with at
     /// most one batched query per table, and none when every name is already known. Deleted rows are named here, while
     /// they still exist.
     /// </summary>
@@ -180,7 +180,7 @@ public partial class ApplicationDbContext
     }
 
     /// <summary>
-    /// The human name of an audited row (#220): the person or object first, never a raw id. Uses the change tracker
+    /// The human name of an audited row: the person or object first, never a raw id. Uses the change tracker
     /// and the names loaded for this save (<see cref="LoadAuditNamesAsync"/>); no query here. Null when nothing useful
     /// is known; the tracing page then shows the friendly type and the id.
     /// </summary>

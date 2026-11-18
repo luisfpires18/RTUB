@@ -1,0 +1,297 @@
+.tag {
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
+.tag--cancelled {
+  border-color: #ff8f86;
+  color: #ffb3ad;
+}
+
+.tag--soon {
+  border-color: var(--purple-ink);
+  color: var(--purple-ink);
+}
+
+/* Members-only event; visitors never get one. */
+.tag--private {
+  border-style: dashed;
+}
+
+/* The member's own answer. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pill--yes {
+  background: rgba(64, 192, 120, 0.16);
+  color: #8fe0b0;
+}
+
+.pill--no {
+  background: rgba(255, 143, 134, 0.14);
+  color: #ffb3ad;
+}
+
+/* Archive filters. */
+.events-tools {
+  display: grid;
+  gap: 10px;
+}
+
+@media (min-width: 760px) {
+  .events-tools {
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    align-items: center;
+  }
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--purple);
+}
+
+/* Archive: seasons as quiet headings, one compact row per event. */
+.archive {
+  display: grid;
+  gap: 28px;
+}
+
+.archive__season {
+  display: grid;
+  gap: 8px;
+}
+
+.archive__label {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.archive__label span {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+.archive__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.archive-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 10px;
+  border-radius: 12px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .archive-row:hover {
+    background: var(--bg-raise);
+  }
+}
+
+.archive-row:focus-within {
+  background: var(--bg-raise);
+}
+
+.archive-row__name::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+}
+
+.archive-row__name:focus-visible {
+  outline: none;
+}
+
+.archive-row__name:focus-visible::after {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.archive-row__date {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.archive-row__date span {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: 0;
+}
+
+.archive-row__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.archive-row__name {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.archive-row__meta {
+  color: var(--muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.archive-row__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.archive-row--cancelled .archive-row__name {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+@media (max-width: 479px) {
+  .archive-row {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .archive-row__badges {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .archive-row__badges:empty {
+    display: none;
+  }
+}
+
+/* Prizes (modal): this event's prizes first, then the history by festival. */
+.prizes-current {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.prizes__summary {
+  margin-bottom: 12px;
+}
+
+.prizes__list {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 760px) {
+  .prizes__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.prizes__festival {
+  display: grid;
+  gap: 8px;
+}
+
+.prizes__event {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.prizes__event:hover {
+  color: var(--purple-ink);
+}
+
+.prizes__event span {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.prizes__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prizes__items li {
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #f7d79b;
+  font-size: 0.8125rem;
+}
+
+/* One event. */
+.event-page {
+  gap: clamp(20px, 3vw, 32px);
+}
+
+.event-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.event-hero {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 900px) {
+  .event-hero--image {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: center;
+    gap: 40px;
+  }
+}

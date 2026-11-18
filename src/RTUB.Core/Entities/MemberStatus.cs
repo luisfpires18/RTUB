@@ -1,7 +1,7 @@
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// Calculated projection of a member's activity status (task 044B). Never business truth: every reconciliation
+/// Calculated projection of a member's activity status. Never business truth: every reconciliation
 /// recomputes it from the attendance data; <see cref="ApplicationUser.IsRetired"/> is the authoritative flag and
 /// <see cref="IsRetired"/> here is always written together with it, in the same SaveChanges.
 /// </summary>
@@ -74,8 +74,7 @@ public class MemberStatus : BaseEntity
     public int TotalActivitiesCount { get; set; }
 
     /// <summary>
-    /// Retired in 044B: no longer read or written (the permanent manual override and "Tornar ativo" were removed; the
-    /// activity rules alone decide the state). Kept only so the schema needs no migration; drop it in a later one.
+    /// Never read or written: the activity rules alone decide the state. Kept only so the schema needs no migration; drop it in a later one.
     /// </summary>
     public bool OverrideRetired { get; set; }
 

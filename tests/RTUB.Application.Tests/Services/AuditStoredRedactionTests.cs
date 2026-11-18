@@ -1,6 +1,5 @@
 using FluentAssertions;
 using RTUB.Application.Services;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 

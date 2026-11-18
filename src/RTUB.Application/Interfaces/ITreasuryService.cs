@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>The React /treasury and /treasury/reports/{id} ("Tesouraria", React track 024).</summary>
+/// <summary>The React /treasury and /treasury/reports/{id} ("Tesouraria").</summary>
 public interface ITreasuryService
 {
     Task<EventResult<TreasuryReportsDto>> GetReportsAsync(ClaimsPrincipal user);

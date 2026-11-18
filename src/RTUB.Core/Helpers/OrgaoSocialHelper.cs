@@ -76,12 +76,4 @@ public static class OrgaoSocialHelper
         }
         return null;
     }
-
-    /// <summary>
-    /// Gets all positions from all Orgãos Sociais
-    /// </summary>
-    public static IEnumerable<Position> GetAllOrgaoSocialPositions()
-    {
-        return Enum.GetValues<OrgaoSocialGroup>().SelectMany(GetPositionsForGroup).Distinct();
-    }
 }

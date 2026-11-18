@@ -87,18 +87,4 @@ public static class MimeTypeHelper
         // Default fallback for unknown image types (most common format)
         return "image/jpeg";
     }
-
-    /// <summary>
-    /// Gets the MIME type for any media file (image or video), with fallback to file extension
-    /// </summary>
-    /// <param name="fileName">The name of the file</param>
-    /// <param name="providedContentType">The content type provided by the browser (may be empty or incorrect on mobile)</param>
-    /// <param name="isVideo">True if this is a video file, false for image</param>
-    /// <returns>A valid MIME type for the media</returns>
-    public static string GetMediaMimeType(string fileName, string? providedContentType, bool isVideo)
-    {
-        return isVideo
-            ? GetVideoMimeType(fileName, providedContentType)
-            : GetImageMimeType(fileName, providedContentType);
-    }
 }

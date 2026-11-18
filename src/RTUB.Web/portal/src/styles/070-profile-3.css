@@ -1,0 +1,299 @@
+.lineage__node img {
+  width: var(--avatar);
+  height: var(--avatar);
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--bg-card);
+  object-fit: cover;
+}
+
+.lineage__node span {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.lineage__node--me img {
+  border-color: var(--purple-ink);
+  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.35);
+}
+
+.lineage__node--me::before,
+.lineage__node--me::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--avatar) / 2);
+  translate: -50% 0;
+}
+
+.lineage__node--me::before {
+  bottom: calc(100% + 3px);
+  width: 2px;
+  height: 18px;
+  background: var(--line-strong);
+}
+
+.lineage__node--me::after {
+  bottom: calc(100% + 4px);
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--line-strong);
+  border-bottom: 2px solid var(--line-strong);
+  rotate: 45deg;
+}
+
+/* Último ensaio / Última atuação: two small stat tiles. */
+.tuna-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.tuna-stat {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.tuna-stat > .icon {
+  grid-row: span 2;
+  width: 20px;
+  height: 20px;
+  color: var(--purple-ink);
+}
+
+.tuna-stat--event > .icon {
+  color: #f0c46a;
+}
+
+.tuna-stat dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.tuna-stat dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.tuna-info__block .who__more {
+  margin: 0;
+}
+
+/* "Ver atuações e ensaios detalhados": a date chip per activity on a rail; events gold, rehearsals purple. */
+.activity-feed {
+  --accent: var(--purple-ink);
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.activity-feed__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.activity-feed__item--event {
+  --accent: #f0c46a;
+}
+
+/* The rail between the date chips. */
+.activity-feed__item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 52px;
+  left: 25px;
+  width: 2px;
+  height: calc(100% - 42px);
+  background: var(--line);
+}
+
+.activity-feed__date {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--accent);
+  border-radius: 12px;
+  background: var(--bg-card);
+  line-height: 1;
+}
+
+.activity-feed__date strong {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.activity-feed__date small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.activity-feed__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.activity-feed__body strong {
+  overflow-wrap: anywhere;
+}
+
+.activity-feed__body small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+}
+
+.activity-feed__body small .icon {
+  width: 13px;
+  height: 13px;
+  color: var(--accent);
+}
+
+/* Percurso na Tuna: cards on a thin neutral rail, one marker each. The card colours follow the legacy milestones:
+   leitão grey, caloiro light, officer position purple, tuno black, veterano / tunossauro dark with a purple outline. */
+.tuna-path {
+  --gap: 20px;
+  --marker: 18px;
+  --card: #2a2a33;
+  --card-ink: #f1eef8;
+  --card-line: var(--line-strong);
+  --track: var(--line-strong);
+  display: grid;
+  gap: var(--gap);
+  margin: 0;
+  padding: 2px 2px 8px;
+  list-style: none;
+}
+
+.tuna-path__step {
+  --mark: var(--card-ink);
+  --mark-ink: var(--card);
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--marker) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+
+.tuna-path__marker {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--marker);
+  height: var(--marker);
+  margin-top: 14px;
+  border: 2px solid var(--mark);
+  border-radius: 50%;
+  background: var(--mark-ink);
+  color: var(--mark);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.tuna-path__card {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--card-ink);
+}
+
+.tuna-path__label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  overflow-wrap: anywhere;
+}
+
+.tuna-path__years {
+  font-size: 1.0625rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.tuna-path__notes {
+  font-size: 0.8125rem;
+  opacity: 0.75;
+}
+
+.tuna-path__step--leitao {
+  --card: #6c757d;
+  --card-line: #8a939a;
+  --card-ink: #fff;
+  --mark: #fff;
+  --mark-ink: #6c757d;
+}
+
+.tuna-path__step--caloiro {
+  --card: #f4f2fa;
+  --card-line: #f4f2fa;
+  --card-ink: #14121c;
+  --mark: #14121c;
+  --mark-ink: #f4f2fa;
+}
+
+.tuna-path__step--position {
+  --card: var(--purple);
+  --card-line: var(--purple-ink);
+  --card-ink: #fff;
+  --mark: #fff;
+  --mark-ink: var(--bg-raise);
+}
+
+.tuna-path__step--position .tuna-path__marker {
+  border-color: transparent;
+  background: var(--bg-raise);
+  font-size: 0.8125rem;
+}
+
+.tuna-path__step--position .tuna-path__marker::after {
+  content: '\2605';
+}
+
+.tuna-path__step--tuno {
+  --card: #000;
+  --card-line: #3a3a44;
+  --card-ink: #fff;
+  --mark: #e9e4f5;
+  --mark-ink: #e9e4f5;
+}
+
+.tuna-path__step--veterano,
+.tuna-path__step--tunossauro {
+  --card: #1a1a2e;
+  --card-line: var(--purple-ink);
+  --card-ink: #f1eef8;
+  --mark: var(--purple-ink);
+  --mark-ink: #1a1a2e;
+}

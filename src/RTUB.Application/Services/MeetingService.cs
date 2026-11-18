@@ -4,7 +4,6 @@ using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using RTUB.Core.Exceptions;
 using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
@@ -66,7 +65,7 @@ public class MeetingService : IMeetingService
     {
         var createdMeeting = await _meetingRepository.AddAsync(meeting);
 
-        // Task 075: a meeting registered after it happened (a president catching up) is never announced as a new one.
+        // A meeting registered after it happened (a president catching up) is never announced as a new one.
         if (createdMeeting.Date.Date < PortugalTime.Today(TimeProvider.System))
         {
             return createdMeeting;
@@ -135,7 +134,7 @@ public class MeetingService : IMeetingService
             .Where(u => u.Id == userId)
             .FirstOrDefaultAsync();
 
-        // Task 075: Owner sees every type (the ata matrix gives Owner every body's atas).
+        // Owner sees every type (the ata matrix gives Owner every body's atas).
         if (user != null && await IsOwnerAsync(ctx, userId))
         {
             return query;
@@ -150,7 +149,7 @@ public class MeetingService : IMeetingService
         {
             var role = user.CurrentRole;
             var hasMagisterPosition = user.Positions != null &&
-                (user.Positions.Contains(Position.Magister) || user.Positions.Contains(Position.PresidenteConselhoVeteranos)); // 075: the CV president too
+                (user.Positions.Contains(Position.Magister) || user.Positions.Contains(Position.PresidenteConselhoVeteranos)); // the CV president too
 
             // Allow CV meetings for Veterans, Tunossauros, Magister position holders,
             // AND users who are designated as TunoRepresentative for a specific meeting

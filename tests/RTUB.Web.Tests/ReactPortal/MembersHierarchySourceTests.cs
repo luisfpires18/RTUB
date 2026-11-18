@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.ReactPortal;
 
@@ -15,8 +14,13 @@ public class MembersHierarchySourceTests
     private static readonly string Web = Path.Combine(Root, "src", "RTUB.Web");
 
     private static string Read(params string[] path) => File.ReadAllText(Path.Combine([Web, .. path])).Replace("\r\n", "\n");
+    private static string Css() => PortalCss.Read(Path.Combine(Web, "portal", "src")).Replace("\r\n", "\n");
 
-    private static readonly string Tree = Read("portal", "src", "MembersHierarchy.tsx");
+    // Task 113 split pages/MembersHierarchy.tsx into these files; HierarchyBranch.tsx stays last so the Branch slice ends with its own file.
+    private static readonly string Tree = string.Join("\n", new[]
+    {
+        "pages/MembersHierarchy.tsx", "data/hierarchyTree.ts", "components/FamilyTree.tsx", "components/HierarchyBranch.tsx",
+    }.Select(f => Read("portal", "src", f)));
 
     [Fact]
     public void NoGraphOrLayoutDependency_WasAdded()
@@ -29,7 +33,7 @@ public class MembersHierarchySourceTests
         }
 
         Regex.Matches(Tree, @"^import .* from '([^']+)';", RegexOptions.Multiline).Select(m => m.Groups[1].Value)
-            .Should().OnlyContain(m => m == "react" || m.StartsWith("./"), "only React and the portal's own modules");
+            .Should().OnlyContain(m => m == "react" || m.StartsWith("./") || m.StartsWith("../"), "only React and the portal's own modules");
     }
 
     [Fact]
@@ -86,9 +90,9 @@ public class MembersHierarchySourceTests
     [Fact]
     public void TheCss_IsIndentedOnPhones_LeftToRightOnWideScreens_WithoutPageOverflow()
     {
-        var css = Read("portal", "src", "styles.css");
-        var start = css.IndexOf("/* ---------- /members/hierarchy (#223)", StringComparison.Ordinal);
-        var end = css.IndexOf("/* ---------- member admin (React track 018)", StringComparison.Ordinal);
+        var css = Css();
+        var start = css.IndexOf("/* ---------- /members/hierarchy: a CSS-only", StringComparison.Ordinal);
+        var end = css.IndexOf("/* ---------- member admin ----------", StringComparison.Ordinal);
         start.Should().BeGreaterThan(0);
         var tree = css[start..end];
 

@@ -1,0 +1,256 @@
+import { useEffect, useId, useState } from 'react';
+import { Dialog } from '../components/Dialog';
+import { portal } from '../data/content';
+import { dateLabel, eventsApi, type EventContactRow, type EventContacts as Contacts, type EventSummary } from '../data/eventsApi';
+import { Icon } from '../components/icons';
+import { when } from '../components/EventDiscussionShared';
+import { fold } from '../data/format';
+import { Notice, SignInNotice } from '../components/Notice';
+import { Loading } from '../components/ui/Loading';
+import { Avatar } from '../components/ui/Avatar';
+import { BackLink } from '../components/ui/BackLink';
+import { FormField } from '../components/ui/FormField';
+import { FieldError } from '../components/ui/FieldError';
+import { PageHead } from '../components/ui/PageHead';
+import { ToolsBar, SearchField } from '../components/ui/SearchTools';
+import { EmptyNote } from '../components/ui/EmptyNote';
+
+const NOTES_MAX = 500;
+
+const answers = [
+  { value: true, label: 'Vai', icon: 'check', className: 'choice__option--yes' },
+  { value: false, label: 'Não vai', icon: 'close', className: 'choice__option--no' },
+  { value: null, label: 'Indeciso', icon: 'clock', className: '' },
+] as const;
+
+function Answer({ value }: { value: boolean | null }) {
+  const a = answers.find((x) => x.value === value)!;
+  return <span className={`contact__answer contact__answer--${value === true ? 'yes' : value === false ? 'no' : 'maybe'}`}>{a.label}</span>;
+}
+
+/**
+ * /events/{id}/contacts - contact tracking. Mod and above (and any Leitão) call members
+ * about an event and note what they said; an answer also records the member's inscrição, and
+ * "Repor" undoes both. The list carries phone numbers, so the server only gives it to Mod and above and Leitões.
+ */
+export default function EventContacts({ eventId }: { eventId: number }) {
+  const [event, setEvent] = useState<EventSummary | 'missing' | null>();
+  const [list, setList] = useState<Contacts | 'signin' | 'forbidden' | null>();
+  const [recording, setRecording] = useState<EventContactRow>();
+  const [resetting, setResetting] = useState<string>();
+  const [error, setError] = useState<string>();
+  const [q, setQ] = useState('');
+  const searchId = useId();
+
+  useEffect(() => {
+    eventsApi.event(eventId).then((o) => setEvent(o.kind === 'ok' ? o.data.event : o.kind === 'notfound' ? 'missing' : null));
+    eventsApi.contacts(eventId).then((o) =>
+      setList(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : o.kind === 'forbidden' ? 'forbidden' : null),
+    );
+  }, [eventId]);
+
+  useEffect(() => {
+    document.title = event && event !== 'missing' ? `Contactos · ${event.name} · RTUB` : 'Contactos · RTUB';
+  }, [event]);
+
+  const reset = async (row: EventContactRow) => {
+    setError(undefined);
+    const o = await eventsApi.resetContact(eventId, row.userId);
+    setResetting(undefined);
+    if (o.kind === 'ok') setList(o.data);
+    else setError('Não foi possível repor o contacto. Tenta outra vez.');
+  };
+
+  const match = (r: EventContactRow) => !q.trim() || fold(`${r.name} ${r.fullName ?? ''}`).includes(fold(q.trim()));
+
+  if (event === 'missing') {
+    return (
+      <section className="page wrap">
+        <BackLink href={portal.events}>Agenda</BackLink>
+        <Notice>Esta atuação não existe ou já foi apagada.</Notice>
+      </section>
+    );
+  }
+
+  const card = (r: EventContactRow) => (
+    <li key={r.userId} className={`contact${r.contactedAt ? ' contact--done' : ''}`}>
+      <Avatar className="contact__avatar" src={r.avatarUrl} size={48} />
+      <div className="contact__who">
+        <p className="contact__name">{r.name}</p>
+        {r.fullName && r.fullName !== r.name && <p className="contact__full">{r.fullName}</p>}
+        {r.phone ? (
+          <a className="contact__phone" href={`tel:${r.phone.replace(/\s+/g, '')}`}>
+            <Icon name="phone" />
+            {r.phone}
+          </a>
+        ) : (
+          <p className="contact__full">Sem telefone</p>
+        )}
+        {r.contactedAt && (
+          <p className="contact__status">
+            <Answer value={r.willAttend} />
+            <span className="contact__when">{when(r.contactedAt)}</span>
+          </p>
+        )}
+        {r.notes && <p className="contact__notes">“{r.notes}”</p>}
+      </div>
+      <div className="contact__actions">
+        {resetting === r.userId ? (
+          <span className="talk__confirm">
+            Repor? A inscrição também sai.
+            <button type="button" className="btn btn--danger btn--sm" onClick={() => reset(r)}>
+              Repor
+            </button>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setResetting(undefined)}>
+              Cancelar
+            </button>
+          </span>
+        ) : r.contactedAt ? (
+          <>
+            <button type="button" className="link-btn" onClick={() => setRecording(r)}>
+              <Icon name="pencil" />
+              Editar
+            </button>
+            <button type="button" className="link-btn link-btn--danger" onClick={() => setResetting(r.userId)}>
+              <Icon name="restore" />
+              Repor
+            </button>
+          </>
+        ) : (
+          <button type="button" className="btn btn--primary btn--sm" onClick={() => setRecording(r)}>
+            <Icon name="phone" />
+            Contactado
+          </button>
+        )}
+      </div>
+    </li>
+  );
+
+  return (
+    <section className="page wrap contacts-page" aria-labelledby="contacts-title">
+      <BackLink href={portal.event(eventId)}>{event ? event.name : 'Atuação'}</BackLink>
+      <PageHead
+        plain
+        title="Contactos"
+        titleId="contacts-title"
+        lead={event && `${event.name} · ${dateLabel(event)} · ${event.location}`}
+      />
+
+      {list === undefined ? (
+        <Loading label="A carregar os contactos…" />
+      ) : list === 'signin' ? (
+        <SignInNotice path={`/events/${eventId}/contacts`}>Os contactos são da área de membros.</SignInNotice>
+      ) : list === 'forbidden' ? (
+        <div className="notice" role="status">
+          <p>Não tem acesso aos contactos desta atuação.</p>
+          <a className="btn btn--ghost btn--sm" href={portal.event(eventId)}>
+            Voltar à atuação
+          </a>
+        </div>
+      ) : list === null ? (
+        <Notice>Não conseguimos abrir os contactos agora. Tenta outra vez daqui a pouco.</Notice>
+      ) : (
+        <>
+          <ToolsBar>
+            <SearchField id={searchId} label="Procurar membro" placeholder="Procurar pelo nome" value={q} onChange={setQ} />
+          </ToolsBar>
+          <FieldError text={error} alert={false} />
+          <section className="events-block" aria-labelledby="contacted-title">
+            <h2 id="contacted-title" className="events-block__title">
+              Contactados · {list.contacted.length}
+            </h2>
+            {list.contacted.length === 0 ? (
+              <EmptyNote>Ainda ninguém foi contactado para esta atuação.</EmptyNote>
+            ) : (
+              <ul className="contacts">{list.contacted.filter(match).map(card)}</ul>
+            )}
+          </section>
+          <section className="events-block" aria-labelledby="pending-title">
+            <h2 id="pending-title" className="events-block__title">
+              Por contactar · {list.notContacted.length}
+            </h2>
+            {list.notContacted.length === 0 ? (
+              <EmptyNote>Todos os membros foram contactados.</EmptyNote>
+            ) : (
+              <ul className="contacts">{list.notContacted.filter(match).map(card)}</ul>
+            )}
+          </section>
+        </>
+      )}
+
+      {recording && (
+        <RecordDialog
+          eventId={eventId}
+          row={recording}
+          onClose={() => setRecording(undefined)}
+          onSaved={(next) => {
+            setList(next);
+            setRecording(undefined);
+          }}
+        />
+      )}
+    </section>
+  );
+}
+
+function RecordDialog({ eventId, row, onClose, onSaved }: { eventId: number; row: EventContactRow; onClose: () => void; onSaved: (c: Contacts) => void }) {
+  const [willAttend, setWillAttend] = useState<boolean | null>(row.contactedAt ? row.willAttend : null);
+  const [notes, setNotes] = useState(row.notes ?? '');
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const notesId = useId();
+
+  const save = async () => {
+    setBusy(true);
+    const o = await eventsApi.saveContact(eventId, row.userId, willAttend, notes);
+    setBusy(false);
+    if (o.kind === 'ok') onSaved(o.data);
+    else setError(o.kind === 'invalid' ? Object.values(o.errors)[0] : 'Não foi possível guardar. Tenta outra vez.');
+  };
+
+  return (
+    <Dialog
+      title="Registar contacto"
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="btn btn--ghost" onClick={onClose}>
+            Cancelar
+          </button>
+          <button type="button" className="btn btn--primary" disabled={busy} onClick={save}>
+            {busy ? 'A guardar…' : 'Guardar'}
+          </button>
+        </>
+      }
+    >
+      <div className="answer">
+        <p className="contact__name">
+          {row.name}
+          {row.phone && (
+            <a className="contact__phone" href={`tel:${row.phone.replace(/\s+/g, '')}`}>
+              <Icon name="phone" />
+              {row.phone}
+            </a>
+          )}
+        </p>
+        <fieldset className="choice">
+          <legend className="contact__legend">Vai à atuação?</legend>
+          <div className="choice__options contact__choices">
+            {answers.map((a) => (
+              <label key={String(a.value)} className={`choice__option ${a.className}${willAttend === a.value ? ' is-on' : ''}`}>
+                <input type="radio" name="willAttend" checked={willAttend === a.value} onChange={() => setWillAttend(a.value)} />
+                <Icon name={a.icon} />
+                {a.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <p className="note">“Vai” ou “Não vai” também regista a inscrição do membro, sem notificação.</p>
+        <FormField id={notesId} label="Notas">
+          <textarea id={notesId} rows={3} maxLength={NOTES_MAX} placeholder="Notas sobre a conversa…" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </FormField>
+        <FieldError text={error} alert={false} />
+      </div>
+    </Dialog>
+  );
+}

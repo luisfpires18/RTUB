@@ -1,7 +1,7 @@
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// Task 089 (/owner/dashboard → "Páginas mais vistas"): how many times a React page was opened on one Portugal day.
+/// How many times a React page was opened on one Portugal day (/owner/dashboard → "Páginas mais vistas").
 /// One row per day and route (ids normalised to <c>{id}</c>, no query string), counted in memory and flushed once a
 /// minute by <c>PageViewFlushService</c>: never a write per request. Path only: no member, no address, no user agent.
 /// </summary>

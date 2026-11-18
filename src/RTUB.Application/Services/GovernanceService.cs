@@ -8,7 +8,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The public Órgãos Sociais (React track 008). Reads the existing RoleAssignments and member
+/// The public Órgãos Sociais. Reads the existing RoleAssignments and member
 /// names; no schema change. Fiscal years are listed only when someone held a position in them, so
 /// the selector never offers an empty mandate, and the default falls back from the current fiscal
 /// year to the latest recorded one instead of showing an empty page every September.

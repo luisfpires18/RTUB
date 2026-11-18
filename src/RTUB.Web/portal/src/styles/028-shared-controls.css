@@ -1,0 +1,144 @@
+/* ---------- shared controls: search fields, filter selects, back links ---------- */
+
+/* One look for every search box and filter dropdown: a field-shaped wrapper (<label> or <span>)
+   around a bare <input>/<select>, so the icon, the chevron and the focus ring live in one place. */
+.control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--muted);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+@media (hover: hover) {
+  .control:hover {
+    border-color: var(--purple-ink);
+  }
+}
+
+.control:focus-within {
+  border-color: var(--purple-ink);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.control input,
+.control select {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 400 1rem/1.4 var(--font-body);
+  outline: none;
+  appearance: none;
+}
+
+/* A search control inside a dialog form: the `.form__field input` box rules must not draw a second box inside it. */
+.form__field .control input,
+.form__field .control input:focus-visible {
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+}
+
+.control input::placeholder {
+  color: var(--muted);
+}
+
+.control select {
+  padding-right: 22px;
+  cursor: pointer;
+}
+
+.control select option {
+  background: var(--bg-card);
+  color: var(--ink);
+}
+
+/* The chevron: drawn in CSS, so every browser shows the same one. */
+.control--select::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  translate: 0 -70%;
+  rotate: 45deg;
+  pointer-events: none;
+}
+
+.control--sm {
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.control--sm select {
+  height: 34px;
+  font-size: 0.875rem;
+}
+
+.control--sm.control--select::after {
+  right: 12px;
+}
+
+/* Back to the parent page: quiet text with an arrow that nudges on hover. */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  align-self: start;
+  min-height: 36px;
+  margin-left: -10px;
+  padding: 4px 12px 4px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.back-link svg {
+  rotate: 180deg;
+  transition: translate 160ms ease;
+}
+
+.back-link:hover {
+  background: var(--bg-raise);
+  color: var(--ink);
+}
+
+.back-link:hover svg {
+  translate: -3px 0;
+}
+
+.back-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back-link svg {
+    transition: none;
+  }
+}

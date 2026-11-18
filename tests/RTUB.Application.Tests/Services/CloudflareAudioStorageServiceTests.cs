@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Services;
 using System.Net;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 

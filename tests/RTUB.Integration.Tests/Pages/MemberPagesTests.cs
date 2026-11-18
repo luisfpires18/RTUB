@@ -1,7 +1,6 @@
 using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Pages;
 
@@ -50,20 +49,6 @@ public class MemberPagesTests : IntegrationTestBase
 
     #endregion
 
-    #region Hierarchy Page Tests
-
-    [Fact]
-    public async Task HierarchyPage_IsRetired_AndRedirectsToTheReactHierarchy()
-    {
-        // 017: the Blazor /hierarchy is the React /members/hierarchy.
-        var response = await _client.GetAsync("/hierarchy");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Be("/members/hierarchy");
-    }
-
-    #endregion
-
     #region Rehearsals Page Tests
 
     [Fact]
@@ -103,21 +88,6 @@ public class MemberPagesTests : IntegrationTestBase
         var location = response.Headers.Location?.ToString();
         location.Should().Contain("/login");
         location.Should().Contain("returnUrl=%2Finventory", "the React /inventory sends visitors to sign in and back (020)");
-    }
-
-    #endregion
-
-    #region Profile Page Tests
-
-    [Fact]
-    public async Task OldProfileUrl_RedirectsToTheReactProfile()
-    {
-        // The Blazor /member/profile was retired in 032: the React /profile edits the profile (and shows a visitor
-        // how to sign in).
-        var response = await _client.GetAsync("/member/profile");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Be("/profile");
     }
 
     #endregion

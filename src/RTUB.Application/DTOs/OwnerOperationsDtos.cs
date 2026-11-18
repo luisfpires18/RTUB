@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// The React Owner tools (task 035, docs/react-owner-operations.md): /emails, /notifications, /users, /owner/tracing and
+// The React Owner tools (docs/react-owner-operations.md): /emails, /notifications, /users, /owner/tracing and
 // /owner/db. Owner only; the endpoint group refuses everyone else before any of these is built.
 
 /// <summary>One account in a recipients list: who, never a password or a role.</summary>
@@ -11,12 +11,12 @@ public sealed record OwnerPerson(string Id, string Nickname, string FullName, st
 /// <summary>Accounts with a confirmed address, split by "Notificações por email" (Subscribed).</summary>
 public sealed record OwnerEmailRecipients(IReadOnlyList<OwnerPerson> Subscribed, IReadOnlyList<OwnerPerson> NotSubscribed);
 
-/// <summary>Turns "Notificações por email" on or off for these accounts (one or many, as the old page did).</summary>
+/// <summary>Turns "Notificações por email" on or off for these accounts (one or many).</summary>
 public sealed record OwnerSubscriptionInput(IReadOnlyList<string>? UserIds, bool Subscribed);
 
 public sealed record OwnerSubscriptionResult(int Changed, IReadOnlyList<string> Errors, OwnerEmailRecipients Recipients);
 
-/// <summary>An announcement: the subject is "[RTUB] {Title}" (≤200), the body ≤5000, as the old form.</summary>
+/// <summary>An announcement: the subject is "[RTUB] {Title}" (≤200), the body ≤5000.</summary>
 public sealed record OwnerEmailInput(string? Title, string? Content);
 
 /// <summary>What the email sender answered: success, how many went out of how many, and its message on failure.</summary>
@@ -44,7 +44,7 @@ public sealed record OwnerUserDetail(
     string Id, string UserName, string Nickname, string FullName, string? Email, string AvatarUrl, string Role,
     DateTime? LastLoginAt, bool Subscribed, bool Locked, DateTimeOffset? LockoutEnd, bool RequirePasswordChange);
 
-/// <summary>The one role the account keeps: Member, Mod, Admin or Owner (Owner also gets Admin, as before).</summary>
+/// <summary>The one role the account keeps: Member, Mod, Admin or Owner (Owner also gets Admin).</summary>
 public sealed record OwnerRoleInput(string? Role);
 
 /// <summary>Members evaluated, of which changed (activated + reformed), and members whose evaluation failed.</summary>
@@ -57,7 +57,7 @@ public sealed record OwnerAuditFilter(
     bool HideSystem = false);
 
 /// <summary>
-/// One log entry, as stored. <see cref="CurrentDisplayName"/> (#220) is never stored: for an old entry whose stored name
+/// One log entry, as stored. <see cref="CurrentDisplayName"/> is never stored: for an old entry whose stored name
 /// is missing or carries a member id, the name that can be resolved now (current nickname or title); null otherwise.
 /// </summary>
 public sealed record OwnerAuditEntry(
@@ -65,18 +65,18 @@ public sealed record OwnerAuditEntry(
     string Action, bool IsCritical, string? Changes, string? CurrentDisplayName = null);
 
 /// <summary>
-/// One page of the log. <see cref="Total"/> is exact without a search; with one it is the old page's estimate
-/// (one more than this page when the page is full). <see cref="CriticalOnPage"/> counts this page only, as before.
+/// One page of the log. <see cref="Total"/> is exact without a search; with one it is an estimate
+/// (one more than this page when the page is full). <see cref="CriticalOnPage"/> counts this page only.
 /// </summary>
 public sealed record OwnerAuditPage(IReadOnlyList<OwnerAuditEntry> Items, int Total, int Page, int PageSize, int CriticalOnPage);
 
 public sealed record OwnerAuditFilters(IReadOnlyList<string> Users, IReadOnlyList<string> EntityTypes, IReadOnlyList<string> Actions);
 
-/// <summary>Deletes every log, or one user's: <see cref="Confirmation"/> must be "DELETE ALL", as the old dialog asked.</summary>
+/// <summary>Deletes every log, or one user's: <see cref="Confirmation"/> must be "DELETE ALL".</summary>
 public sealed record OwnerTruncateInput(string? User, string? Confirmation);
 
 /// <summary>
-/// /owner/dashboard (task 050): one value per Portugal day of the range. <see cref="Total"/> is the sum, except for
+/// /owner/dashboard: one value per Portugal day of the range. <see cref="Total"/> is the sum, except for
 /// active members, where it is the distinct members of the whole range; <see cref="PreviousTotal"/> is the same figure
 /// for the same number of days just before.
 /// </summary>
@@ -97,7 +97,7 @@ public sealed record OwnerDashboard(
     IReadOnlyList<IReadOnlyList<int>> Hours, OwnerDashboardNow Now);
 
 /// <summary>
-/// One member in the tracing "Logins" dialog (task 050: from LoginEvents). <see cref="LastLoginAt"/> and
+/// One member in the tracing "Logins" dialog (from LoginEvents). <see cref="LastLoginAt"/> and
 /// <see cref="FirstAt"/> are the latest and earliest sign-in or activity in the range; <see cref="ActiveDays"/> counts
 /// Portugal days. <see cref="FromHistory"/> is false for a member listed only by LastLoginDate (no LoginEvents row in
 /// the range): then the counts are 0 / 1 and <see cref="SignInTimes"/> is empty.
@@ -109,7 +109,7 @@ public sealed record OwnerLoginRecord(
 /// <summary>The dialog's list, and when LoginEvents history starts (null: no row yet); days before it are latest-only.</summary>
 public sealed record OwnerLogins(IReadOnlyList<OwnerLoginRecord> Records, DateTime? HistorySince);
 
-/// <summary>The system announcement, shown by every open React page that polls /api/announcement (≤500; task 037).</summary>
+/// <summary>The system announcement, shown by every open React page that polls /api/announcement (≤500).</summary>
 public sealed record OwnerAnnouncementInput(string? Message);
 
 // ---------- /owner/db ----------

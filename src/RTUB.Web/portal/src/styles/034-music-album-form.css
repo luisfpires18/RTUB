@@ -1,0 +1,206 @@
+/* ---------- album form ---------- */
+
+.access {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.access__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip--removable {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 4px;
+}
+
+.chip--removable img,
+.access__pick img {
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.chip__remove {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.access__results {
+  display: grid;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.access__pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cover-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.cover-pick__img {
+  width: 120px;
+  height: 120px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.cover-pick__actions {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+/* Event images are 3:2. */
+.cover-pick__img--wide {
+  width: 180px;
+  height: 120px;
+}
+
+/* Admin/Owner event notices: channel switch, audience line, second confirmation. */
+.segmented__option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.segmented__option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented__option.is-on {
+  background: var(--line-strong);
+  font-weight: 600;
+}
+
+.segmented__option:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.notice-audience {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.notice-confirm {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+}
+
+.notice-confirm p {
+  margin: 0;
+}
+
+.event-topbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cropper {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+}
+
+.cropper__canvas {
+  /* The width/height attributes give the ratio (square covers, 3:2 event images). */
+  width: min(100%, 360px);
+  height: auto;
+  border-radius: 12px;
+  outline: 2px solid var(--line-strong);
+  cursor: grab;
+  touch-action: none;
+}
+
+.cropper__canvas:focus-visible {
+  outline-color: var(--focus);
+}
+
+.cropper__zoom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 360px);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.cropper__zoom input {
+  flex: 1;
+  accent-color: var(--purple);
+}
+
+/* ---------- song form ---------- */
+
+.urls {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.urls__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.urls__row input,
+.videos .form__field input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1rem/1.4 var(--font-body);
+}

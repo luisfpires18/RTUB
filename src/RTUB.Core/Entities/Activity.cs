@@ -31,7 +31,7 @@ public class Activity : BaseEntity
     public bool IsLocked { get; set; }
 
     /// <summary>
-    /// The event this activity accounts for (task 074, optional): the durable link "As minhas ações pendentes" uses to know
+    /// The event this activity accounts for (optional): the durable link "As minhas ações pendentes" uses to know
     /// an event's finances are recorded. Set or cleared on the report page; cleared by EventService.DeleteEventAsync with the event.
     /// </summary>
     public int? EventId { get; set; }

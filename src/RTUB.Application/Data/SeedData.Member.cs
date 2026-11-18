@@ -78,11 +78,9 @@ public static partial class SeedData
             }
         }
 
-        // An empty-database bootstrap seeds the Owner and nothing else. This check used to sit
-        // inside the create-success branch, so a call with the Owner already present fell through
-        // to the bulk member seeding below. That path is unreachable from InitializeAsync (it
-        // returns early once any user exists) and the bulk members now fail closed for want of a
-        // password, so the guard is hoisted to cover both cases.
+        // An empty-database bootstrap seeds the Owner and nothing else. The guard
+        // covers both cases (Owner just created or already present), so an empty database never
+        // reaches the bulk member seeding below.
         if (isEmptyDb)
         {
             return;
@@ -90,462 +88,462 @@ public static partial class SeedData
 
         // ===== 2. MEMBERS =====
         var nabo = await Member(userManager).Nickname("Nabo").Name("Rafael", "Magalhães")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2018)
             .IsRetired(true)
             .CreateAsync();
 
         var nharro = await Member(userManager).Nickname("Nharro").Name("Alexandre", "Caldeira")
-            .Role("Mod").Instrument(InstrumentType.Guitarra)
+            .Role("Mod")
             .Position(Position.SegundoSecretarioMesaAssembleia)
             .Category(MemberCategory.Caloiro).YearCaloiro(2020)
             .CreateAsync();
 
         var atchim = await Member(userManager).Nickname("Atchim").Name("Bruno", "Costa")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2017)
             .IsRetired(true)
             .CreateAsync();
 
         var arbusto = await Member(userManager).Nickname("Arbusto").Name("Diogo", "Couto")
-            .Role("Admin").Instrument(InstrumentType.Guitarra)
+            .Role("Admin")
             .Position(Position.ViceMagister)
             .Category(MemberCategory.Tuno).YearTuno(2016)
             .IsRetired(true)
             .CreateAsync();
 
         var matchero = await Member(userManager).Nickname("Matchero").Name("Ricardo", "Lameirão")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
         var speaker = await Member(userManager).Nickname("Erbalife").Name("Carlos", "Silva")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2015)
             .IsRetired(true)
             .CreateAsync();
 
         var badjoncas = await Member(userManager).Nickname("Badjoncas").Name("Rafael", "Gomes")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2021)
             .CreateAsync();
 
         var snoopy = await Member(userManager).Nickname("Snoopy").Name("Diogo", "Morais")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
         var calimero = await Member(userManager).Nickname("Calimero").Name("Tiago", "Maia")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2022)
             .CreateAsync();
 
         var vinhas = await Member(userManager).Nickname("Vinhas").Name("José", "Rebelo")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2018)
             .IsRetired(true)
             .CreateAsync();
 
         var malelo = await Member(userManager).Nickname("Malelo").Name("Bruno", "Neves")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2020)
             .CreateAsync();
 
         var prepucio = await Member(userManager).Nickname("Prepúcio").Name("João", "Nunes")
-            .Role("Admin").Instrument(InstrumentType.Guitarra)
+            .Role("Admin")
             .Position(Position.PrimeiroTesoureiro)
             .Category(MemberCategory.Tuno).YearTuno(2017)
             .IsRetired(true)
             .CreateAsync();
 
         var nininho = await Member(userManager).Nickname("Nininho").Name("Luís", "Prôta")
-            .Role("Mod").Instrument(InstrumentType.Guitarra)
+            .Role("Mod")
             .Position(Position.Secretario)
             .Category(MemberCategory.Caloiro).YearCaloiro(2023)
             .CreateAsync();
 
         var pilao = await Member(userManager).Nickname("Pilão").Name("Samuel", "Silva")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2016)
             .IsRetired(true)
             .CreateAsync();
 
         var tainada = await Member(userManager).Nickname("Tainada").Name("Daniel", "Afonso")
-            .Role("Admin").Instrument(InstrumentType.Bandolim)
+            .Role("Admin")
             .Position(Position.PresidenteConselhoFiscal)
             .Category(MemberCategory.Tuno).YearTuno(2015)
             .IsRetired(true)
             .CreateAsync();
 
         var cigano = await Member(userManager).Nickname("Cigano").Name("Ruben", "Freire")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2018)
             .IsRetired(true)
             .CreateAsync();
 
         var infra = await Member(userManager).Nickname("Infra").Name("Alvaro", "Rosas")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2020)
             .CreateAsync();
 
         var drift = await Member(userManager).Nickname("Drift").Name("João", "Cunha")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
         var sacarabos = await Member(userManager).Nickname("Saca Rabos").Name("Zé Tó", "")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2021)
             .CreateAsync();
 
         var tampas = await Member(userManager).Nickname("Tampas").Name("Helder", "Martins")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2017)
             .IsRetired(true)
             .CreateAsync();
 
         var indigesto = await Member(userManager).Nickname("Indigesto").Name("André", "Batista")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2016)
             .IsRetired(true)
             .CreateAsync();
 
         var piroco = await Member(userManager).Nickname("Piroco").Name("Cláudio", "Espadanedo")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2013)
             .IsRetired(true)
             .CreateAsync();
 
         var mago = await Member(userManager).Nickname("Mago De Quintanilha").Name("Bruno", "Miranda")
-              .Role("Member").Instrument(InstrumentType.Flauta)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2005)
               .IsRetired(true)
               .CreateAsync();
 
         var fodanice = await Member(userManager).Nickname("Foda Nice").Name("Bruno", "Berra")
-              .Role("Member").Instrument(InstrumentType.Flauta)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2006)
               .IsRetired(true)
               .CreateAsync();
 
         var flor = await Member(userManager).Nickname("Flor").Name("Marco", "Pinheiro")
-              .Role("Member").Instrument(InstrumentType.Pandeireta)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2006)
               .IsRetired(true)
               .CreateAsync();
 
         var jornal = await Member(userManager).Nickname("Jornal").Name("Nuno", "Jornal")
-              .Role("Member").Instrument(InstrumentType.Estandarte)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2006)
               .IsRetired(true)
               .CreateAsync();
 
         var krika = await Member(userManager).Nickname("Krika").Name("André", "Marçal")
-              .Role("Member").Instrument(InstrumentType.Bandolim)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2006)
               .IsRetired(true)
               .CreateAsync();
 
         var joy = await Member(userManager).Nickname("Joy").Name("", "")
-              .Role("Member").Instrument(InstrumentType.Pandeireta)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2006)
               .IsRetired(true)
               .CreateAsync();
 
         var dimitri = await Member(userManager).Nickname("dimitri").Name("Luis", "Martins")
-              .Role("Member").Instrument(InstrumentType.Pandeireta)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2006)
               .IsRetired(true)
               .CreateAsync();
 
         var frutis = await Member(userManager).Nickname("Frutis").Name("João", "Patuleia")
-              .Role("Member").Instrument(InstrumentType.Pandeireta)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2006)
               .IsRetired(true)
               .CreateAsync();
 
         var cestinho = await Member(userManager).Nickname("Cestinho").Name("Daniel", "Ramos")
-              .Role("Member").Instrument(InstrumentType.Pandeireta)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2006)
               .IsRetired(true)
               .CreateAsync();
 
         var pinta = await Member(userManager).Nickname("Pinta a Calça").Name("André", "Gomes")
-              .Role("Member").Instrument(InstrumentType.Acordeao)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2015)
               .IsRetired(true)
               .CreateAsync();
 
         var metralha = await Member(userManager).Nickname("Metralha").Name("Ruben", "Santos")
-              .Role("Member").Instrument(InstrumentType.Acordeao)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2005)
               .IsRetired(true)
               .CreateAsync();
 
         var brandao = await Member(userManager).Nickname("Brandao").Name("Jorge", "Brandão")
-              .Role("Member").Instrument(InstrumentType.Guitarra)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2005)
               .IsRetired(true)
               .CreateAsync();
 
         var esquilo = await Member(userManager).Nickname("Exkill Bill").Name("Miguel", "Vicente")
-              .Role("Member").Instrument(InstrumentType.Bandolim)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2005)
               .IsRetired(true)
               .CreateAsync();
 
         var pirikito = await Member(userManager).Nickname("Pirikito").Name("Jorge", "Ferreira")
-              .Role("Member").Instrument(InstrumentType.Guitarra)
+              .Role("Member")
               .Category(MemberCategory.Tuno).YearTuno(2012)
               .IsRetired(true)
               .CreateAsync();
 
         var autoscopio = await Member(userManager).Nickname("Autoscópio").Name("Sergio", "Silva")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2018)
             .IsRetired(true)
             .CreateAsync();
 
         var matacaes = await Member(userManager).Nickname("Mata-cães").Name("Henrique", "Spiessens")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Caloiro).YearCaloiro(2024)
             .CreateAsync();
 
         var borat = await Member(userManager).Nickname("Borat").Name("Rui", "Almeida")
-            .Role("Member").Instrument(InstrumentType.Cavaquinho)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2015)
             .IsRetired(true)
             .CreateAsync();
 
         var castanholas = await Member(userManager).Nickname("Castanholas").Name("Renato", "Alves")
-            .Role("Member").Instrument(InstrumentType.Cavaquinho)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2017)
             .IsRetired(true)
             .CreateAsync();
 
         var pardal = await Member(userManager).Nickname("Pardal").Name("Andre", "Fernandes")
-            .Role("Member").Instrument(InstrumentType.Cavaquinho)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
         var ambrosio = await Member(userManager).Nickname("Ambrósio").Name("Pedro", "Pereira")
-            .Role("Admin").Instrument(InstrumentType.Acordeao)
+            .Role("Admin")
             .Position(Position.PresidenteMesaAssembleia)
             .Category(MemberCategory.Tuno).YearTuno(2016)
             .IsRetired(true)
             .CreateAsync();
 
         var tumtum = await Member(userManager).Nickname("TumTum").Name("Francisco", "Lima")
-            .Role("Member").Instrument(InstrumentType.Acordeao)
+            .Role("Member")
             .Category(MemberCategory.Caloiro).YearCaloiro(2023)
             .CreateAsync();
 
         var kimkana = await Member(userManager).Nickname("KimKana").Name("Joni", "Figueiredo")
-            .Role("Member").Instrument(InstrumentType.Fagote)
+            .Role("Member")
             .Category(MemberCategory.Caloiro).YearCaloiro(2024)
             .CreateAsync();
 
         var txaio = await Member(userManager).Nickname("Txaio").Name("Bruno", "Rafael")
-            .Role("Member").Instrument(InstrumentType.Flauta)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2018)
             .IsRetired(true)
             .CreateAsync();
 
         var slimmy = await Member(userManager).Nickname("Slimmy").Name("Nuno", "Oliveira")
-            .Role("Member").Instrument(InstrumentType.Flauta)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
         var zecadiabo = await Member(userManager).Nickname("Zeca Diabo").Name("Marcos", "António")
-            .Role("Member").Instrument(InstrumentType.Baixo)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2015)
             .IsRetired(true)
             .CreateAsync();
 
         var mija = await Member(userManager).Nickname("Mija").Name("Vitor", "Teixeira")
-            .Role("Member").Instrument(InstrumentType.Baixo)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2017)
             .IsRetired(true)
             .CreateAsync();
 
         var rolhas = await Member(userManager).Nickname("Rolhas").Name("Afonso", "Martins")
-            .Role("Mod").Instrument(InstrumentType.Baixo)
+            .Role("Mod")
             .Position(Position.SegundoTesoureiro)
             .Category(MemberCategory.Caloiro).YearCaloiro(2023)
             .CreateAsync();
 
         var passaromal = await Member(userManager).Nickname("Pássaro Maluco").Name("Joel", "Gaspar")
-            .Role("Admin").Instrument(InstrumentType.Percussao)
+            .Role("Admin")
             .Position(Position.PresidenteConselhoVeteranos)
             .Category(MemberCategory.Tuno).YearTuno(2016)
             .IsRetired(true)
             .CreateAsync();
 
         var bronha = await Member(userManager).Nickname("Bronha").Name("Eduardo", "Cuevas")
-            .Role("Member").Instrument(InstrumentType.Percussao)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2018)
             .IsRetired(true)
             .CreateAsync();
 
         var meiagrama = await Member(userManager).Nickname("Meia Grama").Name("João", "Pinheiro")
-            .Role("Member").Instrument(InstrumentType.Percussao)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2020)
             .CreateAsync();
 
         var coma = await Member(userManager).Nickname("Coma").Name("Vitor", "Silva")
-            .Role("Member").Instrument(InstrumentType.Percussao)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
         var frango = await Member(userManager).Nickname("Frango").Name("Samuel", "Carneiro")
-            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2017)
             .IsRetired(true)
             .CreateAsync();
 
         var croquetes = await Member(userManager).Nickname("Croquetes").Name("Pedro", "Morais")
-            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2018)
             .IsRetired(true)
             .CreateAsync();
 
         var conchita = await Member(userManager).Nickname("Conchita").Name("Manuel", "Esteves")
-            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
         var elchapo = await Member(userManager).Nickname("El Chapo").Name("Luis", "Pinto")
-            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2020)
             .CreateAsync();
 
         var bombeiro = await Member(userManager).Nickname("Bombeiro").Name("Alexandre", "Figueiredo")
-            .Role("Mod").Instrument(InstrumentType.Estandarte)
+            .Role("Mod")
             .Position(Position.PrimeiroRelatorConselhoFiscal)
             .Category(MemberCategory.Caloiro).YearCaloiro(2021)
             .CreateAsync();
 
         var rufus = await Member(userManager).Nickname("Rufus").Name("Helder", "Vieira")
-            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2017)
             .IsRetired(true)
             .CreateAsync();
 
         var batesacas = await Member(userManager).Nickname("Bate Sacas").Name("Bernardo", "Carvalho")
-            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2018)
             .IsRetired(true)
             .CreateAsync();
 
         var calhau = await Member(userManager).Nickname("Calhau").Name("Leonardo", "Cardoso")
-            .Role("Admin").Instrument(InstrumentType.Estandarte)
+            .Role("Admin")
             .Position(Position.Magister)
             .Category(MemberCategory.Tuno).YearTuno(2022)
             .CreateAsync();
 
         var casilhas = await Member(userManager).Nickname("Casilhas").Name("Gonçalo", "Borges")
-            .Role("Mod").Instrument(InstrumentType.Estandarte)
+            .Role("Mod")
             .Position(Position.SegundoRelatorConselhoFiscal)
             .Category(MemberCategory.Tuno).YearTuno(2020)
             .CreateAsync();
 
         var mealheiro = await Member(userManager).Nickname("Mealheiro").Name("Rui", "Guimarães")
-            .Role("Admin").Instrument(InstrumentType.Estandarte)
+            .Role("Admin")
             .Position(Position.PrimeiroSecretarioMesaAssembleia)
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
         var smeagol = await Member(userManager).Nickname("Smeagol").Name("Claudio", "Moreira")
-            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2016)
             .IsRetired(true)
             .CreateAsync();
 
         var delay = await Member(userManager).Nickname("Delay").Name("José", "Gonçalves")
-            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2018)
             .IsRetired(true)
             .CreateAsync();
 
         var buceta = await Member(userManager).Nickname("Buceta").Name("David", "Ferreira")
-            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2021)
             .CreateAsync();
 
         var machadi = await Member(userManager).Nickname("Barbatov").Name("Luis", "Machado")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2016)
             .IsRetired(true)
             .CreateAsync();
 
         var teddyboy = await Member(userManager).Nickname("Xantrao").Name("Maciel", "Santos")
-            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2000)
             .IsRetired(true)
             .CreateAsync();
 
         var matrix = await Member(userManager).Nickname("Matrix").Name("Bruno", "Teixeira")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2000)
             .IsRetired(true)
             .CreateAsync();
 
         var alan = await Member(userManager).Nickname("Alentejano").Name("Tiago", "Baroa")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2000)
             .IsRetired(true)
             .CreateAsync();
 
         var bean = await Member(userManager).Nickname("Bean").Name("Pedro", "Pinto")
-            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2000)
             .IsRetired(true)
             .CreateAsync();
 
         var mangas = await Member(userManager).Nickname("Mangas").Name("Tiago", "Henriques")
-            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2000)
             .IsRetired(true)
             .CreateAsync();
 
         var meiokg = await Member(userManager).Nickname("Meio Kg").Name("Sérgio", "Ferreira")
-            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2000)
             .IsRetired(true)
             .CreateAsync();
 
         var lacas = await Member(userManager).Nickname("Lacas").Name("Daniel", "Cunha")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2010)
             .IsRetired(true)
             .CreateAsync();
 
         var parabento = await Member(userManager).Nickname("Parabento").Name("David", "Gomes")
-            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2010)
             .IsRetired(true)
             .CreateAsync();
 
         var caldas = await Member(userManager).Nickname("Caldas").Name("Vitor", "Caldas")
-            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2010)
             .IsRetired(true)
             .CreateAsync();
 
         var botox = await Member(userManager).Nickname("Botox").Name("Nurio", "Fernandes")
-            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2010)
             .IsRetired(true)
             .CreateAsync();
 
         var chicaestrume = await Member(userManager).Nickname("Chicaestrume").Name("Luis", "Salsas")
-            .Role("Member").Instrument(InstrumentType.Cavaquinho)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2010)
             .IsRetired(true)
             .CreateAsync();
 
         var esbarrafat = await Member(userManager).Nickname("Esbarrafat").Name("Bruno", "Costa")
-            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Role("Member")
             .Category(MemberCategory.Tuno).YearTuno(2010)
             .IsRetired(true)
             .CreateAsync();

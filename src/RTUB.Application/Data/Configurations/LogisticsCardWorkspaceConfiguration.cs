@@ -5,7 +5,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Data.Configurations;
 
 /// <summary>
-/// Task 066: a Logística card's discussion, history and attachments. Everything goes with the
+/// A Logística card's discussion, history and attachments. Everything goes with the
 /// card (cascade); a deleted account leaves its comments, history lines and attachments with no author (set null).
 /// </summary>
 public class LogisticsCardWorkspaceConfiguration :

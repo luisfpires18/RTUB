@@ -1,0 +1,299 @@
+/* The member's own profile. */
+.profile {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.profile__warning {
+  border-color: rgba(245, 196, 107, 0.55);
+  background: rgba(245, 196, 107, 0.08);
+  color: #f7d79b;
+}
+
+.profile__warning p {
+  margin: 0;
+}
+
+.profile__top {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .profile__top {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+.profile__identity {
+  min-width: 0;
+  align-content: center;
+}
+
+.profile__identity .account__who {
+  flex: 1 1 9rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The nickname in the body face: the display serif's capital (a J or a G, say) reads as a different font next to its lowercase. */
+.profile__identity .account__name {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.profile__identity .member-badges {
+  justify-content: flex-start;
+}
+
+/* The avatar of the header; the change-photo button sits on its corner. */
+.profile-avatar {
+  --avatar: 96px;
+  position: relative;
+  display: grid;
+  flex: none;
+  justify-items: start;
+  gap: 6px;
+}
+
+.profile-avatar__img {
+  width: var(--avatar);
+  height: var(--avatar);
+  border: 3px solid var(--purple);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-card);
+}
+
+@media (min-width: 600px) {
+  .profile-avatar {
+    --avatar: 112px;
+  }
+}
+
+.profile-avatar__edit {
+  position: absolute;
+  top: calc(var(--avatar) - 40px);
+  right: -2px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--bg-raise);
+  border-radius: 50%;
+  background: var(--purple);
+  color: #fff;
+  cursor: pointer;
+}
+
+.profile-avatar__edit:hover {
+  background: var(--purple-hover);
+}
+
+.profile-avatar__edit.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.profile-avatar input:focus-visible + .profile-avatar__edit {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.profile-avatar__msg {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+/* Both header actions share one button language; the form of .btn does the rest. */
+.profile__actions {
+  align-items: center;
+}
+
+.profile__actions .btn {
+  min-height: 44px;
+}
+
+.profile__signout .btn .mnav__label {
+  overflow: visible;
+}
+
+.profile-rank {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(90% 90% at 100% 0%, rgba(111, 66, 193, 0.24), transparent 65%),
+    var(--bg-raise);
+}
+
+.profile-rank__level {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 0;
+  border: 2px solid var(--purple-ink);
+  border-radius: 50%;
+  background: var(--royal);
+  line-height: 1;
+}
+
+.profile-rank__level span {
+  color: var(--ink-soft);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-rank__level strong {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+}
+
+.profile-rank__body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-rank__body p {
+  margin: 0;
+}
+
+.profile-rank__name {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.profile-rank__bar {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--purple);
+}
+
+.profile-rank__link {
+  color: var(--purple-ink);
+  font-size: 0.875rem;
+}
+
+.profile-section {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: clamp(16px, 3.5vw, 24px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+.profile-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.profile-section__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.profile-section__title .icon {
+  color: var(--purple-ink);
+}
+
+.profile-section .member-section {
+  padding: 14px;
+  background: var(--bg-card);
+}
+
+.profile-form {
+  min-width: 0;
+}
+
+.profile-form input:disabled {
+  opacity: 0.6;
+}
+
+.profile-form__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.profile-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #9ee0b5;
+}
+
+/* Pessoal: one tile per value, an icon chip on the left. Columns follow the section's own width (1, 2, then 4); the
+   email takes two, so the seven tiles always fill whole rows and a long address has room. */
+.profile-section:has(> .profile-facts) {
+  container-type: inline-size;
+}
+
+.profile-facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 0;
+}
+
+@container (min-width: 520px) {
+  .profile-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-fact--wide {
+    grid-column: span 2;
+  }
+}
+
+@container (min-width: 960px) {
+  .profile-facts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.profile-fact {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.profile-fact__icon {
+  display: grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(111, 66, 193, 0.18);
+  color: var(--purple-ink);
+}

@@ -18,7 +18,6 @@ public sealed class MemberBuilder
     private string? _role;
     private string _phone = "";
     private string? _degree;
-    private InstrumentType? _instrument;
     private readonly List<Position> _positions = new();
     private readonly List<MemberCategory> _categories = new();
     private int? _yearTuno;
@@ -38,7 +37,6 @@ public sealed class MemberBuilder
     public MemberBuilder Role(string role) { _role = role; return this; }
     public MemberBuilder Phone(string phone) { _phone = phone; return this; }
     public MemberBuilder Degree(string? degree) { _degree = degree; return this; }
-    public MemberBuilder Instrument(InstrumentType? inst) { _instrument = inst; return this; }
     public MemberBuilder Position(Position pos) { _positions.Add(pos); return this; }
     public MemberBuilder Category(MemberCategory cat) { _categories.Add(cat); return this; }
     public MemberBuilder YearTuno(int year) { _yearTuno = year; return this; }
@@ -71,7 +69,6 @@ public sealed class MemberBuilder
             _nickname,
             _phone,
             _degree,
-            _instrument,
             _positions,
             _categories,
             _yearTuno,
@@ -115,7 +112,6 @@ public sealed class MemberBuilder
         string nickname,
         string phone,
         string? degree,
-        InstrumentType? instrument,
         List<Position>? positions,
         List<MemberCategory>? categories,
         int? yearTuno = null,

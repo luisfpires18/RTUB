@@ -52,7 +52,6 @@ Run only what the change can break.
 ## Authoritative docs
 | Topic | Source |
 | --- | --- |
-| General repo conventions | `.github/copilot-instructions.md` |
 | Backend / C# / EF Core standards | `docs/backend-practices.md` |
 | Frontend basics (React only) | `docs/frontend-practices.md` |
 | PWA, service worker, push | `docs/pwa-practices.md` |
@@ -91,4 +90,3 @@ Run only what the change can break.
 | Performance gate (budgets, deferred perf findings) | `docs/performance-gate.md` |
 | Repository routing map | `docs/architecture/system-index.md` |
 | Architecture decisions (ADRs) | `docs/architecture/adr/` |
-| Role guidance for AI agents | `.github/agents/` |

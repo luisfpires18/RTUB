@@ -1,14 +1,14 @@
 namespace RTUB.Application.DTOs;
 
-// "As minhas ações pendentes" (task 071, docs/react-pending-actions.md). Compact DTOs: a panel page carries at most
+// "As minhas ações pendentes" (docs/react-pending-actions.md). Compact DTOs: a panel page carries at most
 // PendingActionsService.PageSize rows and the counts; nothing else of the source module travels.
 
 /// <summary>
 /// One button of a row: a link (<c>Href</c>) to the module's own page, where the action is done with that module's rules,
-/// or an in-page answer (<c>Answer</c>: "yes" / "no", task 072; "done", "close", task 073) sent to
+/// or an in-page answer (<c>Answer</c>: "yes" / "no", "done", "close") sent to
 /// <c>POST /api/pending-actions/responses</c>. <c>Confirm</c>: a question the page asks before sending (a change the
 /// member cannot undo from here, e.g. closing a question); <c>ConfirmLabel</c>: that dialog's button, when <c>Label</c>
-/// alone would be ambiguous there (074: "Não" → "Marcar sem movimentos").
+/// alone would be ambiguous there ("Não" → "Marcar sem movimentos").
 /// </summary>
 public sealed record PendingActionButtonDto(string Label, string? Href, bool Primary, string? Answer = null, string? Confirm = null,
     string? ConfirmLabel = null);
@@ -16,7 +16,7 @@ public sealed record PendingActionButtonDto(string Label, string? Href, bool Pri
 /// <summary>
 /// One action. <c>Kind</c> + <c>SourceKey</c> identify it (for a dismissal or an answer); <c>Href</c>, when set, is the
 /// item's own page (the row title links there). <c>DismissLabel</c>: the dismiss button's text when "Agora não" does
-/// not fit (075: "Não é necessário"). <c>Required</c>: shows "Obrigatório" and
+/// not fit ("Não é necessário"). <c>Required</c>: shows "Obrigatório" and
 /// can never be dismissed. <c>Dismissible</c>: an optional prompt the member may turn down for its period. Both false: a
 /// response the member gives in the module (an answer is not a dismissal). Decided by the server, never by the page.
 /// </summary>
@@ -70,7 +70,7 @@ public sealed record PendingActionsPageDto(
 public sealed record PendingActionDismissInput(string? Kind, string? SourceKey);
 
 /// <summary>
-/// An in-page answer (task 072): Vou / Não vou on an upcoming activity, Fui / Não fui on a past one of the current fiscal
+/// An in-page answer: Vou / Não vou on an upcoming activity, Fui / Não fui on a past one of the current fiscal
 /// year. <c>Answer</c> "yes" or "no"; <c>Instrument</c> only with "yes" (an option the page offered; none = not playing,
 /// as on the module pages; the page sends the primary when there is nothing to choose); <c>Notes</c> either way.
 /// </summary>

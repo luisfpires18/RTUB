@@ -9,8 +9,7 @@
 (function() {
     'use strict';
 
-    // registerServiceWorker() used to run twice (immediately + on window load). register()
-    // is idempotent, but each call attached another 'updatefound' listener, another
+    // registerServiceWorker() runs once. register() is idempotent, but each call would attach another 'updatefound' listener, another
     // 'visibilitychange' listener and another update-check timer chain. One owner, one set
     // of listeners.
     var registrationStarted = false;
@@ -46,7 +45,7 @@
         }
     });
 
-    // A tapped push whose page this window is not on (task 058): the worker stored it for a minute before opening
+    // A tapped push whose page this window is not on: the worker stored it for a minute before opening
     // the app (service-worker.js rememberPushTarget). An installed app may have started on its start_url instead, or
     // been resumed without the worker's navigation reaching it. Read once, deleted, same-origin only.
     var PUSH_NAV_CACHE = 'rtub-notification-target';
@@ -124,7 +123,7 @@
         }
     }
 
-    // Registered once the page has loaded (task 054): installing the worker precaches ~150 KB and claims the page,
+    // Registered once the page has loaded: installing the worker precaches ~150 KB and claims the page,
     // and doing that while the bundle and fonts were still arriving took bandwidth off the first paint. A page that
     // is already complete (the script ran late) registers at once. registerServiceWorker() is single-shot.
     if (document.readyState === 'complete') {

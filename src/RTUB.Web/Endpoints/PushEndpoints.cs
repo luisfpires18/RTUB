@@ -12,8 +12,8 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The member's own Web Push subscriptions, for the React /profile (task 038, docs/react-push-v2.md; replaces
-/// PushController), plus a test push to the caller's own device (#230). Signed-in members only (401 otherwise), every answer no-store, every POST needs the antiforgery
+/// The member's own Web Push subscriptions, for the React /profile (docs/react-push-v2.md; replaces
+/// PushController), plus a test push to the caller's own device. Signed-in members only (401 otherwise), every answer no-store, every POST needs the antiforgery
 /// token in X-CSRF-TOKEN. A member only ever reads, adds or removes their own subscriptions. Push is available to the
 /// Owner always and to everyone else when WebPush:Enabled; sending needs the VAPID keys. Sending to members is not
 /// here: the domain services and the Owner's /notifications (OwnerEndpoints) do it.
@@ -28,13 +28,13 @@ public static class PushEndpoints
         push.MapGet("/status", async (HttpContext http, IPushNotificationService service, IOptions<WebPushOptions> options) =>
             Results.Ok(await StatusAsync(http.User, service, options.Value)));
 
-        // Task 080 (#261): the startup reminder's account side. Always the caller's own account (no id in the request).
+        // The startup reminder's account side. Always the caller's own account (no id in the request).
         push.MapGet("/reminder", async (HttpContext http, PushReminderService reminder) =>
             await reminder.GetAsync(UserId(http.User)) is { } state
                 ? Results.Ok(new { reformed = state.Reformed, acknowledged = state.Acknowledged })
                 : Results.Unauthorized());
 
-        // Task 082 (#263): the member's own account-wide push preferences; the catalogue (keys, labels, the mandatory
+        // The member's own account-wide push preferences; the catalogue (keys, labels, the mandatory
         // key) is the server's. Independent of the device subscription above: saving here never touches it.
         push.MapGet("/preferences", async (HttpContext http, PushPreferenceService preferences) =>
             await preferences.GetAsync(UserId(http.User)) is { } items ? Results.Ok(new { items }) : Results.Unauthorized());
@@ -119,7 +119,7 @@ public static class PushEndpoints
                 })
             .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
 
-        // #230: a fixed test push to this browser's own subscription, so a member can see the whole path work on the
+        // A fixed test push to this browser's own subscription, so a member can see the whole path work on the
         // device. Only the caller's subscription with this endpoint (another member's endpoint is "not-registered"),
         // fixed text, one per member every TestCooldown. The answer is what the push service said (accepted ≠ shown).
         writes.MapPost("/test", async (PushEndpointInput input, HttpContext http, IPushNotificationService service,
@@ -219,5 +219,5 @@ public static class PushEndpoints
             : await next(context);
 }
 
-/// <summary>PUT /api/push/preferences: the full list of keys the member wants off (task 082).</summary>
+/// <summary>PUT /api/push/preferences: the full list of keys the member wants off.</summary>
 public sealed record PushPreferencesInput(string[]? Disabled);

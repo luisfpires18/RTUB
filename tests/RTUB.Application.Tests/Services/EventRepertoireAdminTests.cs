@@ -11,7 +11,6 @@ using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -19,7 +18,7 @@ namespace RTUB.Application.Tests.Services;
 /// Repertoire management behind the React event page (React track 012D), through the real
 /// EventRepertoireService on the test database. No storage, email or push is involved.
 /// </summary>
-public class EventRepertoireAdminTests
+public partial class EventRepertoireAdminTests
 {
     private static readonly ClaimsPrincipal Visitor = new(new ClaimsIdentity());
     private static readonly ClaimsPrincipal Member = SignedIn("Member", "member-1");
@@ -225,13 +224,6 @@ public class EventRepertoireAdminTests
 
         GrantAccess(exclusive, "admin-1");
         (await _service.SearchSongsAsync(id, "", Admin)).Value!.Select(s => s.Title).Should().Contain("Segredo");
-    }
-
-    [Fact]
-    public void TheRepertoireContracts_CarryNoInternalField()
-    {
-        typeof(EventRepertoireItemDto).GetProperties().Select(p => p.Name).Should().BeEquivalentTo("Id", "Title");
-        typeof(EventRepertoireSongDto).GetProperties().Select(p => p.Name).Should().BeEquivalentTo("Id", "Title", "Album");
     }
 
     // ---------- helpers ----------

@@ -16,7 +16,7 @@ Non-obvious things that are easy to break. Read the linked file when you need th
 | Notification text/URL/tag builders | `src/RTUB.Application/Factories/PushNotificationFactory.cs` (all pt-PT copy; relative links to the item, no base URL). Catalogue and rules: `docs/push-notifications.md` |
 | Persistence | `src/RTUB.Application/Repositories/PushSubscriptionRepository.cs`, `src/RTUB.Core/Entities/PushSubscription.cs` |
 | HTTP endpoints | `src/RTUB.Web/Endpoints/PushEndpoints.cs` + `Helpers/PushSubscriptionRules.cs` (endpoint host allowlist, key lengths). Routes, states, test push, preferences: `docs/react-push-v2.md` |
-| Browser client | `src/RTUB.Web/portal/src/push.ts` + `Profile.tsx` `PushSection` (React `/profile`) |
+| Browser client | `src/RTUB.Web/portal/src/data/push.ts` + `Profile.tsx` `PushSection` (React `/profile`) |
 | SW push handlers | `src/RTUB.Web/wwwroot/service-worker.js`: `push`, `notificationclick`, `pushsubscriptionchange` (behavior in `docs/react-push-v2.md` → *Service worker*) |
 | DI | `ServiceCollectionExtensions.AddPushNotificationServices` (all three registrations are scoped) |
 

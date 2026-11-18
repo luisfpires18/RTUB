@@ -1,0 +1,299 @@
+/* ---------- /members/hierarchy: a CSS-only padrinho → afilhado tree ----------
+   One semantic tree (role="tree"). Phones: indented (16px a level) and collapsible, connectors on the left.
+   Wide screens: left to right, each family in its own card, parents centred on their afilhados with elbow lines.
+   No canvas, no pan or zoom: the page scrolls as usual; a very deep family scrolls inside its own card. */
+
+.htree-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.htree-search {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.htree-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.htree-actions .btn {
+  min-height: 44px;
+}
+
+.htree-results {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0 0;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg-card);
+  list-style: none;
+}
+
+.htree-results > .note {
+  padding: 10px 12px;
+}
+
+.htree-results button {
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.htree-results button:hover,
+.htree-results button:focus-visible {
+  background: rgba(111, 66, 193, 0.22);
+}
+
+.htree-results small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.htree-summary {
+  margin: 12px 0 0;
+}
+
+.htree-focus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--purple);
+  border-radius: 12px;
+  background: rgba(111, 66, 193, 0.14);
+}
+
+.htree,
+.hnode__children {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.htree {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.hnode-item--root {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.hnode-item:focus {
+  outline: none;
+}
+
+.hnode {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hnode__card {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: inherit;
+  text-decoration: none;
+}
+
+.hnode__card .who__avatar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  box-shadow: none;
+}
+
+.hnode__who {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.hnode__who strong {
+  overflow-wrap: anywhere;
+}
+
+.hnode__who small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hnode__card:hover {
+  border-color: var(--purple-ink);
+}
+
+.hnode-item:focus-visible > .hnode .hnode__card {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.is-path > .hnode .hnode__card {
+  border-color: var(--purple);
+}
+
+.is-selected > .hnode .hnode__card {
+  border-color: var(--purple-ink);
+  background: rgba(111, 66, 193, 0.24);
+  box-shadow: inset 0 0 0 1px var(--purple-ink);
+}
+
+.hnode__toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg-raise);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hnode__toggle:hover {
+  border-color: var(--purple-ink);
+  color: var(--ink);
+}
+
+.hnode__toggle svg {
+  width: 14px;
+  height: 14px;
+}
+
+.is-open > .hnode .hnode__toggle svg {
+  transform: rotate(90deg);
+}
+
+/* Phones and tablets: indented, 16px a level, the spine on the left and a stub to each afilhado. */
+.hnode__children {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0 6px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line-strong);
+}
+
+.hnode__children > li {
+  position: relative;
+}
+
+.hnode__children > li::before {
+  position: absolute;
+  top: 24px;
+  left: -10px;
+  width: 8px;
+  border-top: 2px solid var(--line-strong);
+  content: '';
+}
+
+.hnode__children > li.is-path::before,
+.hnode__children > li.is-selected::before {
+  border-color: var(--purple-ink);
+}
+
+/* Members with neither padrinho nor afilhados: one compact list, not 21 empty trees. */
+.hloose {
+  margin-top: 24px;
+}
+
+.hloose__title {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.hloose__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hloose__member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+  color: inherit;
+  text-decoration: none;
+}
+
+.hloose__member .who__avatar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  box-shadow: none;
+}
+
+.hloose__member span {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.hloose__member strong {
+  overflow-wrap: anywhere;
+}
+
+.hloose__member small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hloose__member:hover,
+.hloose__member.is-selected {
+  border-color: var(--purple-ink);
+}

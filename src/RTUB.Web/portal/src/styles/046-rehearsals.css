@@ -1,0 +1,107 @@
+/* ---------- Rehearsals (/rehearsals, /rehearsals/{id}) ---------- */
+
+.pill--wait {
+  background: rgba(255, 196, 87, 0.14);
+  color: #ffd98a;
+}
+
+.rehearsal-hero {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.rehearsal-hero .page__title {
+  margin: 0;
+}
+
+.rehearsal-hero__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  color: var(--ink-soft);
+  list-style: none;
+}
+
+.rehearsal-hero__facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rehearsal-hero__facts .icon {
+  color: var(--purple-ink);
+}
+
+.presence-group + .presence-group {
+  margin-top: 20px;
+}
+
+.presence-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.presence-add {
+  margin-top: 20px;
+}
+
+.presence-row,
+.enrollment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raise);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.presence-row small,
+.enrollment-row small {
+  display: block;
+  color: var(--muted);
+}
+
+.range-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.presence-rate,
+.enrollment-rate {
+  margin: 0 0 12px;
+}
+
+/* ---------- Gallery management ---------- */
+
+.gallery-manage__preview {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #000;
+}
+
+.gallery-manage__preview img,
+.gallery-manage__preview video {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+}
+
+.gallery-manage__progress {
+  width: 100%;
+  accent-color: var(--purple);
+}
+
+.gallery-manage__delete {
+  margin-right: auto;
+}

@@ -101,8 +101,7 @@ public static partial class SeedData
         // name nobody has thought of yet return here, and no configuration can switch them on.
         //
         // Staging is the Azure DEV App Service, whose users exist to be reset to one shared
-        // development password on demand. It was excluded until unit 027, which is why Azure DEV
-        // could never run this.
+        // development password on demand..
         //
         // This check comes FIRST on purpose: a disallowed environment must not so much as read
         // DevelopmentDataReset:Password, let alone touch a credential or a push subscription.

@@ -2,16 +2,14 @@ using System.Net;
 using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 
 /// <summary>
-/// Route ownership of the React public shell (React track 001-004, docs/react-portal-pilot.md).
-/// React owns exactly /, /privacy, /profile, /request, /music, /login, /roles, /gallery, /events (011) and /news (025), served from the committed build in
-/// wwwroot/portal; the pilot's /portal... URLs redirect there; every other page stays Blazor.
+/// Route ownership of the React shell (docs/react-portal-pilot.md): the pages are served from the committed build in
+/// wwwroot/portal, GET/HEAD only. Addresses that no longer exist are in RetiredRoutesTests.
 /// </summary>
-public class PortalRouteTests : IntegrationTestBase
+public partial class PortalRouteTests : IntegrationTestBase
 {
     public PortalRouteTests(TestWebApplicationFactory factory) : base(factory)
     {
@@ -68,7 +66,7 @@ public class PortalRouteTests : IntegrationTestBase
     {
         var root = FindRepoRoot();
         var web = Path.Combine(root, "src", "RTUB.Web");
-        var files = Directory.GetFiles(Path.Combine(web, "portal", "src"))
+        var files = Directory.GetFiles(Path.Combine(web, "portal", "src"), "*", SearchOption.AllDirectories)
             .Append(Path.Combine(web, "portal", "index.html"))
             .Concat(Directory.GetFiles(Path.Combine(web, "wwwroot", "portal"), "*", SearchOption.AllDirectories)
                 .Where(f => f.EndsWith(".html") || f.EndsWith(".css") || (f.EndsWith(".js") && !Path.GetFileName(f).StartsWith("vendor-"))))
@@ -127,7 +125,7 @@ public class PortalRouteTests : IntegrationTestBase
         // own asset base ("/portal/" + file, /portal/assets/…) is a static-file folder, not a page.
         var pilotLink = new Regex(@"[""'`(]/portal(?:/(?:privacy|profile|request)\b|[#?""'`)])");
         var root = FindRepoRoot();
-        var files = Directory.GetFiles(Path.Combine(root, "src", "RTUB.Web", "portal", "src"))
+        var files = Directory.GetFiles(Path.Combine(root, "src", "RTUB.Web", "portal", "src"), "*", SearchOption.AllDirectories)
             .Append(Path.Combine(root, "src", "RTUB.Web", "portal", "index.html"))
             .Concat(Directory.GetFiles(Path.Combine(root, "src", "RTUB.Web", "wwwroot", "portal"), "*", SearchOption.AllDirectories)
                 .Where(f => f.EndsWith(".html") || (f.EndsWith(".js") && !Path.GetFileName(f).StartsWith("vendor-"))))
@@ -141,395 +139,17 @@ public class PortalRouteTests : IntegrationTestBase
         }
     }
 
-    [Theory]
-    [InlineData("/portal", "/")]
-    [InlineData("/portal/", "/")]
-    [InlineData("/portal/privacy", "/privacy")]
-    [InlineData("/portal/profile", "/profile")]
-    [InlineData("/portal/request", "/request")]
-    [InlineData("/portal/request?utm_source=cartaz", "/request?utm_source=cartaz")]
-    public async Task PilotPortalUrls_RedirectTemporarilyToTheCleanRoute(string path, string target)
-    {
-        var response = await NoRedirectClient().GetAsync(path);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect, "temporary (302) while DEV is hybrid");
-        response.Headers.Location!.ToString().Should().Be(target);
-    }
-
     [Fact]
-    public async Task PathsOutsideTheReactRoutes_AreNotServedTheShell()
+    public async Task ShellRoutes_AreGetAndHeadOnly()
     {
         var client = NoRedirectClient();
 
-        (await client.GetAsync("/portal/unknown")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-
-        // The Portuguese routes of the first drafts were renamed to English before any release.
-        foreach (var old in new[] { "/portal/privacidade", "/portal/perfil", "/portal/pedidos" })
-        {
-            (await client.GetAsync(old)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was renamed", old);
-        }
-
-        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request", "/music", "/music/albums/1", "/events", "/events/1" })
+        // A form post to /request is refused too: requests go to POST /api/public/requests. Unknown paths: RetiredRoutesTests.
+        foreach (var path in new[] { "/", "/privacy", "/profile", "/request", "/music", "/music/albums/1", "/events", "/events/1" })
         {
             (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
                 "{0} is GET/HEAD only", path);
         }
-    }
-
-    [Theory]
-    [InlineData("/")]
-    [InlineData("/privacy")]
-    [InlineData("/profile")]
-    [InlineData("/request")]
-    [InlineData("/music")]
-    [InlineData("/music/albums/{id:int}")]
-    [InlineData("/music/songs/{AlbumId:int}")]
-    [InlineData("/login")]
-    [InlineData("/roles")]
-    [InlineData("/gallery")]
-    [InlineData("/events")]
-    [InlineData("/events/{id:int}")]
-    [InlineData("/member/events")]
-    [InlineData("/events/{eventId:int}/discussion")]
-    [InlineData("/events/{eventId:int}/contacts")]
-    [InlineData("/rehearsals")]
-    [InlineData("/member/gallery")]
-    [InlineData("/news")]
-    [InlineData("/members/map")]
-    [InlineData("/member/map")]
-    [InlineData("/member/profile")]
-    [InlineData("/hall-of-fame")]
-    [InlineData("/naipes")]
-    [InlineData("/naipes/config")]
-    [InlineData("/meetings")]
-    [InlineData("/users")]
-    [InlineData("/owner/tracing")]
-    [InlineData("/owner/db")]
-    [InlineData("/emails")]
-    [InlineData("/notifications")]
-    [InlineData("/forgot-password")]
-    [InlineData("/reset-password")]
-    [InlineData("/confirm-email")]
-    [InlineData("/Error")]
-    [InlineData("/share")]
-    [InlineData("/pending-actions")]
-    public void NoBlazorComponent_OwnsAReactRoute(string route)
-    {
-        var owners = typeof(RTUB.Program).Assembly.GetTypes()
-            .SelectMany(t => t.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: false)
-                .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
-                .Select(r => (Type: t, r.Template)))
-            .Where(r => r.Template.Equals(route, StringComparison.OrdinalIgnoreCase))
-            .Select(r => r.Type.FullName)
-            .ToList();
-
-        owners.Should().BeEmpty("React owns {0}; its Blazor page was retired", route);
-    }
-
-    // ---------- Blazor member/admin bridges ----------
-
-    /// <summary>
-    /// 012F: the members' Blazor /member/events is retired; Events is React-only. Its URL lands on the agenda
-    /// with its query, so Requests' "criar atuação" prefill (?openModal=true&amp;name=...) still opens the form.
-    /// </summary>
-    [Theory]
-    [InlineData("/member/events", "/events")]
-    [InlineData("/member/events?openModal=true&name=x", "/events?openModal=true&name=x")]
-    public async Task MemberEvents_IsRetired_AndRedirectsToTheReactAgenda(string path, string target)
-    {
-        var client = NoRedirectClient();
-        var response = await client.GetAsync(path);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Be(target);
-        (await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, path))).StatusCode.Should().Be(HttpStatusCode.Redirect);
-        (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
-    }
-
-    /// <summary>
-    /// Events use "enrollment" (Inscrições); "attendance" (Presenças) belongs to rehearsals. A member
-    /// answers in a modal on the event page: the first 011 build's /events/{id}/enrollment page is
-    /// gone and its URL lands on the event with the modal open (?respond=1); the draft
-    /// /events/{id}/attendance never reached dev and is not served.
-    /// </summary>
-    [Fact]
-    public async Task EventAnswers_AreAModalOnTheEventPage_NotAPageOfTheirOwn()
-    {
-        var client = NoRedirectClient();
-
-        var old = await client.GetAsync("/events/12/enrollment");
-        old.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        old.Headers.Location!.ToString().Should().Be("/events/12?respond=1");
-        (await client.PostAsync("/events/12/enrollment", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
-
-        // 012E: everyone's answers are the event page's "Quem vai / Quem foi" (and its Admin/Owner manager).
-        var list = await client.GetAsync("/events/12/enrollments");
-        list.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        list.Headers.Location!.ToString().Should().Be("/events/12#who-title");
-        (await client.GetAsync("/events/my-enrollments")).StatusCode.Should().Be(HttpStatusCode.NotFound, "the page is gone: \"Onde estiveste\" is a modal on /events");
-        (await client.GetAsync("/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await client.GetAsync("/api/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-
-        var root = FindRepoRoot();
-        var portal = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
-        File.Exists(Path.Combine(portal, "EventEnrollment.tsx")).Should().BeFalse("the standalone answer page was retired");
-        File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().NotContain("EventEnrollment").And.NotContain("/enrollment'");
-        var events = Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Event", StringComparison.Ordinal)
-                || f.EndsWith("eventsApi.ts"))
-            .Select(File.ReadAllText).ToList();
-        events.Should().NotContain(t => t.Contains("attendance", StringComparison.OrdinalIgnoreCase),
-            "event pages speak of enrollment, never attendance");
-        string.Concat(events).Should().Contain("<EnrollmentDialog").And.Contain("<PrizesDialog").And.Contain("className={`quick-reply");
-    }
-
-    /// <summary>
-    /// 011.5: the event page says "Quem foi" once the event is over and never sends anyone to the
-    /// Blazor management page; the agenda's cards carry no "Quem vai" action, and create/edit/delete
-    /// are React modals shown only when the server says the caller can manage (and enforced there).
-    /// </summary>
-    [Fact]
-    public void EventPages_UsePastWording_AndManageInReact()
-    {
-        var src = Path.Combine(FindRepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var detail = File.ReadAllText(Path.Combine(src, "EventDetail.tsx"));
-        var agenda = File.ReadAllText(Path.Combine(src, "Events.tsx"));
-        var manage = File.ReadAllText(Path.Combine(src, "EventManage.tsx"));
-
-        detail.Should().Contain("past ? 'Quem foi' : 'Quem vai'").And.Contain("whoLabel(past)");
-        detail.Should().NotContain("Gerir atuações").And.NotContain("legacy.memberEvents").And.NotContain("eventEnrollments",
-            "the event page sends nobody to the Blazor management pages");
-
-        var card = agenda[agenda.IndexOf("function AgendaCard", StringComparison.Ordinal)..agenda.IndexOf("function ArchiveRow", StringComparison.Ordinal)];
-        card.Should().NotContain("Quem vai", "who is going lives on the event page only");
-        agenda.Should().Contain("{agenda?.canEdit && (").And.Contain("Adicionar atuação")
-            .And.Contain("onEdit: () => setEditing(e.id),").And.Contain("onDelete: () => setDeleting(e),")
-            .And.Contain("onNotice: e.past || e.cancelled ? undefined", "notices only for upcoming, not cancelled dates (012A)")
-            .And.Contain("onCancel: e.past ? undefined", "cancel / reactivate only for upcoming dates (012A)");
-        agenda.Should().NotContain("Gerir atuações");
-        manage.Should().Contain("eventsApi.createEvent(").And.Contain("eventsApi.updateEvent(").And.Contain("eventsApi.deleteEvent(");
-        manage.Should().Contain("eventsApi.setImage(").And.Contain("eventsApi.removeImage(").And.Contain("eventsApi.cancelEvent(")
-            .And.Contain("eventsApi.reactivateEvent(").And.Contain("eventsApi.sendNotice(")
-            .And.NotContain("área de membros", "image, cancel and notices no longer send anyone to /member/events (012A)");
-        detail.Should().Contain("<NoticeDialog").And.Contain("<CancelEventDialog").And.Contain("<ReactivateEventDialog");
-        detail.Should().Contain("loaded.canManagePrizes", "Admin/Owner manage prizes in the Prémios modal (012B)");
-        File.ReadAllText(Path.Combine(src, "EventDialogs.tsx")).Should().Contain("<PrizeManager");
-        manage.Should().Contain("eventsApi.addPrize(").And.Contain("eventsApi.renamePrize(").And.Contain("eventsApi.deletePrize(");
-        manage.Should().Contain("eventsApi.uploadVideo(").And.Contain("eventsApi.renameVideo(").And.Contain("eventsApi.reorderVideos(")
-            .And.Contain("eventsApi.deleteVideo(");
-        detail.Should().Contain("<VideoManagerDialog").And.Contain("Gerir vídeos");
-        detail.Should().Contain("<RepertoireManagerDialog").And.Contain("Gerir repertório");
-        detail.Should().Contain("<ParticipantsManagerDialog").And.Contain("Gerir inscrições")
-            .And.NotContain("legacy.eventEnrollments");
-        manage.Should().Contain("eventsApi.addEnrollment(").And.Contain("eventsApi.removeMemberEnrollment(").And.Contain("eventsApi.enrollmentMembers(");
-        File.ReadAllText(Path.Combine(src, "main.tsx")).Should().NotContain("my-enrollments");
-        File.Exists(Path.Combine(src, "MyEnrollments.tsx")).Should().BeFalse("\"Onde estiveste\" is a modal on /events now");
-        File.ReadAllText(Path.Combine(src, "EventDialogs.tsx")).Should().Contain("export function WhereYouWereDialog");
-        manage.Should().Contain("eventsApi.addToRepertoire(").And.Contain("eventsApi.removeFromRepertoire(")
-            .And.Contain("eventsApi.reorderRepertoire(").And.Contain("eventsApi.clearRepertoireDay(").And.Contain("eventsApi.repertoireSongs(");
-    }
-
-    /// <summary>
-    /// 012F: /member/events and what only it used are gone; its statistics are the agenda's members-only
-    /// "Estatísticas" modal (GET /api/events/stats); nothing links to it any more. Discussion (members) and
-    /// contacts (Mod and above) stay Blazor bridges, linked from the React event page.
-    /// </summary>
-    [Fact]
-    public void MemberEvents_IsGone_WithItsBridgeOnlyParts()
-    {
-        var root = FindRepoRoot();
-        var src = Path.Combine(root, "src");
-        foreach (var gone in new[]
-                 {
-                     "RTUB.Web/Pages/Members/MemberEvents.razor", "RTUB.Web/Pages/Members/MemberEvents.razor.css",
-                     "RTUB.Shared/Components/Modals/RepertoireModal.razor", "RTUB.Shared/Components/UI/EnrollmentStatisticsButton.razor",
-                     "RTUB.Application/Services/EventStatisticsService.cs", "RTUB.Application/Services/EnrollmentStatisticsService.cs",
-                     "RTUB.Application/Services/EventFilterService.cs", "RTUB.Application/Services/EventUrlService.cs",
-                     "RTUB.Web/Pages/Activities/EventEnrollments.razor", "RTUB.Shared/Components/UI/MyEnrollmentsButton.razor",
-                 })
-        {
-            File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired", gone);
-        }
-
-        var sep = Path.DirectorySeparatorChar;
-        var linking = Directory.EnumerateFiles(src, "*.*", SearchOption.AllDirectories)
-            .Where(f => f.EndsWith(".razor") || f.EndsWith(".tsx") || f.EndsWith(".ts"))
-            .Where(f => !f.Contains($"{sep}obj{sep}") && !f.Contains($"{sep}bin{sep}") && !f.Contains("node_modules")
-                && !f.Contains($"wwwroot{sep}portal"))
-            .Where(f => File.ReadAllText(f) is var text && (text.Contains("\"/member/events") || text.Contains("'/member/events")))
-            .Select(Path.GetFileName)
-            .ToList();
-        linking.Should().BeEmpty("no Blazor or React page links to the retired /member/events");
-
-        var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
-        var agenda = File.ReadAllText(Path.Combine(portal, "Events.tsx"));
-        agenda.Should().Contain("<StatsDialog").And.Contain("onClick={() => setStats(true)}").And.NotContain("Área de membros");
-        File.ReadAllText(Path.Combine(portal, "EventDialogs.tsx")).Should().Contain("eventsApi.stats(").And.NotContain("presen");
-        agenda.Should().Contain("takeCreatePrefill").And.Contain("prefill={editing === 'new' ? prefill : undefined}",
-            "Requests' prefill opens the React create form (Admin/Owner)");
-        // 030: the member menu (MemberShell.tsx) is the members' way around; /profile keeps the enrollments and sign-out.
-        var shell = File.ReadAllText(Path.Combine(portal, "MemberShell.tsx"));
-        shell.Should().Contain("href: portal.events,").And.NotContain("portal.myEnrollments").And.Contain("signOut()")
-            .And.NotContain("memberEvents");
-        File.ReadAllText(Path.Combine(portal, "Profile.tsx")).Should().NotContain("portal.myEnrollments")
-            .And.Contain("<SignOutButton").And.NotContain("memberEvents");
-
-    }
-
-    /// <summary>
-    /// 013: the discussion and contact tracking are React; no Blazor component routes anything under /events.
-    /// A visitor is sent to sign in (and back), as the Blazor pages did; GET/HEAD only.
-    /// </summary>
-    [Theory]
-    [InlineData("/events/12/discussion")]
-    [InlineData("/events/12/contacts")]
-    public async Task EventDiscussionAndContacts_AreReact_AndSendVisitorsToSignIn(string path)
-    {
-        var client = NoRedirectClient();
-        var response = await client.GetAsync(path);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Be("/login?returnUrl=" + Uri.EscapeDataString(path));
-        (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
-
-        var blazorEventRoutes = typeof(RTUB.Program).Assembly.GetTypes()
-            .SelectMany(t => t.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: false)
-                .Cast<Microsoft.AspNetCore.Components.RouteAttribute>())
-            .Select(r => r.Template)
-            .Where(t => t.StartsWith("/events", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        blazorEventRoutes.Should().BeEmpty("no Blazor event page is left (013)");
-    }
-
-    /// <summary>
-    /// 014: Rehearsals are React. Rehearsals speak of presença (attendance), events of inscrição (enrollment);
-    /// neither borrows the other's word. The Blazor page and its rehearsal-only parts are gone, and the Blazor
-    /// menu opens the React page with a full load.
-    /// </summary>
-    [Fact]
-    public void Rehearsals_AreReact_WithTheirOwnTerminology_AndTheBlazorPageIsGone()
-    {
-        var src = Path.Combine(FindRepoRoot(), "src");
-        var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
-        var rehearsals = Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Rehearsal", StringComparison.Ordinal)
-                || f.EndsWith("rehearsalsApi.ts")).Select(File.ReadAllText).ToList();
-        rehearsals.Should().HaveCount(4);
-        rehearsals.Should().NotContain(t => t.Contains("inscri", StringComparison.OrdinalIgnoreCase) || t.Contains("enrollment", StringComparison.OrdinalIgnoreCase)
-            || t.Contains("migra", StringComparison.OrdinalIgnoreCase), "rehearsals speak of presença, never inscrição");
-        string.Concat(rehearsals).Should().Contain("Presenças").And.Contain("As minhas presenças").And.Contain("presença");
-
-        var events = Directory.GetFiles(portal).Where(f => Path.GetFileName(f).StartsWith("Event", StringComparison.Ordinal) || f.EndsWith("eventsApi.ts"))
-            .Select(File.ReadAllText).ToList();
-        events.Should().NotContain(t => t.Contains("presença", StringComparison.OrdinalIgnoreCase) || t.Contains("attendance", StringComparison.OrdinalIgnoreCase),
-            "events speak of inscrição, never presença");
-
-        File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().Contain("'/rehearsals': lazy(").And.Contain("RehearsalDetail");
-        foreach (var gone in new[]
-                 {
-                     "RTUB.Web/Pages/Activities/Rehearsals.razor", "RTUB.Shared/Components/Cards/RehearsalCard.razor",
-                     "RTUB.Shared/Components/Modals/ParticipationModal.razor", "RTUB.Shared/Components/UI/InstrumentCounter.razor",
-                     "RTUB.Application/Services/RehearsalFilterService.cs", "RTUB.Application/Services/RehearsalUrlService.cs",
-                     "RTUB.Application/Services/RehearsalAttendanceFilterService.cs", "RTUB.Application/Services/RehearsalStatisticsService.cs",
-                 })
-        {
-            File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired in 014", gone);
-        }
-    }
-
-    [Fact]
-    public void EventPage_LinksTheReactDiscussionAndContacts_AndTheOldBlazorPartsAreGone()
-    {
-        var src = Path.Combine(FindRepoRoot(), "src");
-        var portal = Path.Combine(src, "RTUB.Web", "portal", "src");
-        var detail = File.ReadAllText(Path.Combine(portal, "EventDetail.tsx"));
-        detail.Should().Contain("portal.eventDiscussion(event.id)").And.Contain("portal.eventContacts(event.id)")
-            .And.Contain("{detail.canTrackContacts && (").And.NotContain("legacy.");
-        File.ReadAllText(Path.Combine(portal, "content.ts")).Should().NotContain("legacy.eventDiscussion").And.Contain("eventContacts: (id: number)");
-        File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().Contain("(discussion|contacts)");
-
-        var talk = File.ReadAllText(Path.Combine(portal, "EventDiscussion.tsx"));
-        talk.Should().Contain("Escreve uma nota para a atuação…").And.Contain("Ainda não há mensagens nesta atuação.")
-            .And.Contain("Deixa uma nota, combina detalhes ou partilha uma dúvida.").And.Contain("Apagar esta publicação?");
-        var contacts = File.ReadAllText(Path.Combine(portal, "EventContacts.tsx"));
-        foreach (var page in new[] { talk, contacts })
-        {
-            page.Should().NotContainAny(new[] { "attendance", "presença", "Presença", "migra" });
-        }
-
-        foreach (var gone in new[]
-                 {
-                     "RTUB.Web/Pages/Activities/EventDiscussion.razor", "RTUB.Web/Pages/Activities/EventContacts.razor",
-                     "RTUB.Shared/Components/Discussion/PostCard.razor", "RTUB.Shared/Components/Discussion/PostComposer.razor",
-                     "RTUB.Shared/Components/Discussion/CommentItem.razor", "RTUB.Application/Services/EventDiscussionService.cs",
-                     "RTUB.Application/Services/EventAuthorizationService.cs",
-                 })
-        {
-            File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired in 013", gone);
-        }
-    }
-    [Fact]
-    public void EventsLinks_GoToTheReactAgenda()
-    {
-        var root = FindRepoRoot();
-        var src = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
-
-        File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("events: '/events'").And.NotContain("memberEvents");
-        File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.events}>",
-            "the home agenda's call to action opens the React agenda");
-        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("events: portal.events,",
-            "the top bar, the mobile menu and the footer open the agenda page, not the home section");
-        File.ReadAllText(Path.Combine(src, "Requests.tsx")).Should().Contain("href={approved.createEventUrl}",
-            "turning a request into an event opens the React create form (012F; the requests page is React since 031, "
-            + "RequestsApiTests pins the /events?openModal=true link)");
-    }
-
-    /// <summary>032: the Blazor profile and map are retired; their old URLs land on the React pages, for everyone.</summary>
-    [Theory]
-    [InlineData("/member/profile", "/profile")]
-    [InlineData("/member/map", "/members/map")]
-    public async Task RetiredMemberProfileAndMap_RedirectToTheReactPages(string path, string target)
-    {
-        var response = await NoRedirectClient().GetAsync(path);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect, "temporary (302) while DEV is hybrid");
-        response.Headers.Location!.ToString().Should().Be(target);
-    }
-
-    // ---------- retired Blazor Music (React track 006) ----------
-
-    [Theory]
-    [InlineData("/music/songs/12", "/music/albums/12")]
-    [InlineData("/music/songs/3?from=share", "/music/albums/3?from=share")]
-    public async Task RetiredBlazorAlbumPage_RedirectsToTheReactAlbum(string path, string target)
-    {
-        var response = await NoRedirectClient().GetAsync(path);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Be(target);
-    }
-
-    [Fact]
-    public void HomeMusicLink_GoesToTheReactMusicPage()
-    {
-        var src = Path.Combine(FindRepoRoot(), "src", "RTUB.Web", "portal", "src");
-
-        File.ReadAllText(Path.Combine(src, "content.ts")).Should().Contain("music: '/music'");
-        File.ReadAllText(Path.Combine(src, "Home.tsx")).Should().Contain("<MoreLink href={portal.music}>");
-        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("music: portal.music,",
-            "the top bar, the mobile menu and the footer open the Music page, not the home section");
-        Directory.GetFiles(src).Select(File.ReadAllText).Should().NotContain(t => Regex.IsMatch(t, "(?<!/api)/music/songs/"),
-            "the React Music area links to /music/albums/{id}, never the retired Blazor route");
-    }
-
-    // ---------- retired Blazor /request (React track 003) ----------
-
-    [Fact]
-    public async Task RetiredBlazorRequest_HasNoSubmissionPathLeft()
-    {
-        var response = await NoRedirectClient().PostAsync("/request",
-            new FormUrlEncodedContent(new Dictionary<string, string> { ["Name"] = "x" }));
-
-        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
-            "only the React shell (GET/HEAD) exists at /request; submissions go to POST /api/public/requests");
     }
 
     private static string FindRepoRoot()

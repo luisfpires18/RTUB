@@ -11,36 +11,6 @@ namespace RTUB.Application.Helpers;
 public static class StatusHelper
 {
     /// <summary>
-    /// Gets the Bootstrap badge CSS class for a request status
-    /// </summary>
-    public static string GetStatusBadgeClass(RequestStatus status)
-    {
-        return status switch
-        {
-            RequestStatus.Pending => "bg-warning text-dark",
-            RequestStatus.Analysing => "bg-info text-dark",
-            RequestStatus.Confirmed => "bg-success",
-            RequestStatus.Rejected => "bg-danger",
-            _ => "bg-secondary"
-        };
-    }
-
-    /// <summary>
-    /// Gets the Portuguese translation for a request status
-    /// </summary>
-    public static string GetStatusTranslation(RequestStatus status)
-    {
-        return status switch
-        {
-            RequestStatus.Pending => "Pendente",
-            RequestStatus.Analysing => "Em Análise",
-            RequestStatus.Confirmed => "Confirmado",
-            RequestStatus.Rejected => "Rejeitado",
-            _ => status.ToString()
-        };
-    }
-
-    /// <summary>
     /// Gets a localized display name for an instrument type.
     /// Delegates to InstrumentTypeHelper in Core layer.
     /// </summary>
@@ -97,24 +67,6 @@ public static class StatusHelper
             MemberCategory.Caloiro => "CALOIRO",
             MemberCategory.Leitao => "LEITÃO",
             _ => category.ToString()
-        };
-    }
-
-    /// <summary>
-    /// Gets the Bootstrap badge CSS class for a member category
-    /// </summary>
-    public static string GetCategoryBadgeClass(MemberCategory category)
-    {
-        return category switch
-        {
-            MemberCategory.Tuno => "badge-tuno",
-            MemberCategory.Veterano => "badge-veterano",
-            MemberCategory.Tunossauro => "badge-tunossauro",
-            MemberCategory.TunoHonorario => "badge-honorario",
-            MemberCategory.Fundador => "badge-fundador",
-            MemberCategory.Caloiro => "badge-caloiro",
-            MemberCategory.Leitao => "badge-leitao",
-            _ => "bg-secondary"
         };
     }
 

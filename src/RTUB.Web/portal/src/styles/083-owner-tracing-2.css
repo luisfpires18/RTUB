@@ -1,0 +1,291 @@
+.owner-dash__chart:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+
+.owner-dash__chart svg {
+  display: block;
+}
+
+.owner-dash__grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.owner-dash__axis {
+  fill: var(--muted);
+  font: 0.6875rem var(--font-body);
+}
+
+.owner-dash__line {
+  fill: none;
+  stroke: var(--purple-ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.owner-dash__area {
+  fill: var(--purple-ink);
+  opacity: 0.12;
+}
+
+.owner-dash__cross {
+  stroke: var(--line-strong);
+  stroke-dasharray: 3 3;
+}
+
+.owner-dash__dot {
+  fill: var(--purple-ink);
+  stroke: var(--bg-raise);
+  stroke-width: 2;
+}
+
+.owner-dash__tip {
+  position: absolute;
+  top: 0;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg-deep);
+  color: var(--muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.owner-dash__tip strong {
+  color: var(--ink);
+  font-size: 0.9375rem;
+}
+
+.owner-dash__tip strong span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.owner-dash__note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.owner-dash__table summary {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.owner-dash__scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.owner-dash__table table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.owner-dash__table th,
+.owner-dash__table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.owner-dash__table th:first-child {
+  text-align: left;
+}
+
+.owner-dash__table thead th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.owner-dash__heat {
+  display: grid;
+  gap: 3px;
+  min-width: 300px;
+}
+
+.owner-dash__heat-row {
+  display: grid;
+  grid-template-columns: 32px repeat(24, minmax(8px, 1fr));
+  gap: 3px;
+  align-items: center;
+}
+
+.owner-dash__heat-hour,
+.owner-dash__heat-day {
+  color: var(--muted);
+  font-size: 0.6875rem;
+}
+
+.owner-dash__heat-cell {
+  aspect-ratio: 4 / 3;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--purple-ink) calc(var(--heat) * 100%), var(--bg));
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+}
+
+.owner-dash__ranks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.owner-page .segmented button {
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+.owner-dash__rank {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-dash__rank li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  font-size: 0.875rem;
+}
+
+.owner-dash__rank-label {
+  overflow: hidden;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-dash__rank-count {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.owner-dash__rank-bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  min-width: 4px;
+  border-radius: 999px;
+  background: var(--purple-ink);
+  opacity: 0.7;
+}
+
+@media (max-width: 480px) {
+  .owner-dash__now dd {
+    font-size: 1.25rem;
+  }
+}
+
+/* #220: the person or object first, then the type and action, then who and when; Details and delete at the end.
+   Dense on desktop (several per row), one per row on phones. */
+.owner-logs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-log {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.owner-log--critical {
+  border-left-color: #ff8f86;
+}
+
+.owner-log__name {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.owner-log__current {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  vertical-align: 1px;
+}
+
+.owner-log__what {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 0;
+}
+
+.owner-log__type {
+  color: var(--purple-ink);
+  font-size: 0.875rem;
+}
+
+.owner-log__critical {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #ffb3ad;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.owner-log__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 8px;
+  margin-top: 2px;
+}
+
+.owner-log__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  min-width: 0;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.owner-log__meta span {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.owner-log__buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}

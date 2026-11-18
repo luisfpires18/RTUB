@@ -1,6 +1,6 @@
 # React Gallery (`/gallery`)
 
-`/gallery` is the React timeline (`src/RTUB.Web/portal/src/Gallery.tsx`) over a viewer-aware API. Members upload. The uploader,
+`/gallery` is the React timeline (`src/RTUB.Web/portal/src/pages/Gallery.tsx`) over a viewer-aware API. Members upload. The uploader,
 Admin or Owner edit, tag and delete, in modals on the same page (`GalleryManage.tsx`).
 
 Code: `Endpoints/GalleryEndpoints.cs` → `IGalleryTimelineService` (reads), `IGalleryManagementService` (writes, `Services/GalleryManagementService.cs`),

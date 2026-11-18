@@ -1,14 +1,11 @@
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
-using Moq;
 using RTUB.Application.Factories;
 using RTUB.Application.Helpers;
-using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -88,7 +85,6 @@ public class PortugalCalendarRulesTests
         var cache = new MemoryCache(new MemoryCacheOptions());
         new AtaPdfService(cache, summerNoon).GeneratedAt().Should().Be("14/07/2026 12:00", "summer: UTC+1, not the server's 11:00");
         new ReportPdfService(cache, summerNoon).GeneratedAt().Should().Be("14/07/2026 12:00");
-        new ReportService(Mock.Of<IReportRepository>(), summerNoon).GeneratedAt().Should().Be("14/07/2026 12:00");
         new AtaPdfService(cache, WinterBeforeMidnight).GeneratedAt().Should().Be("14/01/2026 23:30", "winter: UTC+0");
     }
 }

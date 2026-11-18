@@ -1,6 +1,6 @@
 # React Logística (`/logistics`)
 
-Boards and Kanban in React: `portal/src/Logistics.tsx`, `LogisticsBoard.tsx`, `LogisticsDialogs.tsx`,
+Boards and Kanban in React: `portal/src/pages/Logistics.tsx`, `LogisticsBoard.tsx`, `LogisticsDialogs.tsx`,
 `LogisticsViews.tsx`, `LogisticsTasks.tsx` over `/api/logistics`.
 Code: `Endpoints/LogisticsEndpoints.cs` -> `ILogisticsKanbanService` (`LogisticsKanbanService.*.cs`),
 `LogisticsAuthorization`, `LogisticsWorkflow`, `LogisticsTemplates`, `LogisticsNotifier`, `LogisticsReminderDelivery`,

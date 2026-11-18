@@ -3,7 +3,7 @@
 namespace RTUB.Security;
 
 /// <summary>
-/// Builds RTUB's enforced Content-Security-Policy header value (unit 025).
+/// Builds RTUB's enforced Content-Security-Policy header value.
 ///
 /// Every source in the policy was derived from what the browser actually loads; nothing is
 /// whitelisted "just in case", and no directive gets an origin it does not use. See .ai/STATE.md
@@ -142,20 +142,19 @@ public sealed class ContentSecurityPolicyBuilder
         // No 'unsafe-eval' and no wasm source: nothing evaluates strings or runs WebAssembly.
         Directive("script-src", "'self'");
 
-        // Inline event handler attributes: removed by unit 023 and, for JS-built markup, 025.
+        // No inline event handler attributes, in served or JS-built markup.
         Directive("script-src-attr", "'none'");
 
         // Own origin only (the cdnjs / unpkg stylesheets went with them, as above; the Leaflet CSS is bundled).
         Directive("style-src", "'self'");
 
-        // Inline style attributes: removed by unit 024. Dynamic values go through the CSSOM,
+        // No inline style attributes. Dynamic values go through the CSSOM,
         // which CSP does not govern.
         Directive("style-src-attr", "'none'");
 
         // data: - the cropper and the gallery upload preview render the picked file as a
         //         data: URL before it is uploaded.
-        // OSM tiles - the Leaflet basemap of the React members map (MembersMap.tsx; OpenStreetMap since 040, CARTO
-        //             before, which started to require an API key).
+        // OSM tiles - the Leaflet basemap of the React members map (MembersMap.tsx; OpenStreetMap needs no API key).
         // R2 public - avatars, gallery images and event media, stored as absolute URLs.
         // r2ReferenceOrigin - inherited production media on a DEV snapshot. One exact origin, never
         // a wildcard, and absent unless explicitly configured (i.e. never in production).

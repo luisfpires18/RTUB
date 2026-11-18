@@ -1,0 +1,224 @@
+.pa-pager__range {
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.pa-none {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 34rem;
+  margin-inline: auto;
+  padding: 32px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  text-align: center;
+}
+
+.pa-none > svg {
+  width: 32px;
+  height: 32px;
+  color: var(--purple-ink);
+}
+
+.pa-none p {
+  margin: 0;
+}
+
+/* The row title opens the activity's own page; the answers are the buttons. */
+.pa-row__title a {
+  /* A 44 px tall hit area (padding cancelled by the margin, so the row's layout is unchanged). */
+  display: inline-block;
+  padding-block: 9px;
+  margin-block: -9px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pa-row__title a:hover,
+.pa-row__title a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* "Adicionar ao Google Calendar" offer (CalendarOffer.tsx). */
+.calendar-offer {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.calendar-offer__saved {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+.calendar-offer__what {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.calendar-offer__what dd {
+  margin: 0;
+}
+.calendar-offer__title {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+.calendar-offer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.calendar-offer__actions .btn {
+  min-height: 44px;
+}
+.calendar-offer__fallback {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Push preferences: the "O que receber" dialog from /profile → Notificações push */
+.push-prefs__open {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  justify-items: start;
+}
+
+.push-prefs__open .note {
+  margin: 0;
+}
+
+.push-prefs__form {
+  display: grid;
+  gap: 18px;
+}
+
+.push-prefs__group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.push-prefs__legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.push-prefs__item {
+  align-items: flex-start;
+  padding: 6px 0;
+}
+
+.push-prefs__item input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.push-prefs__item input:disabled {
+  cursor: not-allowed;
+}
+
+.push-prefs__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.push-prefs__text .note {
+  margin: 0;
+}
+
+.push-prefs__label {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.push-prefs__locked {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  vertical-align: middle;
+}
+
+.push-prefs__actions {
+  position: sticky;
+  bottom: 0;
+  padding-top: 10px;
+  background: var(--bg-raise);
+}
+
+/* Release notes: "Nova atualização" from the startup queue and the footer's "Ver novidades da versão" */
+.release-notes__list {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+  display: grid;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.release-notes__list li {
+  overflow-wrap: anywhere;
+}
+
+.release-notes__older {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.release-notes__older .note {
+  margin: 0;
+}
+
+.release-notes__release {
+  display: grid;
+  gap: 8px;
+}
+
+.release-notes__version {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.version__notes {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.version__hint {
+  display: block;
+  margin-top: 4px;
+}

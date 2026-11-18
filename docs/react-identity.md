@@ -2,9 +2,9 @@
 
 | Route | Owner |
 | --- | --- |
-| `/forgot-password`, `/reset-password`, `/confirm-email` | React, public (`portal/src/ForgotPassword.tsx`, `ResetPassword.tsx`, `ConfirmEmail.tsx`, `accountApi.ts`) |
+| `/forgot-password`, `/reset-password`, `/confirm-email` | React, public (`portal/src/pages/ForgotPassword.tsx`, `ResetPassword.tsx`, `ConfirmEmail.tsx`, `accountApi.ts`) |
 | `/Error` | Server-owned static page (`wwwroot/error.html`, `wwwroot/css/error.css`), on purpose |
-| `/share` | React (`portal/src/Share.tsx`), public, Web Share Target |
+| `/share` | React (`portal/src/pages/Share.tsx`), public, Web Share Target |
 
 Code: `Services/AccountRecoveryService.cs`, `Endpoints/AccountRecoveryEndpoints.cs`, `Program.cs` (page routes, `/Error`,
 `/share`). Identity options, password rules and token providers are the framework's, unchanged.
@@ -91,7 +91,7 @@ dispositivo"), and from then on `/login` → "Entrar com Face ID / impressão di
 - Shared sign-in: `Program.SignInBlockAsync` (unconfirmed / locked / expelled) and `Program.CompleteSignInAsync` (reset
   failed count, last login, `LoginEvents`, cookie, landing) serve both sign-ins, so the rules cannot drift. The
   signature counter is stored after each passkey sign-in.
-- Client: `portal/src/passkey.ts` converts WebAuthn JSON natively (`parse*OptionsFromJSON`, `toJSON`) with a small
+- Client: `portal/src/data/passkey.ts` converts WebAuthn JSON natively (`parse*OptionsFromJSON`, `toJSON`) with a small
   base64url fallback for older Safari. The buttons show only where WebAuthn exists (secure context). A closed prompt is
   silent; a removed passkey answers "Este dispositivo não tem uma entrada ativa...".
 

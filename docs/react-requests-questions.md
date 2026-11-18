@@ -1,6 +1,6 @@
 # React Pedidos (`/requests`) and Perguntas (`/questions`)
 
-Code: `portal/src/Requests.tsx`, `portal/src/Questions.tsx`; `/api/requests` (`Endpoints/RequestAdminEndpoints.cs` →
+Code: `portal/src/pages/Requests.tsx`, `portal/src/pages/Questions.tsx`; `/api/requests` (`Endpoints/RequestAdminEndpoints.cs` →
 `IRequestAdminService`) and `/api/questions` (`Endpoints/QuestionEndpoints.cs` → `IQuestionBoardService`); rules in
 `Helpers/RequestsAuthorization.cs` and `Helpers/QuestionsAuthorization.cs`, enforced in the two services. The public
 form is the separate React `/request` (`POST /api/public/requests`).

@@ -5,7 +5,7 @@ Owner-only API, `/api/owner/*`.
 
 Code: `src/RTUB.Web/Endpoints/OwnerEndpoints.cs` (thin, with the Owner gate),
 `src/RTUB.Application/Services/OwnerOperationsService*.cs` (the work; `.Dashboard.cs` for `/owner/dashboard`),
-`src/RTUB.Application/DTOs/OwnerOperationsDtos.cs`, `portal/src/Owner*.tsx` + `ownerApi.ts` + `OwnerUi.tsx`.
+`src/RTUB.Application/DTOs/OwnerOperationsDtos.cs`, `portal/src/pages/Owner*.tsx` + `data/ownerApi.ts` + `components/OwnerUi.tsx`.
 Tests: `RTUB.Integration.Tests/Api/OwnerOperationsApiTests.cs` (access, behavior, dashboard),
 `RTUB.Web.Tests/ReactPortal/OwnerOperationsSourceTests.cs`, `RTUB.Web.Tests/Services/SqlValidationServiceTests.cs`.
 

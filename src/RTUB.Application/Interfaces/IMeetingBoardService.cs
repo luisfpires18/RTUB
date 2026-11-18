@@ -4,8 +4,8 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React /meetings (task 034, docs/react-meetings.md): meetings, participations, atas and
-/// meeting requests. Every rule of the old page is decided here (<see cref="Helpers.MeetingAccess"/>), from the session:
+/// The React /meetings (docs/react-meetings.md): meetings, participations, atas and
+/// meeting requests. Every rule is decided here (<see cref="Helpers.MeetingAccess"/>), from the session:
 /// visitors get <c>SignInRequired</c>, a Leitão <c>Forbidden</c> on everything, and a meeting the member does not see is
 /// <c>NotFound</c>. Built on the existing meeting, participation, ata, request, PDF, storage, email and push services.
 /// </summary>
@@ -13,7 +13,7 @@ public interface IMeetingBoardService
 {
     // ---------- meetings ----------
 
-    /// <summary><paramref name="fiscalYear"/>: "2025-2026", "all", or null for the current year (the old default).</summary>
+    /// <summary><paramref name="fiscalYear"/>: "2025-2026", "all", or null for the current year.</summary>
     Task<EventResult<MeetingBoardDto>> GetBoardAsync(string? fiscalYear, string? search, ClaimsPrincipal user);
 
     Task<EventResult<MeetingCardDto>> GetMeetingAsync(int id, ClaimsPrincipal user);
@@ -63,7 +63,7 @@ public interface IMeetingBoardService
 
     Task<EventResult<MeetingAtaEditorDto>> SaveAtaAsync(int id, MeetingAtaInput input, ClaimsPrincipal user);
 
-    /// <summary>Publishes a saved draft: the PDF goes to Documentation (as before), then the ata is published.</summary>
+    /// <summary>Publishes a saved draft: the PDF goes to Documentation, then the ata is published.</summary>
     Task<EventResult<MeetingAtaEditorDto>> PublishAtaAsync(int id, ClaimsPrincipal user);
 
     Task<EventResult<MeetingAtaPdf>> GetAtaPdfAsync(int id, ClaimsPrincipal user);

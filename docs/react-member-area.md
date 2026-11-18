@@ -1,6 +1,6 @@
 # React profile (`/profile`), members map (`/members/map`) and Hall of Fame (`/hall-of-fame`)
 
-React: `portal/src/Profile.tsx`, `MembersMap.tsx`, `HallOfFame.tsx`, client `memberAreaApi.ts`. Code:
+React: `portal/src/pages/Profile.tsx`, `MembersMap.tsx`, `HallOfFame.tsx`, client `memberAreaApi.ts`. Code:
 `Endpoints/MemberAreaEndpoints.cs` → `IMyProfileService` (`MyProfileService`), `IMemberMapService`,
 `IHallOfFameService` (`HallOfFameService`); photo storage in `UserProfileService.UpdateProfilePictureAsync`.
 
@@ -111,7 +111,7 @@ counts need at least one. No winner: "Sem dados suficientes".
 
 ## Tests
 
-`Integration.Tests/Api/MemberAreaApiTests.cs`; routes in `PortalRouteTests` and `MemberPagesTests`; menu contract in
+`Integration.Tests/Api/` (`ProfileApiTests`, `MembersMapApiTests`, `HallOfFameApiTests`, `MemberAreaPagesTests`, `RetiredRoutesTests`); routes in `PortalRouteTests` and `MemberPagesTests`; menu contract in
 `MemberShellTests`; the map's popup contract in `ContentSecurityPolicyTests`.
 
 ## Follow-ups

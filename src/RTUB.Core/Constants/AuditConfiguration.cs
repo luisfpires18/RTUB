@@ -37,7 +37,7 @@ public static class AuditConfiguration
     /// Deletions of any entity are also critical regardless of this list.
     /// </summary>
     /// <summary>
-    /// Defence in depth for private conversations (task 041): if a messaging entity is ever audited (taken out of
+    /// Defence in depth for private conversations: if a messaging entity is ever audited (taken out of
     /// <see cref="ExcludedEntityTypes"/> by mistake), these properties are written as <see cref="RedactedValue"/>, never
     /// their content. Targeted per entity, so generic names such as Title or Body stay readable on other entities.
     /// </summary>
@@ -47,9 +47,9 @@ public static class AuditConfiguration
             ["Message"] = new(StringComparer.Ordinal) { "Body", "ReplyToBody", "ReplyToSenderName", "ReadBy", "Link" },
             ["Conversation"] = new(StringComparer.Ordinal) { "Title", "Participants" },
             ["MessageReaction"] = new(StringComparer.Ordinal) { "Emoji" },
-            // #220: a push subscription's endpoint and keys address and decrypt the member's device; never logged.
+            // A push subscription's endpoint and keys address and decrypt the member's device; never logged.
             ["PushSubscription"] = new(StringComparer.Ordinal) { "Endpoint", "Auth", "P256dh" },
-            // 094: a play-along chart is a whole song of JSON; the log keeps who and when, not the chart.
+            // A play-along chart is a whole song of JSON; the log keeps who and when, not the chart.
             ["SongPlayAlong"] = new(StringComparer.Ordinal) { "Chart" },
         };
 
@@ -66,7 +66,7 @@ public static class AuditConfiguration
 
     public static readonly HashSet<string> ExcludedEntityTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        // Messaging (v1 tables, Messaging v2 since task 041): private member chats never reach /owner/tracing.
+        // Messaging (v1 tables, Messaging v2): private member chats never reach /owner/tracing.
         "Message",
         "Conversation",
         "ConversationUserSettings",

@@ -1,7 +1,7 @@
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The push kinds a member can turn off on /profile (task 082, issue #263; owner decisions of #262 in
+/// The push kinds a member can turn off on /profile (owner decisions in
 /// docs/push-notifications.md → Preference keys). The server is the one source: keys, pt-PT labels, groups and which
 /// key is mandatory come from here, the client only renders them. Keys are stable and per account; a key with no row
 /// is on. Only <see cref="PendingActions"/> is mandatory (shown checked and locked, never stored). Every push built by

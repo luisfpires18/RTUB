@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React Events area (React track 011, docs/react-events.md). Built for the browser
+// Contracts of the React Events area (docs/react-events.md). Built for the browser
 // and the caller: a visitor gets only the public fields (name, dates,
 // location, type, image, cancelled, trophies, videos). Descriptions, cancellation reasons, counts,
 // repertoire and the caller's own enrollment are for signed-in members. No user id, enrollment id,
@@ -26,7 +26,7 @@ public sealed record EventTypeOptionDto(string Value, string Label);
 /// <summary>
 /// An event as the Admin/Owner edit form loads it. <c>Time</c> is null for a whole-day or multi-day
 /// event; <c>EndDate</c> only for a multi-day one. <c>ImageUrl</c> is the current image (https/same-site) or null;
-/// the image itself changes through /api/events/{id}/image (012A). <c>MembersOnly</c>: the "Só membros" toggle (#227).
+/// the image itself changes through /api/events/{id}/image. <c>MembersOnly</c>: the "Só membros" toggle.
 /// </summary>
 public sealed record EventEditDto(
     int Id,
@@ -43,7 +43,7 @@ public sealed record EventEditDto(
 
 /// <summary>
 /// What the Admin/Owner form sends. Dates are "yyyy-MM-dd", the time "HH:mm". A multi-day event
-/// (an <c>EndDate</c> after <c>Date</c>) has no time, as on the old form. <c>MembersOnly</c> (#227): on create,
+/// (an <c>EndDate</c> after <c>Date</c>) has no time. <c>MembersOnly</c>: on create,
 /// true = members only, false or absent = public; on update, true / false set it, absent keeps what the event has,
 /// so a client that does not know the field can never make a private event public.
 /// </summary>
@@ -61,7 +61,7 @@ public sealed record EventInput(
 /// One event as the agenda shows it. <c>Time</c> is null for a whole-day event, <c>EndDate</c> only for
 /// a multi-day one. <c>Season</c> is the fiscal year ("2025-2026", September to August).
 /// <c>ImageUrl</c> is null unless it is an https or same-site link. <c>Member</c> is null for visitors.
-/// <c>MembersOnly</c> (#227) is only ever true for a signed-in member: a visitor never gets such an event.
+/// <c>MembersOnly</c> is only ever true for a signed-in member: a visitor never gets such an event.
 /// </summary>
 public sealed record EventSummaryDto(
     int Id,
@@ -90,8 +90,8 @@ public sealed record EventMemberSummaryDto(
 
 /// <summary>
 /// One event page. <c>Member</c> is null for visitors. <c>CanManagePrizes</c>: the caller is Admin/Owner
-/// and the event is a past festival, where prizes are added (012B). <c>CanTrackContacts</c>: Mod and above or a Leitão,
-/// who get the link to the event contacts page (012E).
+/// and the event is a past festival, where prizes are added. <c>CanTrackContacts</c>: Mod and above or a Leitão,
+/// who get the link to the event contacts page.
 /// </summary>
 public sealed record EventDetailDto(
     bool IsMember,
@@ -114,7 +114,7 @@ public sealed record EventMemberDetailDto(
     EventParticipantsDto Participants);
 
 /// <summary>
-/// "Quem vai", for members only, as the old members' list grouped it: members going, Leitões going,
+/// "Quem vai", for members only: members going, Leitões going,
 /// and who is not going; each newest answer first.
 /// </summary>
 public sealed record EventParticipantsDto(
@@ -159,7 +159,7 @@ public sealed record EventInstrumentOptionDto(string Value, string Label);
 public sealed record EventEnrollmentInput(bool WillAttend, string? Instrument, string? Notes);
 
 /// <summary>
-/// "Estatísticas de inscrições" (members, 012F; was the /member/events modal): who said "vou" to events
+/// "Estatísticas de inscrições" (members): who said "vou" to events
 /// dated <c>From</c>..<c>To</c>. <c>PastEvents</c> counts that range's past, not cancelled events (the share's base).
 /// </summary>
 public sealed record EventStatsDto(string From, string To, int PastEvents, IReadOnlyList<EventMemberStatsDto> Members);
@@ -183,7 +183,7 @@ public enum EventResultStatus
     Invalid,
     Forbidden,
     InUse,
-    /// <summary>The caller edited an older copy (Logística card version, task 066): 409.</summary>
+    /// <summary>The caller edited an older copy (Logística card version): 409.</summary>
     Conflict,
 }
 
@@ -196,12 +196,12 @@ public sealed record EventResult<T>(EventResultStatus Status, T? Value = default
         new(EventResultStatus.Invalid, Errors: new Dictionary<string, string[]> { [field] = new[] { message } });
 }
 
-// ---------- advanced management (Admin/Owner, React track 012A) ----------
+// ---------- advanced management (Admin/Owner) ----------
 
 /// <summary>A cropped event image as the browser sends it: WebP (JPEG/PNG where WebP cannot be encoded), at most 5 MB.</summary>
 public sealed record EventImageUpload(Stream Content, string FileName, string ContentType, long Length);
 
-/// <summary>Cancelling: the reason is required (≤1000), as on the old page; the email to subscribers is opt-in.</summary>
+/// <summary>Cancelling: the reason is required (≤1000); the email to subscribers is opt-in.</summary>
 public sealed record EventCancelInput(string? Reason, bool NotifyByEmail);
 
 /// <summary>
@@ -218,7 +218,7 @@ public sealed record EventNoticeAudienceDto(
     int PushLeitoesCaloirosTotal);
 
 /// <summary>
-/// One notice, as the old page offered it. <c>Channel</c> "email" (<c>Kind</c> "new" or "reminder") or
+/// One notice. <c>Channel</c> "email" (<c>Kind</c> "new" or "reminder") or
 /// "push" (a <c>Message</c> ≤500, the event name as title; <c>OnlyLeitoesAndCaloiros</c> narrows the audience).
 /// </summary>
 public sealed record EventNoticeInput(string? Channel, string? Kind, string? Message, bool OnlyLeitoesAndCaloiros);
@@ -226,7 +226,7 @@ public sealed record EventNoticeInput(string? Channel, string? Kind, string? Mes
 /// <summary>What a notice (or the cancellation email) did. <c>Warning</c> when part of it did not go out.</summary>
 public sealed record EventNoticeResultDto(int Sent, int Failed, string? Warning);
 
-// ---------- prizes (Admin/Owner, React track 012B) ----------
+// ---------- prizes (Admin/Owner) ----------
 
 /// <summary>One prize (a Trophies row) as the management modal edits it: its id and name, nothing else.</summary>
 public sealed record EventPrizeDto(int Id, string Name);
@@ -234,7 +234,7 @@ public sealed record EventPrizeDto(int Id, string Name);
 /// <summary>A prize as the form sends it: the name, required, at most 200 characters.</summary>
 public sealed record EventPrizeInput(string? Name);
 
-// ---------- videos (Admin/Owner, React track 012C) ----------
+// ---------- videos (Admin/Owner) ----------
 
 /// <summary>
 /// One video as the management modal edits it: its id and the stored title (null when none was
@@ -245,13 +245,13 @@ public sealed record EventManagedVideoDto(int Id, string? Title);
 /// <summary>An uploaded video file as the endpoint reads it (≤100 MB, a video type or extension) and its title.</summary>
 public sealed record EventVideoUpload(Stream Content, string FileName, string ContentType, long Length, string? Title);
 
-/// <summary>A rename: blank clears the title, as the old page allowed; at most 200 characters.</summary>
+/// <summary>A rename: blank clears the title; at most 200 characters.</summary>
 public sealed record EventVideoTitleInput(string? Title);
 
 /// <summary>A new order: every video id of the event, exactly once, first to last.</summary>
 public sealed record EventVideoOrderInput(IReadOnlyList<int>? VideoIds);
 
-// ---------- repertoire (Admin/Owner, React track 012D) ----------
+// ---------- repertoire (Admin/Owner) ----------
 
 /// <summary>
 /// The repertoire as the management modal edits it: every day it can hold songs (the event's days,
@@ -274,7 +274,7 @@ public sealed record EventRepertoireAddInput(int SongId, string? Date);
 /// <summary>A day's new running order: every repertoire row id of that day, exactly once.</summary>
 public sealed record EventRepertoireOrderInput(string? Date, IReadOnlyList<int>? ItemIds);
 
-// ---------- participants (Admin/Owner, React track 012E) ----------
+// ---------- participants (Admin/Owner) ----------
 
 /// <summary>
 /// Every answer of an event for the Admin/Owner manager, grouped as "Quem vai" groups them, each with
@@ -292,5 +292,5 @@ public sealed record EventManagedEnrollmentDto(int Id, EventParticipantDto Parti
 /// <summary>A member the manager may add: the user id (Admin/Owner only), name, full name and avatar.</summary>
 public sealed record EventMemberOptionDto(string Id, string Name, string? FullName, string AvatarUrl);
 
-/// <summary>Adds a member as going, with their primary instrument, as the old "Adicionar Membro" did.</summary>
+/// <summary>Adds a member as going, with their primary instrument.</summary>
 public sealed record EventEnrollmentAddInput(string? UserId);

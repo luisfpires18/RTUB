@@ -4,7 +4,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Task 076 (#257): which member-information fields apply to a member, and which of them are missing - the one rule for
+/// Which member-information fields apply to a member, and which of them are missing - the one rule for
 /// the Mod's limited edit (<see cref="MemberAdminService.UpdateInfoAsync"/>) and the "Membros" queue of "As minhas ações
 /// pendentes". It follows the member form's existing rules (<c>MemberAdminService.ApplySpecialCategories</c>):
 /// - Cidade, Contacto: everyone;
@@ -13,7 +13,7 @@ namespace RTUB.Application.Services;
 ///   neither);
 /// - passagem a Caloiro: Caloiro and Tuno, same exceptions - a Leitão is never asked for it early;
 /// - passagem a Tuno: Tuno, except Fundador (always December 1991).
-/// A date counts as filled when its year is (old data has year-only pairs, which the form keeps).
+/// A date counts as filled when its year is (older data has year-only pairs, which the form keeps).
 /// </summary>
 public static class MemberInfoRules
 {

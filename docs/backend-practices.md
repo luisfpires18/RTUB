@@ -1,6 +1,6 @@
 # Backend Practices
 
-C# / .NET 10 / EF Core 10 / SQLite rules specific to this repo. Layer overview: `.github/copilot-instructions.md`.
+C# / .NET 10 / EF Core 10 / SQLite rules specific to this repo.
 
 ## Layers
 
@@ -14,14 +14,18 @@ RTUB.Web          host, minimal-API endpoints, a few controllers, React portal
 - `RTUB.Application` references no web UI types (`IBrowserFile`, `AuthenticationState`, `IJSRuntime`, `NavigationManager`).
 - Constructor injection only; services are Scoped and registered in `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs`.
 - Entities inherit `BaseEntity`, are created through static factories (`Entity.Create(...)`) and mutated through named
-  methods; keep the public parameterless constructor for EF.
+  methods; keep the public parameterless constructor for EF. Data annotations carry Portuguese messages; navigation
+  collections are `virtual ICollection<T>` initialized to `new List<T>()`.
 
 ## Data access
 
 - One context per operation via `IDbContextFactory<ApplicationDbContext>`. `Repository<T>` (`Application/Repositories/`)
   saves on every `AddAsync` / `UpdateAsync` / `DeleteAsync`, reads with `AsNoTracking()`, and updates by fetch then `SetValues()`.
   Use `GetByIdOrThrowAsync` (throws `EntityNotFoundException`).
-- `ApplicationDbContext` is a partial class split across files; edit the right partial.
+- One job per file, no file over 300 lines. A big service is a `partial class` split by topic into
+  `<Class>.<Topic>.cs` next to it (fields and constructor stay in `<Class>.cs`); a new method goes in the partial for
+  its topic. `ApplicationDbContext` works the same way; edit the right partial. Startup is `Program.cs` plus the
+  `Extensions/*Extensions.cs` it calls, in order.
 - Read-only queries: `AsNoTracking()`, projections instead of full entities, batch-load related rows (no queries in loops).
 - Never block on async (`.Result`, `.Wait()`).
 - Messaging tables (`Conversations`, `Messages`, `MessageReactions`, `ConversationUserSettings`) are never dropped.

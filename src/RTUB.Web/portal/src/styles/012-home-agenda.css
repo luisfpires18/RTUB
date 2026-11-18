@@ -1,0 +1,151 @@
+/* ---------- agenda: next events (GET /api/public/events/upcoming) ---------- */
+
+.upcoming {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 760px) {
+  .upcoming {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+.gig {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  height: 100%;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.gig__date {
+  display: grid;
+  justify-items: center;
+  min-width: 58px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  background: var(--royal);
+  line-height: 1;
+}
+
+.gig__day {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.gig__month {
+  margin-top: 4px;
+  color: var(--purple-ink);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.gig__body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.gig__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.gig__meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.gig__meta svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.gig__status {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
+.gig--cancelled .gig__name {
+  text-decoration: line-through;
+  text-decoration-color: var(--muted);
+}
+
+.gig--cancelled .gig__status {
+  border-color: #ff8f86;
+  color: #ffb3ad;
+}
+
+.upcoming-empty {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--muted);
+}
+
+.upcoming-empty svg {
+  flex: none;
+  font-size: 1.5rem;
+  color: var(--purple-ink);
+}
+
+/* FITAB: one compact highlight, no dates of its own. */
+.fitab {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+  padding: clamp(20px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--purple);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.fitab__title {
+  margin-top: 6px;
+  font-size: clamp(1.75rem, 2vw + 1rem, 2.5rem);
+}
+
+.fitab__body {
+  display: grid;
+  gap: 8px;
+  max-width: 44rem;
+}
+
+@media (min-width: 900px) {
+  .fitab {
+    grid-template-columns: 220px 1fr;
+    align-items: center;
+    gap: 32px;
+  }
+}

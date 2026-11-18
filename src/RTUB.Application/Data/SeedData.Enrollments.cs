@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Core.Entities;
@@ -135,7 +132,7 @@ public static partial class SeedData
                 }
             };
 
-            // Assign members based on requirements (simplified - no longer using instrument-based assignment)
+            // Assign members based on requirements (simplified: not by instrument)
             foreach (var requirement in coreRequirements)
             {
                 for (var i = 0; i < requirement.Value; i++)

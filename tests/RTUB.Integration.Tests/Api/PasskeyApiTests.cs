@@ -1,14 +1,11 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.DependencyInjection;
 using RTUB.Core.Entities;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 

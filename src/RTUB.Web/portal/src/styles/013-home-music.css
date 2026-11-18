@@ -1,0 +1,121 @@
+/* ---------- music ---------- */
+
+.discs {
+  margin-bottom: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.disc {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.disc__year {
+  color: var(--purple-ink);
+  font-size: 0.875rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.disc__title {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.disc__tracks {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 8px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 0.875rem;
+}
+
+.stream {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.record-wrap {
+  position: relative;
+  width: min(100%, 480px);
+  aspect-ratio: 1.45;
+  justify-self: center;
+}
+
+.sleeve {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  aspect-ratio: 1;
+  padding: 24px;
+  border-radius: 10px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(185, 160, 238, 0.25), transparent 55%),
+    linear-gradient(160deg, var(--royal), #1d1336 70%);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8);
+  z-index: 1;
+}
+
+.sleeve__title {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2vw + 0.5rem, 1.75rem);
+  font-style: italic;
+  line-height: 1.05;
+}
+
+.sleeve__sub {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.record {
+  position: absolute;
+  top: 5%;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 20deg, transparent 0 8%, rgba(255, 255, 255, 0.09) 14%, transparent 22% 55%, rgba(255, 255, 255, 0.07) 62%, transparent 70%),
+    radial-gradient(circle, #3a2d52 0 21%, #0c0b0e 21.5% 23%, transparent 23.5%),
+    repeating-radial-gradient(circle, #141117 0 1.5px, #231f29 1.5px 3px);
+  box-shadow: 0 24px 50px -16px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.record img {
+  width: 34%;
+  /* The height="192" attribute would otherwise keep it 192px tall at 34% width: a squashed logo. */
+  height: auto;
+  border-radius: 50%;
+}
+
+.record-wrap:hover .record {
+  transform: translateX(4%) rotate(40deg);
+}

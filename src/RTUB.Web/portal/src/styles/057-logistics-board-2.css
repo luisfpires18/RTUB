@@ -1,0 +1,197 @@
+.lx-card__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.lx-card__top .lx-menu__button {
+  margin-left: auto;
+}
+
+.lx-status {
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--st) 22%, transparent);
+  color: var(--st);
+  font: 800 0.6875rem/1 var(--font-body);
+  letter-spacing: 0.06em;
+}
+
+.lx-card__dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.lx-card__dates .icon,
+.lx-card__meta .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.lx-card__title {
+  margin: 0;
+  font: 600 0.9375rem/1.35 var(--font-body);
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.lx-card__button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lx-card--open {
+  cursor: pointer;
+}
+
+.lx-card:has(.lx-card__button:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.lx-card__button:focus-visible {
+  outline: none;
+}
+
+.lx-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lx-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.lx-label--edit {
+  padding-right: 2px;
+  font-size: 0.8125rem;
+}
+
+.lx-label__dot,
+.lx-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.lx-dot--todo {
+  background: var(--st-todo);
+}
+
+.lx-dot--inprogress {
+  background: var(--st-wip);
+}
+
+.lx-dot--done {
+  background: var(--st-done);
+}
+
+.lx-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lx-progress small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.lx-progress__bar {
+  display: block;
+  flex: 1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.lx-progress__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--st-done);
+}
+
+.lx-progress__bar--wide {
+  height: 6px;
+}
+
+.lx-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.lx-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lx-menu {
+  position: fixed;
+  z-index: 60;
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg-card);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+}
+
+.lx-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: 500 0.875rem/1.2 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lx-menu button:hover:not(:disabled),
+.lx-menu button:focus-visible {
+  background: var(--bg-raise);
+}
+
+.lx-menu button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.lx-menu .lx-menu__danger {
+  color: #ff8f8f;
+}

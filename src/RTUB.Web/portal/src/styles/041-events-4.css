@@ -1,0 +1,298 @@
+.segmented__count {
+  min-width: 1.5em;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--line);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.repertoire-manager__pos {
+  min-width: 2ch;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.repertoire-manager__album {
+  opacity: 0.7;
+  font-size: 0.9em;
+}
+
+.repertoire-manager__clear {
+  justify-self: start;
+}
+
+.repertoire-manager__add {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.repertoire-manager__add .prize-manager__list {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+/* Admin/Owner video management reuses the prize rows; the upload sits under the list. */
+.video-manager__file {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.video-manager__upload {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+/* Admin/Owner prize management inside the Prémios modal. */
+.prize-manager {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.prize-manager__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prize-manager__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.prize-manager__row input {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.prize-manager__name {
+  /* Basis 0: a long name wraps in its own column, the buttons stay on the row. */
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.prize-manager__add {
+  border-style: dashed;
+}
+
+.trophies {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .trophies {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.trophies li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.trophies svg {
+  flex: none;
+  color: #f5c46b;
+}
+
+.event-video {
+  display: grid;
+  gap: 10px;
+}
+
+.event-video__title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.event-video__player {
+  width: 100%;
+  max-height: 70dvh;
+  border-radius: 12px;
+  background: #000;
+}
+
+.event-video__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.video-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 500 0.875rem/1.3 var(--font-body);
+  cursor: pointer;
+}
+
+.video-pick--on {
+  border-color: var(--purple);
+  background: var(--royal);
+  color: var(--ink);
+}
+
+.video-pick:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* The members' panel on one event. */
+.member-panel {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+@media (min-width: 900px) {
+  .member-panel {
+    position: sticky;
+    top: calc(var(--header-h) + 20px);
+  }
+}
+
+.member-panel__title {
+  margin: 0;
+  color: var(--purple-ink);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.member-panel__answer {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+
+.member-panel__counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.member-panel__counts div {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  text-align: center;
+}
+
+.member-panel__counts dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.member-panel__counts dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+
+.member-panel__links {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member-panel__links a {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 52px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.member-panel__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(111, 66, 193, 0.2);
+  color: var(--purple-ink);
+  font-size: 1.25rem;
+}
+
+.member-panel__links a:hover .member-panel__icon {
+  background: var(--purple);
+  color: #fff;
+}
+
+.member-panel__links a:hover {
+  background: var(--bg-card);
+  color: var(--ink);
+}
+
+/* The answer modal: two large choices, an optional instrument and note. */
+.answer {
+  display: grid;
+  gap: 16px;
+}
+
+.answer p {
+  margin: 0;
+}
+
+.answer-event {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.answer-event strong {
+  color: var(--ink);
+  font-size: 1.0625rem;
+}
+
+.answer-event span {
+  color: var(--muted);
+  font-size: 0.875rem;
+}

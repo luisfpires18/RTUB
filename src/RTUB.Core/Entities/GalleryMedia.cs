@@ -41,7 +41,7 @@ public class GalleryMedia : BaseEntity
     public bool IsPrivate { get; set; } = true;
 
     /// <summary>
-    /// The event this media was uploaded for (task 077, "As minhas ações pendentes" → Galeria), or null. Set only by an
+    /// The event this media was uploaded for ("As minhas ações pendentes" → Galeria), or null. Set only by an
     /// upload that names the event; legacy items are never matched by title. No foreign key (as <c>Activity.EventId</c>):
     /// deleting the event clears it in the same save.
     /// </summary>
@@ -110,23 +110,6 @@ public class GalleryMedia : BaseEntity
         Month = month;
         Day = day;
         TakenAt = takenAt;
-    }
-
-    /// <summary>
-    /// Update media URL
-    /// </summary>
-    public void UpdateMediaUrl(string mediaUrl)
-    {
-        ValidateMediaUrl(mediaUrl);
-        MediaUrl = mediaUrl;
-    }
-
-    /// <summary>
-    /// Set or update thumbnail URL for video media
-    /// </summary>
-    public void SetThumbnailUrl(string? thumbnailUrl)
-    {
-        ThumbnailUrl = thumbnailUrl;
     }
 
     /// <summary>

@@ -95,17 +95,4 @@ public class Message : BaseEntity
             ReadBy = string.Join(";", readByIds);
         }
     }
-
-    /// <summary>
-    /// Marks the message as unread by a user
-    /// </summary>
-    public void MarkAsUnreadBy(string userId)
-    {
-        var readByIds = GetReadByIds();
-        if (readByIds.Contains(userId))
-        {
-            readByIds.Remove(userId);
-            ReadBy = string.Join(";", readByIds);
-        }
-    }
 }

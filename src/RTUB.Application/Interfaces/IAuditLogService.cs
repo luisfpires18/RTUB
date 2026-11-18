@@ -78,7 +78,7 @@ public interface IAuditLogService
 
     /// <summary>
     /// Gets paged audit logs with total count in a single call (avoids double query). <paramref name="search"/>
-    /// matches the stored changes or entity name (#220), together with the other filters.
+    /// matches the stored changes or entity name, together with the other filters.
     /// </summary>
     Task<(IEnumerable<AuditLog> logs, int totalCount)> GetPagedWithCountAsync(
         string? userName = null,

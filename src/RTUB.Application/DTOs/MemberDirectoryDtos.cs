@@ -1,17 +1,17 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React members area (React track 017). Signed-in members
-// only, as before. What the old page showed every member and nothing more: the cards carry no contact field; the
-// details carry email, phone, city, birth date and degree, which the old "Detalhes do Membro" modal showed to any
+// Contracts of the React members area. Signed-in members
+// only. What every member sees and nothing more: the cards carry no contact field; the
+// details carry email, phone, city, birth date and degree, which "Detalhes do Membro" shows to any
 // signed-in member. No EF entity, password, role, address, note field of the user or audit field leaves the server.
 
-/// <summary>Query of the directory, as the old filters: category (Leitao, Caloiro, Tuno, TunoHonorario), Tuno
+/// <summary>Query of the directory: category (Leitao, Caloiro, Tuno, TunoHonorario), Tuno
 /// sub-category (Tuno, Veterano, Tunossauro, Fundador), instrument (enum name) and "Mostrar só ativos".</summary>
 public sealed record MemberDirectoryQuery(string? Search, string? Category, string? SubCategory, string? Instrument, bool ActiveOnly);
 
 /// <summary>Regular members (by nickname) and Leitões (by activity), plus the instrument options. <c>CanManage</c>:
-/// Admin/Owner tools (018); <c>CanDeleteMembers</c>: Owner, who may also delete regular members; <c>CanEditInfo</c>: the
-/// limited member-information edit (task 076: Mod, Admin, Owner).</summary>
+/// Admin/Owner tools; <c>CanDeleteMembers</c>: Owner, who may also delete regular members; <c>CanEditInfo</c>: the
+/// limited member-information edit (Mod, Admin, Owner).</summary>
 public sealed record MemberDirectoryDto(
     IReadOnlyList<MemberCardDto> Members,
     IReadOnlyList<MemberCardDto> Leitoes,
@@ -22,9 +22,8 @@ public sealed record MemberDirectoryDto(
 
 /// <summary>
 /// One card. <c>Badges</c> are display labels ("TUNO", "LEITÃO"); <c>Position</c> the current fiscal year's;
-/// <c>Online</c> = signed in within the last hour (the old "Online / Offline"); <c>Inactive</c> = a Leitão with no
-/// activity in the last 15 days ("Não tem participado"); <c>Expelled</c> greys a Leitão's card, as the old grid did (regular
-/// cards never carried it).
+/// <c>Online</c> = signed in within the last hour ("Online / Offline"); <c>Inactive</c> = a Leitão with no
+/// activity in the last 15 days ("Não tem participado"); <c>Expelled</c> greys a Leitão's card; regular cards never carry it.
 /// </summary>
 public sealed record MemberCardDto(
     string Id,
@@ -44,7 +43,7 @@ public sealed record MemberBadgeDto(string Label, string Kind);
 
 public sealed record MemberOptionDto(string Value, string Label);
 
-/// <summary>The old "Detalhes do Membro" modal.</summary>
+/// <summary>The "Detalhes do Membro" view.</summary>
 public sealed record MemberDetailDto(
     string Id,
     string DisplayName,
@@ -85,8 +84,7 @@ public sealed record MemberStateDto(
 
 public sealed record MemberActivityDto(DateTime Date, string Name, string Type, bool IsRehearsal);
 
-/// <summary>The old "Gestão de Membros Ativos" list. <c>Encourage</c> allows the push reminder ("Tornar ativo" removed in
-/// 044B: the activity rules alone decide the state).</summary>
+/// <summary>The "Gestão de Membros Ativos" list. <c>Encourage</c> allows the push reminder (the activity rules alone decide the state).</summary>
 public sealed record ActiveMemberDto(
     string Id,
     string DisplayName,
@@ -99,7 +97,7 @@ public sealed record ActiveMemberDto(
     string? Progress,
     bool Encourage);
 
-/// <summary>The old "Aniversários": the birthdays still to come this year. <c>Birthday</c> is "dd/MM", <c>Date</c> this
+/// <summary>"Aniversários": the birthdays still to come this year. <c>Birthday</c> is "dd/MM", <c>Date</c> this
 /// year's date (yyyy-MM-dd); no birth year is sent, only the age it turns.</summary>
 public sealed record MemberBirthdayDto(
     string Id,

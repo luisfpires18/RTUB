@@ -1,6 +1,6 @@
 # React Classificação (`/leaderboard`)
 
-"Tabela de Classificação": `portal/src/Leaderboard.tsx` over `/api/leaderboard` (`Endpoints/LeaderboardEndpoints.cs` > `ILeaderboardService`). No stored score and no schema: XP is computed on the fly from attendance and configuration.
+"Tabela de Classificação": `portal/src/pages/Leaderboard.tsx` over `/api/leaderboard` (`Endpoints/LeaderboardEndpoints.cs` > `ILeaderboardService`). No stored score and no schema: XP is computed on the fly from attendance and configuration.
 Code: `Helpers/LeaderboardAuthorization.cs`, `Services/LeaderboardService.cs`, `RankingService`, `LeaderboardCommentService`.
 
 | Route | Who |

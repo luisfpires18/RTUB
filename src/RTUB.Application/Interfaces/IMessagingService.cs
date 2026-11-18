@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>Messaging v2 (task 041): the React /messages. Every call is decided from the session.</summary>
+/// <summary>Messaging v2: the React /messages. Every call is decided from the session.</summary>
 public interface IMessagingService
 {
     Task<EventResult<IReadOnlyList<ConversationListItem>>> GetConversationsAsync(ClaimsPrincipal user);

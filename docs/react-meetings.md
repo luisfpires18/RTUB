@@ -1,6 +1,6 @@
 # React Reuniões (`/meetings`)
 
-Code: `portal/src/Meetings.tsx` (+ dialogs), `portal/src/MeetingPolls.tsx` (`/meetings/polls`), `portal/src/meetingsApi.ts`, `Endpoints/MeetingEndpoints.cs` →
+Code: `portal/src/pages/Meetings.tsx` (+ dialogs), `portal/src/pages/MeetingPolls.tsx` (`/meetings/polls`), `portal/src/data/meetingsApi.ts`, `Endpoints/MeetingEndpoints.cs` →
 `IMeetingBoardService` (`MeetingBoardService`), `IMeetingPollBoardService` (`MeetingPollBoardService`), rules in
 `Helpers/MeetingAccess.cs`. Underneath: `MeetingService`
 (visibility filter, push on a new meeting), `MeetingRequestService` (push on a new request, rejection, reminder),

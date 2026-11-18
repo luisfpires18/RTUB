@@ -6,7 +6,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The premade /messages groups (task 058; v1 synced them, 027 froze them). The groups RTUB made itself carry
+/// The premade /messages groups . The groups RTUB made itself carry
 /// <c>CreatedByUserId = "system"</c>; members' own groups are never touched. Four are kept and their members follow the
 /// rules below, every other premade group (VETERANOS, TUNOSSAUROS, ANUNCIOS, ORGANIZAÇÃO, Órgãos Sociais...) is archived
 /// (hidden, its messages kept). Expelled accounts are in none. Runs with every reconciliation of all members: the daily

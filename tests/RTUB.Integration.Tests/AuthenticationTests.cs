@@ -2,10 +2,8 @@ using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 

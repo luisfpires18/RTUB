@@ -1,6 +1,6 @@
 # React Loja (`/shop`)
 
-"Loja RTUB": `portal/src/Shop.tsx`, `ShopPromotions.tsx` over `/api/shop` (`Endpoints/ShopEndpoints.cs` > `IProductShopService`, over `IProductService` and `IProductReservationService`; `IShopPromotionService`). Not the removed MyTuno in-game shop.
+"Loja RTUB": `portal/src/pages/Shop.tsx`, `ShopPromotions.tsx` over `/api/shop` (`Endpoints/ShopEndpoints.cs` > `IProductShopService`, over `IProductService` and `IProductReservationService`; `IShopPromotionService`). Not the removed MyTuno in-game shop.
 Code: `Helpers/ShopAuthorization.cs`, `ProductShopService`, `ShopPromotionService`.
 
 | Route | Who |

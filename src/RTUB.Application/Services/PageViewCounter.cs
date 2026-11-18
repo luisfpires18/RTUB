@@ -10,7 +10,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Page views for /owner/dashboard (task 089). Every React page asks <c>GET /api/account/me</c> once per load, so the
+/// Page views for /owner/dashboard. Every React page asks <c>GET /api/account/me</c> once per load, so the
 /// controller hands this counter the request's Referer; the path is normalised (ids → <c>{id}</c>, no query, no hash,
 /// lower-case, ≤ 128 chars) and counted in memory per Portugal day. Nothing is written per request:
 /// <see cref="PageViewFlushService"/> upserts the buffer once a minute and on shutdown. Same-origin referers only, so

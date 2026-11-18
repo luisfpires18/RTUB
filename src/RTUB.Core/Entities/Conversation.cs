@@ -86,32 +86,6 @@ public class Conversation : BaseEntity
     }
 
     /// <summary>
-    /// Adds a participant to the conversation
-    /// </summary>
-    public void AddParticipant(string userId)
-    {
-        if (string.IsNullOrEmpty(userId) || HasParticipant(userId))
-            return;
-
-        Participants = string.IsNullOrEmpty(Participants)
-            ? userId
-            : $"{Participants};{userId}";
-    }
-
-    /// <summary>
-    /// Removes a participant from the conversation
-    /// </summary>
-    public void RemoveParticipant(string userId)
-    {
-        if (string.IsNullOrEmpty(userId))
-            return;
-
-        var participants = GetParticipantIds();
-        participants.Remove(userId);
-        Participants = string.Join(";", participants);
-    }
-
-    /// <summary>
     /// Updates participants list (replaces all participants)
     /// </summary>
     public void SetParticipants(IEnumerable<string> userIds)

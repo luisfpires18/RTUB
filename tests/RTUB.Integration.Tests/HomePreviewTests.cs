@@ -4,11 +4,9 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 
@@ -91,19 +89,19 @@ public class HomePreviewTests : IntegrationTestBase
     [Fact]
     public void Home_ReadsRealPreviews_AndNoLongerShowsTheIllustrationsOrTheStaticAgenda()
     {
-        var home = Source("Home.tsx");
+        var home = HomeSource();
 
         home.Should().Contain("getUpcomingEvents()").And.Contain("events.slice(0, 3)", "at most three event cards");
         home.Should().Contain("getGalleryPreview(PREVIEW_PHOTOS)").And.Contain("!i.membersOnly");
         home.Should().NotContain("galleryTiles").And.NotContain("Ilustrações")
             .And.NotContain("As datas confirmadas estão na agenda completa.");
-        Source("content.ts").Should().NotContain("galleryTiles").And.NotContain("instruments");
+        Source("data/content.ts").Should().NotContain("galleryTiles").And.NotContain("instruments");
     }
 
     [Fact]
     public void Home_Copy_Follows010()
     {
-        var home = Source("Home.tsx");
+        var home = HomeSource();
 
         home.Should().NotContain("Quatro discos, uma só voz").And.Contain("álbuns para ouvir e recordar");
         home.Should().NotContain("aria-label=\"Instrumentos\"", "the guitarra/bandolim/cavaquinho/voz tags are gone");
@@ -118,7 +116,7 @@ public class HomePreviewTests : IntegrationTestBase
     [Fact]
     public void Gallery_ShowsVisitorsNoMembersOnlyTeaser()
     {
-        var gallery = Source("Gallery.tsx");
+        var gallery = Source("pages/Gallery.tsx");
 
         gallery.Should().NotContain("reservadas a membros").And.NotContain("Entrar como membro");
     }
@@ -127,16 +125,16 @@ public class HomePreviewTests : IntegrationTestBase
     public void Music_ShowsVisitorsNoMembersOnlyAlbumsTeaser()
     {
         // #228: the header already has Login; the public page carries no extra "reservados a membros" block.
-        var music = Source("Music.tsx");
+        var music = Source("pages/Music.tsx");
 
         music.Should().NotContain("reservados a membros").And.NotContain("Entrar como membro").And.NotContain("music__members");
-        Source("styles.css").Should().NotContain(".music__members");
+        PortalCss.Read(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src")).Should().NotContain(".music__members");
     }
 
     [Fact]
     public void RequestForm_Copy_Follows010()
     {
-        var request = Source("Request.tsx");
+        var request = Source("pages/Request.tsx");
 
         request.Should().Contain("Definir intervalo de datas").And.NotContain("Ainda sem data fechada");
         request.Should().NotContain("Localidade e, se já souber, o sítio.");
@@ -146,18 +144,27 @@ public class HomePreviewTests : IntegrationTestBase
     [Fact]
     public void SearchAndFilterFields_ShareOneControl_AndBackLinksOneStyle()
     {
-        Source("Gallery.tsx").Should().Contain("className=\"control\"").And.Contain("className=\"control control--select\"");
-        Source("Governance.tsx").Should().Contain("className=\"control control--select\"");
-        Source("MusicAlbum.tsx").Should().Contain("className=\"control album-tools__search\"").And.Contain("className=\"back-link\"");
-        Source("MusicUi.tsx").Should().Contain("control control--select control--sm");
-        Source("Privacy.tsx").Should().Contain("className=\"back-link\"");
+        // The gallery toolbar moved out of the page in 113.
+        // Its search and selects moved to the kit (SearchTools) in 119.
+        Source("components/GalleryToolbar.tsx").Should().Contain("<SearchField").And.Contain("<SelectField");
+        Source("components/ui/SearchTools.tsx").Should().Contain("'control control--sm' : 'control'").And.Contain("'control control--select'");
+        Source("pages/Governance.tsx").Should().Contain("className=\"control control--select\"");
+        Source("pages/MusicAlbum.tsx").Should().Contain("className=\"control album-tools__search\"").And.Contain("<BackLink href=\"/music\">");
+        Source("components/ui/BackLink.tsx").Should().Contain("className=\"back-link\""); // the music back link moved to the kit in 119
+        Source("components/ui/Pager.tsx").Should().Contain("control control--select control--sm"); // the music TextPager moved to the kit in 119
+        Source("components/MusicStatistics.tsx").Should().Contain("<TextPager");
+        Source("pages/Privacy.tsx").Should().Contain("<BackLink"); // the back link moved to the kit in 119
+        Source("components/ui/BackLink.tsx").Should().Contain("className=\"back-link\"");
 
-        var css = Source("styles.css");
+        var css = PortalCss.Read(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src"));
         css.Should().Contain(".control {").And.Contain(".control:focus-within").And.Contain(".back-link {");
         css.Should().NotContain(".doc__back").And.NotContain(".gallery-tools__field").And.NotContain(".search {");
     }
 
     // ---------- helpers ----------
+
+    // The home page and its Home* parts (113 split them).
+    private static string HomeSource() => PortalSource.Home(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src"));
 
     private static string Source(string file) =>
         File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src", file));

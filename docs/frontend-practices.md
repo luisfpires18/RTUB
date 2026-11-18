@@ -1,6 +1,6 @@
 # Frontend Practices
 
-The frontend is React 19 + Vite + TypeScript (`src/RTUB.Web/portal/`). React owns every page; the only other page is
+The frontend is React 19 + Vite + TypeScript (`src/RTUB.Web/portal/`); there is no Blazor. React owns every page; the only other page is
 the static server page `/Error` (`wwwroot/error.html`).
 
 | Topic | Doc |
@@ -10,11 +10,28 @@ the static server page `/Error` (`wwwroot/error.html`).
 | Service worker, manifest, offline, install | `docs/pwa-practices.md` |
 | Push opt-in / opt-out and service-worker push handlers | `docs/react-push-v2.md` |
 
+## Layout
+
+Code a beginner can read: one job per file, no file over 300 lines.
+
+| Folder (`portal/src/`) | Holds |
+| --- | --- |
+| `pages/` | One screen per route (the routes in `main.tsx`). |
+| `components/` | Pieces shared by screens: the shell (`App.tsx`, `MemberShell.tsx`), dialogs, `*Ui.tsx` helpers, `icons.tsx`. |
+| `components/ui/` | The shared building blocks every page uses: `PageHead`, `BackLink`, `EmptyState`, `Loading`, `Spinner`, `Banner`, `FormField`, `FieldError`, `DialogFooter`, `ConfirmDialog` / `AsyncConfirmDialog`, `Pager` / `TextPager`, `Segmented`, `Avatar`, `PersonChip`. |
+| `data/` | Saving and loading: `api.ts` (the fetch wrapper) and one `*Api.ts` per area, plus non-UI helpers and fixed content. |
+
+`main.tsx` (routes) stays at the root. Styles: `styles/NNN-area.css`, one file per area, each under 300 lines;
+`styles.css` only imports them in cascade order (a later file wins), so a new area goes where it belongs in that list.
+
 ## Basics
 
 - The server is the authority. Every permission is checked by the `/api/*` endpoint; the UI only hides what the API refuses.
-- Reuse before writing: look in `portal/src` (`Dialog.tsx`, `icons.tsx`, the `*Ui.tsx` helpers, `styles.css` classes and
-  variables) before adding a component or style. One stylesheet (`portal/src/styles.css`); no inline styles where a class will do.
+- The same UI piece is written once. Before writing markup, use the `components/ui/` piece for it; when a page really
+  needs something different, make it a new component (or a named variant), never a copy.
+- Reuse before writing: look in `components/ui/`, `components/` (`Dialog.tsx`, `Notice.tsx`, `icons.tsx`, the `*Ui.tsx` helpers),
+  `data/` (`api.ts`: `call`, `queryString`, `outcomeText`; `format.ts`: euros, dates, search folding; `content.ts`:
+  paths and `loginTo`) and the `styles.css` classes and variables before adding a component, a request or a style. One stylesheet, split by area under `styles/`; no inline styles where a class will do.
 - Every user-facing string is Portuguese (pt-PT).
 - Check every change at phone width (about 375 px) and in the installed app: tap targets large enough, dialogs scroll inside themselves.
 - No sideways page scroll, never masked. At 320-414 px the document is never wider than the viewport. Fix the

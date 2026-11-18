@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -10,7 +9,6 @@ using RTUB.Application.Services;
 using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 
@@ -22,7 +20,6 @@ public class ImageStorageIntegrationTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
-    private readonly AlbumService _albumService;
     private readonly EventService _eventService;
 
     public ImageStorageIntegrationTests()
@@ -35,7 +32,6 @@ public class ImageStorageIntegrationTests : IDisposable
         _mockImageStorageService = new Mock<IImageStorageService>();
 
         var factory = WrapInFactory(options);
-        _albumService = new AlbumService(new AlbumRepository(factory), _mockImageStorageService.Object);
 
         // Mock dependencies for EventService
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();

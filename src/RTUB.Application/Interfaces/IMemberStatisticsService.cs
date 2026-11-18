@@ -1,5 +1,4 @@
 using RTUB.Application.DTOs;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
 

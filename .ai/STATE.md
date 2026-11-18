@@ -11,11 +11,36 @@ _Last updated: 2026-11-17_
 
 ## Current
 Task 110 (`chore/110/codebase-cleanup`): phase 1 of the readability cleanup. Blazor-era history comments rewritten as
-present-tense rules, old-URL redirects moved out of `Program.cs` into `Extensions/LegacyRedirectExtensions.cs`, service
+present-tense rules, old-URL redirects moved out of `Program.cs` (deleted in 118), service
 methods with no production caller removed (with their tests). No behaviour change.
-Planned next phases (one branch each): 2 portal folders `pages/` `components/` `data/`; 3 shared UI pieces (notice,
-avatar, tabs, euro/date formatting); 4 split portal files over 300 lines and `styles.css` per area; 5 split C# files
-over 300 lines; 6 test files (lowest priority).
+Task 111 (`chore/111/portal-folders`, on top of 110): phase 2, `portal/src` split into `pages/`, `components/`, `data/`
+(moves and import paths only; layout rule in `docs/frontend-practices.md` → *Layout*).
+Task 112 (`chore/112/shared-ui`, on top of 111): phase 3, shared pieces. `components/Notice.tsx` (Notice,
+SignInNotice, RetryNotice: same markup), `data/format.ts`, `queryString` + `outcomeText` in `data/api.ts`, `loginTo`
+in `data/content.ts`; one copy of `DEFAULT_AVATAR`, the Logística status/priority lists and the antiforgery token.
+Task 113 (`chore/113/split-portal-files`, on top of 112): phase 4, every portal file at most 300 lines by pure moves
+(`styles.css` now imports `styles/NNN-area.css` in cascade order; built CSS byte-identical). Three files stay over
+300: `components/MeetingAta.tsx` (472), `MessageThread.tsx` (318), `FamilyTree.tsx` (310): one function each.
+Task 114 (`chore/114/split-csharp-files`, on top of 113): phase 5, C# under `src/` at most 300 lines: services as
+partial classes by topic, `Program.cs` → `Extensions/*Extensions.cs`, `ServiceCollectionExtensions` partials. Two stay
+over 300 (one method each): `Data/SeedData.Member.cs` (766, a 701-line seed method sharing ~75 locals) and
+`Services/AtaPdfService.cs` (447, a 344-line PDF method).
+Task 115 (`chore/115/split-test-files`, on top of 114): phase 6, every test file at most 300 lines (partial test
+classes by topic, one class per file); test count unchanged (4175).
+Task 116 (`chore/116/remove-unused-code`, on top of 115): unused code deleted: 30 public members with no caller in
+`src/` (and the 88 tests that only covered them), unused private members/parameters, 2,141 unused `using`s, 11 dead
+CSS rules.
+Task 117 (`chore/117/geocoding-single-request`, on top of 116): a members-map lookup sends one Nominatim search
+(was three identical ones whenever nothing was found); only a failed request is retried once.
+Task 118 (`chore/118/remove-leftovers`, on top of 117): Copilot instructions and agent profiles removed; history
+comments (task / track / issue numbers, "as before") rewritten as present-tense rules; old-URL redirects deleted (any
+unmapped path is 404); retired-route checks merged into `RetiredRoutesTests`; 64 portal exports trimmed;
+`musicApi.ts` uses the shared request helper; TWA script, `.deployment` and stale doc references gone.
+Task 119 (`chore/119/ui-consistency`, on top of 118): one shared UI set in `components/ui/` (24 components: PageHead,
+BackLink, EmptyState/EmptyNote/EmptyBlock, Banner, FieldError, FormField, CheckField, DialogFooter/CloseFooter,
+ConfirmDialog/AsyncConfirmDialog, Pager/TextPager/SimplePager, SearchTools, Segmented, Avatar, PersonChip, PersonLine,
+FactRow, IconAction, LoadMore, Spinner, Loading, AnswerActions, AccountDone); hand-written copies replaced across every
+area (page heads 40→0, form errors 110→1, banners 85→1). Same DOM; small differences in the PR.
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not
@@ -32,7 +57,8 @@ over 300 lines; 6 test files (lowest priority).
   `Games__*`, `MyTunoScaling__*` app settings. Local user-secrets may still hold dead `IDrive:*` keys.
 - Retire basic auth: delete repo secret `AZURE_WEBAPP_PUBLISH_PROFILE`; `rtub` `basicPublishingCredentialsPolicies/scm`
   allow=false.
-- Copilot coding agent: Repository access → No repositories; delete the `copilot` environment and `copilot/*` branches.
+- Copilot coding agent: Repository access → No repositories; delete the `copilot` environment and the
+  `copilot/read-docs-and-apply-best-practices` branch (the Copilot instruction files are gone from the repo).
 - CodeQL is not configured (Settings → Code security → Code scanning → Default), if wanted.
 - Rulesets on `master` and `dev`: block force pushes and deletions; `development` environment has no branch policy.
 - `iarc_rating_id` for the manifest needs the IARC certificate from Play Console.
@@ -40,6 +66,17 @@ over 300 lines; 6 test files (lowest priority).
 - Old work branches `chore/001`…`chore/029`, `fix/012`…`fix/029`, `perf/019`: delete when convenient.
 
 ## Deferred (recorded, not fixed)
+
+**Portal (left after phase 3)**
+- `EventManage`, `GalleryManage` and `MeetingDialogs` keep their own error sentences (formal "Tente"/"Entre", other
+  rules); 17 notices with their own buttons stay hand-written. Tabs (4) and avatar images differ in class and size.
+
+**UI kit (left after 119)**
+- Kept hand-written on purpose (different look or attributes): `lx-tabs`/`lx-views`/`news-tabs`/`playalong__group`
+  button groups, `pa-pager`, OwnerUi `Flash`/`SearchBox`, `span.control` fields, radio and `role="switch"` rows,
+  `form__label`-headed fields whose error has no id, MeetingAta required-marker fields, link-style icon actions.
+- Possible next kit additions: SelectField with an icon, SearchField `autoFocus`/extra class, IconAction as `<a>` and
+  with `aria-expanded`, a single-primary-button footer, DialogFooter keeping Cancelar enabled while busy.
 
 **Tests**
 - Integration test hosts run `PendingActionsReminderService`, so a full `dotnet test` between 18:00 and 24:00 Portugal
@@ -95,11 +132,9 @@ over 300 lines; 6 test files (lowest priority).
 - Shop: a reservation snapshots no product name or price and is deleted with its product; `InFiscalYear` compares UTC
   `CreatedAt` with local-calendar bounds.
 - Deleting an instrument leaves its thumbnail in R2; "Remover imagem" on `/naipes/config` leaves the R2 object.
-- `CachedGeocodingService` creates a DbContext per lookup without disposing it.
 - `UserProfileService.UpdateProfilePictureAsync` deletes the old image before the upload succeeds.
 - `NewsEndpoints.cs` 403 title names system roles (API callers only; the portal shows its own message).
 - React `/roles` probes `GET /api/governance/manage`, logging a 403 console error for members without rights.
-- `icons.tsx` `apple` lists the same path twice (duplicate `key` warning, dev build only).
 - `portal/index.html` `theme-color` is `#000000`; the manifest says `#3F2A86`.
 - Portal `index.html` loads `/js/sw-register.js` unversioned: one visit after a deploy can run the old script.
 - `XpSettings` and `RankingConfiguration` both bind `Ranking`; equal level+XP keep SQLite's unordered order.
@@ -117,13 +152,7 @@ over 300 lines; 6 test files (lowest priority).
 **Dead code and config**
 - `AspNetUsers.ExperiencePoints` / `Level` have no writer (the leaderboard computes XP per request): DB cleanup candidate.
 - `PostMedia` / `CommentImages`: production row counts needed before dropping (`docs/db-cleanup-inventory.md`).
-- ~80 interface methods with no production caller (storage `*ExistsAsync` / `GetFileSizeAsync` / `ListFoldersAsync`,
-  CRUD helpers); `IRequestService.GetPendingRequestsAsync`; `MimeTypeHelper.GetMediaMimeType`;
-  `ApplicationUserExtensions.GetYearsAsTuno` and friends (tests only).
-- Committed but unread settings: `Gallery:MaxVideoSizeMB` (code reads `GalleryMedia:MaxVideoSize`), `ImageCaching:*`,
-  `UseSqlServer`.
-- Kept on purpose: the old-URL 302s in `Program.cs`; npm `bootstrap-icons` (path-data source for `icons.tsx`).
-- `wwwroot/images/icons/*` has no in-repo reference (old logo copies).
+- Kept on purpose: npm `bootstrap-icons` (path-data source for `icons.tsx`).
 
 **Tooling and dependencies**
 - `npm audit`: 5 high in vite 6 dependencies (build time only).
@@ -131,13 +160,9 @@ over 300 lines; 6 test files (lowest priority).
 - `xUnit1051` suppressed.
 - `refresh-dev-database.yml` and Deploy • DEV use different concurrency groups (a push during a refresh can deploy
   mid-refresh); pinned `checkout@v4` / `setup-dotnet@v4`.
-- `.deployment` (`SCM_DO_BUILD_DURING_DEPLOYMENT=true`) is inert; `deploy-prod.yml` comment says npm runs in the build
-  (it does not).
 - Local runs read `ConnectionStrings:SqliteConnection`; point it at a scratch copy or the run writes to
   `src/RTUB.Web/app.db`. A local run without `Cloudflare:R2:PublicUrl` blocks R2 images in the CSP (local only).
 - GitGuardian: historical incidents stay historical; mark them by hand.
-- `scripts/test-twa-config.sh` points at docs that never existed (`docs/URGENT-TWA-SETUP-INSTRUCTIONS.md`,
-  `docs/twa-configuration-guide.md`).
 
 ## Next
 Owner decides the next task (GitHub Issues).

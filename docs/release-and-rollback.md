@@ -102,7 +102,7 @@ passes without a second bump, unless the release grew into a MINOR or MAJOR.
 ## Release notes
 
 After a release, every signed-in member sees "Nova atualização <version>" once (startup queue,
-`portal/src/Startup.tsx`, before the notification reminder). "Entendido" stores a receipt per
+`portal/src/components/Startup.tsx`, before the notification reminder). "Entendido" stores a receipt per
 member and version (`PendingActionDismissals`, kind `release.notes`, source = version), so it
 follows the account across devices. The footer's "Ver novidades da versão" reopens the running
 release's notes without touching the receipt. Visitors never get notes (`/api/releases/notes` is

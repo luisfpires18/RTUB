@@ -6,7 +6,6 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using RTUB.Core.Exceptions;
 
 
 namespace RTUB.Application.Services;
@@ -17,16 +16,24 @@ namespace RTUB.Application.Services;
 /// Follows Single Responsibility and Dependency Inversion principles
 /// Now depends on IEventRepository abstraction instead of concrete DbContext
 /// </summary>
-public class EventService : IEventService
+public partial class EventService : IEventService
 {
     private readonly IEventRepository _eventRepository;
+
     private readonly IImageStorageService _imageStorageService;
+
     private readonly IEnrollmentRepository _enrollmentRepository;
+
     private readonly IEventVideoRepository _eventVideoRepository;
+
     private readonly IEventVideoStorageService _eventVideoStorageService;
+
     private readonly IPushNotificationFactory _pushNotificationFactory;
+
     private readonly IPushNotificationService _pushNotificationService;
+
     private readonly UserManager<ApplicationUser> _userManager;
+
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
     public EventService(
@@ -79,7 +86,7 @@ public class EventService : IEventService
         var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
 
         eventEntity.UpdateDetails(name, date, location, description, type);
-        // Null keeps the event's visibility (#227): only an explicit choice changes it.
+        // Null keeps the event's visibility: only an explicit choice changes it.
         eventEntity.IsPublic = isPublic ?? eventEntity.IsPublic;
 
         if (endDate.HasValue)
@@ -135,7 +142,7 @@ public class EventService : IEventService
             await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
         }
 
-        // Task 074: activities that accounted for this event lose the link (Activity.EventId has no foreign key), in the
+        // Activities that accounted for this event lose the link (Activity.EventId has no foreign key), in the
         // same save as the deletion, so no activity is left pointing at a deleted event. Both changes are audited.
         await using var db = _contextFactory.CreateDbContext();
         foreach (var activity in await db.Activities.Where(a => a.EventId == id).ToListAsync(cancellationToken))
@@ -143,7 +150,7 @@ public class EventService : IEventService
             activity.EventId = null;
         }
 
-        // Task 077: the same for gallery media uploaded for the event (the media stays in the gallery).
+        // The same for gallery media uploaded for the event (the media stays in the gallery).
         foreach (var media in await db.GalleryMedia.Where(m => m.EventId == id).ToListAsync(cancellationToken))
         {
             media.EventId = null;
@@ -175,133 +182,4 @@ public class EventService : IEventService
         eventEntity.Uncancel();
         await _eventRepository.UpdateAsync(eventEntity);
     }
-
-    public async Task<EventVideo> AddVideoAsync(int eventId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null, CancellationToken cancellationToken = default)
-    {
-        // Validate that event exists
-        var eventEntity = await _eventRepository.GetByIdOrThrowAsync(eventId);
-
-        // Ensure we have a valid MIME type (mobile uploads may have empty/incorrect contentType)
-        var mimeType = MimeTypeHelper.GetVideoMimeType(fileName, contentType);
-
-        // Upload video to storage
-        var videoUrl = await _eventVideoStorageService.UploadVideoAsync(fileStream, fileName, mimeType, eventId);
-
-        // Get file size from stream position (if seekable)
-        long sizeBytes = 0;
-        if (fileStream.CanSeek)
-        {
-            sizeBytes = fileStream.Length;
-        }
-
-        // Determine sort order (next available position)
-        var existingVideosCount = await _eventVideoRepository.GetCountByEventIdAsync(eventId);
-        var sortOrder = existingVideosCount;
-
-        // Create EventVideo entity
-        var eventVideo = EventVideo.CreateVideo(
-            eventId,
-            videoUrl,
-            mimeType,
-            sizeBytes,
-            createdByUserId,
-            title,
-            sortOrder
-        );
-
-        // Save to repository
-        var createdVideo = await _eventVideoRepository.AddAsync(eventVideo);
-
-        // Send push notification to all users
-        try
-        {
-            var uploader = await _userManager.FindByIdAsync(createdByUserId);
-            var uploaderName = uploader?.Nickname ?? uploader?.FirstName ?? "Um membro";
-            var notification = _pushNotificationFactory.CreateEventVideoUploadNotification(
-                eventEntity,
-                uploaderName);
-
-            // Get all users (excluding the uploader)
-            var allUserIds = await _userManager.Users
-                .Select(u => u.Id)
-                .ToListAsync(cancellationToken);
-
-            // Send to each user
-            foreach (var userId in allUserIds.Where(id => id != createdByUserId))
-            {
-                await _pushNotificationService.SendToUserAsync(userId, notification);
-            }
-        }
-        catch
-        {
-            // Log error but don't fail the operation
-            // Notification is secondary to the main operation
-            // Note: EventService doesn't have a logger injected, so we silently catch
-            // Consider adding ILogger<EventService> in the future
-        }
-
-        return createdVideo;
-    }
-
-    public async Task UpdateVideoTitleAsync(int videoId, string? title, string userId, bool isAdmin = false, CancellationToken cancellationToken = default)
-    {
-        // Fetch video by id
-        var video = await _eventVideoRepository.GetByIdOrThrowAsync(videoId);
-
-        // Check permissions: only allow if user is the uploader OR is an admin
-        if (video.CreatedByUserId != userId && !isAdmin)
-        {
-            throw new UnauthorizedAccessException("You do not have permission to update this video.");
-        }
-
-        // Update the title
-        video.UpdateTitle(title);
-
-        // Save to repository
-        await _eventVideoRepository.UpdateAsync(video);
-    }
-
-    public async Task UpdateVideoOrderAsync(int eventId, List<int> videoIds, CancellationToken cancellationToken = default)
-    {
-        var videos = await _eventVideoRepository.QueryAsync(q => q
-            .Where(v => v.EventId == eventId)
-            .ToListAsync(cancellationToken), cancellationToken);
-
-        for (int i = 0; i < videoIds.Count; i++)
-        {
-            var video = videos.FirstOrDefault(v => v.Id == videoIds[i]);
-            if (video != null)
-            {
-                video.UpdateOrder(i);
-                await _eventVideoRepository.UpdateAsync(video);
-            }
-        }
-    }
-
-    public async Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false, CancellationToken cancellationToken = default)
-    {
-        // Fetch video by id
-        var video = await _eventVideoRepository.GetByIdOrThrowAsync(videoId);
-
-        // Check permissions: only allow if user is the uploader OR is an admin
-        if (video.CreatedByUserId != userId && !isAdmin)
-        {
-            throw new UnauthorizedAccessException("You do not have permission to delete this video.");
-        }
-
-        // Delete from storage
-        try
-        {
-            await _eventVideoStorageService.DeleteVideoAsync(video.Url);
-        }
-        catch
-        {
-            // Continue with database deletion even if storage deletion fails
-            // Storage service already logs errors internally
-        }
-
-        // Delete from repository
-        await _eventVideoRepository.DeleteAsync(video);
-    }
-
 }

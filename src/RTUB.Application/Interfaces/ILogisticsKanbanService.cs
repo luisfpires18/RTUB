@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>The React /logistics and /logistics/{id} ("Logística", React track 023).</summary>
+/// <summary>The React /logistics and /logistics/{id} ("Logística").</summary>
 public interface ILogisticsKanbanService
 {
     Task<EventResult<LogisticsBoardsDto>> GetBoardsAsync(string? search, ClaimsPrincipal user);
@@ -11,7 +11,7 @@ public interface ILogisticsKanbanService
     Task<EventResult<LogisticsBoardSummaryDto>> UpdateBoardAsync(int id, LogisticsBoardInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsBoardSummaryDto>> SetBoardStateAsync(int id, LogisticsBoardStateInput input, ClaimsPrincipal user);
     Task<EventResult<bool>> DeleteBoardAsync(int id, ClaimsPrincipal user);
-    // Task 067: archive, copies and templates
+    // Archive, copies and templates
     Task<EventResult<LogisticsBoardSummaryDto>> ArchiveBoardAsync(int id, LogisticsArchiveInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsBoardSummaryDto>> DuplicateBoardAsync(int id, LogisticsDuplicateInput input, ClaimsPrincipal user);
     Task<EventResult<IReadOnlyList<LogisticsTemplateDto>>> GetTemplatesAsync(ClaimsPrincipal user);
@@ -46,7 +46,7 @@ public interface ILogisticsKanbanService
     Task<EventResult<LogisticsCardDetailDto>> RemoveAssignmentAsync(int id, string userId, ClaimsPrincipal user);
     Task<EventResult<bool>> DeleteCardAsync(int id, ClaimsPrincipal user);
 
-    // Task 066: the card's discussion and attachments
+    // The card's discussion and attachments
     Task<EventResult<LogisticsCardDetailDto>> AddCommentAsync(int cardId, LogisticsCommentInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsCardDetailDto>> EditCommentAsync(int commentId, LogisticsCommentInput input, ClaimsPrincipal user);
     Task<EventResult<LogisticsCardDetailDto>> DeleteCommentAsync(int commentId, ClaimsPrincipal user);

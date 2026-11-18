@@ -1,0 +1,197 @@
+/* /owner/db */
+
+.owner-db {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.owner-db__main {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+  min-width: 0;
+}
+
+.owner-db__list {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .owner-db {
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .owner-db__picker {
+    display: none;
+  }
+
+  .owner-db__list {
+    position: sticky;
+    top: calc(var(--header-h) + 16px);
+    display: grid;
+    gap: 10px;
+    max-height: calc(100vh - var(--header-h) - 32px);
+    padding: 16px 8px 16px 16px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-raise);
+  }
+
+  .owner-db__list ul {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
+
+.owner-db__table {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.owner-db__table:hover,
+.owner-db__table[aria-current='true'] {
+  background: rgba(111, 66, 193, 0.18);
+  color: var(--ink);
+}
+
+.owner-db__grid-title {
+  flex-wrap: wrap;
+}
+
+.owner-db__grid-title > span:first-of-type {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.owner-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.owner-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.owner-tab[aria-selected='true'] {
+  border-color: var(--purple);
+  background: var(--purple);
+  color: #fff;
+}
+
+.owner-sql {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg-deep);
+  color: var(--ink);
+  font: 0.875rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  resize: vertical;
+}
+
+.owner-sql:focus-visible {
+  border-color: var(--purple-ink);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+/* A wide result scrolls inside its own box, never the page. */
+.owner-table {
+  max-width: 100%;
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.owner-table table {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.owner-table th,
+.owner-table td {
+  max-width: 320px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.owner-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+  color: var(--ink);
+}
+
+.owner-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.owner-user .member-badges {
+  justify-content: flex-start;
+}
+
+/* ---------- Password recovery and email confirmation ---------- */
+
+.account-card {
+  max-width: 32rem;
+}
+
+.account-done {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.account-done > .icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: #8fe0b0;
+}
+
+.account-done--error > .icon {
+  color: #ffb3ad;
+}
+
+.account-done p {
+  margin: 0;
+}
+
+.account-done:focus {
+  outline: none;
+}

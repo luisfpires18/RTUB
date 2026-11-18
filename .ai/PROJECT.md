@@ -20,7 +20,6 @@ Only these:
 - Frontend: `taste-skill` and `impeccable` (mandatory for UI work), `frontend-design`, `web-design-guidelines`.
 - Project skills in `.claude/skills/`: `graphify`, `rtub-push`, `rtub-sqlite`, `webapp-testing`.
 - `security-guidance`: security review. MCP servers in `.mcp.json`, and Azure.
-- `.github/agents/` holds GitHub Copilot agent profiles; Claude does not use them.
 
 `.claude/settings.json` (web preset merged in) turns off the game-engine plugins here.
 

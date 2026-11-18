@@ -10,7 +10,7 @@ using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
-// "As minhas ações pendentes" (task 077): optional contributions. Both prompts are personal: "Não tenho" / "Agora não"
+// "As minhas ações pendentes": optional contributions. Both prompts are personal: "Não tenho" / "Agora não"
 // hides the row for the member only; the source state (a photo of the event, a post written this week) resolves it.
 
 /// <summary>
@@ -85,7 +85,7 @@ public sealed class NewsPendingActionSource : IPendingActionSource
     public string Category => "participation";
     public IReadOnlyList<(string Key, string Label)> Filters => [];
 
-    /// <summary>Task 087: the Direção in office (owner decision) who may also write news (the module's own rule).</summary>
+    /// <summary>The Direção in office (owner decision) who may also write news (the module's own rule).</summary>
     public bool AppliesTo(PendingActionMember member) => member.HoldsDirecao && NewsAuthorization.CanWrite(member.ToPrincipal());
 
     public async Task<int> CountAsync(ApplicationDbContext db, PendingActionMember member, string? filter) =>

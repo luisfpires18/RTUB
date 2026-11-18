@@ -6,7 +6,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// "As minhas ações pendentes" (task 071, docs/react-pending-actions.md): the member's grouped actions, queried from the
+/// "As minhas ações pendentes" (docs/react-pending-actions.md): the member's grouped actions, queried from the
 /// real modules on every call (no stored inbox), each panel paged on its own. Every rule is decided here from the
 /// database, not from the cookie: categories, activity status and roles are read fresh, so a role or mandate change shows
 /// on the next load.
@@ -25,7 +25,7 @@ public interface IPendingActionsService
     Task<EventResult<bool>> DismissAsync(ClaimsPrincipal user, PendingActionDismissInput input);
 
     /// <summary>
-    /// The member's own in-page answer to an activity pending for them now (task 072): Vou / Não vou, Fui / Não fui.
+    /// The member's own in-page answer to an activity pending for them now: Vou / Não vou, Fui / Não fui.
     /// Written through the module's domain service, create-only: an activity already answered (here, in the module, or
     /// by an Admin), cancelled, out of the window or not the member's to answer → NotFound; a concurrent first answer →
     /// Conflict; an instrument the page did not offer or a long note → Invalid.
@@ -34,7 +34,7 @@ public interface IPendingActionsService
 
     /// <summary>
     /// How many actions are pending for the member across every panel and filter (dismissed ones excluded); 0 for an
-    /// unknown account. The shared query for the scheduled reminder (#259): counts only, no rows.
+    /// unknown account. The shared query for the scheduled reminder: counts only, no rows.
     /// </summary>
     Task<int> CountPendingAsync(string userId);
 }
@@ -51,10 +51,10 @@ public sealed record PendingActionMember(
     DateTime? JoinedOn = null,
     IReadOnlyList<Position>? Positions = null)
 {
-    /// <summary>The member's current Órgãos Sociais positions (task 074): <c>ApplicationUser.Positions</c>, the mandate in office.</summary>
+    /// <summary>The member's current Órgãos Sociais positions: <c>ApplicationUser.Positions</c>, the mandate in office.</summary>
     public bool Holds(params Position[] positions) => Positions?.Any(positions.Contains) == true;
 
-    /// <summary>A current member of the Direção (Magister, Vice-Magister, Secretário, 1.º / 2.º Tesoureiro), task 087.</summary>
+    /// <summary>A current member of the Direção (Magister, Vice-Magister, Secretário, 1.º / 2.º Tesoureiro).</summary>
     public bool HoldsDirecao => Holds(RTUB.Core.Helpers.OrgaoSocialHelper.GetPositionsForGroup(RTUB.Core.Enums.OrgaoSocialGroup.Direcao).ToArray());
 
     /// <summary>The canonical active member: someone the activity rule covers who is not Reformado (docs/member-activity-status.md).</summary>
@@ -63,7 +63,7 @@ public sealed record PendingActionMember(
     public DateTime FiscalYearStartDate => new(FiscalYearStart, 9, 1);
 
     /// <summary>
-    /// Where past prompts start (task 072): 1 September of the current fiscal year, or the first day of the member's
+    /// Where past prompts start: 1 September of the current fiscal year, or the first day of the member's
     /// admission month (earliest of Leitão / Caloiro / Tuno) when that is later - activities before someone joined are not
     /// their missing answers.
     /// </summary>
@@ -72,7 +72,7 @@ public sealed record PendingActionMember(
     public string FiscalYear => $"{FiscalYearStart}-{FiscalYearStart + 1}";
 
     /// <summary>
-    /// The member as a signed-in principal carrying the roles read from the database for this call (task 073), so a module
+    /// The member as a signed-in principal carrying the roles read from the database for this call, so a module
     /// service called from the page applies its own rules (LogisticsAuthorization, QuestionsAuthorization) to the
     /// member's current roles, not to the cookie's.
     /// </summary>
@@ -81,7 +81,7 @@ public sealed record PendingActionMember(
 }
 
 /// <summary>
-/// One panel of the page, backed by one module's own data (task 071). A source filters what the member may not see and
+/// One panel of the page, backed by one module's own data. A source filters what the member may not see and
 /// what they dismissed in the query, before counting and paging, and pages in SQL: only the rows shown leave the database.
 /// Registered in DI; the service asks every source in registration order.
 /// </summary>
@@ -105,7 +105,7 @@ public interface IPendingActionSource
 }
 
 /// <summary>
-/// A source whose rows are answered in the page (task 072: Atuações, Ensaios). The service has already checked the
+/// A source whose rows are answered in the page (Atuações, Ensaios). The service has already checked the
 /// member, the answer and the instrument; the responder checks the activity is still pending for the member and writes
 /// through the module's own domain service, create-only.
 /// </summary>
@@ -120,7 +120,7 @@ public interface IPendingActionResponder
 }
 
 /// <summary>
-/// A source whose rows carry one-word commands run in place (task 073: Logística "done", Questões "close"). The service
+/// A source whose rows carry one-word commands run in place (Logística "done", Questões "close"). The service
 /// has checked the member and that the answer is one of <see cref="Answers"/>; the command re-checks the row is pending for
 /// the member and runs the module's own service, whose rules decide (and may refuse).
 /// </summary>

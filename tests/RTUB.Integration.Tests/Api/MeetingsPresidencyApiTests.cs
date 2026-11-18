@@ -1,13 +1,10 @@
 using System.Net;
-using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Core.Enums;
-using Xunit;
 using static RTUB.Integration.Tests.Api.MeetingsKit;
 
 namespace RTUB.Integration.Tests.Api;

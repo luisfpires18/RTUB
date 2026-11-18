@@ -10,11 +10,11 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /gallery timeline (React track 009). Reads the existing GalleryMedia and
+/// The React /gallery timeline. Reads the existing GalleryMedia and
 /// GalleryMediaPersonTags; no schema change. Rule: IsPrivate items are
 /// for signed-in members only (expelled members arrive anonymous: the cookie validator drops them).
 /// Person tags are member-only here, a tightening: visitors never learn who is in a photo.
-/// Writes: <see cref="IGalleryManagementService"/> (React track 015).
+/// Writes: <see cref="IGalleryManagementService"/>.
 /// </summary>
 public sealed class GalleryTimelineService : IGalleryTimelineService
 {
@@ -37,7 +37,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
         var visible = Visible(db, isMember);
 
         // The facets (years, tagged people) come with the first page only; the client keeps them while it loads more
-        // (task 054: three queries fewer per "Mostrar mais").
+        // (three queries fewer per "Mostrar mais").
         var years = page == 1
             ? await visible.Select(m => m.Year).Distinct().OrderByDescending(y => y).ToListAsync()
             : new List<int>();
@@ -142,7 +142,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
             .ToList();
     }
 
-    /// <summary><c>CanEdit</c> only for a signed-in caller who may edit it (the uploader, Admin or Owner; 015).</summary>
+    /// <summary><c>CanEdit</c> only for a signed-in caller who may edit it (the uploader, Admin or Owner).</summary>
     private static GalleryItemDto ToItem(MediaRow m, Dictionary<int, List<GalleryPersonDto>>? tags, ClaimsPrincipal? user) => new(
         m.Id,
         m.Title,

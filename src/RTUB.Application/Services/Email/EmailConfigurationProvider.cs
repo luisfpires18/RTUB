@@ -105,18 +105,4 @@ public class EmailConfigurationProvider
 
         return true;
     }
-
-    /// <summary>
-    /// Validates recipient email configuration
-    /// </summary>
-    public bool ValidateRecipientEmail(EmailConfiguration config)
-    {
-        if (string.IsNullOrEmpty(config?.RecipientEmail))
-        {
-            _logger.LogError("RecipientEmail is not configured in EmailSettings");
-            return false;
-        }
-
-        return true;
-    }
 }

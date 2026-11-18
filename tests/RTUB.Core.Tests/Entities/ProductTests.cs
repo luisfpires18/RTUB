@@ -144,32 +144,6 @@ public class ProductTests
     }
 
     [Fact]
-    public void UpdateStock_WithValidStock_UpdatesStock()
-    {
-        // Arrange
-        var product = Product.Create("Album 2023", "Album", 10.00m, 50);
-        var newStock = 25;
-
-        // Act
-        product.UpdateStock(newStock);
-
-        // Assert
-        product.Stock.Should().Be(newStock);
-    }
-
-    [Fact]
-    public void UpdateStock_WithNegativeStock_ThrowsArgumentException()
-    {
-        // Arrange
-        var product = Product.Create("Album 2023", "Album", 10.00m, 50);
-
-        // Act & Assert
-        var act = () => product.UpdateStock(-10);
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*stock*");
-    }
-
-    [Fact]
     public void SetAvailability_UpdatesAvailability()
     {
         // Arrange

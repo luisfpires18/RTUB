@@ -1,0 +1,177 @@
+.hloose__member.is-selected {
+  background: rgba(111, 66, 193, 0.24);
+}
+
+/* The selected member and the path to their root: sticks to the bottom while the tree scrolls past. */
+.htree-selected {
+  position: sticky;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--purple);
+  border-radius: 14px;
+  background: rgba(27, 24, 32, 0.96);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.htree-crumbs {
+  min-width: 0;
+}
+
+.htree-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.htree-crumbs li + li::before {
+  margin-right: 4px;
+  color: var(--muted);
+  content: '›';
+}
+
+.htree-crumbs button {
+  min-height: 32px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--purple-ink);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.htree-selected__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Wide screens: left to right. Each member is a fixed-width card; its afilhados sit to its right in a column, the
+   card centred on them; elbows: parent → spine → each afilhado. Depth 6 fits a 1280px screen; deeper scrolls inside the card. */
+@media (min-width: 900px) {
+  .hnode-item--root {
+    overflow-x: auto;
+    padding: 14px 12px;
+  }
+
+  .hnode-item {
+    display: flex;
+    align-items: center;
+  }
+
+  .hnode {
+    flex: none;
+    width: 160px;
+  }
+
+  .hnode__card {
+    padding-right: 18px;
+  }
+
+  /* The afilhados count is a round button on the card's right edge, where the connector starts. */
+  .hnode__toggle {
+    position: absolute;
+    top: 50%;
+    right: -13px;
+    z-index: 1;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0 6px;
+    border-radius: 999px;
+    transform: translateY(-50%);
+  }
+
+  .is-open > .hnode .hnode__toggle svg {
+    transform: rotate(180deg);
+  }
+
+  .hnode__children {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding-left: 24px;
+    border-left: 0;
+  }
+
+  /* parent → spine */
+  .hnode__children::before {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 16px;
+    border-top: 2px solid var(--line-strong);
+    content: '';
+  }
+
+  .hnode__children > li {
+    padding: 4px 0 4px 12px;
+  }
+
+  /* the spine: from the first afilhado's middle to the last one's */
+  .hnode__children > li::before {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    border-top: 0;
+    border-left: 2px solid var(--line-strong);
+  }
+
+  .hnode__children > li:first-child::before {
+    top: 50%;
+  }
+
+  .hnode__children > li:last-child::before {
+    bottom: 50%;
+  }
+
+  .hnode__children > li:only-child::before {
+    display: none;
+  }
+
+  /* spine → afilhado */
+  .hnode__children > li::after {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 12px;
+    border-top: 2px solid var(--line-strong);
+    content: '';
+  }
+
+  .hnode__children > li.is-path::after,
+  .hnode__children > li.is-selected::after,
+  .is-path > .hnode__children::before,
+  .is-path.is-open > .hnode__children::before {
+    border-color: var(--purple-ink);
+  }
+}
+
+@media (min-width: 900px) and (pointer: coarse) {
+  .hnode__toggle {
+    min-width: 36px;
+    min-height: 36px;
+    right: -18px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hnode__toggle svg {
+    transition: transform 0.15s ease;
+  }
+}

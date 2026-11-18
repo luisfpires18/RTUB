@@ -3,7 +3,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
-using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Helpers;
 
@@ -137,7 +136,7 @@ public class QuestionNotificationBackgroundService : BackgroundService
             checkTimes.Add(new TimeSpan(9, 0, 0));
         }
 
-        // The check times are Portugal's clock, summer and winter (#226 F02; was UTC): the soonest of them.
+        // The check times are Portugal's clock, summer and winter: the soonest of them.
         return checkTimes.Min(t => PortugalTime.NextUtc(_time, t));
     }
 }

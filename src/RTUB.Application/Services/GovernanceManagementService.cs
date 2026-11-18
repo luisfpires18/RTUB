@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
@@ -15,18 +14,17 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /roles (React track 016, docs/react-governance.md). Same behaviour,
+/// The React /roles (docs/react-governance.md). Same behaviour,
 /// rules now server-side (<see cref="GovernanceAuthorization"/>):
-/// - fiscal years: create one from 1991 up to the current one, never twice, never in the future; no edit or delete
-///   (the old page had neither);
+/// - fiscal years: create one from 1991 up to the current one, never twice, never in the future; no edit or delete;
 /// - positions: the fixed 13 of <see cref="GovernanceService.Structure"/>; assign one member to a position of an
 ///   existing fiscal year under the existing <see cref="IRoleAssignmentValidationService"/> rules (no Leitão, no Caloiro
 ///   president, a Tuno Veterano for the Conselho de Veteranos, one holder per position, one position per member except
 ///   Ensaiador), or remove an assignment; in the current fiscal year both update the member's role and positions through
-///   <see cref="IRoleManagementService"/>, as before. Expelled members are no longer offered or accepted;
+///   <see cref="IRoleManagementService"/>. Expelled members are never offered or accepted;
 /// - the RGI: a pre-signed URL of docs/rtub_rgi.pdf. No schema change.
 /// </summary>
-public sealed class GovernanceManagementService : IGovernanceManagementService
+public sealed partial class GovernanceManagementService : IGovernanceManagementService
 {
     public const int FirstStartYear = 1991;
     public const int SearchLimit = 20;
@@ -110,14 +108,14 @@ public sealed class GovernanceManagementService : IGovernanceManagementService
         }
 
         await using var db = await _contexts.CreateDbContextAsync();
-        // ponytail: every member in memory (~100), as the old page did (Categories is a JSON column); page it if it grows.
+        // ponytail: every member in memory (~100) (Categories is a JSON column); page it if it grows.
         var members = await db.Users.AsNoTracking().Where(u => !u.IsExpelled).ToListAsync();
 
         return EventResult<IReadOnlyList<GovernanceCandidateDto>>.Ok(members
             .Where(u => !u.IsLeitao())
             .Select(u => (u, who: GovernanceService.ToMember(u.Nickname, u.FirstName, u.LastName, u.ImageUrl),
                 text: EventParticipantsAdminService.Fold($"{u.Nickname} {u.FirstName} {u.LastName} {u.Email}")))
-            // Every word somewhere in the nickname, name or email, as the old multi-word search. The email is
+            // Every word somewhere in the nickname, name or email. The email is
             // matched, never returned.
             .Where(x => words.All(w => x.text.Contains(w)))
             .OrderBy(x => x.who.DisplayName, StringComparer.Create(CultureInfo.GetCultureInfo("pt-PT"), true))
@@ -166,103 +164,6 @@ public sealed class GovernanceManagementService : IGovernanceManagementService
         }
 
         return EventResult<GovernanceManageDto>.Ok(await BuildAsync(label));
-    }
-
-    public async Task<int> SyncCurrentMandateAsync()
-    {
-        var current = FiscalYearHelper.GetCurrentFiscalYearStartYear();
-        await using var db = await _contexts.CreateDbContextAsync();
-        var held = (await db.RoleAssignments.AsNoTracking()
-                .Where(a => a.StartYear == current && a.EndYear == current + 1)
-                .Select(a => new { a.UserId, a.Position })
-                .ToListAsync())
-            .ToLookup(a => a.UserId, a => a.Position);
-        if (held.Count == 0)
-        {
-            // A new fiscal year before its first assignment: the previous mandate stays in office.
-            return 0;
-        }
-
-        // Positions is a JSON column: compared in memory (~100 members).
-        var changed = (await db.Users.AsNoTracking().Select(u => new { u.Id, u.Positions }).ToListAsync())
-            .Where(u => !(u.Positions ?? []).ToHashSet().SetEquals(held[u.Id]))
-            .Select(u => u.Id)
-            .ToList();
-
-        foreach (var id in changed)
-        {
-            if (await _users.FindByIdAsync(id) is not { } member)
-            {
-                continue;
-            }
-
-            // Promote first, so a member re-elected to another seat keeps the role while the old seat goes.
-            foreach (var position in held[id].Except(member.Positions).ToList())
-            {
-                await _roles.PromoteUserForPositionAsync(member, position, current, current);
-            }
-
-            foreach (var position in member.Positions.Except(held[id]).ToList())
-            {
-                await _roles.DemoteUserForPositionAsync(member, position, current, current);
-            }
-        }
-
-        if (changed.Count > 0)
-        {
-            _logger.LogInformation("Mandate {FiscalYear}: positions and roles synced for {Count} member(s)",
-                GovernanceService.Label(current), changed.Count);
-        }
-
-        return changed.Count;
-    }
-
-    public async Task<EventResult<GovernanceManageDto>> RemoveAsync(int assignmentId, ClaimsPrincipal user)
-    {
-        if (Refusal<GovernanceManageDto>(user) is { } refused)
-        {
-            return refused;
-        }
-
-        if (await _assignments.GetRoleAssignmentByIdAsync(assignmentId) is not { } assignment)
-        {
-            return EventResult<GovernanceManageDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        await _assignments.DeleteRoleAssignmentAsync(assignment.Id);
-        if (await _users.FindByIdAsync(assignment.UserId) is { } member)
-        {
-            await _roles.DemoteUserForPositionAsync(member, assignment.Position, assignment.StartYear, FiscalYearHelper.GetCurrentFiscalYearStartYear());
-        }
-
-        return EventResult<GovernanceManageDto>.Ok(await BuildAsync(GovernanceService.Label(assignment.StartYear)));
-    }
-
-    public async Task<EventResult<GovernanceRgiDto>> GetRgiAsync(ClaimsPrincipal user)
-    {
-        if (!GovernanceAuthorization.IsMember(user))
-        {
-            return EventResult<GovernanceRgiDto>.Fail(EventResultStatus.SignInRequired);
-        }
-
-        if (!GovernanceAuthorization.CanViewRgi(user))
-        {
-            return EventResult<GovernanceRgiDto>.Fail(EventResultStatus.Forbidden);
-        }
-
-        try
-        {
-            // Resolved here, not injected: storage that cannot be built (no R2 credentials) must not take the fiscal
-            // year and assignment endpoints down with it.
-            var documents = _services.GetRequiredService<IDocumentStorageService>();
-            return EventResult<GovernanceRgiDto>.Ok(new GovernanceRgiDto(await documents.GetDocumentUrlAsync(RgiPath)));
-        }
-        catch (Exception ex)
-        {
-            // The old page said "not available" on any storage error; so does the React one.
-            _logger.LogWarning(ex, "Could not sign the RGI URL");
-            return EventResult<GovernanceRgiDto>.Ok(new GovernanceRgiDto(null));
-        }
     }
 
     private async Task<GovernanceManageDto> BuildAsync(string? fiscalYear)

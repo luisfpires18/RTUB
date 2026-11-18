@@ -3,7 +3,7 @@ using System.Security.Claims;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The Music rules (React track 006, docs/react-music.md),
+/// The Music rules (docs/react-music.md),
 /// enforced server-side by <c>MusicService</c>. Owner is checked explicitly wherever Admin is, so an
 /// Owner keeps Admin's Music rights even without the Admin role.
 ///
@@ -11,7 +11,7 @@ namespace RTUB.Application.Helpers;
 /// - Exclusive albums and their access list: Owner only.
 /// - Songs: Mod, Admin and Owner create and edit; only Admin and Owner delete.
 /// - Videos: any signed-in member who can see the album uploads; the uploader, Admin or Owner deletes.
-/// - Aprender charts (095): only the Owner uploads, replaces and removes; each one is checked by ear first.
+/// - Aprender charts: only the Owner uploads, replaces and removes; each one is checked by ear first.
 /// - Statistics: any signed-in member sees song and album totals; per-member detail is Admin/Owner.
 /// </summary>
 public static class MusicAuthorization

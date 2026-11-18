@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React Events area (React track 011). Visibility and every member action are decided here
+/// The React Events area. Visibility and every member action are decided here
 /// from the caller, never from anything the browser sends. Writes go through <see cref="IEventService"/>
 /// and <see cref="IEnrollmentService"/>.
 /// </summary>
@@ -27,14 +27,14 @@ public interface IEventAgendaService
     /// <summary>One event for the Admin/Owner edit form.</summary>
     Task<EventResult<EventEditDto>> GetEventForEditAsync(int id, ClaimsPrincipal user);
 
-    /// <summary>Creates an event (Admin/Owner) and announces it by push, as the old form did; the push opens the new event.</summary>
+    /// <summary>Creates an event (Admin/Owner) and announces it by push; the push opens the new event.</summary>
     Task<EventResult<EventSummaryDto>> CreateEventAsync(EventInput input, ClaimsPrincipal user);
 
     /// <summary>Updates an event's details (Admin/Owner); image, cancellation and answers are kept.</summary>
     Task<EventResult<EventSummaryDto>> UpdateEventAsync(int id, EventInput input, ClaimsPrincipal user);
 
     /// <summary>
-    /// Deletes an event (Admin/Owner), as the old page did: the row and its image go, and the database
+    /// Deletes an event (Admin/Owner): the row and its image go, and the database
     /// cascades its enrollments, prizes, videos, repertoire, discussion and contacts. Refused (InUse) when
     /// NERBA orders point at it.
     /// </summary>
