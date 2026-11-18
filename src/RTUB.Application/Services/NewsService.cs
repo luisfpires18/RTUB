@@ -42,7 +42,7 @@ public sealed class NewsService : INewsService
         var size = Math.Clamp(pageSize, 1, MaxPageSize);
         // `manage` = whoever sees drafts and authors (Mod and above); Admin / Owner act on them (`CanManage` below).
         var manage = NewsAuthorization.CanWrite(user);
-        var signedIn = NewsAuthorization.UserId(user) is not null;
+        var signedIn = user.UserId() is not null;
 
         await using var db = await _contexts.CreateDbContextAsync();
         var posts = await VisibleTo(Posts(db, manage), user, visibility)
@@ -81,7 +81,7 @@ public sealed class NewsService : INewsService
         {
             Title = title,
             Body = body,
-            AuthorId = NewsAuthorization.UserId(user),
+            AuthorId = user.UserId(),
             IsPublic = input.MembersOnly != true,
             PublishedAt = input.Publish ? DateTime.UtcNow : null,
         };
@@ -147,7 +147,7 @@ public sealed class NewsService : INewsService
     /// </summary>
     internal static IQueryable<NewsPost> VisibleTo(IQueryable<NewsPost> posts, ClaimsPrincipal user, string? visibility = null)
     {
-        if (NewsAuthorization.UserId(user) is null)
+        if (user.UserId() is null)
         {
             return posts.Where(p => p.IsPublic);
         }
@@ -195,13 +195,13 @@ public sealed class NewsService : INewsService
 
     /// <summary>401 for visitors, 403 for anyone who is not Mod, Admin or Owner (create, edit, publish, unpublish).</summary>
     private static EventResult<T>? WriteRefusal<T>(ClaimsPrincipal user) =>
-        NewsAuthorization.UserId(user) is null ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        user.UserId() is null ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : NewsAuthorization.CanWrite(user) ? null
         : EventResult<T>.Fail(EventResultStatus.Forbidden);
 
     /// <summary>401 for visitors, 403 for anyone who is not Admin/Owner (delete).</summary>
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        NewsAuthorization.UserId(user) is null ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        user.UserId() is null ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : NewsAuthorization.CanManage(user) ? null
         : EventResult<T>.Fail(EventResultStatus.Forbidden);
 

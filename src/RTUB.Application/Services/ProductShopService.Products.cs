@@ -11,7 +11,7 @@ public sealed partial class ProductShopService
 {
     public async Task<EventResult<ShopDto>> GetAsync(string? fiscalYear, string? search, string? type, ClaimsPrincipal user)
     {
-        if (ShopAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<ShopDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -92,7 +92,7 @@ public sealed partial class ProductShopService
 
     public async Task<EventResult<ShopProductDetailDto>> GetProductAsync(int id, ClaimsPrincipal user)
     {
-        if (!ShopAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<ShopProductDetailDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -104,7 +104,7 @@ public sealed partial class ProductShopService
 
     public async Task<EventResult<ShopCreatedDto>> CreateProductAsync(ShopProductInput input, ClaimsPrincipal user)
     {
-        if (!ShopAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<ShopCreatedDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -127,7 +127,7 @@ public sealed partial class ProductShopService
 
     public async Task<EventResult<ShopProductDetailDto>> UpdateProductAsync(int id, ShopProductInput input, ClaimsPrincipal user)
     {
-        if (!ShopAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<ShopProductDetailDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -170,7 +170,7 @@ public sealed partial class ProductShopService
 
     public async Task<EventResult<ShopProductDetailDto>> SetImageAsync(int id, ShopImageUpload image, ClaimsPrincipal user)
     {
-        if (!ShopAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<ShopProductDetailDto>.Fail(EventResultStatus.SignInRequired);
         }

@@ -32,7 +32,7 @@ public sealed partial class NaipeBoardService
             return EventResult<IReadOnlyList<NaipeCommentItemDto>>.Invalid("text", $"O comentário não pode exceder {MaxCommentLength} caracteres.");
         }
 
-        await _naipes.AddCommentAsync(id, NaipesAuthorization.UserId(user)!, text);
+        await _naipes.AddCommentAsync(id, user.UserId()!, text);
         return EventResult<IReadOnlyList<NaipeCommentItemDto>>.Ok(await CommentsAsync(id, user));
     }
 
@@ -44,7 +44,7 @@ public sealed partial class NaipeBoardService
             return refused;
         }
 
-        var me = NaipesAuthorization.UserId(user)!;
+        var me = user.UserId()!;
         if ((await _naipes.GetCommentsAsync(id, me)).FirstOrDefault(c => c.Id == commentId) is not { } comment)
         {
             return EventResult<IReadOnlyList<NaipeCommentItemDto>>.Fail(EventResultStatus.NotFound);

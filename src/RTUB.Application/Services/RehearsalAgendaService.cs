@@ -39,7 +39,7 @@ public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalAgendaDto>> GetAgendaAsync(ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<RehearsalAgendaDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -68,7 +68,7 @@ public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalDetailDto>> GetAsync(int id, ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<RehearsalDetailDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -132,7 +132,7 @@ public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalAttendanceDto>> GetMyAttendanceAsync(int id, ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<RehearsalAttendanceDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -143,7 +143,7 @@ public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalAttendanceDto>> SaveMyAttendanceAsync(int id, RehearsalAttendanceInput input, ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<RehearsalAttendanceDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -187,7 +187,7 @@ public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalAttendanceDto>> RemoveMyAttendanceAsync(int id, ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<RehearsalAttendanceDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -204,7 +204,7 @@ public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalStatsDto>> GetStatsAsync(DateOnly? from, DateOnly? to, ClaimsPrincipal user)
     {
-        if (!RehearsalsAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<RehearsalStatsDto>.Fail(EventResultStatus.SignInRequired);
         }

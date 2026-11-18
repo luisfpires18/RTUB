@@ -27,7 +27,7 @@ public sealed partial class EventAgendaService
     /// ones. Applied in the query, so a members-only event never leaves the database for a visitor.
     /// </summary>
     internal static IQueryable<Event> VisibleTo(IQueryable<Event> events, ClaimsPrincipal user) =>
-        EventsAuthorization.IsMember(user) ? events : events.Where(e => e.IsPublic);
+        user.IsMember() ? events : events.Where(e => e.IsPublic);
 
     private IEnumerable<Event> Upcoming(IEnumerable<Event> events) =>
         events.Where(e => !IsPast(e)).OrderBy(e => e.Date).ThenBy(e => e.Id);

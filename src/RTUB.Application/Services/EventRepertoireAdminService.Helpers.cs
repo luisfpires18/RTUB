@@ -64,7 +64,7 @@ public sealed partial class EventRepertoireAdminService
             return songs;
         }
 
-        var userId = MusicAuthorization.UserId(user);
+        var userId = user.UserId();
         return songs.Where(s => !s.Album!.IsExclusive || s.Album.AlbumAccesses.Any(x => x.UserId == userId));
     }
 
@@ -89,7 +89,7 @@ public sealed partial class EventRepertoireAdminService
     /// </summary>
     private async Task<EventResult<T>?> RefusalAsync<T>(int eventId, ClaimsPrincipal user)
     {
-        if (!EventsAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<T>.Fail(EventResultStatus.SignInRequired);
         }
@@ -100,7 +100,7 @@ public sealed partial class EventRepertoireAdminService
     /// <summary>An Ensaiador / Magister and an upcoming (last day today or later, Portugal), not cancelled event.</summary>
     internal async Task<bool> CanPrepareAsync(int eventId, ClaimsPrincipal user)
     {
-        if (EventsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return false;
         }

@@ -203,7 +203,7 @@ public sealed partial class LogisticsKanbanService
             return refused;
         }
 
-        var me = LogisticsAuthorization.UserId(user)!;
+        var me = user.UserId()!;
         var manage = LogisticsAuthorization.CanManage(user);
         await using var db = await _contexts.CreateDbContextAsync();
         var rows = await WorkableCards(db, user)

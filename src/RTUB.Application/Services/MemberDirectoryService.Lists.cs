@@ -15,7 +15,7 @@ public sealed partial class MemberDirectoryService
 {
     public async Task<EventResult<MemberDirectoryDto>> GetDirectoryAsync(MemberDirectoryQuery query, ClaimsPrincipal user)
     {
-        if (!MembersAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<MemberDirectoryDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -64,7 +64,7 @@ public sealed partial class MemberDirectoryService
 
     public async Task<EventResult<MemberDetailDto>> GetMemberAsync(string id, ClaimsPrincipal user)
     {
-        if (!MembersAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<MemberDetailDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -109,7 +109,7 @@ public sealed partial class MemberDirectoryService
 
     public async Task<EventResult<IReadOnlyList<ActiveMemberDto>>> GetActiveMembersAsync(string? status, string? search, ClaimsPrincipal user)
     {
-        if (!MembersAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<IReadOnlyList<ActiveMemberDto>>.Fail(EventResultStatus.SignInRequired);
         }
@@ -161,7 +161,7 @@ public sealed partial class MemberDirectoryService
 
     public async Task<EventResult<IReadOnlyList<MemberBirthdayDto>>> GetBirthdaysAsync(string? search, ClaimsPrincipal user)
     {
-        if (!MembersAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<IReadOnlyList<MemberBirthdayDto>>.Fail(EventResultStatus.SignInRequired);
         }
@@ -192,7 +192,7 @@ public sealed partial class MemberDirectoryService
 
     public async Task<EventResult<IReadOnlyList<MemberTreeNodeDto>>> GetHierarchyAsync(ClaimsPrincipal user)
     {
-        if (!MembersAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<IReadOnlyList<MemberTreeNodeDto>>.Fail(EventResultStatus.SignInRequired);
         }

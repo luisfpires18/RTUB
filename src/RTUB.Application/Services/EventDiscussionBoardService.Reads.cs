@@ -41,7 +41,7 @@ public sealed partial class EventDiscussionBoardService
 
     private async Task<EventDiscussionDto> LoadAsync(int eventId, ClaimsPrincipal user)
     {
-        var me = EventsAuthorization.UserId(user);
+        var me = user.UserId();
         var moderator = EventsAuthorization.CanManage(user);
         await using var db = await _contexts.CreateDbContextAsync();
         // ponytail: the whole conversation at once (≤6 posts per event today); page it if one grows large.

@@ -116,7 +116,7 @@ public sealed partial class LogisticsKanbanService
 
         db.LogisticsBoards.Add(board);
         await db.SaveChangesAsync();
-        var me = LogisticsAuthorization.UserId(user);
+        var me = user.UserId();
         for (var li = 0; li < lists.Count; li++)
         {
             var l = lists[li];

@@ -34,7 +34,7 @@ public sealed partial class PendingActionsService : IPendingActionsService
 
     public async Task<EventResult<PendingActionsPageDto>> GetPageAsync(ClaimsPrincipal user)
     {
-        if (EventsAuthorization.UserId(user) is not { } userId)
+        if (user.UserId() is not { } userId)
         {
             return EventResult<PendingActionsPageDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -67,7 +67,7 @@ public sealed partial class PendingActionsService : IPendingActionsService
 
     public async Task<EventResult<PendingActionPanelDto>> GetPanelAsync(ClaimsPrincipal user, string panel, string? filter, int page)
     {
-        if (EventsAuthorization.UserId(user) is not { } userId)
+        if (user.UserId() is not { } userId)
         {
             return EventResult<PendingActionPanelDto>.Fail(EventResultStatus.SignInRequired);
         }

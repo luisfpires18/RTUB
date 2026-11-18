@@ -75,7 +75,7 @@ public sealed partial class LogisticsKanbanService
         await transaction.CommitAsync();
         if (board.Name != oldName)
         {
-            _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
+            _audit.SetUser(user.Identity?.Name, user.UserId());
             await FollowRenameAsync(db, board);
         }
 

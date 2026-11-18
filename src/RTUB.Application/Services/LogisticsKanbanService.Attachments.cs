@@ -157,7 +157,7 @@ public sealed partial class LogisticsKanbanService
 
         if (result.Status == EventResultStatus.Ok && stored is not null)
         {
-            _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
+            _audit.SetUser(user.Identity?.Name, user.UserId());
             await DeleteStoredAsync(new List<string> { stored });
         }
 

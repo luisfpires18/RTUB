@@ -58,7 +58,7 @@ public sealed partial class RehearsalAdminService
                 EntityType = "Rehearsal",
                 EntityId = r.Id,
                 Action = "PushNotificationSent",
-                UserId = RehearsalsAuthorization.UserId(user),
+                UserId = user.UserId(),
                 UserName = user.Identity!.Name,
                 Timestamp = DateTime.UtcNow,
                 Changes = JsonSerializer.Serialize(new { RecipientCount = recipients.Count, NotificationBody = message }),

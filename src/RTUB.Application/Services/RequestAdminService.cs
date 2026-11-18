@@ -165,7 +165,7 @@ public sealed class RequestAdminService : IRequestAdminService
     /// <summary>Signed in and not a Leitão unless Admin or Owner, checked against the stored member.</summary>
     private async Task<EventResultStatus?> RefusalAsync(ClaimsPrincipal user)
     {
-        if (RequestsAuthorization.UserId(user) is not { } id)
+        if (user.UserId() is not { } id)
         {
             return EventResultStatus.SignInRequired;
         }

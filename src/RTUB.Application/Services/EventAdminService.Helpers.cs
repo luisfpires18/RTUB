@@ -67,12 +67,12 @@ public sealed partial class EventAdminService
 
     /// <summary>The event image belongs to editing the event: Mod and above.</summary>
     private static EventResult<T>? EditRefusal<T>(ClaimsPrincipal user) =>
-        !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !EventsAuthorization.CanEdit(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !EventsAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 }

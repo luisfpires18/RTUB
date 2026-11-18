@@ -48,7 +48,7 @@ public sealed class HallOfFameService : IHallOfFameService
 
     public async Task<EventResult<HallOfFameDto>> GetAsync(ClaimsPrincipal user)
     {
-        if (!MembersAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<HallOfFameDto>.Fail(EventResultStatus.SignInRequired);
         }

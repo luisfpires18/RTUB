@@ -10,7 +10,7 @@ public sealed partial class ProductShopService
 {
     public async Task<EventResult<ShopReservationDto>> ReserveAsync(int productId, ShopReservationInput input, ClaimsPrincipal user)
     {
-        if (ShopAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<ShopReservationDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -63,7 +63,7 @@ public sealed partial class ProductShopService
 
     public async Task<EventResult<bool>> CancelReservationAsync(int reservationId, ClaimsPrincipal user)
     {
-        if (ShopAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }
@@ -84,7 +84,7 @@ public sealed partial class ProductShopService
 
     public async Task<EventResult<IReadOnlyList<ShopReservationDto>>> GetReservationsAsync(int productId, ClaimsPrincipal user)
     {
-        if (!ShopAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<IReadOnlyList<ShopReservationDto>>.Fail(EventResultStatus.SignInRequired);
         }
@@ -106,7 +106,7 @@ public sealed partial class ProductShopService
     // ---------- helpers ----------
 
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        !ShopAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !ShopAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 

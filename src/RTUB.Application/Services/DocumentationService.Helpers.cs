@@ -12,7 +12,7 @@ public sealed partial class DocumentationService
     /// <summary>Who is asking, the year asked for (validated) and the folders of that year they may see.</summary>
     private async Task<(EventResult<bool>? Refusal, Viewer? Viewer)> ViewerAsync(string? fiscalYear, ClaimsPrincipal user)
     {
-        if (DocumentationAuthorization.UserId(user) is not { } id)
+        if (user.UserId() is not { } id)
         {
             return (EventResult<bool>.Fail(EventResultStatus.SignInRequired), null);
         }
@@ -126,5 +126,5 @@ public sealed partial class DocumentationService
 
     private string FolderPath(string fiscalYear, string folder) => $"{YearPath(fiscalYear)}{folder}";
 
-    private void SetAudit(ClaimsPrincipal user) => _audit.SetUser(user.Identity?.Name, DocumentationAuthorization.UserId(user));
+    private void SetAudit(ClaimsPrincipal user) => _audit.SetUser(user.Identity?.Name, user.UserId());
 }

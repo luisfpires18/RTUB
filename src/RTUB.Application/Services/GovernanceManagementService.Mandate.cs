@@ -83,7 +83,7 @@ public sealed partial class GovernanceManagementService
 
     public async Task<EventResult<GovernanceRgiDto>> GetRgiAsync(ClaimsPrincipal user)
     {
-        if (!GovernanceAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<GovernanceRgiDto>.Fail(EventResultStatus.SignInRequired);
         }

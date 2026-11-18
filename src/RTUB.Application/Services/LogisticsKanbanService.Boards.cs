@@ -42,7 +42,7 @@ public sealed partial class LogisticsKanbanService
             return true;
         }
 
-        var me = LogisticsAuthorization.UserId(user);
+        var me = user.UserId();
         return me is not null && await db.LogisticsBoardMembers.AnyAsync(m => m.BoardId == board.Id && m.UserId == me);
     }
 
@@ -54,7 +54,7 @@ public sealed partial class LogisticsKanbanService
             return db.LogisticsBoards;
         }
 
-        var me = LogisticsAuthorization.UserId(user);
+        var me = user.UserId();
         return db.LogisticsBoards.Where(b => b.Visibility == BoardVisibility.Members || b.Members.Any(m => m.UserId == me));
     }
 

@@ -16,13 +16,11 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class MusicAuthorization
 {
-    public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
+    public static bool IsOwner(ClaimsPrincipal user) => user.IsMember() && user.IsInRole("Owner");
 
-    public static bool IsOwner(ClaimsPrincipal user) => IsMember(user) && user.IsInRole("Owner");
+    public static bool IsAdmin(ClaimsPrincipal user) => user.IsMember() && (user.IsInRole("Admin") || user.IsInRole("Owner"));
 
-    public static bool IsAdmin(ClaimsPrincipal user) => IsMember(user) && (user.IsInRole("Admin") || user.IsInRole("Owner"));
-
-    public static bool CanManage(ClaimsPrincipal user) => IsAdmin(user) || (IsMember(user) && user.IsInRole("Mod"));
+    public static bool CanManage(ClaimsPrincipal user) => IsAdmin(user) || (user.IsMember() && user.IsInRole("Mod"));
 
     public static bool CanDelete(ClaimsPrincipal user) => IsAdmin(user);
 
@@ -31,7 +29,4 @@ public static class MusicAuthorization
     public static bool CanManagePlayAlong(ClaimsPrincipal user) => IsOwner(user);
 
     public static bool CanSeeDetailedStatistics(ClaimsPrincipal user) => IsAdmin(user);
-
-    public static string? UserId(ClaimsPrincipal user) =>
-        IsMember(user) ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
 }

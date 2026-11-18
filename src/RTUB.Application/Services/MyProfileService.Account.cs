@@ -182,7 +182,7 @@ public sealed partial class MyProfileService
     /// <summary>The signed-in member, freshly loaded (401 for a visitor, or when the account is gone).</summary>
     private async Task<(ApplicationUser Me, EventResult<T>? Refused)> MeAsync<T>(ClaimsPrincipal user)
     {
-        if (!MembersAuthorization.IsMember(user) || user.FindFirstValue(ClaimTypes.NameIdentifier) is not { } id)
+        if (!user.IsMember() || user.FindFirstValue(ClaimTypes.NameIdentifier) is not { } id)
         {
             return (null!, EventResult<T>.Fail(EventResultStatus.SignInRequired));
         }

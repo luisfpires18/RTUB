@@ -41,11 +41,11 @@ public sealed partial class LogisticsKanbanService
         card.SetStatus(list.State ?? CardStatus.Todo);
         db.LogisticsCards.Add(card);
         await db.SaveChangesAsync();
-        db.LogisticsCardActivities.Add(new LogisticsCardActivity { CardId = card.Id, ActorId = LogisticsAuthorization.UserId(user), Action = "created", Detail = "Cartão criado" });
+        db.LogisticsCardActivities.Add(new LogisticsCardActivity { CardId = card.Id, ActorId = user.UserId(), Action = "created", Detail = "Cartão criado" });
         await db.SaveChangesAsync();
         if (_notifier is not null && card.AssignedToUserId is { } owner)
         {
-            var me = LogisticsAuthorization.UserId(user);
+            var me = user.UserId();
             await _notifier.SendAsync(LogisticsNotice.Owner, new LogisticsNotifier.Card(board!.Id, card.Id, card.Title, board.Name), new[] { owner }, me);
         }
 
@@ -186,7 +186,7 @@ public sealed partial class LogisticsKanbanService
         await db.SaveChangesAsync();
         db.LogisticsCardActivities.Add(new LogisticsCardActivity
         {
-            CardId = copy.Id, ActorId = LogisticsAuthorization.UserId(user), Action = "created", Detail = $"Cartão criado (cópia de «{Cut(source.Title)}»)",
+            CardId = copy.Id, ActorId = user.UserId(), Action = "created", Detail = $"Cartão criado (cópia de «{Cut(source.Title)}»)",
         });
         await db.SaveChangesAsync();
         await transaction.CommitAsync();

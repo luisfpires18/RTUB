@@ -61,7 +61,7 @@ public sealed class EventContactsAdminService : IEventContactsAdminService
             return EventResult<EventContactsDto>.Invalid("notes", $"As notas não podem exceder {NotesMax} caracteres.");
         }
 
-        await _contacts.MarkAsContactedAsync(eventId, userId, input.WillAttend, notes, EventsAuthorization.UserId(user)!);
+        await _contacts.MarkAsContactedAsync(eventId, userId, input.WillAttend, notes, user.UserId()!);
 
         if (input.WillAttend is { } willAttend)
         {
@@ -119,7 +119,7 @@ public sealed class EventContactsAdminService : IEventContactsAdminService
 
     private async Task<EventResult<EventContactsDto>?> RefusalAsync(int eventId, ClaimsPrincipal user)
     {
-        if (!EventsAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<EventContactsDto>.Fail(EventResultStatus.SignInRequired);
         }

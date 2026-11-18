@@ -29,7 +29,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
 
     public async Task<GalleryTimelineDto> GetTimelineAsync(ClaimsPrincipal user, GalleryQuery query)
     {
-        var isMember = IsMember(user) && !query.PublicOnly;
+        var isMember = user.IsMember() && !query.PublicOnly;
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
 
@@ -89,7 +89,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
 
     public async Task<GalleryItemDto?> GetItemAsync(int id, ClaimsPrincipal user)
     {
-        var isMember = IsMember(user);
+        var isMember = user.IsMember();
         await using var db = await _contexts.CreateDbContextAsync();
 
         var row = await Visible(db, isMember)
@@ -105,8 +105,6 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
         var tags = isMember ? await TagsAsync(db, new List<int> { id }) : null;
         return ToItem(row, tags, isMember ? user : null);
     }
-
-    private static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
 
     private static IQueryable<GalleryMedia> Visible(ApplicationDbContext db, bool isMember) =>
         isMember ? db.GalleryMedia : db.GalleryMedia.Where(m => !m.IsPrivate);

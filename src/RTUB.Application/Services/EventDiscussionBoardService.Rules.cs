@@ -10,19 +10,19 @@ public sealed partial class EventDiscussionBoardService
 {
     // ---------- rules ----------
 
-    private static string Me(ClaimsPrincipal user) => EventsAuthorization.UserId(user)!;
+    private static string Me(ClaimsPrincipal user) => user.UserId()!;
 
     /// <summary>Authors delete their own; the Owner deletes anyone's.</summary>
     private static bool CanDelete(string authorId, ClaimsPrincipal user) =>
-        authorId == EventsAuthorization.UserId(user) || EventsAuthorization.IsOwner(user);
+        authorId == user.UserId() || EventsAuthorization.IsOwner(user);
 
     /// <summary>The driver, or Admin/Owner, seats and unseats passengers.</summary>
     private static bool CanSeat(string driverId, ClaimsPrincipal user) =>
-        driverId == EventsAuthorization.UserId(user) || EventsAuthorization.CanManage(user);
+        driverId == user.UserId() || EventsAuthorization.CanManage(user);
 
     private async Task<EventResult<EventDiscussionDto>?> RefusalAsync(int eventId, ClaimsPrincipal user)
     {
-        if (EventsAuthorization.UserId(user) is null)
+        if (user.UserId() is null)
         {
             return Fail(EventResultStatus.SignInRequired);
         }

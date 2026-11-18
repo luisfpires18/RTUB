@@ -66,7 +66,7 @@ public sealed class LeaderboardService : ILeaderboardService
 
     public async Task<EventResult<LeaderboardDto>> GetAsync(string? fiscalYear, string? search, ClaimsPrincipal user)
     {
-        if (!LeaderboardAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<LeaderboardDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -93,12 +93,12 @@ public sealed class LeaderboardService : ILeaderboardService
             shown.Select(e => e.Entry).ToList(),
             Levels(),
             Story,
-            table.FirstOrDefault(e => e.Entry.Id == LeaderboardAuthorization.UserId(user))?.Entry));
+            table.FirstOrDefault(e => e.Entry.Id == user.UserId())?.Entry));
     }
 
     public async Task<EventResult<LeaderboardMemberDto>> GetMemberAsync(string id, string? fiscalYear, ClaimsPrincipal user)
     {
-        if (!LeaderboardAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<LeaderboardMemberDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -136,7 +136,7 @@ public sealed class LeaderboardService : ILeaderboardService
 
     public async Task<EventResult<IReadOnlyList<LeaderboardCommentViewDto>>> GetCommentsAsync(string id, ClaimsPrincipal user)
     {
-        if (!LeaderboardAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<IReadOnlyList<LeaderboardCommentViewDto>>.Fail(EventResultStatus.SignInRequired);
         }
@@ -148,7 +148,7 @@ public sealed class LeaderboardService : ILeaderboardService
 
     public async Task<EventResult<IReadOnlyList<LeaderboardCommentViewDto>>> AddCommentAsync(string id, LeaderboardCommentInput input, ClaimsPrincipal user)
     {
-        if (LeaderboardAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<IReadOnlyList<LeaderboardCommentViewDto>>.Fail(EventResultStatus.SignInRequired);
         }
@@ -175,7 +175,7 @@ public sealed class LeaderboardService : ILeaderboardService
 
     public async Task<EventResult<bool>> ToggleLikeAsync(int commentId, ClaimsPrincipal user)
     {
-        if (LeaderboardAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }
@@ -191,7 +191,7 @@ public sealed class LeaderboardService : ILeaderboardService
 
     public async Task<EventResult<bool>> DeleteCommentAsync(int commentId, ClaimsPrincipal user)
     {
-        if (LeaderboardAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }
@@ -293,7 +293,7 @@ public sealed class LeaderboardService : ILeaderboardService
     }
 
     private async Task<IReadOnlyList<LeaderboardCommentViewDto>> CommentsAsync(string id, ClaimsPrincipal user) =>
-        (await _comments.GetCommentsForUserAsync(id, LeaderboardAuthorization.UserId(user)))
+        (await _comments.GetCommentsForUserAsync(id, user.UserId()))
             .Select(c => new LeaderboardCommentViewDto(c.Id, c.AuthorName, c.AuthorAvatarUrl, c.Text, c.CreatedAt, c.LikesCount,
                 c.IsLikedByCurrentUser, c.CanDelete, c.LikedByNames))
             .ToList();

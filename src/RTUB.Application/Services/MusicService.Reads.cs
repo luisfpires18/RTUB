@@ -49,7 +49,7 @@ public sealed partial class MusicService
             })
             .ToListAsync();
 
-        var member = MusicAuthorization.IsMember(user);
+        var member = user.IsMember();
         var dto = songs
             .OrderBy(s => s.TrackNumber is null).ThenBy(s => s.TrackNumber).ThenBy(s => s.Id)
             .Select(s => new MusicSongDto(s.Id, s.Title, s.TrackNumber, Blank(s.LyricAuthor), Blank(s.MusicAuthor),
@@ -107,7 +107,7 @@ public sealed partial class MusicService
             return MusicResult<MusicPlayDto>.Fail(MusicResultStatus.Unavailable);
         }
 
-        var userId = MusicAuthorization.UserId(user);
+        var userId = user.UserId();
         var listener = userId ?? $"anon:{listenerKey}";
         var counted = TryStartCooldown($"music:play:{listener}:{song!.Id}",
             TimeSpan.FromSeconds(song.Duration is > 0 ? song.Duration.Value : DefaultCooldownSeconds));
@@ -126,7 +126,7 @@ public sealed partial class MusicService
 
     public async Task<MusicResult<IReadOnlyList<MusicVideoDto>>> GetVideosAsync(int songId, ClaimsPrincipal user)
     {
-        if (!MusicAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return MusicResult<IReadOnlyList<MusicVideoDto>>.Fail(MusicResultStatus.SignInRequired);
         }
@@ -141,7 +141,7 @@ public sealed partial class MusicService
         var videos = await ctx.SongVideos.AsNoTracking().Where(v => v.SongId == songId)
             .OrderBy(v => v.SortOrder).ThenBy(v => v.Id).ToListAsync();
 
-        var userId = MusicAuthorization.UserId(user);
+        var userId = user.UserId();
         var admin = MusicAuthorization.IsAdmin(user);
         var forTitles = new Song { Title = song!.Title };
         return MusicResult<IReadOnlyList<MusicVideoDto>>.Ok(videos
@@ -159,7 +159,7 @@ public sealed partial class MusicService
             return MusicResult<bool>.Fail(status);
         }
 
-        var counted = TryStartCooldown($"music:video:{MusicAuthorization.UserId(user)}:{videoId}",
+        var counted = TryStartCooldown($"music:video:{user.UserId()}:{videoId}",
             TimeSpan.FromSeconds(DefaultCooldownSeconds));
         if (counted)
         {
@@ -172,7 +172,7 @@ public sealed partial class MusicService
 
     public async Task<MusicResult<MusicStatisticsDto>> GetStatisticsAsync(ClaimsPrincipal user)
     {
-        if (!MusicAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return MusicResult<MusicStatisticsDto>.Fail(MusicResultStatus.SignInRequired);
         }

@@ -19,11 +19,9 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class RehearsalsAuthorization
 {
-    public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
+    public static bool CanEdit(ClaimsPrincipal user) => CanManage(user) || (user.IsMember() && user.IsInRole("Mod"));
 
-    public static bool CanEdit(ClaimsPrincipal user) => CanManage(user) || (IsMember(user) && user.IsInRole("Mod"));
-
-    public static bool CanManage(ClaimsPrincipal user) => IsMember(user) && (user.IsInRole("Admin") || user.IsInRole("Owner"));
+    public static bool CanManage(ClaimsPrincipal user) => user.IsMember() && (user.IsInRole("Admin") || user.IsInRole("Owner"));
 
     /// <summary>The positions whose holders review presenças.</summary>
     public static readonly Position[] Approvers = [Position.Ensaiador, Position.Magister];
@@ -33,8 +31,5 @@ public static class RehearsalsAuthorization
     /// read from the database: the mandate in office).
     /// </summary>
     public static bool CanApprove(ClaimsPrincipal user, IEnumerable<Position>? positions) =>
-        CanManage(user) || (IsMember(user) && positions?.Any(Approvers.Contains) == true);
-
-    public static string? UserId(ClaimsPrincipal user) =>
-        IsMember(user) ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
+        CanManage(user) || (user.IsMember() && positions?.Any(Approvers.Contains) == true);
 }

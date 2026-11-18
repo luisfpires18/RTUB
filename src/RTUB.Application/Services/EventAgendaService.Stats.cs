@@ -15,7 +15,7 @@ public sealed partial class EventAgendaService
 {
     public async Task<EventResult<EventStatsDto>> GetStatsAsync(DateOnly? from, DateOnly? to, ClaimsPrincipal user)
     {
-        if (!EventsAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<EventStatsDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -74,7 +74,7 @@ public sealed partial class EventAgendaService
 
     public async Task<bool> RecordVideoPlayAsync(int videoId, ClaimsPrincipal user)
     {
-        var isMember = EventsAuthorization.IsMember(user);
+        var isMember = user.IsMember();
         await using var db = await _contexts.CreateDbContextAsync();
         var video = await db.EventVideos.AsNoTracking()
             .Where(v => v.Id == videoId && (v.Event.IsPublic || isMember))
@@ -92,8 +92,8 @@ public sealed partial class EventAgendaService
                 EntityType = "EventVideo",
                 EntityId = video.Id,
                 Action = "Played",
-                UserId = EventsAuthorization.UserId(user),
-                UserName = EventsAuthorization.IsMember(user) ? user.Identity!.Name : null,
+                UserId = user.UserId(),
+                UserName = user.IsMember() ? user.Identity!.Name : null,
                 Timestamp = DateTime.UtcNow,
                 EntityDisplayName = $"{video.Title ?? "Video"} ({video.EventName})",
             });

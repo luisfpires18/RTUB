@@ -15,10 +15,6 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class InventoryAuthorization
 {
-    public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
-
-    public static string? UserId(ClaimsPrincipal user) => IsMember(user) ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
-
     public static bool CanManage(ClaimsPrincipal user) =>
-        IsMember(user) && (user.IsInRole("Mod") || user.IsInRole("Admin") || user.IsInRole("Owner"));
+        user.IsMember() && (user.IsInRole("Mod") || user.IsInRole("Admin") || user.IsInRole("Owner"));
 }

@@ -52,7 +52,7 @@ public sealed partial class LogisticsKanbanService
     {
         var cardIds = cards.Select(c => c.Id).ToList();
         var assignments = await AssignmentCountsAsync(db, cardIds);
-        var me = LogisticsAuthorization.UserId(user);
+        var me = user.UserId();
         var mine = (await db.LogisticsCardAssignments.AsNoTracking().Where(a => a.UserId == me && cardIds.Contains(a.CardId))
             .Select(a => a.CardId).ToListAsync()).ToHashSet();
         var comments = await db.LogisticsCardComments.AsNoTracking().Where(c => cardIds.Contains(c.CardId))
@@ -67,7 +67,7 @@ public sealed partial class LogisticsKanbanService
     private async Task<List<LogisticsBoardSummaryDto>> SummariesAsync(ApplicationDbContext db, List<LogisticsBoard> boards, ClaimsPrincipal user)
     {
         var ids = boards.Select(b => b.Id).ToList();
-        var me = LogisticsAuthorization.UserId(user);
+        var me = user.UserId();
         var today = PortugalTime.Today(_time);
         var cards = await db.LogisticsCards.AsNoTracking().Where(c => ids.Contains(c.List.BoardId) && c.ArchivedAt == null)
             .Select(c => new

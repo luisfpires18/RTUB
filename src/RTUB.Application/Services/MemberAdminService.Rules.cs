@@ -16,7 +16,7 @@ public sealed partial class MemberAdminService
     // ---------- helpers ----------
 
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        !MembersAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !MembersAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 

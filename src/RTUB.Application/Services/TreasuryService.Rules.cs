@@ -122,7 +122,7 @@ public sealed partial class TreasuryService
     private async Task<(ApplicationUser? Member, EventResultStatus? Refused)> CallerAsync(ClaimsPrincipal user,
         Func<ApplicationUser, ClaimsPrincipal, bool>? allowed = null)
     {
-        if (TreasuryAuthorization.UserId(user) is not { } id)
+        if (user.UserId() is not { } id)
         {
             return (null, EventResultStatus.SignInRequired);
         }

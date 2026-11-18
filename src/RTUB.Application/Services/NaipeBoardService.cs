@@ -68,7 +68,7 @@ public sealed partial class NaipeBoardService : INaipeBoardService
 
     public async Task<EventResult<NaipeBoardDto>> GetAsync(string? instrument, string? search, ClaimsPrincipal user)
     {
-        if (!NaipesAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<NaipeBoardDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -109,7 +109,7 @@ public sealed partial class NaipeBoardService : INaipeBoardService
 
     public async Task<EventResult<NaipeItemDto>> CreateAsync(NaipeUpload upload, ClaimsPrincipal user)
     {
-        if (NaipesAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<NaipeItemDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -180,7 +180,7 @@ public sealed partial class NaipeBoardService : INaipeBoardService
             return Invalid<NaipeItemDto>(errors);
         }
 
-        await _naipes.UpdateContentAsync(id, title!, description, sortOrder, NaipesAuthorization.UserId(user)!, NaipesAuthorization.CanManage(user));
+        await _naipes.UpdateContentAsync(id, title!, description, sortOrder, user.UserId()!, NaipesAuthorization.CanManage(user));
         var updated = await _naipes.GetContentByIdAsync(id);
         return updated is null ? EventResult<NaipeItemDto>.Fail(EventResultStatus.NotFound) : EventResult<NaipeItemDto>.Ok(Item(updated, user));
     }
@@ -194,7 +194,7 @@ public sealed partial class NaipeBoardService : INaipeBoardService
         }
 
         // The file leaves R2, and the item goes with its comments and plays.
-        await _naipes.DeleteContentAsync(id, NaipesAuthorization.UserId(user)!, NaipesAuthorization.CanManage(user));
+        await _naipes.DeleteContentAsync(id, user.UserId()!, NaipesAuthorization.CanManage(user));
         return EventResult<bool>.Ok(true);
     }
 
@@ -211,7 +211,7 @@ public sealed partial class NaipeBoardService : INaipeBoardService
             return EventResult<bool>.Invalid("id", "Só os vídeos contam reproduções.");
         }
 
-        await _naipes.IncrementPlayCountAsync(id, NaipesAuthorization.UserId(user));
+        await _naipes.IncrementPlayCountAsync(id, user.UserId());
         return EventResult<bool>.Ok(true);
     }
 }

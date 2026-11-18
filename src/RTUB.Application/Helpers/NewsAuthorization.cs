@@ -14,7 +14,4 @@ public static class NewsAuthorization
 
     public static bool CanManage(ClaimsPrincipal user) =>
         user.Identity?.IsAuthenticated == true && (user.IsInRole("Admin") || user.IsInRole("Owner"));
-
-    public static string? UserId(ClaimsPrincipal user) =>
-        user.Identity?.IsAuthenticated == true ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
 }

@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;
@@ -13,7 +14,7 @@ public sealed partial class MessagingService
 
     public async Task<EventResult<IReadOnlyList<ConversationListItem>>> GetConversationsAsync(ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<IReadOnlyList<ConversationListItem>>.Fail(EventResultStatus.SignInRequired);
         }
@@ -31,7 +32,7 @@ public sealed partial class MessagingService
     /// <summary>Same rows and same rule as the list's per-conversation <c>UnreadCount</c>, summed, without building the list.</summary>
     public async Task<EventResult<UnreadSummary>> GetUnreadAsync(ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<UnreadSummary>.Fail(EventResultStatus.SignInRequired);
         }
@@ -53,7 +54,7 @@ public sealed partial class MessagingService
 
     public async Task<EventResult<IReadOnlyList<MessagingPerson>>> GetRecipientsAsync(ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<IReadOnlyList<MessagingPerson>>.Fail(EventResultStatus.SignInRequired);
         }
@@ -72,7 +73,7 @@ public sealed partial class MessagingService
 
     public async Task<EventResult<ConversationDetail>> GetConversationAsync(int id, int? beforeMessageId, ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<ConversationDetail>.Fail(EventResultStatus.SignInRequired);
         }
@@ -90,7 +91,7 @@ public sealed partial class MessagingService
 
     public async Task<EventResult<DirectConversation>> FindDirectAsync(string userId, ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<DirectConversation>.Fail(EventResultStatus.SignInRequired);
         }
@@ -107,7 +108,7 @@ public sealed partial class MessagingService
     /// </summary>
     public async Task<EventResult<ConversationDetail>> StartConversationAsync(StartConversationRequest input, ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<ConversationDetail>.Fail(EventResultStatus.SignInRequired);
         }

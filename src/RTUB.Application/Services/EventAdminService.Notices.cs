@@ -120,7 +120,7 @@ public sealed partial class EventAdminService
                 EntityType = "Event",
                 EntityId = e.Id,
                 Action = "PushNotificationSent",
-                UserId = EventsAuthorization.UserId(user),
+                UserId = user.UserId(),
                 UserName = user.Identity?.Name,
                 Timestamp = DateTime.UtcNow,
                 Changes = JsonSerializer.Serialize(new { RecipientCount = recipients.Count, NotificationBody = message }),

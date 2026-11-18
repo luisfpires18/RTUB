@@ -12,13 +12,8 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class GovernanceAuthorization
 {
-    public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
-
     public static bool CanManage(ClaimsPrincipal user) =>
-        IsMember(user) && (user.IsInRole("Mod") || user.IsInRole("Admin") || user.IsInRole("Owner"));
+        user.IsMember() && (user.IsInRole("Mod") || user.IsInRole("Admin") || user.IsInRole("Owner"));
 
-    public static bool CanViewRgi(ClaimsPrincipal user) => CanManage(user) || (IsMember(user) && user.IsInRole("Member"));
-
-    public static string? UserId(ClaimsPrincipal user) =>
-        IsMember(user) ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
+    public static bool CanViewRgi(ClaimsPrincipal user) => CanManage(user) || (user.IsMember() && user.IsInRole("Member"));
 }

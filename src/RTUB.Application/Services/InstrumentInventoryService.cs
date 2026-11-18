@@ -44,7 +44,7 @@ public sealed partial class InstrumentInventoryService : IInstrumentInventorySer
 
     public async Task<EventResult<InstrumentListDto>> GetAsync(InstrumentQuery query, ClaimsPrincipal user)
     {
-        if (!InventoryAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<InstrumentListDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -89,7 +89,7 @@ public sealed partial class InstrumentInventoryService : IInstrumentInventorySer
 
     public async Task<EventResult<InstrumentDetailDto>> GetByIdAsync(int id, ClaimsPrincipal user)
     {
-        if (!InventoryAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<InstrumentDetailDto>.Fail(EventResultStatus.SignInRequired);
         }
