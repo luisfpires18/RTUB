@@ -1,4 +1,6 @@
 // Dialog to create or edit an album (cover, visibility, exclusive member list).
+import { DialogFooter } from './ui/DialogFooter';
+import { Banner } from './ui/Banner';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Cropper } from './Cropper';
 import { Icon } from './icons';
@@ -74,27 +76,13 @@ export function AlbumForm({
       <Dialog
         title={albumId === null ? 'Novo álbum' : 'Editar álbum'}
         onClose={onClose}
-        footer={
-          <>
-            <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-              Cancelar
-            </button>
-            <button type="submit" form="album-form" className="btn btn--primary" disabled={busy || !loaded}>
-              {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-              Guardar
-            </button>
-          </>
-        }
+        footer={<DialogFooter form="album-form" busy={busy} disabled={!loaded} onClose={onClose} />}
       >
         {!loaded && !banner ? (
           <p className="note">A carregar…</p>
         ) : (
           <form id="album-form" className="form" onSubmit={submit} noValidate>
-            {banner && (
-              <p className="form__banner" role="alert">
-                {banner}
-              </p>
-            )}
+            <Banner text={banner} />
             <FormField id="album-title" label="Título *" error={errors.title}>
               <input {...fieldProps('album-title', errors.title)} required maxLength={200} value={form.title} onChange={(e) => set('title', e.target.value)} />
             </FormField>

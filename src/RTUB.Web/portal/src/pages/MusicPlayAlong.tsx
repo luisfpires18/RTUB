@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { BackLink } from '../components/ui/BackLink';
+import { EmptyState } from '../components/ui/EmptyState';
 import { Icon } from '../components/icons';
 import { musicApi, type PlayAlong } from '../data/musicApi';
 import { loginTo } from '../data/content';
@@ -47,19 +49,19 @@ export default function MusicPlayAlong({ songId }: { songId: number }) {
   if (load.kind !== 'ready') {
     return (
       <section className="page wrap" aria-labelledby="playalong-title">
-        <a className="back-link" href="/music/learn">
-          <Icon name="arrow" />
-          Aprender Músicas
-        </a>
-        <div className="state">
-          <Icon name={load.kind === 'signin' ? 'lock' : 'music'} className="state__icon" />
-          <h1 id="playalong-title" className="state__title">
-            {load.kind === 'signin'
+        <BackLink href="/music/learn">Aprender Músicas</BackLink>
+        <EmptyState
+          icon={load.kind === 'signin' ? 'lock' : 'music'}
+          heading
+          titleId="playalong-title"
+          title={
+            load.kind === 'signin'
               ? 'Aprender é para membros'
               : load.kind === 'notfound'
                 ? 'Esta música ainda não tem pauta para aprender.'
-                : 'Não foi possível carregar a pauta.'}
-          </h1>
+                : 'Não foi possível carregar a pauta.'
+          }
+        >
           {load.kind === 'signin' ? (
             <a className="btn btn--primary" href={loginTo(`/music/play/${songId}`)}>
               <Icon name="login" />
@@ -70,7 +72,7 @@ export default function MusicPlayAlong({ songId }: { songId: number }) {
               Tentar novamente
             </button>
           ) : null}
-        </div>
+        </EmptyState>
       </section>
     );
   }

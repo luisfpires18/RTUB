@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BackLink } from '../components/ui/BackLink';
+import { EmptyState } from '../components/ui/EmptyState';
 import { Icon } from '../components/icons';
 import { normalize } from '../data/musicFormHelpers';
 import { SongForm } from '../components/MusicForms';
@@ -116,12 +118,13 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
   if (!data) {
     return (
       <section className="page wrap" aria-labelledby="album-title">
-        <BackLink />
-        <div className="state">
-          <Icon name={load.kind === 'signin' ? 'lock' : 'disc'} className="state__icon" />
-          <h1 id="album-title" className="state__title">
-            {load.kind === 'signin' ? 'Álbum reservado a membros' : load.kind === 'notfound' ? 'Álbum não encontrado' : 'Não foi possível carregar o álbum.'}
-          </h1>
+        <BackLink href="/music">Música</BackLink>
+        <EmptyState
+          icon={load.kind === 'signin' ? 'lock' : 'disc'}
+          heading
+          titleId="album-title"
+          title={load.kind === 'signin' ? 'Álbum reservado a membros' : load.kind === 'notfound' ? 'Álbum não encontrado' : 'Não foi possível carregar o álbum.'}
+        >
           {load.kind === 'signin' ? (
             <a className="btn btn--primary" href={loginTo(`/music/albums/${albumId}`)}>
               <Icon name="login" />
@@ -132,7 +135,7 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
               Tentar novamente
             </button>
           ) : null}
-        </div>
+        </EmptyState>
       </section>
     );
   }
@@ -142,7 +145,7 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
 
   return (
     <section className={`page wrap music-album${now ? ' music-album--playing' : ''}`} aria-labelledby="album-title">
-      <BackLink />
+      <BackLink href="/music">Música</BackLink>
       <header className="album-head">
         {album.coverUrl ? (
           <img className="album-head__cover" src={album.coverUrl} alt={`Capa de ${album.title}`} width="240" height="240" />
@@ -187,10 +190,7 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
       )}
 
       {songs.length === 0 ? (
-        <div className="state">
-          <Icon name="music" className="state__icon" />
-          <p className="state__title">Ainda não há músicas neste álbum.</p>
-        </div>
+        <EmptyState icon="music" title="Ainda não há músicas neste álbum." />
       ) : shown.length === 0 ? (
         <p className="note">Nenhuma faixa corresponde à pesquisa.</p>
       ) : (
@@ -267,14 +267,5 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
         </ConfirmDialog>
       )}
     </section>
-  );
-}
-
-function BackLink() {
-  return (
-    <a className="back-link" href="/music">
-      <Icon name="arrow" />
-      Música
-    </a>
   );
 }

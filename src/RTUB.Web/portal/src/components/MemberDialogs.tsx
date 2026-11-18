@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { Banner } from './ui/Banner';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
@@ -39,13 +40,9 @@ export function MemberDialog({ memberId, onClose, actions }: { memberId: string;
       {member === undefined ? (
         <Loading label="A carregar o membro…" />
       ) : member === 'missing' ? (
-        <p className="form__banner" role="alert">
-          Este membro já não existe.
-        </p>
+        <Banner text="Este membro já não existe." />
       ) : member === null ? (
-        <p className="form__banner" role="alert">
-          Não foi possível carregar o membro.
-        </p>
+        <Banner text="Não foi possível carregar o membro." />
       ) : (
         <>
           <MemberBody m={member} />

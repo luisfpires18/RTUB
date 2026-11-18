@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { Banner } from './ui/Banner';
 import { Dialog } from './MusicUi';
 
 const VIEW = 600; // canvas units of the on-screen frame's width
@@ -110,9 +111,7 @@ export function Cropper({
       }
     >
       {failed ? (
-        <p className="form__banner" role="alert">
-          Não foi possível ler esta imagem. Escolha outro ficheiro.
-        </p>
+        <Banner text="Não foi possível ler esta imagem. Escolha outro ficheiro." />
       ) : (
         <div className="cropper">
           <canvas

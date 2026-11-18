@@ -1,4 +1,6 @@
 // Lyrics, links and members-only videos dialogs opened from an album song.
+import { Banner } from './ui/Banner';
+import { FieldError } from './ui/FieldError';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExternalLink } from './AppShared';
 import { Icon } from './icons';
@@ -27,9 +29,7 @@ export function LyricsDialog({ song, onClose }: { song: Song; onClose: () => voi
   return (
     <Dialog title={`Letra · ${song.title}`} size="lg" onClose={onClose}>
       {failed ? (
-        <p className="form__banner" role="alert">
-          Não foi possível carregar a letra.
-        </p>
+        <Banner text="Não foi possível carregar a letra." />
       ) : !lyrics ? (
         <Loading label="A procurar a letra…" />
       ) : !lyrics.pdfUrl && !lyrics.text ? (
@@ -153,9 +153,7 @@ export function VideosDialog({ song, onClose, onCount }: { song: Song; onClose: 
     <>
       <Dialog title={`Vídeos · ${song.title}`} size="lg" onClose={onClose}>
         {failed ? (
-          <p className="form__banner" role="alert">
-            Não foi possível carregar os vídeos.
-          </p>
+          <Banner text="Não foi possível carregar os vídeos." />
         ) : !videos ? (
           <Loading label="A carregar os vídeos…" />
         ) : (
@@ -233,11 +231,7 @@ export function VideosDialog({ song, onClose, onCount }: { song: Song; onClose: 
                       </div>
                     </div>
                   )}
-                  {upload.error && (
-                    <p className="form__error" role="alert">
-                      {upload.error}
-                    </p>
-                  )}
+                  <FieldError text={upload.error} />
                 </>
               )}
             </div>

@@ -1,4 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { Banner } from '../components/ui/Banner';
+import { Spinner } from '../components/ui/Spinner';
+import { PageHead } from '../components/ui/PageHead';
 import { newsDate, type NewsFeed, type NewsPost } from '../data/api';
 import { Icon } from '../components/icons';
 import { MemberBadge } from '../components/MemberBadge';
@@ -93,14 +96,7 @@ export default function News() {
 
   return (
     <section className="page wrap talk-page news-page" aria-labelledby="news-page-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Novidades</p>
-          <h1 id="news-page-title" className="page__title">
-            Novidades
-          </h1>
-          <p className="page__lead">Anúncios e crónicas do que a tuna anda a fazer, contados pela própria RTUB.</p>
-        </div>
+      <PageHead eyebrow="Novidades" title="Novidades" titleId="news-page-title" lead="Anúncios e crónicas do que a tuna anda a fazer, contados pela própria RTUB.">
         {feed?.canWrite && (
           <div className="events-page__actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setEditing('new')}>
@@ -109,7 +105,7 @@ export default function News() {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {feed === undefined ? (
         <Loading label="A carregar as novidades…" />
@@ -150,14 +146,12 @@ export default function News() {
 
           {feed.hasMore && (
             <button type="button" className="btn btn--ghost news-more" onClick={loadMore} disabled={more === 'busy'}>
-              {more === 'busy' && <span className="spinner spinner--small" aria-hidden="true" />}
+              {more === 'busy' && <Spinner small />}
               Mostrar mais
             </button>
           )}
           {more === 'failed' && (
-            <p className="form__banner" role="alert">
-              Não foi possível carregar mais publicações. Tenta outra vez.
-            </p>
+            <Banner text="Não foi possível carregar mais publicações. Tenta outra vez." />
           )}
         </div>
       )}
@@ -236,11 +230,7 @@ function Post({
           )}
         </div>
       )}
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
+      <Banner text={error} />
     </article>
   );
 }

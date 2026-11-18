@@ -1,4 +1,6 @@
 // Create/edit and delete dialogs for a news post.
+import { Banner } from './ui/Banner';
+import { Spinner } from './ui/Spinner';
 import { useId, useState, type FormEvent } from 'react';
 import { type NewsPost } from '../data/api';
 import { Dialog } from './Dialog';
@@ -61,18 +63,14 @@ export function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClos
             </button>
           )}
           <button type="submit" form={`${fid}-form`} className="btn btn--primary" disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+            {busy && <Spinner small />}
             {post ? 'Guardar' : 'Publicar'}
           </button>
         </>
       }
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        {banner && (
-          <p className="form__banner" role="alert">
-            {banner}
-          </p>
-        )}
+        <Banner text={banner} />
         <div className={field('title')}>
           <label htmlFor={`${fid}-title`}>Título (opcional)</label>
           <input id={`${fid}-title`} type="text" maxLength={TITLE_MAX} value={title} onChange={(e) => setTitle(e.target.value)} />

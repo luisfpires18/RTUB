@@ -1,4 +1,5 @@
 // Leaderboard member details dialog.
+import { Banner } from './ui/Banner';
 import { useEffect, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -21,13 +22,9 @@ export function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYe
       {detail === undefined ? (
         <Loading label="A carregar…" />
       ) : detail === 'missing' ? (
-        <p className="form__banner" role="alert">
-          Este membro já não existe.
-        </p>
+        <Banner text="Este membro já não existe." />
       ) : detail === null ? (
-        <p className="form__banner" role="alert">
-          Não foi possível carregar os detalhes.
-        </p>
+        <Banner text="Não foi possível carregar os detalhes." />
       ) : (
         <div className="member-detail">
           <div className="member-detail__head">

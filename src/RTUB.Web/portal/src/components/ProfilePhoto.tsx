@@ -1,4 +1,5 @@
 // The /profile photo picker with crop and upload.
+import { Spinner } from './ui/Spinner';
 import { useId, useRef, useState } from 'react';
 import { getCurrentUser } from '../data/api';
 import { Cropper } from './Cropper';
@@ -71,7 +72,7 @@ export function ProfilePhoto({ profile, onChange }: { profile: MyProfile; onChan
         disabled={busy}
       />
       <label htmlFor={id} className={busy ? 'profile-avatar__edit is-disabled' : 'profile-avatar__edit'} title="Mudar foto">
-        {busy ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="pencil" />}
+        {busy ? <Spinner small /> : <Icon name="pencil" />}
         <span className="sr-only">{busy ? 'A guardar a foto…' : 'Mudar foto de perfil'}</span>
       </label>
       <span id={`${id}-hint`} className="sr-only">

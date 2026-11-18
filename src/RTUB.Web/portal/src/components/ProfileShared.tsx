@@ -1,4 +1,5 @@
 // Pieces shared by the /profile sections: section frame, form state, saved note, form buttons, fact cell.
+import { Spinner } from './ui/Spinner';
 import { useState, type ReactNode, type Ref } from 'react';
 import { outcomeText } from '../data/api';
 import type { Outcome } from '../data/eventsApi';
@@ -92,7 +93,7 @@ export function FormButtons({ busy, onCancel, label = 'Guardar' }: { busy: boole
         </button>
       )}
       <button type="submit" className="btn btn--primary" disabled={busy}>
-        {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+        {busy && <Spinner small />}
         {label}
       </button>
     </div>

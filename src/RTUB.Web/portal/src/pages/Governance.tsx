@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useId, useState } from 'react';
+import { Avatar } from '../components/ui/Avatar';
+import { PageHead } from '../components/ui/PageHead';
 import { getGovernance, type Governance as GovernanceData, type GovernanceMember } from '../data/api';
 import { useCurrentUser } from '../components/AppShared';
 import { portal } from '../data/content';
@@ -13,7 +15,6 @@ import {
   type ManagePosition,
 } from '../components/GovernanceManage';
 import { Icon } from '../components/icons';
-import { DEFAULT_AVATAR } from '../data/membersApi';
 import { Notice, RetryNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
 
@@ -80,17 +81,7 @@ export default function Governance() {
 
   return (
     <section className="page wrap" aria-labelledby="governance-page-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Quem conduz a tuna</p>
-          <h1 id="governance-page-title" className="page__title">
-            Órgãos Sociais
-          </h1>
-          <p className="page__lead">
-            Direção, Mesa da Assembleia, Conselho Fiscal e Conselho de Veteranos: quem ocupou cada cargo em cada ano
-            letivo.
-          </p>
-        </div>
+      <PageHead eyebrow="Quem conduz a tuna" title="Órgãos Sociais" titleId="governance-page-title" lead="Direção, Mesa da Assembleia, Conselho Fiscal e Conselho de Veteranos: quem ocupou cada cargo em cada ano letivo.">
         {(showYears || canAddYear) && (
           <div className="governance-page__tools">
             {showYears && (
@@ -115,7 +106,7 @@ export default function Governance() {
             )}
           </div>
         )}
-      </header>
+      </PageHead>
 
       {signedIn && (
         <div className="notice governance-page__rgi">
@@ -202,17 +193,7 @@ export default function Governance() {
 function Holder({ member, onRemove }: { member: GovernanceMember; onRemove?: () => void }) {
   return (
     <div className="seat__holder">
-      <img
-        className="seat__avatar"
-        src={member.avatarUrl ?? DEFAULT_AVATAR}
-        alt=""
-        width="56"
-        height="56"
-        loading="lazy"
-        onError={(e) => {
-          if (!e.currentTarget.src.endsWith(DEFAULT_AVATAR)) e.currentTarget.src = DEFAULT_AVATAR;
-        }}
-      />
+      <Avatar className="seat__avatar" src={member.avatarUrl} size={56} />
       <span className="seat__who">
         <span className="seat__name">{member.displayName}</span>
         {member.fullName && <span className="seat__full">{member.fullName}</span>}

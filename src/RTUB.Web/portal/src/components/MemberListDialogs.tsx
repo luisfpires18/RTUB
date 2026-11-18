@@ -1,4 +1,5 @@
 // Member list dialogs: active members (with search) and upcoming birthdays.
+import { Banner } from './ui/Banner';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -54,9 +55,7 @@ export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => vo
       {list === undefined ? (
         <Loading label="A carregar…" />
       ) : list === null ? (
-        <p className="form__banner" role="alert">
-          Não foi possível carregar a lista.
-        </p>
+        <Banner text="Não foi possível carregar a lista." />
       ) : list.length === 0 ? (
         <p className="note">Nenhum membro ativo encontrado.</p>
       ) : (
@@ -127,9 +126,7 @@ export function BirthdaysDialog({ onClose }: { onClose: () => void }) {
       {list === undefined ? (
         <Loading label="A carregar…" />
       ) : list === null ? (
-        <p className="form__banner" role="alert">
-          Não foi possível carregar os aniversários.
-        </p>
+        <Banner text="Não foi possível carregar os aniversários." />
       ) : list.length === 0 ? (
         <p className="note">Nenhum aniversário encontrado.</p>
       ) : (

@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import { PageHead } from '../components/ui/PageHead';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { MemberDialog } from '../components/MemberDialogs';
@@ -95,14 +96,7 @@ export default function Members() {
 
   return (
     <section className="page wrap events-page members-page" aria-labelledby="members-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="members-title" className="page__title">
-            Membros
-          </h1>
-          <p className="page__lead">Toda a RTUB: tunos, caloiros e leitões, com o instrumento e o cargo deste ano.</p>
-        </div>
+      <PageHead eyebrow="Área de membros" title="Membros" titleId="members-title" lead="Toda a RTUB: tunos, caloiros e leitões, com o instrumento e o cargo deste ano.">
         {/* Shown while the list loads too, so they don't push the search bar down when it arrives (CLS). */}
         {directory !== 'signin' && directory !== null && (
           <div className="events-page__actions">
@@ -130,7 +124,7 @@ export default function Members() {
             )}
           </div>
         )}
-      </header>
+      </PageHead>
 
       {directory === 'signin' ? (
         <SignInNotice path={portal.members}>A lista de membros é da área de membros.</SignInNotice>

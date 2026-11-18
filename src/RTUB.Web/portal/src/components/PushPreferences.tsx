@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
+import { FieldError } from './ui/FieldError';
 import { Dialog } from './Dialog';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
@@ -112,11 +113,7 @@ export function PushPreferencesDialog({ onClose }: { onClose: () => void }) {
               Preferências guardadas.
             </p>
           )}
-          {error && (
-            <p className="form__error" role="alert">
-              {error}
-            </p>
-          )}
+          <FieldError text={error} />
           <div className="push-actions push-prefs__actions">
             <button type="submit" className="btn btn--primary btn--sm" disabled={busy}>
               <Icon name="check" />

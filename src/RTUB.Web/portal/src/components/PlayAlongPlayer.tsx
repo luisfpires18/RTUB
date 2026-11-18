@@ -1,4 +1,5 @@
 // The play-along player: audio, scrolling chord lane and instrument chooser.
+import { Banner } from './ui/Banner';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Icon } from './icons';
 import { type PlayAlong, type PlayAlongSection } from '../data/musicApi';
@@ -121,9 +122,7 @@ export function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string |
       </header>
 
       {!audioUrl && (
-        <p className="form__banner" role="alert">
-          O áudio desta música não está disponível. A pauta fica parada.
-        </p>
+        <Banner text="O áudio desta música não está disponível. A pauta fica parada." />
       )}
       {stale && (
         <p className="form__banner" role="status">

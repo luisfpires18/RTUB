@@ -1,4 +1,5 @@
 // The /profile tuna-data section: info, state badge and edit form.
+import { Banner } from './ui/Banner';
 import { useState, type FormEvent } from 'react';
 import { Icon } from './icons';
 import { ActivityList, TunaPath, progressText } from './MemberDialogs';
@@ -191,11 +192,7 @@ function TunaForm({ profile, onCancel, onSaved }: { profile: MyProfile; onCancel
 
   return (
     <form className="form profile-form" onSubmit={submit} noValidate>
-      {f.banner && (
-        <p className="form__banner" role="alert">
-          {f.banner}
-        </p>
-      )}
+      <Banner text={f.banner} />
       {t.showMentor && (
         <MentorPicker
           mentorId={form.mentorId}

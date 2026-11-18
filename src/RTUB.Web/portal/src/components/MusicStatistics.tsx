@@ -1,4 +1,5 @@
 // Music statistics dialog: most played songs, albums and (for managers) members.
+import { Banner } from './ui/Banner';
 import { useEffect, useState } from 'react';
 import { Icon } from './icons';
 import { Dialog, plays } from './MusicUi';
@@ -19,9 +20,7 @@ export function StatisticsDialog({ detailed, onClose }: { detailed: boolean; onC
   return (
     <Dialog title="Estatísticas de música" size="lg" onClose={onClose}>
       {failed ? (
-        <p className="form__banner" role="alert">
-          Não foi possível carregar as estatísticas.
-        </p>
+        <Banner text="Não foi possível carregar as estatísticas." />
       ) : !stats ? (
         <Loading label="A carregar as estatísticas…" />
       ) : (

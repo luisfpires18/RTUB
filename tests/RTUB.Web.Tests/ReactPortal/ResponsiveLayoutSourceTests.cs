@@ -54,7 +54,8 @@ public class ResponsiveLayoutSourceTests
     public void Governance_UsesTheSharedHead_AndOffersAYearOnlyWhenOneIsMissing()
     {
         var page = Read("src", "pages/Governance.tsx");
-        page.Should().Contain("<header className=\"page__head events-page__head\">");
+        page.Should().Contain("<PageHead ");
+        Read("src", "components/ui/PageHead.tsx").Should().Contain("<header className=\"page__head events-page__head\">");
         page.Should().Contain("const canAddYear = !!manage && manage.availableStartYears.length > 0;",
             "the server's list of start years still missing decides (#224), not a client rule");
         page.Should().Contain("{canAddYear && (");
@@ -62,7 +63,7 @@ public class ResponsiveLayoutSourceTests
 
         foreach (var file in new[] { "pages/Gallery.tsx", "pages/Music.tsx" })
         {
-            Read("src", file).Should().Contain("<header className=\"page__head events-page__head\">",
+            Read("src", file).Should().Contain("<PageHead ",
                 $"{file}: a local 1fr auto grid inside .page__head's 44rem cap floated the actions mid-page");
         }
 
