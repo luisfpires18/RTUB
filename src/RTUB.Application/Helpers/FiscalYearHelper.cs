@@ -40,4 +40,10 @@ public static class FiscalYearHelper
     {
         return date.Month >= 9 ? date.Year : date.Year - 1;
     }
+
+    /// <summary>
+    /// The fiscal year of a stored UTC timestamp (a <c>CreatedAt</c>). The year turns at 00:00 on 1 September in
+    /// Portugal, which is 23:00 UTC on 31 August (summer time).
+    /// </summary>
+    public static int GetFiscalYearStartYearOfUtc(DateTime utc) => GetFiscalYearStartYear(PortugalTime.FromUtc(utc));
 }

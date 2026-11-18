@@ -128,11 +128,12 @@ public sealed partial class ProductShopService
 
     /// <summary>
     /// The one fiscal-year rule of the shop: "" (Todos os anos) shows every product; a year shows the products
-    /// available in all years and those created in it. Stock, availability and visibility rules are separate.
+    /// available in all years and those created in it (on Portugal's calendar). Stock, availability and visibility
+    /// rules are separate.
     /// </summary>
     private static bool InFiscalYear(Product p, string fiscalYear) =>
         fiscalYear == "" || p.AvailableAllYears || fiscalYear.Split('-') is not [var start, _] || !int.TryParse(start, out var year)
-        || (p.CreatedAt >= new DateTime(year, 9, 1) && p.CreatedAt <= new DateTime(year + 1, 8, 31, 23, 59, 59));
+        || FiscalYearHelper.GetFiscalYearStartYearOfUtc(p.CreatedAt) == year;
 
     private static Dictionary<string, string[]> Validate(ShopProductInput input)
     {
@@ -191,7 +192,7 @@ public sealed partial class ProductShopService
 
     private static ShopProductDetailDto Detail(Product p)
     {
-        var year = FiscalYearHelper.GetFiscalYearStartYear(p.CreatedAt);
+        var year = FiscalYearHelper.GetFiscalYearStartYearOfUtc(p.CreatedAt);
         return new(p.Id, p.Name, p.Type, p.Price, p.Stock, p.IsAvailable, p.IsPublic, p.Description, Image(p.ImageUrl),
             p.AvailableAllYears, $"{year}-{year + 1}");
     }

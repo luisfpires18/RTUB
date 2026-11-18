@@ -1,3 +1,4 @@
+using RTUB.Tests;
 using System.Net;
 using System.Text.Json;
 using FluentAssertions;
@@ -156,17 +157,11 @@ public partial class LogisticsApiTests
 
     // ---------------------------------------------------------------- delivery (controlled time)
 
-    private sealed class Clock : TimeProvider
-    {
-        public DateTimeOffset Now { get; set; }
-        public override DateTimeOffset GetUtcNow() => Now;
-    }
-
     private sealed record Sent(string[] To, SendPushNotificationDto Push);
 
-    private (LogisticsReminderDelivery Delivery, Clock Clock, List<Sent> Sent, Mock<IPushNotificationService> Push) Delivery(DateTime utc)
+    private (LogisticsReminderDelivery Delivery, TestClock Clock, List<Sent> Sent, Mock<IPushNotificationService> Push) Delivery(DateTime utc)
     {
-        var clock = new Clock { Now = new DateTimeOffset(DateTime.SpecifyKind(utc, DateTimeKind.Utc)) };
+        var clock = new TestClock(new DateTimeOffset(DateTime.SpecifyKind(utc, DateTimeKind.Utc)));
         var sent = new List<Sent>();
         var push = new Mock<IPushNotificationService>();
         push.Setup(p => p.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<SendPushNotificationDto>()))

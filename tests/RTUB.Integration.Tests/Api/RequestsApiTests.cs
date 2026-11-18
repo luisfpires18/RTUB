@@ -110,6 +110,24 @@ public class RequestsApiTests : IClassFixture<EventsApiFactory>
         (await AreaHttp.Errors(await member.GetAsync("/api/requests?fiscalYear=1900-1901"))).Keys.Should().Contain("fiscalYear");
     }
 
+    /// <summary>
+    /// Task 134: the fiscal year turns at 00:00 on 1 September in Portugal. CreatedAt is stored in UTC, and in summer
+    /// Portugal is one hour ahead: 31 August 23:30 UTC is already 1 September there.
+    /// </summary>
+    [Fact]
+    public async Task ARequestSentInTheFirstHourOfSeptemberInPortugal_BelongsToTheNewFiscalYear()
+    {
+        var tag = Tag();
+        var current = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        var first = await AddAsync($"{tag} Primeiro");
+        var last = await AddAsync($"{tag} Último");
+        await SetCreatedAsync(first, new DateTime(current, 8, 31, 23, 30, 0, DateTimeKind.Utc)); // 1 Sep 00:30 in Portugal
+        await SetCreatedAsync(last, new DateTime(current, 8, 31, 22, 30, 0, DateTimeKind.Utc)); // 31 Aug 23:30 in Portugal
+        var (member, _) = await SignInAsync();
+
+        Ids(await AreaHttp.Json(member, $"/api/requests?q={tag}"), "pending").Should().Equal(new[] { first }, "the current year, by default");
+    }
+
     [Fact]
     public async Task Answering_IsForAdminAndOwner_AndHappensOnce()
     {

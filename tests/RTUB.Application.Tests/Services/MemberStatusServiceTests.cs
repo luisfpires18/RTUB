@@ -11,6 +11,7 @@ using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -41,7 +42,7 @@ public sealed partial class MemberStatusServiceTests : IDisposable
         factory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => --_contextsUntilFailure == 0 ? throw new InvalidOperationException("broken member") : _db.CreateContext());
         return new MemberStatusService(factory.Object, _push.Object, _pushFactory.Object, NullLogger<MemberStatusService>.Instance,
-            Options.Create(_options), new FixedClock(Now));
+            Options.Create(_options), new TestClock(new DateTimeOffset(Now, TimeSpan.Zero)));
     }
 
     // ---------- helpers ----------
@@ -122,9 +123,4 @@ public sealed partial class MemberStatusServiceTests : IDisposable
     }
 
     public void Dispose() => _db.Dispose();
-
-    private sealed class FixedClock(DateTime now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => new(now, TimeSpan.Zero);
-    }
 }

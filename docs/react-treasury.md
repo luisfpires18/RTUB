@@ -94,7 +94,8 @@ transaction stores the public URL, so anyone holding it can open it. The API han
 Replacing/removing a receipt, or deleting the transaction, deletes the object; deleting an activity or report does so
 after commit (above).
 
-`CalotesNotificationBackgroundService` sends one daily push per member with debts in the current fiscal year, skipping
+`CalotesNotificationBackgroundService` sends one daily push per member with debts in the current fiscal year (read from
+its injected clock, on Portugal's calendar), skipping
 debts whose commitment date is still in the future; it opens `/treasury/calotes`. No endpoint sends e-mail or push.
 
 ## API

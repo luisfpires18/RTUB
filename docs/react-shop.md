@@ -19,7 +19,7 @@ Code: `Helpers/ShopAuthorization.cs`, `ProductShopService`, `ShopPromotionServic
 
 Fiscal year runs 1 September to 31 August, years from 2025-2026; `?fiscalYear=` absent = the current year, empty = every year ("Todos os anos").
 
-`Products.AvailableAllYears` (migration `AddProductAvailableAllYears`, `INTEGER NOT NULL DEFAULT 0`): a year-specific product belongs to the fiscal year of its `CreatedAt`; an all-years product (permanent stock, e.g. CDs) shows in every year. No sentinel year.
+`Products.AvailableAllYears` (migration `AddProductAvailableAllYears`, `INTEGER NOT NULL DEFAULT 0`): a year-specific product belongs to the fiscal year of its `CreatedAt` on Portugal's calendar (`FiscalYearHelper.GetFiscalYearStartYearOfUtc`); an all-years product (permanent stock, e.g. CDs) shows in every year. No sentinel year.
 
 - One rule, `ProductShopService.InFiscalYear`: "" shows every product, a year shows all-years products and those created in it. Stock, permissions, price and ordering apply to both; a sold-out all-years product shows "Esgotado" and is not reservable.
 - API: `ShopProductInput.availableAllYears` (`bool?`: absent = year-specific on create, unchanged on edit); cards and details return it; details also return `fiscalYear` (the creation year).

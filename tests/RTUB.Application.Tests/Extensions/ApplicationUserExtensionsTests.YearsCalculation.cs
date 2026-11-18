@@ -2,6 +2,7 @@ using FluentAssertions;
 using RTUB.Application.Extensions;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Extensions;
 
@@ -172,5 +173,17 @@ public partial class ApplicationUserExtensionsTests
         user.IsOnlyLeitao().Should().BeFalse(); // Not ONLY Leitao
         user.IsTunoOrHigher().Should().BeTrue();
         user.IsEffectiveMember().Should().BeTrue();
+    }
+
+    /// <summary>Task 134: "now" is Portugal's clock. 31 August 2021 23:30 UTC is already 1 September there (summer).</summary>
+    [Theory]
+    [InlineData(22, 0)] // 23:30 on 31 August in Portugal: 11 months as Tuno
+    [InlineData(23, 1)] // 00:30 on 1 September in Portugal: 12 months as Tuno
+    public void GetYearsAsTuno_CountsTheMonthsOnPortugalsClock(int utcHour, int expectedYears)
+    {
+        var user = CreateUserWithYearTuno(2020);
+        user.MonthTuno = 9;
+
+        user.GetYearsAsTuno(TestClock.AtUtc(2021, 8, 31, utcHour, 30)).Should().Be(expectedYears);
     }
 }
