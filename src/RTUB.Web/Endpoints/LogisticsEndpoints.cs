@@ -97,8 +97,7 @@ public static class LogisticsEndpoints
             {
                 if (form.Files.GetFile("file") is not { } file)
                 {
-                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["file"] = new[] { "Escolha um ficheiro." } },
-                        title: "Há campos por corrigir.");
+                    return EndpointResults.Invalid("file", "Escolha um ficheiro.");
                 }
 
                 await using var content = file.OpenReadStream();
@@ -129,8 +128,7 @@ public static class LogisticsEndpoints
             {
                 if (form.Files.GetFile("file") is not { } file)
                 {
-                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["file"] = new[] { "Escolha um ficheiro." } },
-                        title: "Há campos por corrigir.");
+                    return EndpointResults.Invalid("file", "Escolha um ficheiro.");
                 }
 
                 await using var content = file.OpenReadStream();
@@ -141,16 +139,11 @@ public static class LogisticsEndpoints
             ToResult(await s.DeleteFileAsync(id, file ?? name, http.User), _ => Results.NoContent()));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        EventResultStatus.Closed => Results.Problem(title: "Arquivado: só leitura.", statusCode: StatusCodes.Status409Conflict, type: "logistics:archived"),
-        EventResultStatus.Conflict => Results.Problem(title: "O cartão mudou entretanto.", statusCode: StatusCodes.Status409Conflict, type: "logistics:conflict"),
-        _ => Results.Problem(title: "Não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, special: status => status switch
+        {
+            EventResultStatus.Closed => Results.Problem(title: "Arquivado: só leitura.", statusCode: StatusCodes.Status409Conflict, type: "logistics:archived"),
+            EventResultStatus.Conflict => Results.Problem(title: "O cartão mudou entretanto.", statusCode: StatusCodes.Status409Conflict, type: "logistics:conflict"),
+            _ => null,
+        });
 }

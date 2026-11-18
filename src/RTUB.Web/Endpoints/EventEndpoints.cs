@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using RTUB.Application.DTOs;
@@ -66,7 +67,7 @@ public static class EventEndpoints
                 form.Files.GetFile("image") is { } file
                     ? ToResult(await admin.SetImageAsync(id, new EventImageUpload(file.OpenReadStream(), file.FileName, file.ContentType ?? string.Empty, file.Length), http.User),
                         _ => Results.NoContent())
-                    : Results.ValidationProblem(new Dictionary<string, string[]> { ["image"] = new[] { "Escolha uma imagem." } }, title: "Há campos por corrigir."))
+                    : EndpointResults.Invalid("image", "Escolha uma imagem."))
             .WithMetadata(new RequestSizeLimitAttribute(EventAdminService.MaxImageBytes + 16 * 1024));
 
         writes.MapDelete("/{id:int}/image", async (int id, HttpContext http, IEventAdminService admin) =>
@@ -110,8 +111,7 @@ public static class EventEndpoints
             {
                 if (form.Files.GetFile("file") is not { } file)
                 {
-                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["file"] = new[] { "Escolha um ficheiro de vídeo." } },
-                        title: "Há campos por corrigir.");
+                    return EndpointResults.Invalid("file", "Escolha um ficheiro de vídeo.");
                 }
 
                 await using var content = file.OpenReadStream();
@@ -275,24 +275,23 @@ public static class EventEndpoints
         return await next(context);
     }
 
+    /// <summary>For groups only signed-in members use: 401 before the handler runs.</summary>
+    internal static async ValueTask<object?> RequireMember(EndpointFilterInvocationContext context, EndpointFilterDelegate next) =>
+        string.IsNullOrEmpty(context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier))
+            ? Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.", statusCode: StatusCodes.Status401Unauthorized)
+            : await next(context);
+
     /// <summary>The absolute site address the push and email links are built from.</summary>
     private static string BaseUrl(HttpContext http) => $"{http.Request.Scheme}://{http.Request.Host}";
 
     private static IResult NotFound() => Results.Problem(title: "Atuação não encontrada.", statusCode: StatusCodes.Status404NotFound);
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Closed => Results.Problem(title: "Esta atuação já não aceita respostas.",
-            statusCode: StatusCodes.Status409Conflict),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.",
-            statusCode: StatusCodes.Status403Forbidden),
-        EventResultStatus.InUse => Results.Problem(title: "Esta atuação tem encomendas NERBA associadas e não pode ser apagada.",
-            statusCode: StatusCodes.Status409Conflict, type: "events:in-use"),
-        _ => NotFound(),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Atuação não encontrada.", status => status switch
+        {
+            EventResultStatus.Closed => Results.Problem(title: "Esta atuação já não aceita respostas.", statusCode: StatusCodes.Status409Conflict),
+            EventResultStatus.InUse => Results.Problem(title: "Esta atuação tem encomendas NERBA associadas e não pode ser apagada.",
+                statusCode: StatusCodes.Status409Conflict, type: "events:in-use"),
+            _ => null,
+        });
 }

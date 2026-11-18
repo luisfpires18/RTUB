@@ -13,7 +13,7 @@ public static class ReleaseEndpoints
     public static void MapReleaseEndpoints(this IEndpointRouteBuilder app)
     {
         var releases = app.MapGroup("/api/releases").AllowAnonymous()
-            .AddEndpointFilter(EventEndpoints.NoStore).AddEndpointFilter(RequireMember);
+            .AddEndpointFilter(EventEndpoints.NoStore).AddEndpointFilter(EventEndpoints.RequireMember);
 
         releases.MapGet("/notes", async (HttpContext http, ReleaseNotesService notes) =>
             await notes.GetAsync(UserId(http.User)) is { } state ? Results.Ok(state) : Results.Unauthorized());
@@ -31,11 +31,6 @@ public static class ReleaseEndpoints
     }
 
     private static string UserId(ClaimsPrincipal user) => user.FindFirstValue(ClaimTypes.NameIdentifier)!;
-
-    private static async ValueTask<object?> RequireMember(EndpointFilterInvocationContext context, EndpointFilterDelegate next) =>
-        string.IsNullOrEmpty(context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier))
-            ? Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.", statusCode: StatusCodes.Status401Unauthorized)
-            : await next(context);
 }
 
 /// <summary>POST /api/releases/notes/ack: the version the member just read; must be the running build's.</summary>

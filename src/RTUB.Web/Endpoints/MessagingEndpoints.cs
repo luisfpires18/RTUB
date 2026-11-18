@@ -67,14 +67,10 @@ public static class MessagingEndpoints
             ToResult(await service.RemoveReactionAsync(id, http.User)));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não podes escrever nesta conversa.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Conversa não encontrada.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Conversa não encontrada.", status => status switch
+        {
+            EventResultStatus.Forbidden => Results.Problem(title: "Não podes escrever nesta conversa.", statusCode: StatusCodes.Status403Forbidden),
+            _ => null,
+        });
 }

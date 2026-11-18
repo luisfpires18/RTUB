@@ -84,16 +84,10 @@ public static class MemberEndpoints
             ToResult(await admin.SendReminderAsync(id, http.User), _ => Results.NoContent()));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        EventResultStatus.Conflict => Results.Problem(title: "Os dados deste membro mudaram entretanto. Abre de novo.", statusCode: StatusCodes.Status409Conflict,
-            type: "members:conflict"),
-        _ => Results.Problem(title: "Membro não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Membro não encontrado.", status => status switch
+        {
+            EventResultStatus.Conflict => Results.Problem(title: "Os dados deste membro mudaram entretanto. Abre de novo.", statusCode: StatusCodes.Status409Conflict, type: "members:conflict"),
+            _ => null,
+        });
 }

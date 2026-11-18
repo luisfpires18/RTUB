@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using static RTUB.Web.Endpoints.EndpointResults;
 
 namespace RTUB.Web.Endpoints;
 
@@ -59,8 +60,7 @@ public static class MemberAreaEndpoints
                 form.Files.GetFile("photo") is { } photo
                     ? ToResult(await profile.SetPhotoAsync(
                         new MyPhotoUpload(photo.OpenReadStream(), photo.FileName, photo.ContentType ?? string.Empty, photo.Length), http.User))
-                    : Results.ValidationProblem(new Dictionary<string, string[]> { ["photo"] = new[] { "Escolha uma foto." } },
-                        title: "Há campos por corrigir."))
+                    : EndpointResults.Invalid("photo", "Escolha uma foto."))
             .WithMetadata(new RequestSizeLimitAttribute(RTUB.Application.Services.MyProfileService.MaxPhotoBytes + 64 * 1024));
 
         writes.MapPut("/subscription", async (MySubscriptionInput input, HttpContext http, IMyProfileService profile) =>
@@ -82,15 +82,4 @@ public static class MemberAreaEndpoints
                 })
             .WithMetadata(new RequestSizeLimitAttribute(4 * 1024));
     }
-
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
 }
