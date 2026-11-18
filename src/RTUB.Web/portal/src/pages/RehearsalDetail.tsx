@@ -12,6 +12,8 @@ import { Counts, Group, AddAttendee } from '../components/RehearsalAttendees';
 import { Loading } from '../components/ui/Loading';
 import { AnswerActions } from '../components/ui/AnswerActions';
 import { BackLink } from '../components/ui/BackLink';
+import { FieldError } from '../components/ui/FieldError';
+import { EmptyNote } from '../components/ui/EmptyNote';
 
 /**
  * /rehearsals/{id} - one rehearsal: its details, the member's own presença and everyone's
@@ -127,7 +129,7 @@ export default function RehearsalDetail({ rehearsalId }: { rehearsalId: number }
           />
         </div>
       )}
-      {error && <p className="form__error">{error}</p>}
+      <FieldError text={error} alert={false} />
 
       <header className="rehearsal-hero">
         <p className="eyebrow">Ensaio{r.cancelled && ' · cancelado'}</p>
@@ -183,7 +185,7 @@ export default function RehearsalDetail({ rehearsalId }: { rehearsalId: number }
               <p className="note">Confirma as presenças de quem esteve no ensaio; podes também acrescentar quem não marcou.</p>
             )}
             {a.going.length + a.leitoes.length + a.notGoing.length === 0 ? (
-              <p className="note">{r.cancelled ? 'As presenças foram removidas com o cancelamento.' : 'Ainda ninguém marcou presença.'}</p>
+              <EmptyNote>{r.cancelled ? 'As presenças foram removidas com o cancelamento.' : 'Ainda ninguém marcou presença.'}</EmptyNote>
             ) : (
               <>
                 <Group title={r.past ? 'Foram' : 'Vão'} people={a.going} rehearsalId={r.id} onChanged={() => load(true)} />

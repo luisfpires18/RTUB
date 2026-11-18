@@ -1,6 +1,8 @@
 // Form to write a discussion post or a lift offer.
 
 import { useId, useState, type FormEvent } from 'react';
+import { FieldError } from './ui/FieldError';
+import { Avatar } from './ui/Avatar';
 import { useCurrentUser } from './AppShared';
 import { eventsApi, type EventDiscussion as Discussion } from '../data/eventsApi';
 import { Icon } from './icons';
@@ -38,11 +40,11 @@ export function Composer({ eventId, onPosted }: { eventId: number; onPosted: (d:
     onPosted(o.data);
   };
 
-  const error = (key: string) => errors[key] && <p className="form__error">{errors[key]}</p>;
+  const error = (key: string) => <FieldError text={errors[key]} alert={false} />;
 
   return (
     <form className="talk__composer" onSubmit={submit} noValidate>
-      {user?.authenticated && <img className="talk__avatar" src={user.avatarUrl} alt="" width="44" height="44" />}
+      {user?.authenticated && <Avatar className="talk__avatar" src={user.avatarUrl} size={44} eager />}
       <div className="talk__composer-main">
         <div className="talk__modes" role="group" aria-label="O que queres publicar">
           <button type="button" className={`chip-toggle${mode === 'note' ? ' is-on' : ''}`} aria-pressed={mode === 'note'} onClick={() => setMode('note')}>

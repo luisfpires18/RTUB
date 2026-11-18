@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { eventsApi, type EventVideo } from '../data/eventsApi';
 import { Icon } from './icons';
+import { EmptyNote } from './ui/EmptyNote';
 
 /** A list of videos and one player; each first play is recorded. */
 export function Videos({ videos, onManage }: { videos: EventVideo[]; onManage?: () => void }) {
@@ -25,7 +26,7 @@ export function Videos({ videos, onManage }: { videos: EventVideo[]; onManage?: 
         )}
       </div>
       {!current ? (
-        <p className="note">Ainda não há vídeos desta atuação.</p>
+        <EmptyNote>Ainda não há vídeos desta atuação.</EmptyNote>
       ) : (
       <div className="event-video">
         <p className="event-video__title">{current.title}</p>

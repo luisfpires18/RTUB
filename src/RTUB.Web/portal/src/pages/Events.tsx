@@ -11,6 +11,7 @@ import { Toolbar } from '../components/EventsToolbar';
 import { AgendaCard, ArchiveRow, type Manage } from '../components/EventsCards';
 import { Loading } from '../components/ui/Loading';
 import { PageHead } from '../components/ui/PageHead';
+import { EmptyBlock, EmptyNote } from '../components/ui/EmptyNote';
 
 /**
  * Requests' "criar atuação" lands here with ?openModal=true&name=&location=&date=&description=:
@@ -144,10 +145,9 @@ export default function Events() {
               Próximas datas
             </h2>
             {agenda.upcoming.length === 0 ? (
-              <div className="upcoming-empty">
-                <Icon name="calendar" />
+              <EmptyBlock className="upcoming-empty" icon="calendar">
                 <p>Sem datas marcadas por agora. Novas atuações aparecem aqui assim que forem confirmadas.</p>
-              </div>
+              </EmptyBlock>
             ) : (
               <ul className="agenda">
                 {agenda.upcoming.map((e) => (
@@ -165,7 +165,7 @@ export default function Events() {
             </h2>
             <Toolbar agenda={agenda} filters={filters} onChange={update} />
             {agenda.past.length === 0 ? (
-              <p className="note">O arquivo ainda está vazio.</p>
+              <EmptyNote>O arquivo ainda está vazio.</EmptyNote>
             ) : seasons.length === 0 ? (
               <ActionNotice label="Limpar filtros" onAction={() => update({ season: '', type: '', q: '', videos: false })}>
                 Nenhuma atuação corresponde a estes filtros.

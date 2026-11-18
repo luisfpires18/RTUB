@@ -1,9 +1,13 @@
 // A lift offer (transport) post: its details, passengers and editor.
 
 import { useEffect, useId, useState } from 'react';
+import { FieldError } from './ui/FieldError';
 import { eventsApi, type EventPost, type MemberOption, type Outcome, type EventDiscussion as Discussion } from '../data/eventsApi';
 import { Icon } from './icons';
 import { problem } from './EventDiscussionShared';
+import { EmptyNote } from './ui/EmptyNote';
+import { Avatar } from './ui/Avatar';
+import { SearchField } from './ui/SearchTools';
 
 // ---------- a lift offer ----------
 
@@ -53,20 +57,20 @@ export function Lift({ eventId, post, editing, onDone, onChange }: { eventId: nu
           <div className="form__field">
             <label htmlFor={ids.vehicle}>Viatura</label>
             <input id={ids.vehicle} maxLength={200} value={form.vehicle} onChange={(e) => setForm({ ...form, vehicle: e.target.value })} />
-            {errors.vehicle && <p className="form__error">{errors.vehicle}</p>}
+            <FieldError text={errors.vehicle} alert={false} />
           </div>
           <div className="form__field">
             <label htmlFor={ids.seats}>Lugares</label>
             <input id={ids.seats} type="number" min={2} max={20} value={form.seats} onChange={(e) => setForm({ ...form, seats: Number(e.target.value) })} />
-            {errors.seats && <p className="form__error">{errors.seats}</p>}
+            <FieldError text={errors.seats} alert={false} />
           </div>
         </div>
         <div className="form__field">
           <label htmlFor={ids.notes}>Notas</label>
           <textarea id={ids.notes} rows={2} maxLength={500} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-          {errors.notes && <p className="form__error">{errors.notes}</p>}
+          <FieldError text={errors.notes} alert={false} />
         </div>
-        {errors.form && <p className="form__error">{errors.form}</p>}
+        <FieldError text={errors.form} alert={false} />
         <div className="talk__composer-foot">
           <button type="button" className="btn btn--ghost btn--sm" onClick={onDone}>
             Cancelar
@@ -92,12 +96,12 @@ export function Lift({ eventId, post, editing, onDone, onChange }: { eventId: nu
         </span>
       </div>
       {t.passengers.length === 0 ? (
-        <p className="note">Ainda ninguém nesta boleia.</p>
+        <EmptyNote>Ainda ninguém nesta boleia.</EmptyNote>
       ) : (
         <ul className="talk__passengers" aria-label="Quem vai nesta boleia">
           {t.passengers.map((p) => (
             <li key={p.id} className="talk__passenger" title={p.member.fullName ?? undefined}>
-              <img src={p.member.avatarUrl} alt="" width="28" height="28" loading="lazy" />
+              <Avatar src={p.member.avatarUrl} size={28} />
               {p.member.name}
               {p.canRemove && (
                 <button
@@ -116,18 +120,14 @@ export function Lift({ eventId, post, editing, onDone, onChange }: { eventId: nu
       )}
       {t.canManage && free > 0 && (
         <div className="talk__seat-picker">
-          <label className="control control--sm" htmlFor={ids.search}>
-            <span className="sr-only">Juntar um membro à boleia</span>
-            <Icon name="search" />
-            <input id={ids.search} type="search" placeholder="Juntar alguém (alcunha ou nome)" value={query} onChange={(e) => setQuery(e.target.value)} />
-          </label>
-          {members && members.length === 0 && <p className="note">Ninguém encontrado.</p>}
+          <SearchField small id={ids.search} label="Juntar um membro à boleia" placeholder="Juntar alguém (alcunha ou nome)" value={query} onChange={setQuery} />
+          {members && members.length === 0 && <EmptyNote>Ninguém encontrado.</EmptyNote>}
           {members && members.length > 0 && (
             <ul className="talk__picks">
               {members.map((m) => (
                 <li key={m.id}>
                   <button type="button" disabled={busy} onClick={() => run(eventsApi.addPassenger(eventId, post.id, m.id), () => setQuery(''))}>
-                    <img src={m.avatarUrl} alt="" width="28" height="28" loading="lazy" />
+                    <Avatar src={m.avatarUrl} size={28} />
                     <span>
                       {m.name}
                       {m.fullName && m.fullName !== m.name && <small>{m.fullName}</small>}

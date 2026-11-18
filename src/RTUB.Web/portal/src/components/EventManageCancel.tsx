@@ -6,6 +6,7 @@ import { dateLabel, eventsApi, timeLabel, type EventSummary } from '../data/even
 import { Icon } from './icons';
 import { failure, EventLine, members, useAudience } from './EventManageShared';
 import { FieldError } from './ui/FieldError';
+import { CheckField } from './ui/CheckField';
 import { AnswerActions } from './ui/AnswerActions';
 
 /** Confirms a delete, naming the event; the database also drops its answers, prizes, videos and repertoire. */
@@ -103,11 +104,10 @@ export function CancelEventDialog({ event, onClose, onDone }: { event: EventSumm
               <textarea id={id} rows={3} maxLength={1000} value={reason} onChange={(e) => setReason(e.target.value)} disabled={busy} />
               <p className="form__hint">Os membros veem o motivo na página da atuação.</p>
             </div>
-            <label className="form__check">
-              <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} disabled={busy} />
+            <CheckField checked={notify} onChange={setNotify} disabled={busy}>
               Avisar por email
               {audience && ` (${members(audience.emailSubscribed)} com notificações por email ativas)`}
-            </label>
+            </CheckField>
             <FieldError text={error} />
             <AnswerActions cancelLabel="Voltar" onCancel={onClose} label="Cancelar atuação" onConfirm={confirm} busy={busy} danger />
           </>

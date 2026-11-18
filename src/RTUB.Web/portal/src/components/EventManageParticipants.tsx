@@ -8,6 +8,8 @@ import { failure, EventLine } from './EventManageShared';
 import { Loading } from './ui/Loading';
 import { FieldError } from './ui/FieldError';
 import { Avatar } from './ui/Avatar';
+import { EmptyNote } from './ui/EmptyNote';
+import { SearchField } from './ui/SearchTools';
 
 /**
  * Other members' answers for Admin/Owner: every answer
@@ -72,10 +74,10 @@ export function ParticipantsManagerDialog({ event, onClose, onChanged }: { event
         {list === undefined ? (
           <Loading label="A carregar as inscrições…" />
         ) : list === null ? (
-          <p className="form__error">Não foi possível carregar as inscrições desta atuação.</p>
+          <FieldError text="Não foi possível carregar as inscrições desta atuação." alert={false} />
         ) : (
           <>
-            {groups.every(([, g]) => g.length === 0) && <p className="note">Ainda ninguém respondeu.</p>}
+            {groups.every(([, g]) => g.length === 0) && <EmptyNote>Ainda ninguém respondeu.</EmptyNote>}
             {groups
               .filter(([, g]) => g.length > 0)
               .map(([label, g]) => (
@@ -128,13 +130,9 @@ export function ParticipantsManagerDialog({ event, onClose, onChanged }: { event
             {list.canAdd && (
               <div className="repertoire-manager__add">
                 <p className="eyebrow">Inscrever um membro</p>
-                <label className="control" htmlFor={searchId}>
-                  <span className="sr-only">Procurar membro</span>
-                  <Icon name="search" />
-                  <input id={searchId} type="search" placeholder="Procurar pelo nome" value={query} onChange={(e) => setQuery(e.target.value)} />
-                </label>
+                <SearchField id={searchId} label="Procurar membro" placeholder="Procurar pelo nome" value={query} onChange={setQuery} />
                 <p className="form__hint">Fica como «vai», com o instrumento principal. Não é enviada notificação.</p>
-                {members && members.length === 0 && <p className="note">Nenhum membro por responder com esse nome.</p>}
+                {members && members.length === 0 && <EmptyNote>Nenhum membro por responder com esse nome.</EmptyNote>}
                 {members && members.length > 0 && (
                   <ul className="prize-manager__list">
                     {members.map((m) => (
