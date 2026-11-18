@@ -34,4 +34,30 @@ public class MediaSignatureTests
         svg.Position.Should().Be(0);
         MediaSignature.Sniff(new MemoryStream(Encoding.UTF8.GetBytes("<!doctype html><html></html>"))).Should().BeNull();
     }
+
+    /// <summary>A stream that cannot be read is "not a known type": the upload answers a file error, not a 500.</summary>
+    [Fact]
+    public void Sniff_AnswersNull_WhenTheStreamCannotBeRead()
+    {
+        var disposed = new MemoryStream(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 });
+        disposed.Dispose();
+
+        MediaSignature.Sniff(disposed).Should().BeNull();
+        MediaSignature.Sniff(new Broken(failOnRead: true)).Should().BeNull();
+        MediaSignature.Sniff(new Broken(failOnRead: false)).Should().BeNull("the rewind fails");
+    }
+
+    /// <summary>Seekable and readable by its own word, but the read (or the rewind) fails, as a dropped upload does.</summary>
+    private sealed class Broken(bool failOnRead) : MemoryStream(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 })
+    {
+        public override int Read(Span<byte> buffer) => failOnRead ? throw new IOException("read failed") : base.Read(buffer);
+
+        public override int Read(byte[] buffer, int offset, int count) => failOnRead ? throw new IOException("read failed") : base.Read(buffer, offset, count);
+
+        public override long Position
+        {
+            get => base.Position;
+            set => base.Position = failOnRead ? value : throw new IOException("seek failed");
+        }
+    }
 }

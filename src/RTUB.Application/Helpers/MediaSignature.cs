@@ -8,19 +8,27 @@ public static class MediaSignature
 {
     /// <summary>
     /// "image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4" (MP4 and QuickTime: the same container) or
-    /// "video/webm"; null for anything else, and for a stream that cannot rewind. The stream is left at its start.
+    /// "video/webm"; null for anything else, and for a stream that cannot rewind or cannot be read (an upload is then
+    /// refused as a file error, never a server error). The stream is left at its start.
     /// </summary>
     public static string? Sniff(Stream content)
     {
-        if (!content.CanSeek)
+        var head = new byte[12]; // a shorter file leaves zeros, which match nothing
+        try
+        {
+            if (!content.CanSeek || !content.CanRead)
+            {
+                return null;
+            }
+
+            content.Position = 0;
+            content.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
+            content.Position = 0;
+        }
+        catch (Exception ex) when (ex is IOException or NotSupportedException or ObjectDisposedException)
         {
             return null;
         }
-
-        var head = new byte[12]; // a shorter file leaves zeros, which match nothing
-        content.Position = 0;
-        content.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
-        content.Position = 0;
 
         return head[0] == 0xFF && head[1] == 0xD8 && head[2] == 0xFF ? "image/jpeg"
             : Ascii(head, 1, "PNG") && head[0] == 0x89 ? "image/png"
