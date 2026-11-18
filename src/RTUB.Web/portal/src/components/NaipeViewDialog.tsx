@@ -2,7 +2,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import type { Outcome } from '../data/api';
-import { Icon } from './icons';
 import { naipesApi, type NaipeComment, type NaipeItem } from '../data/naipesApi';
 import { MemberBadge } from './MemberBadge';
 import { MAX_COMMENT, problem } from '../data/naipesShared';
@@ -11,6 +10,7 @@ import { Avatar } from './ui/Avatar';
 import { FieldError } from './ui/FieldError';
 import { Spinner } from './ui/Spinner';
 import { EmptyNote } from './ui/EmptyNote';
+import { IconAction } from './ui/IconAction';
 
 /** One item: the video or image, its description and numbers, and the comments. */
 export function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onClose: () => void; onChanged: () => void }) {
@@ -118,15 +118,7 @@ export function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onCl
                     <span className="naipe-comment__text">{c.text}</span>
                   </span>
                   {c.canDelete && (
-                    <button
-                      type="button"
-                      className="icon-btn icon-btn--danger"
-                      onClick={() => run(() => naipesApi.removeComment(item.id, c.id), 'eliminar o comentário')}
-                      disabled={busy}
-                    >
-                      <Icon name="trash" />
-                      <span className="sr-only">Eliminar comentário</span>
-                    </button>
+                    <IconAction icon="trash" label="Eliminar comentário" onClick={() => run(() => naipesApi.removeComment(item.id, c.id), 'eliminar o comentário')} large danger disabled={busy} />
                   )}
                 </li>
               ))}

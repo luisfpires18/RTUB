@@ -12,6 +12,7 @@ import { FormField } from './ui/FormField';
 import { EmptyNote } from './ui/EmptyNote';
 import { CheckField } from './ui/CheckField';
 import { FactRow } from './ui/FactRow';
+import { IconAction } from './ui/IconAction';
 
 export function DetailDialog({ id, onClose }: { id: number; onClose: () => void }) {
   const [detail, setDetail] = useState<Detail | 'missing' | null>();
@@ -199,10 +200,7 @@ export function ReservationsDialog({ product, onClose, onChanged }: { product: P
                     {when(r.createdAt)}
                   </small>
                 </span>
-                <button type="button" className="icon-btn icon-btn--danger" onClick={() => setDeleting(r)}>
-                  <Icon name="trash" />
-                  <span className="sr-only">Eliminar a reserva de {r.username}</span>
-                </button>
+                <IconAction icon="trash" label={`Eliminar a reserva de ${r.username}`} onClick={() => setDeleting(r)} large danger />
               </li>
             ))}
           </ul>

@@ -9,6 +9,7 @@ import { PageHead } from '../components/ui/PageHead';
 import { Banner } from '../components/ui/Banner';
 import { ToolsBar, SearchField, SelectField } from '../components/ui/SearchTools';
 import { EmptyNote } from '../components/ui/EmptyNote';
+import { IconAction } from '../components/ui/IconAction';
 
 /**
  * /documentation - Documentação. Signed-in members, Leitões excepted. The
@@ -120,15 +121,9 @@ export default function Documentation() {
                         <Icon name="chevronDown" className={expanded ? 'doc-folder__chevron doc-folder__chevron--open' : 'doc-folder__chevron'} />
                       </button>
                       <span className="doc-folder__tools">
-                        <button type="button" className="icon-btn" onClick={() => setUploading(f)}>
-                          <Icon name="upload" />
-                          <span className="sr-only">Carregar documento em {f.label}</span>
-                        </button>
+                        <IconAction icon="upload" label={`Carregar documento em ${f.label}`} onClick={() => setUploading(f)} large />
                         {data.canManage && (
-                          <button type="button" className="icon-btn icon-btn--danger" onClick={() => setDeleting({ folder: f })}>
-                            <Icon name="trash" />
-                            <span className="sr-only">Eliminar a pasta {f.label}</span>
-                          </button>
+                          <IconAction icon="trash" label={`Eliminar a pasta ${f.label}`} onClick={() => setDeleting({ folder: f })} large danger />
                         )}
                       </span>
                     </div>
@@ -147,15 +142,9 @@ export default function Documentation() {
                                     {d.extension.replace('.', '').toUpperCase()} · {fileSize(d.sizeBytes)}
                                   </small>
                                 </span>
-                                <button type="button" className="icon-btn" onClick={() => download(f, d)}>
-                                  <Icon name="download" />
-                                  <span className="sr-only">Descarregar {d.name}</span>
-                                </button>
+                                <IconAction icon="download" label={`Descarregar ${d.name}`} onClick={() => download(f, d)} large />
                                 {data.canManage && (
-                                  <button type="button" className="icon-btn icon-btn--danger" onClick={() => setDeleting({ folder: f, document: d })}>
-                                    <Icon name="trash" />
-                                    <span className="sr-only">Eliminar {d.name}</span>
-                                  </button>
+                                  <IconAction icon="trash" label={`Eliminar ${d.name}`} onClick={() => setDeleting({ folder: f, document: d })} large danger />
                                 )}
                               </li>
                             ))}

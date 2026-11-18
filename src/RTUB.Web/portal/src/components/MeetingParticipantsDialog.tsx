@@ -11,6 +11,7 @@ import { Loading } from './ui/Loading';
 import { Banner } from './ui/Banner';
 import { Avatar } from './ui/Avatar';
 import { Spinner } from './ui/Spinner';
+import { IconAction } from './ui/IconAction';
 
 /** "Participantes - {título}": who goes and who does not, with notes; Admin / Owner add members. */
 export function ParticipantsDialog({ card, onClose, onChanged }: { card: MeetingCard; onClose: () => void; onChanged: () => void }) {
@@ -76,16 +77,7 @@ export function ParticipantsDialog({ card, onClose, onChanged }: { card: Meeting
               {p.badge && <MemberBadge kind={badgeKind(p.badge)}>{p.badge}</MemberBadge>}
               {p.notes && <p className="who__note">“{p.notes}”</p>}
               {p.canRemove && (
-                <button
-                  type="button"
-                  className="icon-btn icon-btn--sm icon-btn--danger mtg-who__remove"
-                  onClick={() => setRemoving(p)}
-                  disabled={busy}
-                  title="Remover participação"
-                >
-                  <Icon name="trash" />
-                  <span className="sr-only">Remover a participação de {p.nickname || p.fullName}</span>
-                </button>
+                <IconAction icon="trash" label={`Remover a participação de ${p.nickname || p.fullName}`} title="Remover participação" onClick={() => setRemoving(p)} danger className="mtg-who__remove" disabled={busy} />
               )}
             </li>
           ))}

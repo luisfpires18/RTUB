@@ -17,6 +17,7 @@ import {
 import { Icon } from '../components/icons';
 import { Notice, RetryNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
+import { IconAction } from '../components/ui/IconAction';
 
 /** ?fy=2024-2025 keeps a mandate shareable. */
 const yearFromUrl = () => new URLSearchParams(location.search).get('fy') ?? undefined;
@@ -199,10 +200,7 @@ function Holder({ member, onRemove }: { member: GovernanceMember; onRemove?: () 
         {member.fullName && <span className="seat__full">{member.fullName}</span>}
       </span>
       {onRemove && (
-        <button type="button" className="icon-btn icon-btn--sm icon-btn--danger seat__action" onClick={onRemove}>
-          <Icon name="trash" />
-          <span className="sr-only">Remover {member.displayName}</span>
-        </button>
+        <IconAction icon="trash" label={`Remover ${member.displayName}`} onClick={onRemove} danger className="seat__action" />
       )}
     </div>
   );

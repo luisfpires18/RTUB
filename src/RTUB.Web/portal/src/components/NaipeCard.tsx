@@ -1,6 +1,7 @@
 // Naipes item card.
 import { Icon } from './icons';
 import { type NaipeItem } from '../data/naipesApi';
+import { IconAction } from './ui/IconAction';
 
 export function NaipeCard({ item, onOpen, onEdit, onDelete }: { item: NaipeItem; onOpen: () => void; onEdit: () => void; onDelete: () => void }) {
   return (
@@ -35,14 +36,8 @@ export function NaipeCard({ item, onOpen, onEdit, onDelete }: { item: NaipeItem;
       </button>
       {item.canEdit && (
         <span className="naipe-card__tools">
-          <button type="button" className="icon-btn" onClick={onEdit}>
-            <Icon name="pencil" />
-            <span className="sr-only">Editar {item.title}</span>
-          </button>
-          <button type="button" className="icon-btn icon-btn--danger" onClick={onDelete}>
-            <Icon name="trash" />
-            <span className="sr-only">Eliminar {item.title}</span>
-          </button>
+          <IconAction icon="pencil" label={`Editar ${item.title}`} onClick={onEdit} large />
+          <IconAction icon="trash" label={`Eliminar ${item.title}`} onClick={onDelete} large danger />
         </span>
       )}
     </article>

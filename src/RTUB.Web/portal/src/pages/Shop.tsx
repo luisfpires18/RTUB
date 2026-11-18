@@ -14,6 +14,7 @@ import { Confirm, ProductForm } from '../components/ShopProductForm';
 import { Loading } from '../components/ui/Loading';
 import { PageHead } from '../components/ui/PageHead';
 import { EmptyNote } from '../components/ui/EmptyNote';
+import { IconAction } from '../components/ui/IconAction';
 
 type Open =
   | { kind: 'detail' | 'reserve' | 'mine' | 'reservations' | 'delete'; product: Product }
@@ -165,17 +166,11 @@ export default function ShopPage() {
                             </button>
                           )}
                           {memberShop.canCreate && (
-                            <button type="button" className="icon-btn" onClick={() => setOpen({ kind: 'form', id: p.id })}>
-                              <Icon name="pencil" />
-                              <span className="sr-only">Editar {p.name}</span>
-                            </button>
+                            <IconAction icon="pencil" label={`Editar ${p.name}`} onClick={() => setOpen({ kind: 'form', id: p.id })} large />
                           )}
                           {memberShop.canManage && (
                             <>
-                              <button type="button" className="icon-btn icon-btn--danger" onClick={() => setOpen({ kind: 'delete', product: p })}>
-                                <Icon name="trash" />
-                                <span className="sr-only">Eliminar {p.name}</span>
-                              </button>
+                              <IconAction icon="trash" label={`Eliminar ${p.name}`} onClick={() => setOpen({ kind: 'delete', product: p })} large danger />
                             </>
                           )}
                         </span>

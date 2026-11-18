@@ -8,6 +8,7 @@ import { memberAreaApi, type MyProfile } from '../data/memberAreaApi';
 import { type MemberInstrument } from '../data/membersApi';
 import { InstrumentPic } from './ProfileTuna';
 import { Section, problem } from './ProfileShared';
+import { IconAction } from './ui/IconAction';
 
 export function InstrumentsSection({ profile, onChange }: { profile: MyProfile; onChange: (list: MemberInstrument[]) => void }) {
   const id = useId();
@@ -45,15 +46,7 @@ export function InstrumentsSection({ profile, onChange }: { profile: MyProfile; 
                 />
                 {i.primary ? 'Principal' : 'Tornar principal'}
               </label>
-              <button
-                type="button"
-                className="icon-btn icon-btn--danger instrument-card__remove"
-                onClick={() => run(() => memberAreaApi.removeInstrument(i.id))}
-                disabled={busy}
-              >
-                <Icon name="trash" />
-                <span className="sr-only">Remover {i.label}</span>
-              </button>
+              <IconAction icon="trash" label={`Remover ${i.label}`} onClick={() => run(() => memberAreaApi.removeInstrument(i.id))} large danger className="instrument-card__remove" disabled={busy} />
             </li>
           ))}
         </ul>

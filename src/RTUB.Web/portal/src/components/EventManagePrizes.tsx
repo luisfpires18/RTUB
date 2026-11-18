@@ -8,6 +8,7 @@ import { failure } from './EventManageShared';
 import { Loading } from './ui/Loading';
 import { FieldError } from './ui/FieldError';
 import { EmptyNote } from './ui/EmptyNote';
+import { IconAction } from './ui/IconAction';
 
 /**
  * The event's prizes for Admin/Owner, inside the Prémios modal: rename or delete each one in
@@ -106,32 +107,14 @@ export function PrizeManager({ eventId, canAdd, onChanged }: { eventId: number; 
                 <div className="prize-manager__row">
                   <Icon name="trophy" />
                   <span className="prize-manager__name">{p.name}</span>
-                  <button
-                    type="button"
-                    className="icon-btn icon-btn--sm"
-                    onClick={() => {
+                  <IconAction icon="pencil" label={`Mudar o nome de ${p.name}`} title="Mudar o nome" onClick={() => {
                       setDeleting(undefined);
                       setEditing({ id: p.id, name: p.name });
-                    }}
-                    disabled={busy}
-                    title="Mudar o nome"
-                  >
-                    <Icon name="pencil" />
-                    <span className="sr-only">Mudar o nome de {p.name}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-btn icon-btn--sm icon-btn--danger"
-                    onClick={() => {
+                    }} disabled={busy} />
+                  <IconAction icon="trash" label={`Apagar ${p.name}`} title="Apagar" onClick={() => {
                       setEditing(undefined);
                       setDeleting(p.id);
-                    }}
-                    disabled={busy}
-                    title="Apagar"
-                  >
-                    <Icon name="trash" />
-                    <span className="sr-only">Apagar {p.name}</span>
-                  </button>
+                    }} danger disabled={busy} />
                 </div>
               )}
             </li>

@@ -12,6 +12,7 @@ import { PageHead } from '../components/ui/PageHead';
 import { ToolsBar, SearchField, SelectField } from '../components/ui/SearchTools';
 import { EmptyNote } from '../components/ui/EmptyNote';
 import { LoadMore } from '../components/ui/LoadMore';
+import { IconAction } from '../components/ui/IconAction';
 
 // manage. The server decides every rule (InstrumentInventoryService); hiding a button here is only a convenience.
 
@@ -128,14 +129,8 @@ export default function Inventory() {
                     </button>
                     {data.canManage && (
                       <span className="inventory-card__tools">
-                        <button type="button" className="icon-btn" onClick={() => setForm({ id: i.id })}>
-                          <Icon name="pencil" />
-                          <span className="sr-only">Editar {i.name}</span>
-                        </button>
-                        <button type="button" className="icon-btn icon-btn--danger" onClick={() => setDeleting(i)}>
-                          <Icon name="trash" />
-                          <span className="sr-only">Eliminar {i.name}</span>
-                        </button>
+                        <IconAction icon="pencil" label={`Editar ${i.name}`} onClick={() => setForm({ id: i.id })} large />
+                        <IconAction icon="trash" label={`Eliminar ${i.name}`} onClick={() => setDeleting(i)} large danger />
                       </span>
                     )}
                   </li>

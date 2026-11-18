@@ -11,6 +11,7 @@ import { Spinner } from './ui/Spinner';
 import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
 import { EmptyNote } from './ui/EmptyNote';
+import { IconAction } from './ui/IconAction';
 
 /**
  * The event's videos for Admin/Owner: upload (past events; file ≤100 MB and a
@@ -133,46 +134,16 @@ export function VideoManagerDialog({ event, onClose, onChanged }: { event: Event
                   <div className="prize-manager__row">
                     <Icon name="video" />
                     <span className="prize-manager__name">{label(v, i)}</span>
-                    <button type="button" className="icon-btn icon-btn--sm" onClick={() => move(i, -1)} disabled={!!busy || i === 0} title="Subir">
-                      <Icon name="up" />
-                      <span className="sr-only">Subir {label(v, i)}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn icon-btn--sm"
-                      onClick={() => move(i, 1)}
-                      disabled={!!busy || i === videos.length - 1}
-                      title="Descer"
-                    >
-                      <Icon name="down" />
-                      <span className="sr-only">Descer {label(v, i)}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn icon-btn--sm"
-                      onClick={() => {
+                    <IconAction icon="up" label={`Subir ${label(v, i)}`} title="Subir" onClick={() => move(i, -1)} disabled={!!busy || i === 0} />
+                    <IconAction icon="down" label={`Descer ${label(v, i)}`} title="Descer" onClick={() => move(i, 1)} disabled={!!busy || i === videos.length - 1} />
+                    <IconAction icon="pencil" label={`Mudar o título de ${label(v, i)}`} title="Mudar o título" onClick={() => {
                         setDeleting(undefined);
                         setEditing({ id: v.id, title: v.title ?? '' });
-                      }}
-                      disabled={!!busy}
-                      title="Mudar o título"
-                    >
-                      <Icon name="pencil" />
-                      <span className="sr-only">Mudar o título de {label(v, i)}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn icon-btn--sm icon-btn--danger"
-                      onClick={() => {
+                      }} disabled={!!busy} />
+                    <IconAction icon="trash" label={`Apagar ${label(v, i)}`} title="Apagar" onClick={() => {
                         setEditing(undefined);
                         setDeleting(v.id);
-                      }}
-                      disabled={!!busy}
-                      title="Apagar"
-                    >
-                      <Icon name="trash" />
-                      <span className="sr-only">Apagar {label(v, i)}</span>
-                    </button>
+                      }} danger disabled={!!busy} />
                   </div>
                 )}
               </li>

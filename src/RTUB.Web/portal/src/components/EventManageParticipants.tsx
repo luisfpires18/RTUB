@@ -11,6 +11,7 @@ import { FieldError } from './ui/FieldError';
 import { Avatar } from './ui/Avatar';
 import { EmptyNote } from './ui/EmptyNote';
 import { SearchField } from './ui/SearchTools';
+import { IconAction } from './ui/IconAction';
 
 /**
  * Other members' answers for Admin/Owner: every answer
@@ -111,16 +112,7 @@ export function ParticipantsManagerDialog({ event, onClose, onChanged }: { event
                             </button>
                           </>
                         ) : (
-                          <button
-                            type="button"
-                            className="icon-btn icon-btn--sm icon-btn--danger"
-                            onClick={() => setRemoving(id)}
-                            disabled={busy}
-                            title="Tirar a inscrição"
-                          >
-                            <Icon name="close" />
-                            <span className="sr-only">Tirar a inscrição de {p.name}</span>
-                          </button>
+                          <IconAction icon="close" label={`Tirar a inscrição de ${p.name}`} title="Tirar a inscrição" onClick={() => setRemoving(id)} danger disabled={busy} />
                         )}
                       </li>
                     ))}

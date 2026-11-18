@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { type GalleryItem } from '../data/api';
 import { Icon } from './icons';
 import { dateLabel } from '../data/galleryTimeline';
+import { IconAction } from './ui/IconAction';
 
 /** A native modal <dialog>: focus containment, Esc and an inert page come from the platform. */
 export function Lightbox({
@@ -109,10 +110,7 @@ export function Lightbox({
         </div>
       </div>
 
-      <button type="button" className="icon-btn lightbox__close" onClick={onClose}>
-        <Icon name="close" />
-        <span className="sr-only">Fechar</span>
-      </button>
+      <IconAction icon="close" label="Fechar" onClick={onClose} large className="lightbox__close" />
       {previous && (
         <button type="button" className="icon-btn lightbox__nav lightbox__nav--prev" onClick={() => onMove(previous)}>
           <Icon name="prev" />

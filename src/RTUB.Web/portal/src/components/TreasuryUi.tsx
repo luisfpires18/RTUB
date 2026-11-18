@@ -2,7 +2,7 @@ import { useEffect, useId, useState } from 'react';
 import { portal } from '../data/content';
 import { Icon } from './icons';
 import { treasuryApi, type Person } from '../data/treasuryApi';
-import { Notice, RetryNotice, SignInNotice } from './Notice';
+import { Notice, RetryNotice, SignInNotice, LinkNotice } from './Notice';
 import { EmptyNote } from './ui/EmptyNote';
 import { Avatar } from './ui/Avatar';
 
@@ -36,12 +36,7 @@ export function Refusal({ state, path, onRetry }: { state: 'signin' | 'forbidden
   }
   if (state === 'forbidden') {
     return (
-      <div className="notice" role="status">
-        <p>A tesouraria não está disponível para Caloiros e Leitões. Os teus calotes estão em Calotes.</p>
-        <a className="btn btn--ghost btn--sm" href={portal.treasuryCalotes}>
-          Os meus calotes
-        </a>
-      </div>
+      <LinkNotice href={portal.treasuryCalotes} label="Os meus calotes">A tesouraria não está disponível para Caloiros e Leitões. Os teus calotes estão em Calotes.</LinkNotice>
     );
   }
   if (state === 'missing') {
