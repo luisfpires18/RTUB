@@ -16,7 +16,7 @@ namespace RTUB.Application.Tests.Services;
 /// </summary>
 public class GalleryTimelineServiceTests
 {
-    private static readonly ClaimsPrincipal Visitor = new(new ClaimsIdentity());
+    private static readonly ClaimsPrincipal Visitor = TestPrincipal.Visitor();
     private static readonly ClaimsPrincipal Member = new(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "m") }, "test"));
 
     private readonly DatabaseFixture _db = new();

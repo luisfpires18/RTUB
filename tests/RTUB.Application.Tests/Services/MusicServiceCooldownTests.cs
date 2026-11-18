@@ -19,7 +19,7 @@ namespace RTUB.Application.Tests.Services;
 /// </summary>
 public class MusicServiceCooldownTests : IClassFixture<DatabaseFixture>
 {
-    private static readonly ClaimsPrincipal Visitor = new(new ClaimsIdentity());
+    private static readonly ClaimsPrincipal Visitor = TestPrincipal.Visitor();
 
     private readonly DatabaseFixture _db;
     private readonly TestClock _clock = new();

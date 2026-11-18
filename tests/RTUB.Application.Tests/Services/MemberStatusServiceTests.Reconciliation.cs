@@ -9,7 +9,6 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Enums;
-using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Services;
 

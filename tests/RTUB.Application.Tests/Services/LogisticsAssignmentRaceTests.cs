@@ -42,7 +42,7 @@ public sealed class LogisticsAssignmentRaceTests : IDisposable
     {
         var (cardId, userId) = await SeedAsync();
         var service = Service();
-        var assignee = Principal(userId);
+        var assignee = TestPrincipal.SignedIn(userId, "Member");
 
         // Sanity: while assigned, the tick saves.
         (await service.ToggleChecklistItemAsync(cardId, 0, new LogisticsChecklistToggleInput("Lavar", true), assignee)).Status
@@ -111,9 +111,6 @@ public sealed class LogisticsAssignmentRaceTests : IDisposable
         var options = builder.Options;
         return new ApplicationDbContext(options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender());
     }
-
-    private static ClaimsPrincipal Principal(string userId) =>
-        new(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId), new Claim(ClaimTypes.Name, "leitao"), new Claim(ClaimTypes.Role, "Member") }, "Test"));
 
     /// <summary>Signals once the expected number of write-lock requests (a transaction begin, or an UPDATE of a card) are about to run.</summary>
     private sealed class CardUpdates : DbCommandInterceptor, IDbTransactionInterceptor

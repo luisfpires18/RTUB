@@ -1,4 +1,3 @@
-using RTUB.Tests;
 using System.Security.Claims;
 using FluentAssertions;
 using Moq;
@@ -86,9 +85,6 @@ public partial class PendingActionsServiceTests
     // ---------- helpers ----------
 
     private static string Key(int id) => id.ToString();
-
-    private static ClaimsPrincipal SignedIn(string userId) =>
-        new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, userId)], "test"));
 
     private void AddInstrument(string userId, InstrumentType type, bool primary)
     {

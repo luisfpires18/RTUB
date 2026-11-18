@@ -9,7 +9,6 @@ using RTUB.Application.Factories;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
-using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Services;
 

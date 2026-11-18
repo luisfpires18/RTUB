@@ -6,7 +6,6 @@ using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
-using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Services;
 

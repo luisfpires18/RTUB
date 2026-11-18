@@ -1,4 +1,3 @@
-using RTUB.Tests;
 using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -39,7 +38,7 @@ public partial class EventAgendaServiceTests
         _today = PortugalTime.Today(_clock);
         _service = Service(_clock);
         _memberId = AddUser("Tuno");
-        _member = SignedIn(_memberId);
+        _member = TestPrincipal.SignedIn(_memberId);
         FakeEnrollmentWrites();
     }
 
@@ -188,12 +187,6 @@ public partial class EventAgendaServiceTests
             .Should().Be(EventResultStatus.Closed);
         _enrollments.VerifyNoOtherCalls();
     }
-
-    private static ClaimsPrincipal SignedIn(string userId, params string[] roles) =>
-        new(new ClaimsIdentity(
-            new[] { new Claim(ClaimTypes.NameIdentifier, userId), new Claim(ClaimTypes.Name, "u" + userId[..6]) }
-                .Concat(roles.Select(r => new Claim(ClaimTypes.Role, r))),
-            "test"));
 
     /// <summary>The fake stores exactly what the real service would, so the reread answer is real.</summary>
     private void FakeEnrollmentWrites()
