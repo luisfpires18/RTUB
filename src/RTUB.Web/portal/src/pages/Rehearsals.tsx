@@ -9,6 +9,7 @@ import { rehearsalsApi, type RehearsalAgenda, type RehearsalSummary } from '../d
 import { fold } from '../data/format';
 import { RetryNotice, SignInNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
+import { PageHead } from '../components/ui/PageHead';
 
 /** The season (September-August) a day falls in, as the server names it. */
 const seasonOf = (d: Date) => {
@@ -70,14 +71,7 @@ export default function Rehearsals() {
 
   return (
     <section className="page wrap events-page rehearsals-page" aria-labelledby="rehearsals-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="rehearsals-title" className="page__title">
-            Ensaios
-          </h1>
-          <p className="page__lead">Às terças e quintas, das 21:30 à meia-noite. Marca a tua presença antes de cada ensaio.</p>
-        </div>
+      <PageHead eyebrow="Área de membros" titleId="rehearsals-title" title="Ensaios" lead="Às terças e quintas, das 21:30 à meia-noite. Marca a tua presença antes de cada ensaio.">
         {data && (
           <div className="events-page__actions">
             {data.canEdit && (
@@ -102,7 +96,7 @@ export default function Rehearsals() {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {agenda === undefined ? (
         <Loading label="A carregar os ensaios…" />

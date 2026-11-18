@@ -8,6 +8,7 @@ import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { fold } from '../data/format';
 import { Loading } from './ui/Loading';
+import { Avatar } from './ui/Avatar';
 
 // ---------- statistics (members) ----------
 
@@ -146,7 +147,7 @@ export function StatsDialog({ onClose }: { onClose: () => void }) {
           <ul className="who">
             {shown.map((m, i) => (
               <li key={i} className="who__person" title={m.fullName ?? undefined}>
-                <img className="who__avatar" src={m.avatarUrl} alt="" loading="lazy" width="72" height="72" />
+                <Avatar className="who__avatar" src={m.avatarUrl} size={72} />
                 <p className="who__name">{m.name}</p>
                 {m.categories.length > 0 && (
                   <span className="member-badges">

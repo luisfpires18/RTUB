@@ -6,6 +6,8 @@ import { eventsApi, type EventSummary } from '../data/eventsApi';
 import { Icon } from './icons';
 import { failure, EventLine, members, useAudience } from './EventManageShared';
 import { Segmented } from './ui/Segmented';
+import { FieldError } from './ui/FieldError';
+import { AnswerActions } from './ui/AnswerActions';
 
 /**
  * One notice about an upcoming event: an email ("Nova atuação" or
@@ -129,11 +131,7 @@ export function NoticeDialog({ event, onClose }: { event: EventSummary; onClose:
                   : 'Não foi possível contar os destinatários.'}
             </p>
 
-            {error && (
-              <p className="form__error" role="alert">
-                {error}
-              </p>
-            )}
+            <FieldError text={error} />
 
             {confirming ? (
               <div className="notice-confirm" role="alert">
@@ -143,15 +141,7 @@ export function NoticeDialog({ event, onClose }: { event: EventSummary; onClose:
                   </strong>{' '}
                   Não dá para desfazer.
                 </p>
-                <div className="answer__actions">
-                  <button type="button" className="btn btn--ghost" onClick={() => setConfirming(false)} disabled={busy}>
-                    Voltar
-                  </button>
-                  <button type="button" className="btn btn--primary" onClick={send} disabled={busy}>
-                    {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-                    Sim, enviar
-                  </button>
-                </div>
+                <AnswerActions cancelLabel="Voltar" onCancel={() => setConfirming(false)} label="Sim, enviar" onConfirm={send} busy={busy} />
               </div>
             ) : (
               <div className="answer__actions">

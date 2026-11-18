@@ -7,6 +7,9 @@ import { when } from '../components/EventDiscussionShared';
 import { fold } from '../data/format';
 import { Notice, SignInNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
+import { Avatar } from '../components/ui/Avatar';
+import { BackLink } from '../components/ui/BackLink';
+import { FormField } from '../components/ui/FormField';
 
 const NOTES_MAX = 500;
 
@@ -59,10 +62,7 @@ export default function EventContacts({ eventId }: { eventId: number }) {
   if (event === 'missing') {
     return (
       <section className="page wrap">
-        <a className="back-link" href={portal.events}>
-          <Icon name="arrow" />
-          Agenda
-        </a>
+        <BackLink href={portal.events}>Agenda</BackLink>
         <Notice>Esta atuação não existe ou já foi apagada.</Notice>
       </section>
     );
@@ -70,7 +70,7 @@ export default function EventContacts({ eventId }: { eventId: number }) {
 
   const card = (r: EventContactRow) => (
     <li key={r.userId} className={`contact${r.contactedAt ? ' contact--done' : ''}`}>
-      <img className="contact__avatar" src={r.avatarUrl} alt="" loading="lazy" width="48" height="48" />
+      <Avatar className="contact__avatar" src={r.avatarUrl} size={48} />
       <div className="contact__who">
         <p className="contact__name">{r.name}</p>
         {r.fullName && r.fullName !== r.name && <p className="contact__full">{r.fullName}</p>}
@@ -124,10 +124,7 @@ export default function EventContacts({ eventId }: { eventId: number }) {
 
   return (
     <section className="page wrap contacts-page" aria-labelledby="contacts-title">
-      <a className="back-link" href={portal.event(eventId)}>
-        <Icon name="arrow" />
-        {event ? event.name : 'Atuação'}
-      </a>
+      <BackLink href={portal.event(eventId)}>{event ? event.name : 'Atuação'}</BackLink>
       <header className="page__head">
         <h1 id="contacts-title" className="page__title">
           Contactos
@@ -253,10 +250,9 @@ function RecordDialog({ eventId, row, onClose, onSaved }: { eventId: number; row
           </div>
         </fieldset>
         <p className="note">“Vai” ou “Não vai” também regista a inscrição do membro, sem notificação.</p>
-        <div className="form__field">
-          <label htmlFor={notesId}>Notas</label>
+        <FormField id={notesId} label="Notas">
           <textarea id={notesId} rows={3} maxLength={NOTES_MAX} placeholder="Notas sobre a conversa…" value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </div>
+        </FormField>
         {error && <p className="form__error">{error}</p>}
       </div>
     </Dialog>

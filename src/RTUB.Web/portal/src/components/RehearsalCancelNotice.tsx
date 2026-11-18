@@ -6,6 +6,7 @@ import { Icon } from './icons';
 import { rehearsalsApi, type RehearsalSummary, type NoticeAudience } from '../data/rehearsalsApi';
 import { problem, RehearsalLine } from './RehearsalShared';
 import { Loading } from './ui/Loading';
+import { FormField } from './ui/FormField';
 
 /** Cancel (reason required): every presença is removed; no email goes out. */
 export function CancelDialog({ rehearsal, onClose, onDone }: { rehearsal: RehearsalSummary; onClose: () => void; onDone: () => void }) {
@@ -40,10 +41,9 @@ export function CancelDialog({ rehearsal, onClose, onDone }: { rehearsal: Rehear
     >
       <div className="answer">
         <RehearsalLine rehearsal={rehearsal} />
-        <div className="form__field">
-          <label htmlFor={id}>Motivo</label>
+        <FormField id={id} label="Motivo">
           <textarea id={id} rows={3} maxLength={1000} value={reason} onChange={(e) => setReason(e.target.value)} />
-        </div>
+        </FormField>
         <p className="note">As presenças marcadas são removidas. Não é enviado nenhum email.</p>
         {error && <p className="form__error">{error}</p>}
       </div>
@@ -86,10 +86,9 @@ export function NoticeDialog({ rehearsal, onClose }: { rehearsal: RehearsalSumma
           <Loading label="A contar quem recebe…" />
         ) : (
           <>
-            <div className="form__field">
-              <label htmlFor={ids.message}>Mensagem</label>
+            <FormField id={ids.message} label="Mensagem">
               <textarea id={ids.message} rows={3} maxLength={500} value={message} onChange={(e) => (setMessage(e.target.value), setConfirming(false))} />
-            </div>
+            </FormField>
             <label className="check" htmlFor={ids.few}>
               <input id={ids.few} type="checkbox" checked={few} onChange={(e) => (setFew(e.target.checked), setConfirming(false))} />
               Só Leitões e Caloiros

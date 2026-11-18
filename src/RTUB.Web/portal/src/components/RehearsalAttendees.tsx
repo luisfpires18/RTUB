@@ -5,6 +5,7 @@ import type { MemberOption, Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { rehearsalsApi, type Attendee, type InstrumentCount } from '../data/rehearsalsApi';
+import { Avatar } from './ui/Avatar';
 
 export function Counts({ counts }: { counts: InstrumentCount[] }) {
   return (
@@ -45,7 +46,7 @@ export function Group({ title, people, rehearsalId, onChanged }: { title: string
       <ul className="who">
         {people.map((p) => (
           <li key={p.id} className="who__person" title={p.member.fullName ?? undefined}>
-            <img className="who__avatar" src={p.member.avatarUrl} alt="" loading="lazy" width="72" height="72" />
+            <Avatar className="who__avatar" src={p.member.avatarUrl} size={72} />
             <p className="who__name">{p.member.name}</p>
             {p.member.badge && <MemberBadge kind={badgeKind(p.member.badge)}>{p.member.badge}</MemberBadge>}
             {p.status !== 'notGoing' && (

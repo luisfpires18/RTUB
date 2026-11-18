@@ -5,6 +5,8 @@ import { Dialog } from './Dialog';
 import { dateLabel, eventsApi, timeLabel, type EventSummary } from '../data/eventsApi';
 import { Icon } from './icons';
 import { failure, EventLine, members, useAudience } from './EventManageShared';
+import { FieldError } from './ui/FieldError';
+import { AnswerActions } from './ui/AnswerActions';
 
 /** Confirms a delete, naming the event; the database also drops its answers, prizes, videos and repertoire. */
 export function DeleteEventDialog({ event, onClose, onDeleted }: { event: EventSummary; onClose: () => void; onDeleted: () => void }) {
@@ -38,20 +40,8 @@ export function DeleteEventDialog({ event, onClose, onDeleted }: { event: EventS
           <Icon name="warning" />
           Apaga também a imagem, as inscrições, os prémios, os vídeos, o repertório e a discussão desta atuação. Não dá para desfazer.
         </p>
-        {error && (
-          <p className="form__error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="answer__actions">
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={remove} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Apagar
-          </button>
-        </div>
+        <FieldError text={error} />
+        <AnswerActions cancelLabel="Cancelar" onCancel={onClose} label="Apagar" onConfirm={remove} busy={busy} danger />
       </div>
     </Dialog>
   );
@@ -118,20 +108,8 @@ export function CancelEventDialog({ event, onClose, onDone }: { event: EventSumm
               Avisar por email
               {audience && ` (${members(audience.emailSubscribed)} com notificações por email ativas)`}
             </label>
-            {error && (
-              <p className="form__error" role="alert">
-                {error}
-              </p>
-            )}
-            <div className="answer__actions">
-              <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-                Voltar
-              </button>
-              <button type="button" className="btn btn--danger" onClick={confirm} disabled={busy}>
-                {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-                Cancelar atuação
-              </button>
-            </div>
+            <FieldError text={error} />
+            <AnswerActions cancelLabel="Voltar" onCancel={onClose} label="Cancelar atuação" onConfirm={confirm} busy={busy} danger />
           </>
         )}
       </div>
@@ -162,20 +140,8 @@ export function ReactivateEventDialog({ event, onClose, onDone }: { event: Event
           A atuação volta à agenda como confirmada e aceita inscrições outra vez. Ninguém é notificado e as inscrições
           apagadas ao cancelar não voltam.
         </p>
-        {error && (
-          <p className="form__error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="answer__actions">
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Voltar
-          </button>
-          <button type="button" className="btn btn--primary" onClick={confirm} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Reativar
-          </button>
-        </div>
+        <FieldError text={error} />
+        <AnswerActions cancelLabel="Voltar" onCancel={onClose} label="Reativar" onConfirm={confirm} busy={busy} />
       </div>
     </Dialog>
   );

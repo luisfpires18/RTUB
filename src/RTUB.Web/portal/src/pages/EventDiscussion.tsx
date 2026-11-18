@@ -6,6 +6,7 @@ import { Notice, SignInNotice } from '../components/Notice';
 import { Composer } from '../components/EventDiscussionComposer';
 import { Post } from '../components/EventDiscussionPost';
 import { Loading } from '../components/ui/Loading';
+import { BackLink } from '../components/ui/BackLink';
 
 // EventContacts.tsx imports `when` from here.
 
@@ -29,19 +30,13 @@ export default function EventDiscussion({ eventId }: { eventId: number }) {
   }, [event]);
 
   const back = (
-    <a className="back-link" href={portal.event(eventId)}>
-      <Icon name="arrow" />
-      {event && event !== 'missing' ? event.name : 'Atuação'}
-    </a>
+    <BackLink href={portal.event(eventId)}>{event && event !== 'missing' ? event.name : 'Atuação'}</BackLink>
   );
 
   if (event === 'missing') {
     return (
       <section className="page wrap talk-page">
-        <a className="back-link" href={portal.events}>
-          <Icon name="arrow" />
-          Agenda
-        </a>
+        <BackLink href={portal.events}>Agenda</BackLink>
         <Notice>Esta atuação não existe ou já foi apagada.</Notice>
       </section>
     );

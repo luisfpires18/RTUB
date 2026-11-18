@@ -7,6 +7,8 @@ import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
 import { Loading } from './ui/Loading';
 import { Segmented } from './ui/Segmented';
+import { FieldError } from './ui/FieldError';
+import { AnswerActions } from './ui/AnswerActions';
 
 /**
  * The event's repertoire for Admin/Owner: one tab per day (the event's days
@@ -141,14 +143,7 @@ export function RepertoireManagerDialog({ event, onClose, onChanged }: { event: 
                   <p>
                     <strong>{current.items.length === 1 ? 'Tirar a música deste dia?' : `Tirar as ${current.items.length} músicas deste dia?`}</strong> As músicas continuam na Música.
                   </p>
-                  <div className="answer__actions">
-                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => setClearing(false)} disabled={busy}>
-                      Voltar
-                    </button>
-                    <button type="button" className="btn btn--danger btn--sm" onClick={() => run(eventsApi.clearRepertoireDay(event.id, current.date))} disabled={busy}>
-                      Limpar o dia
-                    </button>
-                  </div>
+                  <AnswerActions cancelLabel="Voltar" onCancel={() => setClearing(false)} label="Limpar o dia" onConfirm={() => run(eventsApi.clearRepertoireDay(event.id, current.date))} busy={busy} danger small spinner={false} />
                 </div>
               ) : (
                 <button type="button" className="btn btn--ghost btn--sm repertoire-manager__clear" onClick={() => setClearing(true)} disabled={busy}>
@@ -194,11 +189,7 @@ export function RepertoireManagerDialog({ event, onClose, onChanged }: { event: 
             </div>
           </>
         )}
-        {error && (
-          <p className="form__error" role="alert">
-            {error}
-          </p>
-        )}
+        <FieldError text={error} />
       </div>
     </Dialog>
   );

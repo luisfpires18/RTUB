@@ -7,6 +7,7 @@ import { eventsApi, type EventDetail as Detail } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { Body } from '../components/EventDetailBody';
 import { Loading } from '../components/ui/Loading';
+import { BackLink } from '../components/ui/BackLink';
 
 /**
  * ?respond=1 (from an old link) opens the answer modal once. Read
@@ -69,10 +70,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
   return (
     <section className="page wrap event-page" aria-labelledby="event-title">
       <div className="event-topbar">
-        <a className="back-link" href={portal.events}>
-          <Icon name="arrow" />
-          Agenda
-        </a>
+        <BackLink href={portal.events}>Agenda</BackLink>
         <span className="event-topbar__actions">
           {manage && !manage.cancelled && (
             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setManaging('notice')}>

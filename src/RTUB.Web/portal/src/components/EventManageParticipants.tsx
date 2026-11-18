@@ -6,6 +6,8 @@ import { eventsApi, type EnrollmentList, type MemberOption, type EventSummary, t
 import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
 import { Loading } from './ui/Loading';
+import { FieldError } from './ui/FieldError';
+import { Avatar } from './ui/Avatar';
 
 /**
  * Other members' answers for Admin/Owner: every answer
@@ -84,7 +86,7 @@ export function ParticipantsManagerDialog({ event, onClose, onChanged }: { event
                   <ul className="prize-manager__list">
                     {g.map(({ id, participant: p }) => (
                       <li key={id} className="prize-manager__row">
-                        <img className="participants-manager__avatar" src={p.avatarUrl} alt="" width="36" height="36" loading="lazy" />
+                        <Avatar className="participants-manager__avatar" src={p.avatarUrl} size={36} />
                         <span className="prize-manager__name">
                           {removing === id ? (
                             <>Tirar a inscrição de {p.name}?</>
@@ -137,7 +139,7 @@ export function ParticipantsManagerDialog({ event, onClose, onChanged }: { event
                   <ul className="prize-manager__list">
                     {members.map((m) => (
                       <li key={m.id} className="prize-manager__row">
-                        <img className="participants-manager__avatar" src={m.avatarUrl} alt="" width="36" height="36" loading="lazy" />
+                        <Avatar className="participants-manager__avatar" src={m.avatarUrl} size={36} />
                         <span className="prize-manager__name">
                           <strong>{m.name}</strong>
                           {m.fullName && m.fullName !== m.name && <span className="participants-manager__meta">{m.fullName}</span>}
@@ -154,11 +156,7 @@ export function ParticipantsManagerDialog({ event, onClose, onChanged }: { event
             )}
           </>
         )}
-        {error && (
-          <p className="form__error" role="alert">
-            {error}
-          </p>
-        )}
+        <FieldError text={error} />
       </div>
     </Dialog>
   );

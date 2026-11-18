@@ -5,6 +5,7 @@ import { useCurrentUser } from './AppShared';
 import { eventsApi, type EventDiscussion as Discussion } from '../data/eventsApi';
 import { Icon } from './icons';
 import { BODY_MAX, problem, submitOnCtrlEnter } from './EventDiscussionShared';
+import { FormField } from './ui/FormField';
 
 // ---------- writing a post or a lift offer ----------
 
@@ -96,22 +97,16 @@ export function Composer({ eventId, onPosted }: { eventId: number; onPosted: (d:
         ) : (
           <>
             <div className="talk__lift-fields">
-              <div className={errors.vehicle ? 'form__field form__field--error' : 'form__field'}>
-                <label htmlFor={ids.vehicle}>Viatura</label>
+              <FormField id={ids.vehicle} label="Viatura" error={errors.vehicle}>
                 <input id={ids.vehicle} placeholder="Ex.: Clio cinzento" maxLength={200} value={lift.vehicle} onChange={(e) => setLift({ ...lift, vehicle: e.target.value })} />
-                {error('vehicle')}
-              </div>
-              <div className={errors.seats ? 'form__field form__field--error' : 'form__field'}>
-                <label htmlFor={ids.seats}>Lugares</label>
+              </FormField>
+              <FormField id={ids.seats} label="Lugares" error={errors.seats}>
                 <input id={ids.seats} type="number" min={2} max={20} value={lift.seats} onChange={(e) => setLift({ ...lift, seats: Number(e.target.value) })} />
-                {error('seats')}
-              </div>
+              </FormField>
             </div>
-            <div className={errors.notes ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor={ids.notes}>Notas</label>
+            <FormField id={ids.notes} label="Notas" error={errors.notes}>
               <textarea id={ids.notes} rows={2} maxLength={500} placeholder="Ex.: saída às 18h da residência" value={lift.notes} onChange={(e) => setLift({ ...lift, notes: e.target.value })} />
-              {error('notes')}
-            </div>
+            </FormField>
             <div className="talk__composer-foot">
               <span className="talk__hint">Depois juntas quem vai contigo.</span>
               <button type="submit" className="btn btn--primary btn--sm" disabled={busy || !lift.vehicle.trim()}>

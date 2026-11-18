@@ -6,6 +6,9 @@ import { eventsApi, MAX_EVENT_VIDEO_BYTES, type ManagedVideo, type EventSummary,
 import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
 import { Loading } from './ui/Loading';
+import { Spinner } from './ui/Spinner';
+import { FieldError } from './ui/FieldError';
+import { FormField } from './ui/FormField';
 
 /**
  * The event's videos for Admin/Owner: upload (past events; file ≤100 MB and a
@@ -199,14 +202,12 @@ export function VideoManagerDialog({ event, onClose, onChanged }: { event: Event
               <p className="form__hint">{file ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB` : 'Até 100 MB.'}</p>
               {errors.file && <p className="form__error">{errors.file}</p>}
             </div>
-            <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor={ids.title}>Título</label>
+            <FormField id={ids.title} label="Título" error={errors.title}>
               <input id={ids.title} type="text" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} disabled={!!busy} />
-              {errors.title && <p className="form__error">{errors.title}</p>}
-            </div>
+            </FormField>
             <div className="answer__actions">
               <button type="submit" className="btn btn--primary" disabled={!!busy || !file}>
-                {busy === 'upload' && <span className="spinner spinner--small" aria-hidden="true" />}
+                {busy === 'upload' && <Spinner small />}
                 {busy === 'upload' ? 'A enviar…' : 'Enviar vídeo'}
               </button>
             </div>
@@ -215,11 +216,7 @@ export function VideoManagerDialog({ event, onClose, onChanged }: { event: Event
         ) : (
           <p className="form__hint">Os vídeos juntam-se depois da atuação.</p>
         )}
-        {errors.form && (
-          <p className="form__error" role="alert">
-            {errors.form}
-          </p>
-        )}
+        <FieldError text={errors.form} />
       </div>
     </Dialog>
   );

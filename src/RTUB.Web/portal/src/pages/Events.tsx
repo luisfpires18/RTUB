@@ -10,6 +10,7 @@ import { filtersFromUrl, filtersToUrl, filterPast, groupBySeason, type Filters }
 import { Toolbar } from '../components/EventsToolbar';
 import { AgendaCard, ArchiveRow, type Manage } from '../components/EventsCards';
 import { Loading } from '../components/ui/Loading';
+import { PageHead } from '../components/ui/PageHead';
 
 /**
  * Requests' "criar atuação" lands here with ?openModal=true&name=&location=&date=&description=:
@@ -101,17 +102,7 @@ export default function Events() {
 
   return (
     <section className="page wrap events-page" aria-labelledby="events-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Agenda</p>
-          <h1 id="events-title" className="page__title">
-            Atuações
-          </h1>
-          <p className="page__lead">
-            Onde a RTUB vai tocar a seguir e por onde já passou: serenatas, festivais, arraiais e tudo o que fica pelo
-            meio.
-          </p>
-        </div>
+      <PageHead eyebrow="Agenda" titleId="events-title" title="Atuações" lead="Onde a RTUB vai tocar a seguir e por onde já passou: serenatas, festivais, arraiais e tudo o que fica pelo meio.">
         {(hasPrizes || agenda?.isMember) && (
           <div className="events-page__actions">
             {agenda?.canEdit && (
@@ -140,7 +131,7 @@ export default function Events() {
             )}
           </div>
         )}
-      </header>
+      </PageHead>
 
       {agenda === undefined ? (
         <Loading label="A carregar a agenda…" />
