@@ -5,6 +5,9 @@ import { logisticsApi, problem, type BoardInput, type BoardSummary, type Logisti
 import { AccessFields, person, type Person } from './LogisticsAccessFields';
 import { EventField } from './LogisticsEventField';
 import { Loading } from './ui/Loading';
+import { DialogFooter } from './ui/DialogFooter';
+import { FieldError } from './ui/FieldError';
+import { FormField } from './ui/FormField';
 
 /** "Criar quadro" / "Editar quadro": name, description, event and responsible member, visibility and access list. */
 export function BoardDialog({ board, onClose, onSaved }: { board?: BoardSummary; onClose: () => void; onSaved: () => void }) {
@@ -48,46 +51,25 @@ export function BoardDialog({ board, onClose, onSaved }: { board?: BoardSummary;
     onClose();
   };
 
-  const err = (key: string) =>
-    errors[key] && (
-      <p className="form__error" role="alert">
-        {errors[key]}
-      </p>
-    );
-
   return (
     <Dialog
       title={board ? 'Editar quadro' : 'Criar quadro'}
       className="lx-card-modal"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${fid}-form`} className="btn btn--primary" disabled={busy || !ready || !name.trim()}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Guardar
-          </button>
-        </>
-      }
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!ready || !name.trim()} onClose={onClose} />}
     >
       {!ready ? (
         <Loading label="A carregar…" />
       ) : (
         <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-          {err('form')}
+          <FieldError text={errors.form} />
           {!board && <p className="note">O quadro começa com as colunas Por fazer, Em curso, Bloqueado e Feito.</p>}
-          <div className={errors.name ? 'form__field form__field--error' : 'form__field'}>
-            <label htmlFor={`${fid}-name`}>Nome do quadro</label>
+          <FormField id={`${fid}-name`} label="Nome do quadro" error={errors.name} alert>
             <input id={`${fid}-name`} type="text" maxLength={200} value={name} onChange={(e) => setName(e.target.value)} />
-            {err('name')}
-          </div>
-          <div className={errors.description ? 'form__field form__field--error' : 'form__field'}>
-            <label htmlFor={`${fid}-desc`}>Descrição (opcional)</label>
+          </FormField>
+          <FormField id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description} alert>
             <textarea id={`${fid}-desc`} rows={3} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
-            {err('description')}
-          </div>
+          </FormField>
           <EventField event={event} setEvent={setEvent} error={errors.eventId} />
           <AccessFields
             owner={owner}

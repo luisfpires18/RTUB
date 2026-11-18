@@ -4,6 +4,8 @@ import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { logisticsApi, problem, type Board } from '../data/logisticsApi';
 import { FILE_TYPES, MAX_FILE, size } from '../data/logisticsFiles';
+import { Banner } from './ui/Banner';
+import { Spinner } from './ui/Spinner';
 
 /** The board's files, shared by all its cards. Every member downloads; managers upload and delete. */
 export function FilesDialog({ board, onClose, onChanged }: { board: Board; onClose: () => void; onChanged: () => void }) {
@@ -93,7 +95,7 @@ export function FilesDialog({ board, onClose, onChanged }: { board: Board; onClo
       {board.canManage && (
         <div className="lx-upload">
           <label className="btn btn--ghost btn--sm" htmlFor={`${fid}-file`}>
-            {busy ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="upload" />}
+            {busy ? <Spinner small /> : <Icon name="upload" />}
             Carregar ficheiro
           </label>
           <input
@@ -110,11 +112,7 @@ export function FilesDialog({ board, onClose, onChanged }: { board: Board; onClo
           <small className="note">PDF, Word, Excel, TXT, PNG ou JPG, até 10 MB.</small>
         </div>
       )}
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
+      <Banner text={error} />
     </Dialog>
   );
 }

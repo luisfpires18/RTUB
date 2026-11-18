@@ -6,6 +6,10 @@ import { Icon } from './icons';
 import { type Option, type Input, api, MAX_IMAGE, IMAGE_TYPES, CROP_TEXT, problem } from '../data/inventoryApi';
 import { Thumb } from './InventoryDialogs';
 import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
+import { DialogFooter } from './ui/DialogFooter';
+import { FieldError } from './ui/FieldError';
+import { FormField } from './ui/FormField';
 
 const blank = (): Input => ({
   name: '',
@@ -107,18 +111,10 @@ export function FormDialog({
   };
 
   const field = (key: string) => (errors[key] ? 'form__field form__field--error' : 'form__field');
-  const error = (key: string) =>
-    errors[key] && (
-      <p className="form__error" role="alert">
-        {errors[key]}
-      </p>
-    );
   const text = (key: 'name' | 'brand' | 'serialNumber' | 'location', label: string, max: number) => (
-    <div className={field(key)}>
-      <label htmlFor={`${fid}-${key}`}>{label}</label>
+    <FormField id={`${fid}-${key}`} label={label} error={errors[key]} alert>
       <input id={`${fid}-${key}`} type="text" maxLength={max} value={form[key]} onChange={(e) => set({ [key]: e.target.value })} />
-      {error(key)}
-    </div>
+    </FormField>
   );
 
   return (
@@ -127,28 +123,13 @@ export function FormDialog({
         title={savedId === undefined ? 'Novo instrumento' : 'Editar instrumento'}
         size="lg"
         onClose={onClose}
-        footer={
-          <>
-            <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-              Cancelar
-            </button>
-            <button type="submit" form={`${fid}-form`} className="btn btn--primary" disabled={busy}>
-              {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-              Guardar
-            </button>
-          </>
-        }
+        footer={<DialogFooter form={`${fid}-form`} busy={busy} onClose={onClose} />}
       >
         <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-          {banner && (
-            <p className="form__banner" role="alert">
-              {banner}
-            </p>
-          )}
+          <Banner text={banner} />
           <div className="form__row">
             {text('name', 'Nome', 100)}
-            <div className={field('category')}>
-              <label htmlFor={`${fid}-category`}>Tipo</label>
+            <FormField id={`${fid}-category`} label="Tipo" hint={savedId !== undefined ? 'O tipo fica como foi escolhido ao adicionar.' : undefined} error={errors.category} alert>
               <span className="control control--select">
                 <select id={`${fid}-category`} value={form.category} disabled={savedId !== undefined} onChange={(e) => set({ category: e.target.value })}>
                   <option value="">Escolher…</option>
@@ -160,17 +141,14 @@ export function FormDialog({
                   {form.category && !categories.some((c) => c.value === form.category) && <option value={form.category}>{form.category}</option>}
                 </select>
               </span>
-              {savedId !== undefined && <p className="form__hint">O tipo fica como foi escolhido ao adicionar.</p>}
-              {error('category')}
-            </div>
+            </FormField>
           </div>
           <div className="form__row">
             {text('brand', 'Marca', 100)}
             {text('serialNumber', 'Número de série', 100)}
           </div>
           <div className="form__row">
-            <div className={field('condition')}>
-              <label htmlFor={`${fid}-condition`}>Condição</label>
+            <FormField id={`${fid}-condition`} label="Condição" error={errors.condition} alert>
               <span className="control control--select">
                 <select id={`${fid}-condition`} value={form.condition} onChange={(e) => set({ condition: e.target.value })}>
                   {conditions.map((c) => (
@@ -180,21 +158,16 @@ export function FormDialog({
                   ))}
                 </select>
               </span>
-              {error('condition')}
-            </div>
+            </FormField>
             {text('location', 'Localização', 200)}
           </div>
           <div className="form__row">
-            <div className={field('lastMaintenanceDate')}>
-              <label htmlFor={`${fid}-date`}>Última manutenção</label>
+            <FormField id={`${fid}-date`} label="Última manutenção" error={errors.lastMaintenanceDate} alert>
               <input id={`${fid}-date`} type="date" value={form.lastMaintenanceDate ?? ''} onChange={(e) => set({ lastMaintenanceDate: e.target.value || null })} />
-              {error('lastMaintenanceDate')}
-            </div>
-            <div className={field('maintenanceNotes')}>
-              <label htmlFor={`${fid}-notes`}>Notas de manutenção</label>
+            </FormField>
+            <FormField id={`${fid}-notes`} label="Notas de manutenção" error={errors.maintenanceNotes} alert>
               <textarea id={`${fid}-notes`} rows={3} maxLength={500} value={form.maintenanceNotes} onChange={(e) => set({ maintenanceNotes: e.target.value })} />
-              {error('maintenanceNotes')}
-            </div>
+            </FormField>
           </div>
           <div className={field('image')}>
             <span className="form__label">Imagem</span>
@@ -220,7 +193,7 @@ export function FormDialog({
               />
             </span>
             <p className="form__hint">WebP, JPEG ou PNG até 10 MB. Depois recortas a miniatura quadrada.</p>
-            {error('image')}
+            <FieldError text={errors.image} />
           </div>
         </form>
       </Dialog>

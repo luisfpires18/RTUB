@@ -8,6 +8,7 @@ import { type Card, type List, api, PAGE, conditionClass } from '../data/invento
 import { Thumb, DetailDialog, DeleteDialog } from '../components/InventoryDialogs';
 import { FormDialog } from '../components/InventoryForm';
 import { Loading } from '../components/ui/Loading';
+import { PageHead } from '../components/ui/PageHead';
 
 // manage. The server decides every rule (InstrumentInventoryService); hiding a button here is only a convenience.
 
@@ -49,14 +50,7 @@ export default function Inventory() {
 
   return (
     <section className="page wrap events-page inventory-page" aria-labelledby="inventory-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="inventory-title" className="page__title">
-            Instrumentos
-          </h1>
-          <p className="page__lead">O material da tuna: onde está, de que marca é e em que estado.</p>
-        </div>
+      <PageHead eyebrow="Área de membros" title="Instrumentos" titleId="inventory-title" lead="O material da tuna: onde está, de que marca é e em que estado.">
         {data?.canManage && (
           <div className="events-page__actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setForm({})}>
@@ -65,7 +59,7 @@ export default function Inventory() {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {list === 'signin' ? (
         <SignInNotice path={portal.inventory}>O inventário é da área de membros.</SignInNotice>

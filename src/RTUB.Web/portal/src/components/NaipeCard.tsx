@@ -1,4 +1,4 @@
-// Naipes item card and pager.
+// Naipes item card.
 import { Icon } from './icons';
 import { type NaipeItem } from '../data/naipesApi';
 

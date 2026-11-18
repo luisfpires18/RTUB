@@ -19,6 +19,8 @@ import { History } from './LogisticsHistory';
 import { draftOf, same, type Draft } from '../data/logisticsCardDraft';
 import { Loading } from './ui/Loading';
 import { FieldError } from './ui/FieldError';
+import { FormField } from './ui/FormField';
+import { Spinner } from './ui/Spinner';
 
 /**
  * The card workspace (Logística 2/5). One layout for everyone; the controls follow the server's flags:
@@ -192,7 +194,7 @@ export function CardWorkspace({
           </button>
           {detail.canWork && (
             <button type="submit" form={`${fid}-form`} className="btn btn--primary" disabled={!dirty || saving || !draft.title.trim()}>
-              {saving && <span className="spinner spinner--small" aria-hidden="true" />}
+              {saving && <Spinner small />}
               Guardar alterações
             </button>
           )}
@@ -239,17 +241,13 @@ export function CardWorkspace({
           <div className="lx-ws__main">
             {detail.canWork ? (
               <>
-                <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
-                  <label htmlFor={`${fid}-title`}>Título</label>
+                <FormField id={`${fid}-title`} label="Título" error={errors.title} alert>
                   <input id={`${fid}-title`} type="text" maxLength={200} value={draft.title} onChange={(e) => set({ title: e.target.value })} />
-                  <FieldError text={errors.title} />
-                </div>
-                <div className={errors.description ? 'form__field form__field--error' : 'form__field'}>
-                  <label htmlFor={`${fid}-desc`}>Detalhes</label>
+                </FormField>
+                <FormField id={`${fid}-desc`} label="Detalhes" error={errors.description} alert>
                   <textarea id={`${fid}-desc`} rows={5} maxLength={2000} value={draft.description} onChange={(e) => set({ description: e.target.value })} />
                   <small className="note">{draft.description.length}/2000</small>
-                  <FieldError text={errors.description} />
-                </div>
+                </FormField>
               </>
             ) : (
               card.description && (

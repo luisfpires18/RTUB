@@ -1,12 +1,11 @@
 // Dialogs that move cards: delete a column (cards move out) and move a card to a list.
-import { useId, useState, type FormEvent } from 'react';
+import { useId, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { logisticsApi, problem, STATUS, type Board, type Card, type List, type MemberOption } from '../data/logisticsApi';
-import { MemberPicker } from './LogisticsFields';
+import { logisticsApi, problem, STATUS, type Board, type Card, type List } from '../data/logisticsApi';
 import { FieldError } from './ui/FieldError';
-import { PersonChip } from './ui/PersonChip';
-import { DialogFooter } from './ui/DialogFooter';
+import { FormField } from './ui/FormField';
+import { Spinner } from './ui/Spinner';
 
 /** Delete a column: its cards never go with it - they move to the chosen column and take its state. */
 export function DeleteListDialog({ board, list, onClose, onDone }: { board: Board; list: List; onClose: () => void; onDone: () => void }) {
@@ -33,7 +32,7 @@ export function DeleteListDialog({ board, list, onClose, onDone }: { board: Boar
             Cancelar
           </button>
           <button type="button" className="btn btn--danger" onClick={remove} disabled={busy || (count > 0 && !target)}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+            {busy && <Spinner small />}
             Eliminar coluna
           </button>
         </>
@@ -66,51 +65,6 @@ export function DeleteListDialog({ board, list, onClose, onDone }: { board: Boar
           </div>
         ))}
       <FieldError text={error} />
-    </Dialog>
-  );
-}
-
-/** "Criar cartão": title, description and the optional "Atribuir a" member. Opens the details after. */
-export function CreateCardDialog({ boardId, list, onClose, onCreated }: { boardId: number; list: List; onClose: () => void; onCreated: (id: number) => void }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [assignee, setAssignee] = useState<MemberOption | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  const fid = useId();
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    const o = await logisticsApi.createCard(list.id, { title, description, assignedToUserId: assignee?.id ?? null });
-    setBusy(false);
-    if (o.kind === 'invalid') return setErrors(o.errors);
-    if (o.kind !== 'ok') return setErrors({ form: problem(o, 'criar o cartão') });
-    onCreated(o.data.card.id);
-  };
-  return (
-    <Dialog title={`Novo cartão · ${list.name}`} onClose={onClose} footer={<DialogFooter onClose={onClose} busy={busy} form={`${fid}-form`} label="Criar" disabled={!title.trim()} />}>
-      <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        <FieldError text={errors.form} />
-        <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${fid}-title`}>Título</label>
-          <input id={`${fid}-title`} type="text" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
-          <FieldError text={errors.title} />
-        </div>
-        <div className={errors.description ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${fid}-desc`}>Descrição (opcional)</label>
-          <textarea id={`${fid}-desc`} rows={3} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
-          <FieldError text={errors.description} />
-        </div>
-        <div className="form__field">
-          <span className="form__label">Atribuir a (opcional)</span>
-          {assignee ? (
-            <PersonChip name={assignee.displayName} avatar={assignee.avatarUrl} onRemove={() => setAssignee(null)} removeLabel="Remover" />
-          ) : (
-            <MemberPicker label="Atribuir a" boardId={boardId} onPick={setAssignee} />
-          )}
-          <FieldError text={errors.assignedToUserId} />
-        </div>
-      </form>
     </Dialog>
   );
 }
@@ -152,8 +106,7 @@ export function MoveCardDialog({
       <p className="note">{card.title}</p>
       <div className="form">
         <div className="form__row">
-          <div className="form__field">
-            <label htmlFor={`${fid}-list`}>Lista</label>
+          <FormField id={`${fid}-list`} label="Lista">
             <span className="control control--select">
               <select
                 id={`${fid}-list`}
@@ -171,9 +124,8 @@ export function MoveCardDialog({
                 ))}
               </select>
             </span>
-          </div>
-          <div className="form__field">
-            <label htmlFor={`${fid}-pos`}>Posição</label>
+          </FormField>
+          <FormField id={`${fid}-pos`} label="Posição">
             <span className="control control--select">
               <select id={`${fid}-pos`} value={position} onChange={(e) => setPosition(Number(e.target.value))}>
                 {Array.from({ length: others.length + 1 }, (_, i) => (
@@ -183,7 +135,7 @@ export function MoveCardDialog({
                 ))}
               </select>
             </span>
-          </div>
+          </FormField>
         </div>
       </div>
     </Dialog>

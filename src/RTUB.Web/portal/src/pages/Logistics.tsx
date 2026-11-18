@@ -10,6 +10,8 @@ import { BoardTile } from '../components/LogisticsBoardTile';
 import { BoardDialog } from '../components/LogisticsBoardForm';
 import { DeleteBoardDialog, DuplicateBoardDialog } from '../components/LogisticsBoardCopyDelete';
 import { Loading } from '../components/ui/Loading';
+import { PageHead } from '../components/ui/PageHead';
+import { Banner } from '../components/ui/Banner';
 
 type Tab = 'active' | 'completed' | 'archived';
 const TABS: { key: Tab; label: string }[] = [
@@ -69,14 +71,7 @@ export default function Logistics() {
 
   return (
     <section className="page wrap events-page lx-page" aria-labelledby="lx-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="lx-title" className="page__title">
-            Logística
-          </h1>
-          <p className="page__lead">Os quadros de tarefas da tuna: o que falta fazer para cada atuação e para o dia a dia.</p>
-        </div>
+      <PageHead eyebrow="Área de membros" title="Logística" titleId="lx-title" lead="Os quadros de tarefas da tuna: o que falta fazer para cada atuação e para o dia a dia.">
         {data && (
           <div className="events-page__actions">
             <a className="btn btn--ghost btn--sm" href="/logistics/tasks">
@@ -96,7 +91,7 @@ export default function Logistics() {
             )}
           </div>
         )}
-      </header>
+      </PageHead>
 
       {boards === 'signin' ? (
         <SignInNotice path={portal.logistics}>A logística é da área de membros.</SignInNotice>
@@ -126,11 +121,7 @@ export default function Logistics() {
               Com tarefas minhas
             </button>
           </div>
-          {message && (
-            <p className="form__banner" role="alert">
-              {message}
-            </p>
-          )}
+          <Banner text={message} />
 
           {shown.length > 0 ? (
             <ul className="lx-boards" role="tabpanel">

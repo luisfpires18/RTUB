@@ -3,9 +3,10 @@ import { useId, useState } from 'react';
 import { MemberPicker } from './LogisticsFields';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, type CardComment, type CardDetail } from '../data/logisticsApi';
-import { DEFAULT_AVATAR } from '../data/membersApi';
 import { at } from '../data/logisticsDates';
+import { Avatar } from './ui/Avatar';
 import { FieldError } from './ui/FieldError';
+import { Spinner } from './ui/Spinner';
 import { PersonChip } from './ui/PersonChip';
 
 /** The discussion: plain text (never HTML), @mentions picked from members, Ctrl/⌘+Enter sends. */
@@ -34,7 +35,7 @@ export function Discussion({ boardId, detail, apply, busy, errors }: { boardId: 
         <ol className="lx-talk">
           {detail.comments.map((c: CardComment) => (
             <li key={c.id} className="lx-talk__item">
-              <img className="lx-talk__avatar" src={c.author?.avatarUrl ?? DEFAULT_AVATAR} alt="" width="32" height="32" loading="lazy" />
+              <Avatar className="lx-talk__avatar" src={c.author?.avatarUrl ?? null} size={32} />
               <div className="lx-talk__body">
                 <p className="lx-talk__who">
                   <strong title={c.author?.fullName ?? undefined}>{c.author?.displayName ?? 'Membro removido'}</strong>
@@ -132,7 +133,7 @@ export function Discussion({ boardId, detail, apply, busy, errors }: { boardId: 
             </button>
             <small className="note">{body.length}/2000</small>
             <button type="button" className="btn btn--primary btn--sm" disabled={!body.trim() || busy === 'body'} onClick={send}>
-              {busy === 'body' && <span className="spinner spinner--small" aria-hidden="true" />}
+              {busy === 'body' && <Spinner small />}
               Comentar
             </button>
           </div>

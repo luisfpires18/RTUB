@@ -5,6 +5,8 @@ import { Notice, RetryNotice, SignInNotice } from '../components/Notice';
 import { type Doc, type Folder, type Docs, type Target, api, problem, fileSize, count } from '../data/documentationApi';
 import { FolderDialog, UploadDialog, DeleteDialog } from '../components/DocumentationDialogs';
 import { Loading } from '../components/ui/Loading';
+import { PageHead } from '../components/ui/PageHead';
+import { Banner } from '../components/ui/Banner';
 
 /**
  * /documentation - Documentação. Signed-in members, Leitões excepted. The
@@ -62,14 +64,7 @@ export default function Documentation() {
 
   return (
     <section className="page wrap events-page docs-page" aria-labelledby="docs-title">
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="docs-title" className="page__title">
-            Documentação
-          </h1>
-          <p className="page__lead">Regulamentos, atas e outros ficheiros da tuna, arrumados por pasta e ano letivo.</p>
-        </div>
+      <PageHead eyebrow="Área de membros" title="Documentação" titleId="docs-title" lead="Regulamentos, atas e outros ficheiros da tuna, arrumados por pasta e ano letivo.">
         {data?.canManage && (
           <div className="events-page__actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setCreating(true)}>
@@ -78,7 +73,7 @@ export default function Documentation() {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {docs === 'signin' ? (
         <SignInNotice path={portal.documentation}>A documentação é da área de membros.</SignInNotice>
@@ -109,11 +104,7 @@ export default function Documentation() {
             </label>
           </div>
 
-          {message && (
-            <p className="form__banner" role="alert">
-              {message}
-            </p>
-          )}
+          <Banner text={message} />
 
           {data.folders.length === 0 ? (
             <p className="note">Este ano letivo ainda não tem pastas.</p>

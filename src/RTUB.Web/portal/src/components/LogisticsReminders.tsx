@@ -7,6 +7,8 @@ import { FREQUENCY, logisticsApi, type CardDetail, type Frequency, type MemberOp
 import { day, lisbonToday } from '../data/format';
 import { FieldError } from './ui/FieldError';
 import { PersonChip } from './ui/PersonChip';
+import { FormField } from './ui/FormField';
+import { Spinner } from './ui/Spinner';
 
 /** Tomorrow at 10:00, Portugal time, as a datetime-local value. */
 const tomorrowAtTen = () => {
@@ -113,8 +115,7 @@ export function Reminders({
       {draft ? (
         <div className="lx-reminder-form" role="group" aria-label={draft.id ? 'Editar lembrete' : 'Novo lembrete'}>
           <div className="lx-reminder-form__when">
-            <div className={errors.frequency ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor={`${id}-freq`}>Repetir</label>
+            <FormField id={`${id}-freq`} label="Repetir" error={errors.frequency} alert>
               <span className="control control--select control--sm">
                 <select id={`${id}-freq`} value={draft.frequency} onChange={(e) => setDraft({ ...draft, frequency: e.target.value as Frequency })}>
                   {(Object.keys(FREQUENCY) as Frequency[]).map((f) => (
@@ -124,13 +125,10 @@ export function Reminders({
                   ))}
                 </select>
               </span>
-              <FieldError text={errors.frequency} />
-            </div>
-            <div className={errors.nextReminderDate ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor={`${id}-at`}>{draft.frequency === 'OneTime' ? 'Quando' : 'A partir de'}</label>
+            </FormField>
+            <FormField id={`${id}-at`} label={draft.frequency === 'OneTime' ? 'Quando' : 'A partir de'} error={errors.nextReminderDate} alert>
               <input id={`${id}-at`} type="datetime-local" value={draft.at} onChange={(e) => setDraft({ ...draft, at: e.target.value })} />
-              <FieldError text={errors.nextReminderDate} />
-            </div>
+            </FormField>
           </div>
           {detail.canManage && !draft.personal ? (
             <div className={errors.userIds ? 'form__field form__field--error' : 'form__field'}>
@@ -167,7 +165,7 @@ export function Reminders({
               Cancelar
             </button>
             <button type="button" className="btn btn--primary btn--sm" onClick={save} disabled={!!busy || !draft.at}>
-              {busy === 'reminder' && <span className="spinner spinner--small" aria-hidden="true" />}
+              {busy === 'reminder' && <Spinner small />}
               {draft.id ? 'Guardar lembrete' : 'Criar lembrete'}
             </button>
           </div>

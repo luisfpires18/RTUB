@@ -3,6 +3,7 @@ import { useId } from 'react';
 import type { Assignee, Visibility } from '../data/logisticsApi';
 import { MemberPicker } from './LogisticsFields';
 import { PersonChip } from './ui/PersonChip';
+import { FieldError } from './ui/FieldError';
 
 export type Person = { id: string; name: string; avatar: string | null };
 export const person = (a: Assignee): Person => ({ id: a.userId ?? '', name: a.displayName, avatar: a.avatarUrl });
@@ -26,12 +27,6 @@ export function AccessFields({
   errors: Record<string, string>;
 }) {
   const fid = useId();
-  const err = (key: string) =>
-    errors[key] && (
-      <p className="form__error" role="alert">
-        {errors[key]}
-      </p>
-    );
   return (
     <>
       <fieldset className="form__field lx-visibility">
@@ -50,7 +45,7 @@ export function AccessFields({
             <small>Só a lista de acesso abaixo. Atribuir um cartão não dá acesso.</small>
           </span>
         </label>
-        {err('visibility')}
+        <FieldError text={errors.visibility} />
       </fieldset>
       {visibility === 'Private' && (
         <div className={errors.memberIds ? 'form__field form__field--error' : 'form__field'}>
@@ -74,7 +69,7 @@ export function AccessFields({
             <p className="note">Ainda ninguém na lista de acesso.</p>
           )}
           <MemberPicker label="Dar acesso a" exclude={members.map((m) => m.id)} onPick={(m) => setMembers([...members, { id: m.id, name: m.displayName, avatar: m.avatarUrl }])} />
-          {err('memberIds')}
+          <FieldError text={errors.memberIds} />
         </div>
       )}
       <div className={errors.ownerUserId ? 'form__field form__field--error' : 'form__field'}>
@@ -92,7 +87,7 @@ export function AccessFields({
           />
         )}
         <small className="note">Responde pelo quadro; não ganha permissões de gestão.</small>
-        {err('ownerUserId')}
+        <FieldError text={errors.ownerUserId} />
       </div>
     </>
   );

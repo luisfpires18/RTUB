@@ -4,6 +4,9 @@ import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { type Folder, type Docs, type Target, api, problem, fileSize } from '../data/documentationApi';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
+import { DialogFooter } from './ui/DialogFooter';
+import { FieldError } from './ui/FieldError';
+import { FormField } from './ui/FormField';
 
 /** "Criar pasta": always in the current fiscal year. */
 export function FolderDialog({ onClose, onDone }: { onClose: () => void; onDone: (name: string) => void }) {
@@ -26,29 +29,12 @@ export function FolderDialog({ onClose, onDone }: { onClose: () => void; onDone:
     <Dialog
       title="Criar pasta"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${fid}-form`} className="btn btn--primary" disabled={busy || name.trim() === ''}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Criar
-          </button>
-        </>
-      }
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={name.trim() === ''} label="Criar" onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        <div className={error ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${fid}-name`}>Nome da pasta</label>
+        <FormField id={`${fid}-name`} label="Nome da pasta" hint="Letras, números, espaços e hífens. A pasta fica no ano letivo atual." error={error} alert>
           <input id={`${fid}-name`} type="text" maxLength={50} placeholder="Ex.: Regulamentos" value={name} onChange={(e) => setName(e.target.value)} />
-          <p className="form__hint">Letras, números, espaços e hífens. A pasta fica no ano letivo atual.</p>
-          {error && (
-            <p className="form__error" role="alert">
-              {error}
-            </p>
-          )}
-        </div>
+        </FormField>
       </form>
     </Dialog>
   );
@@ -86,17 +72,7 @@ export function UploadDialog({ docs, folder, onClose, onDone }: { docs: Docs; fo
     <Dialog
       title={`Carregar documento · ${folder.label}`}
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${fid}-form`} className="btn btn--primary" disabled={busy || !file}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            {busy ? 'A carregar…' : 'Carregar'}
-          </button>
-        </>
-      }
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!file} label={busy ? 'A carregar…' : 'Carregar'} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         <div className={error ? 'form__field form__field--error' : 'form__field'}>
@@ -122,11 +98,7 @@ export function UploadDialog({ docs, folder, onClose, onDone }: { docs: Docs; fo
             Tipos permitidos: {types} (máx. {fileSize(docs.maxFileBytes)}).
             {docs.canManage && ' Um ficheiro com o mesmo nome substitui o que já está na pasta.'}
           </p>
-          {error && (
-            <p className="form__error" role="alert">
-              {error}
-            </p>
-          )}
+          <FieldError text={error} />
         </div>
       </form>
     </Dialog>

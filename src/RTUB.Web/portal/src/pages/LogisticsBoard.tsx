@@ -15,6 +15,7 @@ import { ArchivedCards } from '../components/LogisticsArchivedCards';
 import { BoardNotice } from '../components/LogisticsBoardNotice';
 import { CalendarView } from '../components/LogisticsCalendar';
 import { Loading } from '../components/ui/Loading';
+import { Banner } from '../components/ui/Banner';
 
 const VIEWS: { key: View; label: string; icon: 'kanban' | 'listOl' | 'calendar' }[] = [
   { key: 'board', label: 'Quadro', icon: 'kanban' },
@@ -240,11 +241,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
         moreFilters={moreFilters} setMoreFilters={setMoreFilters} people={people} filtering={filtering} clear={clear} columns={columns}
       />
 
-      {message && (
-        <p className="form__banner" role="alert">
-          {message}
-        </p>
-      )}
+      <Banner text={message} />
 
       {data.lists.length > 0 && <Summary all={allCards} shown={rows.length} filtering={filtering} />}
 
