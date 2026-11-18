@@ -2,6 +2,8 @@
 import { useId, useState } from 'react';
 import { Icon } from './icons';
 import { PAGE, type RequestItem, statusLabel, statusPill, when } from '../data/requestsApi';
+import { IconAction } from './ui/IconAction';
+import { LoadMore } from './ui/LoadMore';
 
 export function RequestGroup({
   title,
@@ -79,20 +81,13 @@ export function RequestGroup({
                     </>
                   )}
                   {canManage && (
-                    <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => onAction({ kind: 'delete', request: r })}>
-                      <Icon name="trash" />
-                      <span className="sr-only">Eliminar o pedido de {r.name}</span>
-                    </button>
+                    <IconAction icon="trash" label={`Eliminar o pedido de ${r.name}`} onClick={() => onAction({ kind: 'delete', request: r })} danger />
                   )}
                 </div>
               </li>
             ))}
           </ul>
-          {items.length > shown && (
-            <button type="button" className="btn btn--ghost btn--sm members-more" onClick={() => setShown(shown + PAGE)}>
-              Mostrar mais ({items.length - shown})
-            </button>
-          )}
+          <LoadMore remaining={items.length - shown} onMore={() => setShown(shown + PAGE)} />
         </>
       )}
     </section>

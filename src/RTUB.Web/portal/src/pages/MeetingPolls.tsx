@@ -10,6 +10,8 @@ import { CreatePollDialog } from '../components/MeetingPollCreateDialog';
 import { Loading } from '../components/ui/Loading';
 import { Pager } from '../components/ui/Pager';
 import { BackLink } from '../components/ui/BackLink';
+import { PageHead } from '../components/ui/PageHead';
+import { Banner } from '../components/ui/Banner';
 
 /**
  * /meetings/polls: the Votações of the meeting bodies, open ones and closed ones in two paged grids. The server decides
@@ -70,16 +72,16 @@ export default function MeetingPolls() {
 
   return (
     <section className="page wrap events-page mtg-page" aria-labelledby="meeting-polls-title">
-      <header className="page__head events-page__head">
-        <div>
+      <PageHead
+        before={
           <BackLink href={portal.meetings} icon="arrowLeft">
             Reuniões
           </BackLink>
-          <h1 id="meeting-polls-title" className="page__title">
-            Votações
-          </h1>
-          <p className="page__lead">Votações das assembleias e dos conselhos, em curso e anteriores.</p>
-        </div>
+        }
+        title="Votações"
+        titleId="meeting-polls-title"
+        lead="Votações das assembleias e dos conselhos, em curso e anteriores."
+      >
         {data?.createAudiences.length ? (
           <div className="events-page__actions mtg-head-actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setCreateOpen(true)}>
@@ -88,15 +90,14 @@ export default function MeetingPolls() {
             </button>
           </div>
         ) : null}
-      </header>
+      </PageHead>
 
       {error && (
-        <div className="form__banner" role="alert">
-          {error}
+        <Banner block text={error}>
           <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setError(undefined); refresh(); }}>
             Tentar novamente
           </button>
-        </div>
+        </Banner>
       )}
 
       {board === undefined ? (

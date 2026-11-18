@@ -7,6 +7,7 @@ import { type Question, type Recipient, api } from '../data/questionsApi';
 import { QuestionDialog } from '../components/QuestionDialog';
 import { QuestionList } from '../components/QuestionList';
 import { Loading } from '../components/ui/Loading';
+import { PageHead } from '../components/ui/PageHead';
 
 /**
  * /questions - Perguntas aos Órgãos Sociais. Any signed-in member asks a question to
@@ -52,13 +53,7 @@ export default function Questions() {
 
   return (
     <section className="page wrap questions-page" aria-labelledby="questions-title">
-      <header className="page__head">
-        <p className="eyebrow">Área de membros</p>
-        <h1 id="questions-title" className="page__title">
-          Perguntas aos Órgãos Sociais
-        </h1>
-        <p className="page__lead">Pergunta diretamente a quem tem o cargo; a conversa fica aqui até a fechares.</p>
-      </header>
+      <PageHead plain eyebrow="Área de membros" title="Perguntas aos Órgãos Sociais" titleId="questions-title" lead="Pergunta diretamente a quem tem o cargo; a conversa fica aqui até a fechares." />
 
       {session === 'signin' ? (
         <SignInNotice path={'/questions'}>As perguntas são da área de membros.</SignInNotice>

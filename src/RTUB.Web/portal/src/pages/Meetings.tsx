@@ -9,6 +9,8 @@ import { type Open, Dialogs } from '../components/MeetingDialogHost';
 import { Empty, MeetingSection } from '../components/MeetingSection';
 import { Loading } from '../components/ui/Loading';
 import { EmptyState } from '../components/ui/EmptyState';
+import { PageHead } from '../components/ui/PageHead';
+import { IconAction } from '../components/ui/IconAction';
 
 const UPCOMING_EMPTY =
   'Não existem reuniões agendadas no momento. As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos.';
@@ -134,14 +136,7 @@ export default function Meetings() {
 
   return (
     <section className="page wrap events-page mtg-page" aria-labelledby="meetings-title">
-      <header className="page__head events-page__head mtg-head">
-        <div>
-          <p className="eyebrow">Gestão</p>
-          <h1 id="meetings-title" className="page__title">
-            Reuniões
-          </h1>
-          <p className="page__lead">Gerir reuniões e assembleias da organização.</p>
-        </div>
+      <PageHead className="mtg-head" eyebrow="Gestão" title="Reuniões" titleId="meetings-title" lead="Gerir reuniões e assembleias da organização.">
         {access && (
           <div className="events-page__actions mtg-head-actions">
             {access.canCreate && (
@@ -178,16 +173,13 @@ export default function Meetings() {
             </a>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {flash && (
         <div className={`mtg-flash mtg-flash--${flash.tone}`} role="status">
           <Icon name={flash.tone === 'ok' ? 'checkCircle' : 'warning'} />
           <p>{flash.text}</p>
-          <button type="button" className="icon-btn icon-btn--sm" onClick={() => setFlash(undefined)}>
-            <Icon name="close" />
-            <span className="sr-only">Fechar a mensagem</span>
-          </button>
+          <IconAction icon="close" label="Fechar a mensagem" onClick={() => setFlash(undefined)} />
         </div>
       )}
 

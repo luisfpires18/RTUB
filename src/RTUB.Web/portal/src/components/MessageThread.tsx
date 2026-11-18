@@ -5,6 +5,7 @@ import { ChatFace, Composer } from './MessageParts';
 import { type Detail, type MessageItem, THREAD_POLL_MS, api, clock, dayLabel, problem, sameDay, toDate } from '../data/messagesApi';
 import { Loading } from './ui/Loading';
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import { IconAction } from './ui/IconAction';
 
 export function Thread({ id, onBack, onChanged, onRemoved }: { id: number; onBack: () => void; onChanged: () => void; onRemoved: () => void }) {
   const [removing, setRemoving] = useState<'ask' | 'busy'>();
@@ -235,10 +236,7 @@ export function Thread({ id, onBack, onChanged, onRemoved }: { id: number; onBac
                       {(c.canSend || canReact) && (
                         <div className="bubble__actions">
                           {c.canSend && (
-                            <button type="button" className="icon-btn icon-btn--sm" onClick={() => setReplyTo(m)}>
-                              <Icon name="reply" />
-                              <span className="sr-only">Responder</span>
-                            </button>
+                            <IconAction icon="reply" label="Responder" onClick={() => setReplyTo(m)} />
                           )}
                           {canReact && (
                             <button

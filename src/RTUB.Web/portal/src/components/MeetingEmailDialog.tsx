@@ -157,7 +157,7 @@ export function EmailDialog({ card, onClose, onSent }: { card: MeetingCard; onCl
               <div className="mtg-preview__box">
                 <p className="mtg-preview__label">Pré-visualização do Email:</p>
                 {preview?.error ? (
-                  <p className="form__error">{preview.error}</p>
+                  <FieldError text={preview.error} alert={false} />
                 ) : preview?.html === undefined ? (
                   <Loading label="A gerar a pré-visualização…" />
                 ) : (
