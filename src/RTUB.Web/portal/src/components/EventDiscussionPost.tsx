@@ -1,6 +1,7 @@
 // One discussion post with its editor, lift offer and comments.
 
 import { useId, useState } from 'react';
+import { FieldError } from './ui/FieldError';
 import { eventsApi, type EventPost, type Outcome, type EventDiscussion as Discussion } from '../data/eventsApi';
 import { Icon } from './icons';
 import { BODY_MAX, problem, Text, showsTitle, Who, submitOnCtrlEnter } from './EventDiscussionShared';
@@ -100,7 +101,7 @@ export function Post({ eventId, post, canModerate, onChange }: { eventId: number
             ))}
         </div>
       )}
-      {error && <p className="form__error">{error}</p>}
+      <FieldError text={error} alert={false} />
 
       <Comments eventId={eventId} post={post} onChange={onChange} />
     </article>

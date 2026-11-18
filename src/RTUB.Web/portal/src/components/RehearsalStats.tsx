@@ -3,7 +3,6 @@
 import { useEffect, useId, useState } from 'react';
 import { Dialog } from './Dialog';
 import { dateLabel } from '../data/eventsApi';
-import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { fold } from '../data/format';
 import { rehearsalsApi, type RehearsalSummary, type RehearsalStats } from '../data/rehearsalsApi';
@@ -11,6 +10,8 @@ import { PresencePill } from './RehearsalShared';
 import { FieldError } from './ui/FieldError';
 import { Loading } from './ui/Loading';
 import { Avatar } from './ui/Avatar';
+import { EmptyNote } from './ui/EmptyNote';
+import { SearchField, SelectField } from './ui/SearchTools';
 
 // ---------- statistics and the member's own record ----------
 
@@ -60,20 +61,13 @@ export function StatsDialog({ onClose }: { onClose: () => void }) {
           <span>Até</span>
           <input id={ids.to} type="date" value={to} onChange={(e) => setRange({ from, to: e.target.value })} />
         </label>
-        <label className="control control--select" htmlFor={ids.group}>
-          <span className="sr-only">Categoria</span>
-          <select id={ids.group} value={group} onChange={(e) => setGroup(e.target.value)}>
-            <option value="">Todas as categorias</option>
-            <option value="tuno">Tunos</option>
-            <option value="caloiro">Caloiros</option>
-            <option value="leitao">Leitões</option>
-          </select>
-        </label>
-        <label className="control" htmlFor={ids.q}>
-          <span className="sr-only">Procurar membro</span>
-          <Icon name="search" />
-          <input id={ids.q} type="search" placeholder="Procurar pelo nome" value={q} onChange={(e) => setQ(e.target.value)} />
-        </label>
+        <SelectField id={ids.group} label="Categoria" value={group} onChange={setGroup}>
+          <option value="">Todas as categorias</option>
+          <option value="tuno">Tunos</option>
+          <option value="caloiro">Caloiros</option>
+          <option value="leitao">Leitões</option>
+        </SelectField>
+        <SearchField id={ids.q} label="Procurar membro" placeholder="Procurar pelo nome" value={q} onChange={setQ} />
       </div>
       <FieldError text={error} alert={false} />
       {stats === undefined ? (
@@ -81,7 +75,7 @@ export function StatsDialog({ onClose }: { onClose: () => void }) {
       ) : stats === null ? (
         <p>Não foi possível carregar as estatísticas agora.</p>
       ) : shown.length === 0 ? (
-        <p className="note">{stats.members.length === 0 ? 'Sem presenças nestas datas.' : 'Nenhum membro encontrado.'}</p>
+        <EmptyNote>{stats.members.length === 0 ? 'Sem presenças nestas datas.' : 'Nenhum membro encontrado.'}</EmptyNote>
       ) : (
         <>
           <p className="note">{stats.pastRehearsals === 1 ? '1 ensaio já feito' : `${stats.pastRehearsals} ensaios já feitos`} nestas datas.</p>
@@ -128,7 +122,7 @@ export function MyPresencesDialog({ past, onClose }: { past: RehearsalSummary[];
   return (
     <Dialog title="As minhas presenças" onClose={onClose} size="lg">
       {shown.length === 0 ? (
-        <p className="note">Ainda não há ensaios passados.</p>
+        <EmptyNote>Ainda não há ensaios passados.</EmptyNote>
       ) : (
         <>
           <p className="presence-rate">

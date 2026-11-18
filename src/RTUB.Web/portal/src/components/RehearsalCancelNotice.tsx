@@ -1,6 +1,7 @@
 // Admin/Owner dialogs to cancel a rehearsal or push a notice about it.
 
 import { useEffect, useId, useState } from 'react';
+import { FieldError } from './ui/FieldError';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { rehearsalsApi, type RehearsalSummary, type NoticeAudience } from '../data/rehearsalsApi';
@@ -45,7 +46,7 @@ export function CancelDialog({ rehearsal, onClose, onDone }: { rehearsal: Rehear
           <textarea id={id} rows={3} maxLength={1000} value={reason} onChange={(e) => setReason(e.target.value)} />
         </FormField>
         <p className="note">As presenças marcadas são removidas. Não é enviado nenhum email.</p>
-        {error && <p className="form__error">{error}</p>}
+        <FieldError text={error} alert={false} />
       </div>
     </Dialog>
   );
@@ -98,7 +99,7 @@ export function NoticeDialog({ rehearsal, onClose }: { rehearsal: RehearsalSumma
                 Recebem {count} de {few ? audience.leitoesCaloirosTotal : audience.total} (quem tem as notificações ativas).
               </p>
             )}
-            {error && <p className="form__error">{error}</p>}
+            <FieldError text={error} alert={false} />
             <div className="answer__actions">
               {confirming ? (
                 <>

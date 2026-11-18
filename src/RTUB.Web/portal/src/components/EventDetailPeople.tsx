@@ -46,7 +46,7 @@ export function WhoIsGoing({
               <People people={leitoes} />
             </>
           )}
-          {total === 0 && <p className="note">{past ? 'Ninguém confirmou que foi.' : 'Por agora ninguém confirmou.'}</p>}
+          {total === 0 && <EmptyNote>{past ? 'Ninguém confirmou que foi.' : 'Por agora ninguém confirmou.'}</EmptyNote>}
           {notGoing.length > 0 && (
             <details className="who__more">
               <summary>

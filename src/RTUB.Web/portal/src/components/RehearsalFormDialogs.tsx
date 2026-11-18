@@ -1,6 +1,7 @@
 // Admin/Owner dialogs to create / edit one rehearsal or add a range of them.
 
 import { useId, useState, type FormEvent } from 'react';
+import { FieldError } from './ui/FieldError';
 import { Dialog } from './Dialog';
 import { today } from '../data/format';
 import { rehearsalsApi, type RehearsalSummary, type RehearsalInput } from '../data/rehearsalsApi';
@@ -33,7 +34,7 @@ export function RehearsalFormDialog({ rehearsal, notes, onClose, onSaved }: { re
     onClose();
   };
 
-  const error = (key: string) => errors[key] && <p className="form__error">{errors[key]}</p>;
+  const error = (key: string) => <FieldError text={errors[key]} alert={false} />;
 
   return (
     <Dialog
@@ -95,7 +96,7 @@ export function RangeDialog({ onClose, onSaved }: { onClose: () => void; onSaved
     if (o.data.created > 0) onSaved();
   };
 
-  const error = (key: string) => errors[key] && <p className="form__error">{errors[key]}</p>;
+  const error = (key: string) => <FieldError text={errors[key]} alert={false} />;
 
   return (
     <Dialog

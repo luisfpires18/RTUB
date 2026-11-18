@@ -8,6 +8,7 @@ import { dateLabel, timeLabel, type EventDetail as Detail } from '../data/events
 import { Icon } from './icons';
 import { WhoIsGoing } from './EventDetailPeople';
 import { Videos } from './EventDetailVideos';
+import { EmptyNote } from './ui/EmptyNote';
 
 export function Body({
   detail,
@@ -90,7 +91,7 @@ export function Body({
                   </button>
                 )}
               </div>
-              {member.repertoire.length === 0 && <p className="note">Ainda sem repertório nesta atuação.</p>}
+              {member.repertoire.length === 0 && <EmptyNote>Ainda sem repertório nesta atuação.</EmptyNote>}
               {member.repertoire.map((day) => (
                 <div key={day.date} className="repertoire-day">
                   {member.repertoire.length > 1 && <h3 className="repertoire-day__date">{dateLabel({ date: day.date, endDate: null })}</h3>}
@@ -109,7 +110,7 @@ export function Body({
           {(detail.videos.length > 0 || onManageVideos) && <Videos videos={detail.videos} onManage={onManageVideos} />}
 
           {!detail.isMember && detail.videos.length === 0 && (
-            <p className="note">{event.past ? 'Ainda não há vídeos desta atuação.' : 'Mais novidades nas redes da RTUB.'}</p>
+            <EmptyNote>{event.past ? 'Ainda não há vídeos desta atuação.' : 'Mais novidades nas redes da RTUB.'}</EmptyNote>
           )}
         </div>
 

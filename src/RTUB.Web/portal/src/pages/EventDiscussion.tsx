@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { portal } from '../data/content';
 import { eventsApi, dateLabel, type EventSummary, type EventDiscussion as Discussion } from '../data/eventsApi';
-import { Icon } from '../components/icons';
 import { Notice, SignInNotice } from '../components/Notice';
 import { Composer } from '../components/EventDiscussionComposer';
 import { Post } from '../components/EventDiscussionPost';
 import { Loading } from '../components/ui/Loading';
 import { BackLink } from '../components/ui/BackLink';
+import { PageHead } from '../components/ui/PageHead';
+import { EmptyBlock } from '../components/ui/EmptyNote';
 
 // EventContacts.tsx imports `when` from here.
 
@@ -45,17 +46,14 @@ export default function EventDiscussion({ eventId }: { eventId: number }) {
   return (
     <section className="page wrap talk-page" aria-labelledby="talk-title">
       {back}
-      <header className="page__head talk-page__head">
-        <p className="eyebrow">Conversa da atuação</p>
-        <h1 id="talk-title" className="page__title">
-          Discussão
-        </h1>
-        {event && (
-          <p className="page__lead">
-            {event.name} · {dateLabel(event)} · {event.location}
-          </p>
-        )}
-      </header>
+      <PageHead
+        plain
+        className="talk-page__head"
+        eyebrow="Conversa da atuação"
+        title="Discussão"
+        titleId="talk-title"
+        lead={event && `${event.name} · ${dateLabel(event)} · ${event.location}`}
+      />
 
       {talk === undefined ? (
         <Loading label="A carregar a conversa…" />
@@ -75,11 +73,10 @@ function Feed({ eventId, talk, onChange }: { eventId: number; talk: Discussion; 
     <div className="talk">
       <Composer eventId={eventId} onPosted={onChange} />
       {talk.posts.length === 0 ? (
-        <div className="talk__empty">
-          <Icon name="chat" />
+        <EmptyBlock className="talk__empty" icon="chat">
           <p className="talk__empty-title">Ainda não há mensagens nesta atuação.</p>
           <p>Deixa uma nota, combina detalhes ou partilha uma dúvida.</p>
-        </div>
+        </EmptyBlock>
       ) : (
         <ol className="talk__feed" aria-label="Mensagens">
           {talk.posts.map((p) => (

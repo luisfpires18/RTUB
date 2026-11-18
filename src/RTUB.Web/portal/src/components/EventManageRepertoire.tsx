@@ -9,6 +9,8 @@ import { Loading } from './ui/Loading';
 import { Segmented } from './ui/Segmented';
 import { FieldError } from './ui/FieldError';
 import { AnswerActions } from './ui/AnswerActions';
+import { EmptyNote } from './ui/EmptyNote';
+import { SearchField } from './ui/SearchTools';
 
 /**
  * The event's repertoire for Admin/Owner: one tab per day (the event's days
@@ -75,7 +77,7 @@ export function RepertoireManagerDialog({ event, onClose, onChanged }: { event: 
         {data === undefined ? (
           <Loading label="A carregar o repertório…" />
         ) : data === null || !current ? (
-          <p className="form__error">Não foi possível carregar o repertório desta atuação.</p>
+          <FieldError text="Não foi possível carregar o repertório desta atuação." alert={false} />
         ) : (
           <>
             {data.days.length > 1 && (
@@ -101,7 +103,7 @@ export function RepertoireManagerDialog({ event, onClose, onChanged }: { event: 
             )}
 
             {current.items.length === 0 ? (
-              <p className="note">Ainda sem músicas {data.days.length > 1 ? 'neste dia' : 'nesta atuação'}.</p>
+              <EmptyNote>Ainda sem músicas {data.days.length > 1 ? 'neste dia' : 'nesta atuação'}.</EmptyNote>
             ) : (
               <ol className="prize-manager__list repertoire-manager__list">
                 {current.items.map((item, i) => (
@@ -154,17 +156,13 @@ export function RepertoireManagerDialog({ event, onClose, onChanged }: { event: 
 
             <div className="repertoire-manager__add">
               <p className="eyebrow">Juntar música</p>
-              <label className="control" htmlFor={searchId}>
-                <span className="sr-only">Procurar música</span>
-                <Icon name="search" />
-                <input id={searchId} type="search" placeholder="Procurar pelo título" value={query} onChange={(e) => setQuery(e.target.value)} />
-              </label>
+              <SearchField id={searchId} label="Procurar música" placeholder="Procurar pelo título" value={query} onChange={setQuery} />
               {songs === undefined ? (
                 <Loading label="A procurar…" />
               ) : songs === null ? (
-                <p className="form__error">Não foi possível procurar músicas agora.</p>
+                <FieldError text="Não foi possível procurar músicas agora." alert={false} />
               ) : songs.length === 0 ? (
-                <p className="note">{query.trim() ? 'Nenhuma música com esse título (ou já está no repertório).' : 'Todas as músicas já estão no repertório.'}</p>
+                <EmptyNote>{query.trim() ? 'Nenhuma música com esse título (ou já está no repertório).' : 'Todas as músicas já estão no repertório.'}</EmptyNote>
               ) : (
                 <ul className="prize-manager__list">
                   {songs.map((s) => (

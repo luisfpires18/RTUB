@@ -163,7 +163,7 @@ function RemovePresence({ data, onClose, onSaved }: { data: MyAttendance; onClos
         A tua presença: <strong>{presenceLabel(data.status, true)}</strong>. O ensaio já passou; se a presença está errada, podes
         removê-la.
       </p>
-      {error && <p className="form__error">{error}</p>}
+      <FieldError text={error} alert={false} />
       <AnswerActions cancelLabel="Manter" onCancel={onClose} label="Remover a minha presença" onConfirm={remove} busy={busy} danger spinner={false} />
     </div>
   );

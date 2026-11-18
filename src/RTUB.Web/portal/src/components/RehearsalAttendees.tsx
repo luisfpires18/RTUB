@@ -1,11 +1,14 @@
 // The rehearsal page's attendee pieces: instrument counts, attendee groups and the add-attendee form.
 
 import { useEffect, useId, useState } from 'react';
+import { FieldError } from './ui/FieldError';
 import type { MemberOption, Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { rehearsalsApi, type Attendee, type InstrumentCount } from '../data/rehearsalsApi';
 import { Avatar } from './ui/Avatar';
+import { EmptyNote } from './ui/EmptyNote';
+import { SearchField } from './ui/SearchTools';
 
 export function Counts({ counts }: { counts: InstrumentCount[] }) {
   return (
@@ -88,7 +91,7 @@ export function Group({ title, people, rehearsalId, onChanged }: { title: string
           </li>
         ))}
       </ul>
-      {error && <p className="form__error">{error}</p>}
+      <FieldError text={error} alert={false} />
     </div>
   );
 }
@@ -125,12 +128,8 @@ export function AddAttendee({ rehearsalId, onAdded }: { rehearsalId: number; onA
 
   return (
     <div className="talk__seat-picker presence-add">
-      <label className="control control--sm" htmlFor={id}>
-        <span className="sr-only">Acrescentar presença</span>
-        <Icon name="search" />
-        <input id={id} type="search" placeholder="Acrescentar presença (alcunha ou nome)" value={query} onChange={(e) => setQuery(e.target.value)} />
-      </label>
-      {members && members.length === 0 && <p className="note">Ninguém encontrado.</p>}
+      <SearchField small id={id} label="Acrescentar presença" placeholder="Acrescentar presença (alcunha ou nome)" value={query} onChange={setQuery} />
+      {members && members.length === 0 && <EmptyNote>Ninguém encontrado.</EmptyNote>}
       {members && members.length > 0 && (
         <ul className="talk__picks">
           {members.map((m) => (
@@ -146,7 +145,7 @@ export function AddAttendee({ rehearsalId, onAdded }: { rehearsalId: number; onA
           ))}
         </ul>
       )}
-      {error && <p className="form__error">{error}</p>}
+      <FieldError text={error} alert={false} />
     </div>
   );
 }

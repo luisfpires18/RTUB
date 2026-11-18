@@ -9,6 +9,7 @@ import { Loading } from './ui/Loading';
 import { Spinner } from './ui/Spinner';
 import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
+import { EmptyNote } from './ui/EmptyNote';
 
 /**
  * The event's videos for Admin/Owner: upload (past events; file ≤100 MB and a
@@ -78,9 +79,9 @@ export function VideoManagerDialog({ event, onClose, onChanged }: { event: Event
         {videos === undefined ? (
           <Loading label="A carregar os vídeos…" />
         ) : videos === null ? (
-          <p className="form__error">Não foi possível carregar os vídeos desta atuação.</p>
+          <FieldError text="Não foi possível carregar os vídeos desta atuação." alert={false} />
         ) : videos.length === 0 ? (
-          <p className="note">Ainda não há vídeos desta atuação.</p>
+          <EmptyNote>Ainda não há vídeos desta atuação.</EmptyNote>
         ) : (
           <ol className="prize-manager__list video-manager__list">
             {videos.map((v, i) => (
@@ -177,7 +178,7 @@ export function VideoManagerDialog({ event, onClose, onChanged }: { event: Event
             ))}
           </ol>
         )}
-        {errors.videoIds && <p className="form__error">{errors.videoIds}</p>}
+        <FieldError text={errors.videoIds} alert={false} />
 
         {event.past ? (
           <form className="form video-manager__upload" onSubmit={upload} noValidate>
@@ -200,7 +201,7 @@ export function VideoManagerDialog({ event, onClose, onChanged }: { event: Event
                 }}
               />
               <p className="form__hint">{file ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB` : 'Até 100 MB.'}</p>
-              {errors.file && <p className="form__error">{errors.file}</p>}
+              <FieldError text={errors.file} alert={false} />
             </div>
             <FormField id={ids.title} label="Título" error={errors.title}>
               <input id={ids.title} type="text" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} disabled={!!busy} />

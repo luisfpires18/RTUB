@@ -1,6 +1,7 @@
 // Create / edit event dialog with its cropped image.
 
 import { CheckField } from './ui/CheckField';
+import { FieldError } from './ui/FieldError';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Cropper } from './Cropper';
 import { Dialog } from './Dialog';
@@ -107,7 +108,7 @@ export function EventFormDialog({
   const shownImage = image?.preview ?? (removeImage ? null : currentImage);
 
   const field = (key: keyof EventInput) => (errors[key] ? 'form__field form__field--error' : 'form__field');
-  const error = (key: keyof EventInput) => errors[key] && <p className="form__error">{errors[key]}</p>;
+  const error = (key: keyof EventInput) => <FieldError text={errors[key]} alert={false} />;
 
   return (
     <>
@@ -222,7 +223,7 @@ export function EventFormDialog({
                 <p className="form__hint">
                   {removeImage && !image ? 'A imagem atual é apagada ao guardar.' : 'Recortada em 3:2 antes de guardar.'}
                 </p>
-                {errors.image && <p className="form__error">{errors.image}</p>}
+                <FieldError text={errors.image} alert={false} />
               </div>
             </div>
           </div>

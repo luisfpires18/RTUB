@@ -10,6 +10,10 @@ import { Loading } from '../components/ui/Loading';
 import { Avatar } from '../components/ui/Avatar';
 import { BackLink } from '../components/ui/BackLink';
 import { FormField } from '../components/ui/FormField';
+import { FieldError } from '../components/ui/FieldError';
+import { PageHead } from '../components/ui/PageHead';
+import { ToolsBar, SearchField } from '../components/ui/SearchTools';
+import { EmptyNote } from '../components/ui/EmptyNote';
 
 const NOTES_MAX = 500;
 
@@ -125,16 +129,12 @@ export default function EventContacts({ eventId }: { eventId: number }) {
   return (
     <section className="page wrap contacts-page" aria-labelledby="contacts-title">
       <BackLink href={portal.event(eventId)}>{event ? event.name : 'Atuação'}</BackLink>
-      <header className="page__head">
-        <h1 id="contacts-title" className="page__title">
-          Contactos
-        </h1>
-        {event && (
-          <p className="page__lead">
-            {event.name} · {dateLabel(event)} · {event.location}
-          </p>
-        )}
-      </header>
+      <PageHead
+        plain
+        title="Contactos"
+        titleId="contacts-title"
+        lead={event && `${event.name} · ${dateLabel(event)} · ${event.location}`}
+      />
 
       {list === undefined ? (
         <Loading label="A carregar os contactos…" />
@@ -151,20 +151,16 @@ export default function EventContacts({ eventId }: { eventId: number }) {
         <Notice>Não conseguimos abrir os contactos agora. Tenta outra vez daqui a pouco.</Notice>
       ) : (
         <>
-          <div className="events-tools" role="search">
-            <label className="control" htmlFor={searchId}>
-              <span className="sr-only">Procurar membro</span>
-              <Icon name="search" />
-              <input id={searchId} type="search" placeholder="Procurar pelo nome" value={q} onChange={(e) => setQ(e.target.value)} />
-            </label>
-          </div>
-          {error && <p className="form__error">{error}</p>}
+          <ToolsBar>
+            <SearchField id={searchId} label="Procurar membro" placeholder="Procurar pelo nome" value={q} onChange={setQ} />
+          </ToolsBar>
+          <FieldError text={error} alert={false} />
           <section className="events-block" aria-labelledby="contacted-title">
             <h2 id="contacted-title" className="events-block__title">
               Contactados · {list.contacted.length}
             </h2>
             {list.contacted.length === 0 ? (
-              <p className="note">Ainda ninguém foi contactado para esta atuação.</p>
+              <EmptyNote>Ainda ninguém foi contactado para esta atuação.</EmptyNote>
             ) : (
               <ul className="contacts">{list.contacted.filter(match).map(card)}</ul>
             )}
@@ -174,7 +170,7 @@ export default function EventContacts({ eventId }: { eventId: number }) {
               Por contactar · {list.notContacted.length}
             </h2>
             {list.notContacted.length === 0 ? (
-              <p className="note">Todos os membros foram contactados.</p>
+              <EmptyNote>Todos os membros foram contactados.</EmptyNote>
             ) : (
               <ul className="contacts">{list.notContacted.filter(match).map(card)}</ul>
             )}
@@ -253,7 +249,7 @@ function RecordDialog({ eventId, row, onClose, onSaved }: { eventId: number; row
         <FormField id={notesId} label="Notas">
           <textarea id={notesId} rows={3} maxLength={NOTES_MAX} placeholder="Notas sobre a conversa…" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </FormField>
-        {error && <p className="form__error">{error}</p>}
+        <FieldError text={error} alert={false} />
       </div>
     </Dialog>
   );

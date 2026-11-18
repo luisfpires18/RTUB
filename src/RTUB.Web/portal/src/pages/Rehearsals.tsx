@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react';
-import { EmptyBlock } from '../components/ui/EmptyNote';
+import { EmptyBlock, EmptyNote } from '../components/ui/EmptyNote';
 import { dateLabel, dayOf, monthShort, weekday } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { MyPresencesDialog, StatsDialog } from '../components/RehearsalStats';
@@ -11,6 +11,7 @@ import { fold } from '../data/format';
 import { RetryNotice, SignInNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
 import { PageHead } from '../components/ui/PageHead';
+import { SearchField, SelectField } from '../components/ui/SearchTools';
 
 /** The season (September-August) a day falls in, as the server names it. */
 const seasonOf = (d: Date) => {
@@ -131,26 +132,19 @@ export default function Rehearsals() {
               Ensaios anteriores
             </h2>
             <div className="events-tools" role="search">
-              <label className="control" htmlFor={ids.q}>
-                <span className="sr-only">Procurar ensaio</span>
-                <Icon name="search" />
-                <input id={ids.q} type="search" placeholder="Procurar por tema ou local" value={filters.q} onChange={(e) => update({ q: e.target.value })} />
-              </label>
-              <label className="control control--select" htmlFor={ids.season}>
-                <span className="sr-only">Época</span>
-                <select id={ids.season} value={filters.season} onChange={(e) => update({ season: e.target.value })}>
-                  <option value="">Todas as épocas</option>
-                  {seasons.includes(filters.season) || !filters.season ? null : <option value={filters.season}>{filters.season}</option>}
-                  {seasons.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SearchField id={ids.q} label="Procurar ensaio" placeholder="Procurar por tema ou local" value={filters.q} onChange={(v) => update({ q: v })} />
+              <SelectField id={ids.season} label="Época" value={filters.season} onChange={(v) => update({ season: v })}>
+                <option value="">Todas as épocas</option>
+                {seasons.includes(filters.season) || !filters.season ? null : <option value={filters.season}>{filters.season}</option>}
+                {seasons.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </SelectField>
             </div>
             {past.length === 0 ? (
-              <p className="note">Nenhum ensaio anterior encontrado.</p>
+              <EmptyNote>Nenhum ensaio anterior encontrado.</EmptyNote>
             ) : (
               <ul className="archive__list">
                 {past.map((r) => (

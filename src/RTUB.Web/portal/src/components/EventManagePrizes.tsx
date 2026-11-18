@@ -6,6 +6,7 @@ import { Icon } from './icons';
 import { failure } from './EventManageShared';
 import { Loading } from './ui/Loading';
 import { FieldError } from './ui/FieldError';
+import { EmptyNote } from './ui/EmptyNote';
 
 /**
  * The event's prizes for Admin/Owner, inside the Prémios modal: rename or delete each one in
@@ -53,13 +54,13 @@ export function PrizeManager({ eventId, canAdd, onChanged }: { eventId: number; 
   };
 
   if (prizes === undefined) return <Loading label="A carregar os prémios…" />;
-  if (prizes === null) return <p className="form__error">Não foi possível carregar os prémios desta atuação.</p>;
+  if (prizes === null) return <FieldError text="Não foi possível carregar os prémios desta atuação." alert={false} />;
 
   return (
     <section className="prize-manager" aria-label="Gerir os prémios desta atuação">
       <p className="eyebrow">Nesta atuação · gerir</p>
       {prizes.length === 0 ? (
-        <p className="note">Ainda sem prémios nesta atuação.</p>
+        <EmptyNote>Ainda sem prémios nesta atuação.</EmptyNote>
       ) : (
         <ul className="prize-manager__list">
           {prizes.map((p) => (
