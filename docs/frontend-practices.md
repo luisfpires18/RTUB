@@ -18,6 +18,7 @@ Code a beginner can read: one job per file, no file over 300 lines.
 | --- | --- |
 | `pages/` | One screen per route (the routes in `main.tsx`). |
 | `components/` | Pieces shared by screens: the shell (`App.tsx`, `MemberShell.tsx`), dialogs, `*Ui.tsx` helpers, `icons.tsx`. |
+| `components/ui/` | The shared building blocks every page uses: `PageHead`, `BackLink`, `EmptyState`, `Loading`, `Spinner`, `Banner`, `FormField`, `FieldError`, `DialogFooter`, `ConfirmDialog` / `AsyncConfirmDialog`, `Pager` / `TextPager`, `Segmented`, `Avatar`, `PersonChip`. |
 | `data/` | Saving and loading: `api.ts` (the fetch wrapper) and one `*Api.ts` per area, plus non-UI helpers and fixed content. |
 
 `main.tsx` (routes) stays at the root. Styles: `styles/NNN-area.css`, one file per area, each under 300 lines;
@@ -26,7 +27,9 @@ Code a beginner can read: one job per file, no file over 300 lines.
 ## Basics
 
 - The server is the authority. Every permission is checked by the `/api/*` endpoint; the UI only hides what the API refuses.
-- Reuse before writing: look in `components/` (`Dialog.tsx`, `Notice.tsx`, `icons.tsx`, the `*Ui.tsx` helpers),
+- The same UI piece is written once. Before writing markup, use the `components/ui/` piece for it; when a page really
+  needs something different, make it a new component (or a named variant), never a copy.
+- Reuse before writing: look in `components/ui/`, `components/` (`Dialog.tsx`, `Notice.tsx`, `icons.tsx`, the `*Ui.tsx` helpers),
   `data/` (`api.ts`: `call`, `queryString`, `outcomeText`; `format.ts`: euros, dates, search folding; `content.ts`:
   paths and `loginTo`) and the `styles.css` classes and variables before adding a component, a request or a style. One stylesheet, split by area under `styles/`; no inline styles where a class will do.
 - Every user-facing string is Portuguese (pt-PT).
