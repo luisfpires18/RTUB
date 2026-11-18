@@ -59,8 +59,6 @@ Task 117 (`chore/117/geocoding-single-request`, on top of 116): a members-map lo
 ## Deferred (recorded, not fixed)
 
 **Portal (left after phase 3)**
-- `data/musicApi.ts` keeps its own `call` and `Outcome` (adds `title`, `unavailable`); merging it into `data/api.ts`
-  changes every music page's error handling.
 - `EventManage`, `GalleryManage` and `MeetingDialogs` keep their own error sentences (formal "Tente"/"Entre", other
   rules); 17 notices with their own buttons stay hand-written. Tabs (4) and avatar images differ in class and size.
 
@@ -121,7 +119,6 @@ Task 117 (`chore/117/geocoding-single-request`, on top of 116): a members-map lo
 - `UserProfileService.UpdateProfilePictureAsync` deletes the old image before the upload succeeds.
 - `NewsEndpoints.cs` 403 title names system roles (API callers only; the portal shows its own message).
 - React `/roles` probes `GET /api/governance/manage`, logging a 403 console error for members without rights.
-- `icons.tsx` `apple` lists the same path twice (duplicate `key` warning, dev build only).
 - `portal/index.html` `theme-color` is `#000000`; the manifest says `#3F2A86`.
 - Portal `index.html` loads `/js/sw-register.js` unversioned: one visit after a deploy can run the old script.
 - `XpSettings` and `RankingConfiguration` both bind `Ranking`; equal level+XP keep SQLite's unordered order.
