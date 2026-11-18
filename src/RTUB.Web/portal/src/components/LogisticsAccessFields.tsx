@@ -4,6 +4,7 @@ import type { Assignee, Visibility } from '../data/logisticsApi';
 import { MemberPicker } from './LogisticsFields';
 import { PersonChip } from './ui/PersonChip';
 import { FieldError } from './ui/FieldError';
+import { EmptyNote } from './ui/EmptyNote';
 
 export type Person = { id: string; name: string; avatar: string | null };
 export const person = (a: Assignee): Person => ({ id: a.userId ?? '', name: a.displayName, avatar: a.avatarUrl });
@@ -66,7 +67,7 @@ export function AccessFields({
               ))}
             </div>
           ) : (
-            <p className="note">Ainda ninguém na lista de acesso.</p>
+            <EmptyNote>Ainda ninguém na lista de acesso.</EmptyNote>
           )}
           <MemberPicker label="Dar acesso a" exclude={members.map((m) => m.id)} onPick={(m) => setMembers([...members, { id: m.id, name: m.displayName, avatar: m.avatarUrl }])} />
           <FieldError text={errors.memberIds} />

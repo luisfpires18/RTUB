@@ -16,6 +16,7 @@ import { BoardNotice } from '../components/LogisticsBoardNotice';
 import { CalendarView } from '../components/LogisticsCalendar';
 import { Loading } from '../components/ui/Loading';
 import { Banner } from '../components/ui/Banner';
+import { EmptyBlock } from '../components/ui/EmptyNote';
 
 const VIEWS: { key: View; label: string; icon: 'kanban' | 'listOl' | 'calendar' }[] = [
   { key: 'board', label: 'Quadro', icon: 'kanban' },
@@ -246,17 +247,17 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
       {data.lists.length > 0 && <Summary all={allCards} shown={rows.length} filtering={filtering} />}
 
       {data.lists.length > 0 && view !== 'board' && filtering && rows.length === 0 ? (
-        <div className="lx-empty" role="status">
+        <EmptyBlock className="lx-empty" role="status">
           <p>Nenhum cartão corresponde aos filtros.</p>
           <button type="button" className="btn btn--ghost btn--sm" onClick={clear}>
             Limpar filtros
           </button>
-        </div>
+        </EmptyBlock>
       ) : data.lists.length > 0 && view === 'list' ? (
         rows.length === 0 ? (
-          <div className="lx-empty" role="status">
+          <EmptyBlock className="lx-empty" role="status">
             <p>Este quadro ainda não tem cartões.</p>
-          </div>
+          </EmptyBlock>
         ) : (
           <ListView rows={sortRows(rows, sort)} sort={sort} onSort={setSort} onOpen={(id) => setOpen({ kind: 'card', id })} />
         )

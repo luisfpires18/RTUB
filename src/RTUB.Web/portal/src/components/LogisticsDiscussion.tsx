@@ -8,6 +8,7 @@ import { Avatar } from './ui/Avatar';
 import { FieldError } from './ui/FieldError';
 import { Spinner } from './ui/Spinner';
 import { PersonChip } from './ui/PersonChip';
+import { EmptyNote } from './ui/EmptyNote';
 
 /** The discussion: plain text (never HTML), @mentions picked from members, Ctrl/⌘+Enter sends. */
 export function Discussion({ boardId, detail, apply, busy, errors }: { boardId: number; detail: CardDetail; apply: Apply; busy?: string; errors: Record<string, string> }) {
@@ -30,7 +31,7 @@ export function Discussion({ boardId, detail, apply, busy, errors }: { boardId: 
   return (
     <Section id={`${id}-talk`} title="Discussão" extra={detail.comments.length > 0 && <small>{detail.comments.length}</small>}>
       {detail.comments.length === 0 ? (
-        <p className="note">{detail.canWork ? 'Ainda sem comentários. Combine aqui os próximos passos.' : 'Ainda sem comentários.'}</p>
+        <EmptyNote>{detail.canWork ? 'Ainda sem comentários. Combine aqui os próximos passos.' : 'Ainda sem comentários.'}</EmptyNote>
       ) : (
         <ol className="lx-talk">
           {detail.comments.map((c: CardComment) => (

@@ -102,7 +102,7 @@ export default function Naipes() {
       ) : (
         <>
           {board.instruments.length === 0 ? (
-            <p className="notice">Ainda não há instrumentos visíveis.</p>
+            <EmptyNote className="notice">Ainda não há instrumentos visíveis.</EmptyNote>
           ) : (
             <ul className="naipe-picker" aria-label="Instrumentos">
               {board.instruments.map((i) => (
@@ -124,7 +124,7 @@ export default function Naipes() {
           {!board.instrument ? (
             <EmptyNote className="notice naipe-empty">Escolhe um instrumento para veres os vídeos e as imagens dele.</EmptyNote>
           ) : board.totalForInstrument === 0 ? (
-            <p className="notice naipe-empty">Ainda não há vídeos nem imagens de {chosen?.label ?? 'este instrumento'}. Podes ser o primeiro a juntar.</p>
+            <EmptyNote className="notice naipe-empty">Ainda não há vídeos nem imagens de {chosen?.label ?? 'este instrumento'}. Podes ser o primeiro a juntar.</EmptyNote>
           ) : (
             <>
               <label className="control naipe-search">
@@ -133,7 +133,7 @@ export default function Naipes() {
                 <input type="search" placeholder="Procurar no título ou na descrição" value={text} onChange={(e) => (setText(e.target.value), setPage(1))} />
               </label>
               {board.items.length === 0 ? (
-                <p className="notice naipe-empty">Nada encontrado para “{q}”.</p>
+                <EmptyNote className="notice naipe-empty">Nada encontrado para “{q}”.</EmptyNote>
               ) : (
                 <>
                   <ul className="naipe-grid">

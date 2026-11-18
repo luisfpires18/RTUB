@@ -4,6 +4,7 @@ import { Icon } from './icons';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, type CardDetail } from '../data/logisticsApi';
 import { FieldError } from './ui/FieldError';
+import { EmptyNote } from './ui/EmptyNote';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -37,7 +38,7 @@ export function Labels({ detail, apply, errors }: { detail: CardDetail; apply: A
           ))}
         </ul>
       ) : (
-        <p className="note">Sem etiquetas.</p>
+        <EmptyNote>Sem etiquetas.</EmptyNote>
       )}
       {detail.canManage && (
         <div className="lx-inline">

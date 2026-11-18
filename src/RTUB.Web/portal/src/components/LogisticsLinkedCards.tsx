@@ -4,6 +4,8 @@ import { Icon } from './icons';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, type Board, type CardDetail } from '../data/logisticsApi';
 import { FieldError } from './ui/FieldError';
+import { EmptyNote } from './ui/EmptyNote';
+import { IconAction } from './ui/IconAction';
 
 /** Links to other cards of this board ("Cartões ligados"), distinct from the attachments. */
 export function LinkedCards({ detail, board, apply, errors }: { detail: CardDetail; board: Board; apply: Apply; errors: Record<string, string> }) {
@@ -23,16 +25,13 @@ export function LinkedCards({ detail, board, apply, errors }: { detail: CardDeta
               <Icon name="kanban" />
               <span className="lx-files__name">{l.name}</span>
               {detail.canManage && (
-                <button type="button" className="icon-btn icon-btn--sm" onClick={() => apply(logisticsApi.setLinks(cardId, linked.filter((x) => x !== l.cardId)), 'cardIds', 'remover a ligação')}>
-                  <Icon name="trash" />
-                  <span className="sr-only">Desligar {l.name}</span>
-                </button>
+                <IconAction icon="trash" label={`Desligar ${l.name}`} onClick={() => apply(logisticsApi.setLinks(cardId, linked.filter((x) => x !== l.cardId)), 'cardIds', 'remover a ligação')} />
               )}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="note">Sem cartões ligados.</p>
+        <EmptyNote>Sem cartões ligados.</EmptyNote>
       )}
       {detail.canManage && others.length > 0 && (
         <div className="lx-inline">

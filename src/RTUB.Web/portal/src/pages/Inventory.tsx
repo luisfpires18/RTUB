@@ -9,6 +9,9 @@ import { Thumb, DetailDialog, DeleteDialog } from '../components/InventoryDialog
 import { FormDialog } from '../components/InventoryForm';
 import { Loading } from '../components/ui/Loading';
 import { PageHead } from '../components/ui/PageHead';
+import { ToolsBar, SearchField, SelectField } from '../components/ui/SearchTools';
+import { EmptyNote } from '../components/ui/EmptyNote';
+import { LoadMore } from '../components/ui/LoadMore';
 
 // manage. The server decides every rule (InstrumentInventoryService); hiding a button here is only a convenience.
 
@@ -84,40 +87,30 @@ export default function Inventory() {
             </dl>
           )}
 
-          <div className="events-tools" role="search">
-            <label className="control" htmlFor={ids.q}>
-              <span className="sr-only">Procurar instrumento</span>
-              <Icon name="search" />
-              <input id={ids.q} type="search" placeholder="Procurar por nome, tipo ou marca" value={text} onChange={(e) => setText(e.target.value)} />
-            </label>
-            <label className="control control--select" htmlFor={ids.category}>
-              <span className="sr-only">Tipo</span>
-              <select id={ids.category} value={category} onChange={(e) => setCategory(e.target.value)}>
-                <option value="">Todos os tipos</option>
-                {data.categories.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="control control--select" htmlFor={ids.condition}>
-              <span className="sr-only">Condição</span>
-              <select id={ids.condition} value={condition} onChange={(e) => setCondition(e.target.value)}>
-                <option value="">Todas as condições</option>
-                {data.conditions.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <ToolsBar>
+            <SearchField id={ids.q} label="Procurar instrumento" placeholder="Procurar por nome, tipo ou marca" value={text} onChange={setText} />
+            <SelectField id={ids.category} label="Tipo" value={category} onChange={setCategory}>
+              <option value="">Todos os tipos</option>
+              {data.categories.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </SelectField>
+            <SelectField id={ids.condition} label="Condição" value={condition} onChange={setCondition}>
+              <option value="">Todas as condições</option>
+              {data.conditions.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </SelectField>
+          </ToolsBar>
 
           {data.total === 0 ? (
-            <p className="note">Ainda não há instrumentos registados.</p>
+            <EmptyNote>Ainda não há instrumentos registados.</EmptyNote>
           ) : data.instruments.length === 0 ? (
-            <p className="note">Nenhum instrumento corresponde à pesquisa.</p>
+            <EmptyNote>Nenhum instrumento corresponde à pesquisa.</EmptyNote>
           ) : (
             <>
               <ul className="inventory-grid">
@@ -148,11 +141,7 @@ export default function Inventory() {
                   </li>
                 ))}
               </ul>
-              {data.instruments.length > shown && (
-                <button type="button" className="btn btn--ghost btn--sm members-more" onClick={() => setShown(shown + PAGE)}>
-                  Mostrar mais ({data.instruments.length - shown})
-                </button>
-              )}
+              <LoadMore remaining={data.instruments.length - shown} onMore={() => setShown(shown + PAGE)} />
             </>
           )}
 

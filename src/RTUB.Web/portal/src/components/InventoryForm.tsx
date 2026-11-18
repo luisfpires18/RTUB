@@ -68,7 +68,7 @@ export function FormDialog({
   if (form === undefined || form === 'failed') {
     return (
       <Dialog title="Editar instrumento" onClose={onClose}>
-        {form === undefined ? <Loading label="A carregar…" /> : <p className="form__banner">Não foi possível abrir este instrumento.</p>}
+        {form === undefined ? <Loading label="A carregar…" /> : <Banner role="none" text="Não foi possível abrir este instrumento." />}
       </Dialog>
     );
   }

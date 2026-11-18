@@ -7,6 +7,8 @@ import { FolderDialog, UploadDialog, DeleteDialog } from '../components/Document
 import { Loading } from '../components/ui/Loading';
 import { PageHead } from '../components/ui/PageHead';
 import { Banner } from '../components/ui/Banner';
+import { ToolsBar, SearchField, SelectField } from '../components/ui/SearchTools';
+import { EmptyNote } from '../components/ui/EmptyNote';
 
 /**
  * /documentation - Documentação. Signed-in members, Leitões excepted. The
@@ -85,31 +87,24 @@ export default function Documentation() {
         <Loading label="A carregar a documentação…" />
       ) : (
         <>
-          <div className="events-tools" role="search">
-            <label className="control" htmlFor={ids.q}>
-              <span className="sr-only">Procurar documento</span>
-              <Icon name="search" />
-              <input id={ids.q} type="search" placeholder="Procurar por documento ou pasta" value={text} onChange={(e) => setText(e.target.value)} />
-            </label>
-            <label className="control control--select" htmlFor={ids.year}>
-              <span className="sr-only">Ano letivo</span>
-              <select id={ids.year} value={data.fiscalYear} onChange={(e) => setFiscalYear(e.target.value)}>
-                {!data.fiscalYears.some((y) => y.value === data.fiscalYear) && <option value={data.fiscalYear}>{data.fiscalYear} (ATUAL)</option>}
-                {data.fiscalYears.map((y) => (
-                  <option key={y.value} value={y.value}>
-                    {y.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <ToolsBar>
+            <SearchField id={ids.q} label="Procurar documento" placeholder="Procurar por documento ou pasta" value={text} onChange={setText} />
+            <SelectField id={ids.year} label="Ano letivo" value={data.fiscalYear} onChange={setFiscalYear}>
+              {!data.fiscalYears.some((y) => y.value === data.fiscalYear) && <option value={data.fiscalYear}>{data.fiscalYear} (ATUAL)</option>}
+              {data.fiscalYears.map((y) => (
+                <option key={y.value} value={y.value}>
+                  {y.label}
+                </option>
+              ))}
+            </SelectField>
+          </ToolsBar>
 
           <Banner text={message} />
 
           {data.folders.length === 0 ? (
-            <p className="note">Este ano letivo ainda não tem pastas.</p>
+            <EmptyNote>Este ano letivo ainda não tem pastas.</EmptyNote>
           ) : folders.length === 0 ? (
-            <p className="note">Nenhum documento corresponde à pesquisa.</p>
+            <EmptyNote>Nenhum documento corresponde à pesquisa.</EmptyNote>
           ) : (
             <ul className="doc-folders">
               {folders.map((f) => {

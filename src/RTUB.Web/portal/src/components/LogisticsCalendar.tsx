@@ -4,6 +4,7 @@ import { Icon } from './icons';
 import { STATUS, type Card } from '../data/logisticsApi';
 import { day, lisbonToday } from '../data/format';
 import { dueDay, isLate, type Row } from '../data/logisticsRows';
+import { IconAction } from './ui/IconAction';
 
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -64,17 +65,11 @@ export function CalendarView({ rows, month, onMonth, onOpen }: { rows: Row[]; mo
   return (
     <section className="lx-cal" aria-label={`Calendário, ${label}`}>
       <div className="lx-cal__bar">
-        <button type="button" className="icon-btn icon-btn--sm" onClick={() => onMonth(shiftMonth(month, -1))}>
-          <Icon name="chevronLeft" />
-          <span className="sr-only">Mês anterior</span>
-        </button>
+        <IconAction icon="chevronLeft" label="Mês anterior" onClick={() => onMonth(shiftMonth(month, -1))} />
         <h2 className="lx-cal__title" aria-live="polite">
           {label}
         </h2>
-        <button type="button" className="icon-btn icon-btn--sm" onClick={() => onMonth(shiftMonth(month, 1))}>
-          <Icon name="chevronRight" />
-          <span className="sr-only">Mês seguinte</span>
-        </button>
+        <IconAction icon="chevronRight" label="Mês seguinte" onClick={() => onMonth(shiftMonth(month, 1))} />
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => onMonth(today.slice(0, 7))} disabled={month === today.slice(0, 7)}>
           Hoje
         </button>

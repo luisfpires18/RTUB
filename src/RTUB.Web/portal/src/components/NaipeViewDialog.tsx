@@ -10,6 +10,7 @@ import { Loading } from './ui/Loading';
 import { Avatar } from './ui/Avatar';
 import { FieldError } from './ui/FieldError';
 import { Spinner } from './ui/Spinner';
+import { EmptyNote } from './ui/EmptyNote';
 
 /** One item: the video or image, its description and numbers, and the comments. */
 export function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onClose: () => void; onChanged: () => void }) {
@@ -103,7 +104,7 @@ export function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onCl
           ) : comments === null ? (
             <p className="note">Não foi possível carregar os comentários.</p>
           ) : comments.length === 0 ? (
-            <p className="note">Ainda não há comentários.</p>
+            <EmptyNote>Ainda não há comentários.</EmptyNote>
           ) : (
             <ul className="naipe-comments__list">
               {comments.map((c) => (

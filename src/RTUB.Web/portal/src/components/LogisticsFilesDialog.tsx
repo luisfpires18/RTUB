@@ -6,6 +6,9 @@ import { logisticsApi, problem, type Board } from '../data/logisticsApi';
 import { FILE_TYPES, MAX_FILE, size } from '../data/logisticsFiles';
 import { Banner } from './ui/Banner';
 import { Spinner } from './ui/Spinner';
+import { EmptyNote } from './ui/EmptyNote';
+import { IconAction } from './ui/IconAction';
+import { CloseFooter } from './ui/DialogFooter';
 
 /** The board's files, shared by all its cards. Every member downloads; managers upload and delete. */
 export function FilesDialog({ board, onClose, onChanged }: { board: Board; onClose: () => void; onChanged: () => void }) {
@@ -49,18 +52,14 @@ export function FilesDialog({ board, onClose, onChanged }: { board: Board; onClo
     <Dialog
       title="Ficheiros do quadro"
       onClose={onClose}
-      footer={
-        <button type="button" className="btn btn--ghost" onClick={onClose}>
-          Fechar
-        </button>
-      }
+      footer={<CloseFooter onClose={onClose} />}
     >
       <p className="note">
         São os mesmos para todos os cartões e ficam com o quadro (mudar o nome ou o ano letivo não os perde). Os ficheiros de anos anteriores aparecem com o
         ano.
       </p>
       {files.length === 0 ? (
-        <p className="note">Ainda sem ficheiros.</p>
+        <EmptyNote>Ainda sem ficheiros.</EmptyNote>
       ) : (
         <ul className="lx-files">
           {files.map((f) => (
@@ -73,20 +72,14 @@ export function FilesDialog({ board, onClose, onChanged }: { board: Board; onClo
                   {f.year && ` · ${f.year}`}
                 </small>
               </span>
-              <button type="button" className="icon-btn icon-btn--sm" onClick={() => download(f.id)}>
-                <Icon name="download" />
-                <span className="sr-only">Descarregar {f.name}</span>
-              </button>
+              <IconAction icon="download" label={`Descarregar ${f.name}`} onClick={() => download(f.id)} />
               {board.canManage &&
                 (confirm === f.id ? (
                   <button type="button" className="btn btn--danger btn--sm" onClick={() => remove(f.id)} disabled={busy}>
                     Eliminar?
                   </button>
                 ) : (
-                  <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => setConfirm(f.id)}>
-                    <Icon name="trash" />
-                    <span className="sr-only">Eliminar {f.name}</span>
-                  </button>
+                  <IconAction icon="trash" label={`Eliminar ${f.name}`} onClick={() => setConfirm(f.id)} danger />
                 ))}
             </li>
           ))}

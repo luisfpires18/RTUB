@@ -7,6 +7,7 @@ import { FormField } from './ui/FormField';
 import { FieldError } from './ui/FieldError';
 import { PersonChip } from './ui/PersonChip';
 import type { Draft } from '../data/logisticsCardDraft';
+import { EmptyNote } from './ui/EmptyNote';
 
 /** Owner (manager picks; saved with the card's fields) and collaborators (managers add / remove, saved at once). */
 export function People({
@@ -40,12 +41,11 @@ export function People({
         ) : detail.assignedTo ? (
           person(detail.assignedTo.displayName, detail.assignedTo.avatarUrl)
         ) : (
-          <p className="note">Sem responsável.</p>
+          <EmptyNote>Sem responsável.</EmptyNote>
         )}
         <FieldError text={errors.assignedToUserId} />
       </FormField>
-      <div className="form__field">
-        <span className="form__label">Colaboradores</span>
+      <FormField id={`${id}-people-list`} label="Colaboradores" heading>
         {detail.assignments.length > 0 ? (
           <div className="chips">
             {detail.assignments.map((a, i) =>
@@ -63,7 +63,7 @@ export function People({
             )}
           </div>
         ) : (
-          <p className="note">Sem colaboradores.</p>
+          <EmptyNote>Sem colaboradores.</EmptyNote>
         )}
         {detail.canManage && (
           <MemberPicker
@@ -74,7 +74,7 @@ export function People({
           />
         )}
         <FieldError text={errors.userId} />
-      </div>
+      </FormField>
     </Section>
   );
 }
