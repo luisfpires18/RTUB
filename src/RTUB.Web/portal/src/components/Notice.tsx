@@ -50,6 +50,18 @@ export function ActionNotice({
   );
 }
 
+/** The message and one small ghost link to another page ("Ver a agenda"). */
+export function LinkNotice({ href, label, children }: { href: string; label: string; children: ReactNode }) {
+  return (
+    <div className="notice" role="status">
+      <p>{children}</p>
+      <a className="btn btn--ghost btn--sm" href={href}>
+        {label}
+      </a>
+    </div>
+  );
+}
+
 /** Loading failed: the message and a "Tentar novamente" button. */
 export function RetryNotice({ onRetry, id, alert, children }: { onRetry: () => void; id?: string; alert?: boolean; children: ReactNode }) {
   return (

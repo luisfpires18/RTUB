@@ -9,6 +9,7 @@ import { MemberBadge } from './MemberBadge';
 import { LOCKED_HINT, MIN_YEAR, MONTHS, problem } from '../data/memberFormState';
 import { Avatar } from './ui/Avatar';
 import type { Option } from '../data/sharedTypes';
+import { IconAction } from './ui/IconAction';
 
 export function MonthYear({
   label,
@@ -147,10 +148,7 @@ export function Instruments({
                 {i.label}
                 {i.primary && <MemberBadge kind="active">Principal</MemberBadge>}
               </label>
-              <button type="button" className="icon-btn icon-btn--danger" onClick={() => remove(i)} disabled={busy}>
-                <Icon name="trash" />
-                <span className="sr-only">Remover {i.label}</span>
-              </button>
+              <IconAction icon="trash" label={`Remover ${i.label}`} onClick={() => remove(i)} large danger disabled={busy} />
             </li>
           ))}
         </ul>

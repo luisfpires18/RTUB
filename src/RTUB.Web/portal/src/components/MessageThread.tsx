@@ -138,10 +138,7 @@ export function Thread({ id, onBack, onChanged, onRemoved }: { id: number; onBac
   return (
     <div className="chat-thread">
       <header className="chat-thread__head">
-        <button type="button" className="icon-btn chat-thread__back" onClick={onBack}>
-          <Icon name="arrowLeft" />
-          <span className="sr-only">Voltar às conversas</span>
-        </button>
+        <IconAction icon="arrowLeft" label="Voltar às conversas" onClick={onBack} large className="chat-thread__back" />
         <ChatFace kind={c.kind} avatarUrl={c.avatarUrl} size={40} />
         <div className="chat-thread__who">
           <h2 className="chat-thread__title">{c.title}</h2>
@@ -158,10 +155,7 @@ export function Thread({ id, onBack, onChanged, onRemoved }: { id: number; onBac
           <span className="sr-only">{c.muted ? 'Ativar o som desta conversa' : 'Silenciar esta conversa'}</span>
         </button>
         {c.kind === 'direct' && (
-          <button type="button" className="icon-btn icon-btn--danger" onClick={() => setRemoving('ask')} title="Remover conversa">
-            <Icon name="trash" />
-            <span className="sr-only">Remover conversa</span>
-          </button>
+          <IconAction icon="trash" label="Remover conversa" title="Remover conversa" onClick={() => setRemoving('ask')} large danger />
         )}
       </header>
 

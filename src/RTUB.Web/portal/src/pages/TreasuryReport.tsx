@@ -13,6 +13,7 @@ import { Banner } from '../components/ui/Banner';
 import { BackLink } from '../components/ui/BackLink';
 import { EmptyNote } from '../components/ui/EmptyNote';
 import { PageHead } from '../components/ui/PageHead';
+import { IconAction } from '../components/ui/IconAction';
 
 /**
  * /treasury/reports/{id} - one annual report. Treasury members:
@@ -87,10 +88,7 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
       <dt>{label}</dt>
       <dd className={tone === 'in' || (tone === 'sign' && value >= 0) ? 'tr-in' : 'tr-out'}>{euros(value)}</dd>
       {edit && editable && (
-        <button type="button" className="icon-btn icon-btn--sm tr-tile__edit" onClick={() => setBalance(edit)}>
-          <Icon name="pencil" />
-          <span className="sr-only">Editar {label}</span>
-        </button>
+        <IconAction icon="pencil" label={`Editar ${label}`} onClick={() => setBalance(edit)} className="tr-tile__edit" />
       )}
     </div>
   );

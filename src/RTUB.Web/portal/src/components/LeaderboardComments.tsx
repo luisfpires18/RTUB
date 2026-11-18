@@ -9,6 +9,7 @@ import { Icon } from './icons';
 import { type Comment, api, MAX_COMMENT, problem, ago } from '../data/leaderboardApi';
 import { Loading } from './ui/Loading';
 import { Avatar } from './ui/Avatar';
+import { IconAction } from './ui/IconAction';
 
 export function Comments({ memberId }: { memberId: string }) {
   const id = useId();
@@ -87,10 +88,7 @@ export function Comments({ memberId }: { memberId: string }) {
                 <strong>{c.authorName}</strong>
                 <small className="note">{ago(c.createdAt)}</small>
                 {c.canDelete && (
-                  <button type="button" className="icon-btn icon-btn--danger" onClick={() => setDeleting(c)}>
-                    <Icon name="trash" />
-                    <span className="sr-only">Eliminar comentário</span>
-                  </button>
+                  <IconAction icon="trash" label="Eliminar comentário" onClick={() => setDeleting(c)} large danger />
                 )}
               </span>
               <p className="leaderboard-comment__text">{c.text}</p>

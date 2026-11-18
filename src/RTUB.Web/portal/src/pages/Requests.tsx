@@ -1,14 +1,14 @@
 import { useEffect, useId, useState } from 'react';
 import { useLatest } from '../components/AppShared';
 import { portal } from '../data/content';
-import { Icon } from '../components/icons';
-import { RetryNotice, SignInNotice } from '../components/Notice';
+import { RetryNotice, SignInNotice, LinkNotice } from '../components/Notice';
 import { ConfirmAction } from '../components/RequestConfirm';
 import { CreateEventOffer, RequestDialog } from '../components/RequestDialogs';
 import { RequestGroup } from '../components/RequestGroup';
 import { type RequestItem, type RequestList, api } from '../data/requestsApi';
 import { Loading } from '../components/ui/Loading';
 import { PageHead } from '../components/ui/PageHead';
+import { SearchField, SelectField } from '../components/ui/SearchTools';
 
 /**
  * /requests - Gestão de Pedidos. The performance requests sent through the public
@@ -54,12 +54,7 @@ export default function Requests() {
       {data === 'signin' ? (
         <SignInNotice path={'/requests'}>Os pedidos são da área de membros.</SignInNotice>
       ) : data === 'forbidden' ? (
-        <div className="notice" role="status">
-          <p>Os pedidos de atuação não estão disponíveis para a tua categoria.</p>
-          <a className="btn btn--ghost btn--sm" href={portal.events}>
-            Ver a agenda
-          </a>
-        </div>
+        <LinkNotice href={portal.events} label="Ver a agenda">Os pedidos de atuação não estão disponíveis para a tua categoria.</LinkNotice>
       ) : data === null ? (
         <RetryNotice onRetry={load}>Não conseguimos abrir os pedidos agora.</RetryNotice>
       ) : !list ? (
@@ -67,37 +62,21 @@ export default function Requests() {
       ) : (
         <>
           <div className="events-tools" role="search">
-            <label className="control" htmlFor={ids.q}>
-              <span className="sr-only">Procurar pedidos</span>
-              <Icon name="search" />
-              <input
-                id={ids.q}
-                type="search"
-                placeholder="Nome, email, tipo de evento, local…"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
-            </label>
-            <label className="control control--select" htmlFor={ids.year}>
-              <span className="sr-only">Ano letivo</span>
-              <select id={ids.year} value={fiscalYear ?? list.fiscalYear} onChange={(e) => setFiscalYear(e.target.value)}>
-                <option value="">Todos os anos</option>
-                {list.fiscalYears.map((y) => (
-                  <option key={y.value} value={y.value}>
-                    {y.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="control control--select" htmlFor={ids.status}>
-              <span className="sr-only">Estado</span>
-              <select id={ids.status} value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="">Todos os estados</option>
-                <option value="pending">Pendentes</option>
-                <option value="confirmed">Aprovados</option>
-                <option value="rejected">Rejeitados</option>
-              </select>
-            </label>
+            <SearchField id={ids.q} label="Procurar pedidos" placeholder="Nome, email, tipo de evento, local…" value={text} onChange={setText} />
+            <SelectField id={ids.year} label="Ano letivo" value={fiscalYear ?? list.fiscalYear} onChange={setFiscalYear}>
+              <option value="">Todos os anos</option>
+              {list.fiscalYears.map((y) => (
+                <option key={y.value} value={y.value}>
+                  {y.label}
+                </option>
+              ))}
+            </SelectField>
+            <SelectField id={ids.status} label="Estado" value={status} onChange={setStatus}>
+              <option value="">Todos os estados</option>
+              <option value="pending">Pendentes</option>
+              <option value="confirmed">Aprovados</option>
+              <option value="rejected">Rejeitados</option>
+            </SelectField>
           </div>
 
           <RequestGroup title="Por responder" empty="Nenhum pedido por responder." items={list.pending} canManage={list.canManage} onOpen={setOpen} onAction={setAction} />

@@ -19,6 +19,10 @@ Task 124 (`chore/124/portal-data`, on top of 123): the portal's request helper (
 is imported from `data/api` everywhere (50 files went through `eventsApi`); one `queryString` (three hand-built copies
 gone; it now also takes numbers, booleans and null), `json` used by its three hand-written copies, one `Option` type in
 `data/sharedTypes.ts` (six copies), `fold` from `data/format.ts` (three copies). Same requests.
+Task 125 (`chore/125/ui-kit`, on top of 124): the UI kit leftovers that were exact copies. `IconAction` gained `large`
+(the 44 px button) and `className`; 43 hand-written icon buttons, 5 search fields and 7 selects use `IconAction` /
+`SearchField` / `SelectField`; new `LinkNotice` (`components/Notice.tsx`) for 3 notices with a link. Same elements,
+classes and attributes; a label written as text plus `{value}` is now one text node.
 
 Last: tasks 120-122 (PRs #326-#328, merged into `dev`): test hosts without the background workers and one copy of the
 test helpers (full suite 3 m 28 s → 2 m 11 s); report history in one query and seven push loops batched;
@@ -68,12 +72,19 @@ one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree
 - Same type name, different meaning: `PushResult` (`ownerApi.ts`, `push.ts`), `MemberDetail` (`leaderboardApi.ts`,
   `membersApi.ts`), `NoticeAudience` (`eventsTypes.ts`, `rehearsalsApi.ts`); the person shape is declared nine times.
 
-**UI kit (left after 119)**
+**UI kit (left after 125)**
 - Kept hand-written on purpose (different look or attributes): `lx-tabs`/`lx-views`/`news-tabs`/`playalong__group`
-  button groups, `pa-pager`, OwnerUi `Flash`/`SearchBox`, `span.control` fields, radio and `role="switch"` rows,
-  `form__label`-headed fields whose error has no id, MeetingAta required-marker fields, link-style icon actions.
-- Possible next kit additions: SelectField with an icon, SearchField `autoFocus`/extra class, IconAction as `<a>` and
-  with `aria-expanded`, a single-primary-button footer, DialogFooter keeping Cancelar enabled while busy.
+  button groups, `pa-pager`, OwnerUi `Flash`/`SearchBox`, 42 `span.control` fields, 45 standalone `form__hint` notes,
+  radio and `role="switch"` rows, `form__label`-headed fields whose error has no id, MeetingAta required-marker fields,
+  link-style icon actions.
+- Icon buttons still hand-written (16): five use `aria-label` instead of the hidden span (`EventDiscussionComments.tsx`,
+  `EventDiscussionLift.tsx`, `MeetingPollCreateDialog.tsx`, `RehearsalAttendees.tsx`), the menu buttons carry
+  `aria-expanded` / `aria-controls` / `ref`, four are `<a>`. Search fields with `autoFocus` or `aria-controls`
+  (`MeetingParticipantsDialog.tsx`, `MessageStart.tsx`, `FamilyTree.tsx`) and selects whose change handler does more
+  than set a value (`LogisticsBoardToolbar.tsx`, `Meetings.tsx`) stay too.
+- Not done: notices with an id or an icon (`EventDetail.tsx`, `NaipesConfig.tsx`), `MeetingPolls.tsx` "show all" notice,
+  two `form__check` checkboxes (`EventManageForm.tsx`, `Request.tsx`), `LogisticsCard.tsx` conflict banner, `TextPager`
+  in `ui/Pager.tsx` (one user).
 
 **Tests**
 - One host per integration test class (about 68 boots, about 7 s each alone). One shared host for the 28
@@ -200,5 +211,5 @@ one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 125 UI kit
-leftovers, 126 portal lazy loading, 127 CSS merges, 128 tests for money, permissions and push gaps.
+Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 126 portal lazy
+loading, 127 CSS merges, 128 tests for money, permissions and push gaps.

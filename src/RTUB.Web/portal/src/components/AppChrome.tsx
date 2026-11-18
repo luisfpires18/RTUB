@@ -7,6 +7,7 @@ import { releaseNotesApi, type ReleaseNote } from '../data/releaseNotesApi';
 import { MemberCategory, MemberDrawer, MemberIdentity, MemberInbox, type Member } from './MemberShell';
 import { navSections, sectionHref } from '../data/sections';
 import { useCurrentUser, ExternalLink } from './AppShared';
+import { IconAction } from './ui/IconAction';
 
 // ---------- chrome ----------
 
@@ -102,10 +103,7 @@ export function MobileMenu() {
       <dialog id="portal-menu" ref={dialog} className="menu" aria-label="Menu" onClose={() => setOpen(false)}>
         <div className="menu__top">
           <Brand />
-          <button type="button" className="icon-btn" onClick={hide}>
-            <Icon name="close" />
-            <span className="sr-only">Fechar menu</span>
-          </button>
+          <IconAction icon="close" label="Fechar menu" onClick={hide} large />
         </div>
         <nav aria-label="Menu principal">
           <ol className="menu__links">

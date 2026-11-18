@@ -9,6 +9,7 @@ import { Icon } from './icons';
 import { pendingActionsApi, type ActionButton, type ActionRow, type Answer, type InstrumentOption, type Panel } from '../data/pendingActionsApi';
 import { EMPTY_PANEL, DONE, EMPTY } from '../data/pendingActionsView';
 import { AnswerDialog, Row } from './PendingActionRows';
+import { IconAction } from './ui/IconAction';
 
 type PanelState = { panel: Panel; busy: boolean; failed: boolean; notice: string | null };
 
@@ -186,28 +187,12 @@ export function ActionPanel({
       )}
 
       <footer className="pa-pager">
-        <button
-          type="button"
-          className="icon-btn pa-pager__btn"
-          disabled={panel.page <= 1 || state.busy}
-          onClick={() => go(panel.filter, panel.page - 1)}
-        >
-          <Icon name="chevronLeft" />
-          <span className="sr-only">Página anterior de {panel.title}</span>
-        </button>
+        <IconAction icon="chevronLeft" label={`Página anterior de ${panel.title}`} onClick={() => go(panel.filter, panel.page - 1)} large className="pa-pager__btn" disabled={panel.page <= 1 || state.busy} />
         <span className="pa-pager__range" aria-live="polite">
           {panel.total === 0 ? '0' : `${from}–${to}`} de {panel.total}
           {last > 1 && <span className="pa-pager__pages"> · página {panel.page} de {last}</span>}
         </span>
-        <button
-          type="button"
-          className="icon-btn pa-pager__btn"
-          disabled={panel.page >= last || state.busy}
-          onClick={() => go(panel.filter, panel.page + 1)}
-        >
-          <Icon name="chevronRight" />
-          <span className="sr-only">Página seguinte de {panel.title}</span>
-        </button>
+        <IconAction icon="chevronRight" label={`Página seguinte de ${panel.title}`} onClick={() => go(panel.filter, panel.page + 1)} large className="pa-pager__btn" disabled={panel.page >= last || state.busy} />
       </footer>
 
       {calendar && <CalendarOfferDialog activity={calendar.activity} headline={calendar.headline} onClose={() => setCalendar(null)} />}

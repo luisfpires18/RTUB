@@ -12,6 +12,7 @@ import { Pager } from '../components/ui/Pager';
 import { BackLink } from '../components/ui/BackLink';
 import { PageHead } from '../components/ui/PageHead';
 import { Banner } from '../components/ui/Banner';
+import { SearchField, SelectField } from '../components/ui/SearchTools';
 
 /**
  * /meetings/polls: the Votações of the meeting bodies, open ones and closed ones in two paged grids. The server decides
@@ -116,23 +117,16 @@ export default function MeetingPolls() {
           )}
           {linked === null && (
           <div className="events-tools mtg-tools" role="search">
-            <label className="control" htmlFor={ids.q}>
-              <span className="sr-only">Pesquisar votações</span>
-              <Icon name="search" />
-              <input id={ids.q} type="search" placeholder="Pesquisar por pergunta..." value={text} onChange={(e) => setText(e.target.value)} />
-            </label>
+            <SearchField id={ids.q} label="Pesquisar votações" placeholder="Pesquisar por pergunta..." value={text} onChange={setText} />
             {audiences.length > 1 && (
-              <label className="control control--select" htmlFor={ids.audience}>
-                <span className="sr-only">Órgão</span>
-                <select id={ids.audience} value={audience} onChange={(e) => setAudience(e.target.value)}>
-                  <option value="all">Todos os órgãos</option>
-                  {audiences.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SelectField id={ids.audience} label="Órgão" value={audience} onChange={setAudience}>
+                <option value="all">Todos os órgãos</option>
+                {audiences.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </SelectField>
             )}
           </div>
           )}

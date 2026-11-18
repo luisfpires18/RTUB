@@ -10,6 +10,7 @@ import { FormField } from './ui/FormField';
 import { FieldError } from './ui/FieldError';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 import { EmptyNote } from './ui/EmptyNote';
+import { IconAction } from './ui/IconAction';
 
 // /api/shop/promotions: bundle offers ("3 CDs por 20 € em vez de 30 €"). Visitors see offers made of public products,
 // members all of them; Mod, Admin and Owner create, edit and delete. The server decides and validates everything.
@@ -87,14 +88,8 @@ export function PromotionsSection() {
                 <span className="note">Poupa {euros(p.normalPrice - p.price)}</span>
                 {data.canManage && (
                   <span className="shop-card__actions">
-                    <button type="button" className="icon-btn" onClick={() => setOpen({ kind: 'form', promo: p })}>
-                      <Icon name="pencil" />
-                      <span className="sr-only">Editar {p.name}</span>
-                    </button>
-                    <button type="button" className="icon-btn icon-btn--danger" onClick={() => setOpen({ kind: 'delete', promo: p })}>
-                      <Icon name="trash" />
-                      <span className="sr-only">Eliminar {p.name}</span>
-                    </button>
+                    <IconAction icon="pencil" label={`Editar ${p.name}`} onClick={() => setOpen({ kind: 'form', promo: p })} large />
+                    <IconAction icon="trash" label={`Eliminar ${p.name}`} onClick={() => setOpen({ kind: 'delete', promo: p })} large danger />
                   </span>
                 )}
               </div>
@@ -206,29 +201,15 @@ function PromotionForm({ promo, onClose, onSaved }: { promo?: Promo; onClose: ()
                       ))}
                   </select>
                 </span>
-                <button
-                  type="button"
-                  className="icon-btn icon-btn--danger"
-                  disabled={rows.length === 1}
-                  onClick={() => setRows((all) => all.filter((_, j) => j !== i))}
-                >
-                  <Icon name="trash" />
-                  <span className="sr-only">Remover produto {i + 1}</span>
-                </button>
+                <IconAction icon="trash" label={`Remover produto ${i + 1}`} onClick={() => setRows((all) => all.filter((_, j) => j !== i))} large danger disabled={rows.length === 1} />
               </div>
               <div className="promo-row__qty">
                 <span className="promo-stepper" role="group" aria-label={`Quantidade do produto ${i + 1}`}>
-                  <button type="button" className="icon-btn" disabled={r.quantity <= 1} onClick={() => setRow(i, { quantity: r.quantity - 1 })}>
-                    <Icon name="minus" />
-                    <span className="sr-only">Menos um</span>
-                  </button>
+                  <IconAction icon="minus" label="Menos um" onClick={() => setRow(i, { quantity: r.quantity - 1 })} large disabled={r.quantity <= 1} />
                   <output className="promo-stepper__value" aria-live="polite">
                     {r.quantity}
                   </output>
-                  <button type="button" className="icon-btn" disabled={r.quantity >= 99} onClick={() => setRow(i, { quantity: r.quantity + 1 })}>
-                    <Icon name="plus" />
-                    <span className="sr-only">Mais um</span>
-                  </button>
+                  <IconAction icon="plus" label="Mais um" onClick={() => setRow(i, { quantity: r.quantity + 1 })} large disabled={r.quantity >= 99} />
                 </span>
                 {r.productId > 0 && (
                   <span className="promo-row__sum">

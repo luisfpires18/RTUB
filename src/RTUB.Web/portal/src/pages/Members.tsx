@@ -12,6 +12,7 @@ import { MemberTools, type Tool, ToolDialog } from '../components/MemberTools';
 import { Loading } from '../components/ui/Loading';
 import { ToolsBar, SearchField, SelectField } from '../components/ui/SearchTools';
 import { EmptyNote } from '../components/ui/EmptyNote';
+import { IconAction } from '../components/ui/IconAction';
 
 const CATEGORIES = [
   { value: 'Leitao', label: 'Leitão' },
@@ -212,10 +213,7 @@ export default function Members() {
               ? (m, reload) => (
                   <>
                     {m.encourage && (
-                      <button type="button" className="icon-btn" onClick={() => setTool({ kind: 'reminder', member: m, reload })}>
-                        <Icon name="bell" />
-                        <span className="sr-only">Enviar lembrete push a {m.displayName}</span>
-                      </button>
+                      <IconAction icon="bell" label={`Enviar lembrete push a ${m.displayName}`} onClick={() => setTool({ kind: 'reminder', member: m, reload })} large />
                     )}
                   </>
                 )

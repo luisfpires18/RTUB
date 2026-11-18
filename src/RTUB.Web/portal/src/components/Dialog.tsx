@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
-import { Icon } from './icons';
+import { IconAction } from './ui/IconAction';
 
 /**
  * A native modal <dialog>, opened on mount: focus containment, Esc and an inert page come from the
@@ -45,10 +45,7 @@ export function Dialog({
         <h2 id={titleId} className="modal__title">
           {title}
         </h2>
-        <button type="button" className="icon-btn" onClick={onClose}>
-          <Icon name="close" />
-          <span className="sr-only">Fechar</span>
-        </button>
+        <IconAction icon="close" label="Fechar" onClick={onClose} large />
       </div>
       <div className="modal__body">{children}</div>
       {footer && <div className="modal__foot">{footer}</div>}

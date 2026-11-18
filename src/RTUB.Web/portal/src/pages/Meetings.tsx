@@ -11,6 +11,7 @@ import { Loading } from '../components/ui/Loading';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageHead } from '../components/ui/PageHead';
 import { IconAction } from '../components/ui/IconAction';
+import { SearchField } from '../components/ui/SearchTools';
 
 const UPCOMING_EMPTY =
   'Não existem reuniões agendadas no momento. As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos.';
@@ -192,11 +193,7 @@ export default function Meetings() {
       ) : (
         <>
           <div className="events-tools mtg-tools" role="search">
-            <label className="control" htmlFor={ids.q}>
-              <span className="sr-only">Pesquisar reuniões</span>
-              <Icon name="search" />
-              <input id={ids.q} type="search" placeholder="Pesquisar por título ou declaração..." value={text} onChange={(e) => setText(e.target.value)} />
-            </label>
+            <SearchField id={ids.q} label="Pesquisar reuniões" placeholder="Pesquisar por título ou declaração..." value={text} onChange={setText} />
             <label className="control control--select" htmlFor={ids.year}>
               <span className="sr-only">Ano</span>
               <select id={ids.year} value={selectedYear} onChange={(e) => setFy(e.target.value === data.currentFiscalYear ? null : e.target.value)}>

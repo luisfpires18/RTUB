@@ -10,6 +10,7 @@ import { FieldError } from './ui/FieldError';
 import { FormField, fieldProps } from './ui/FormField';
 import { Spinner } from './ui/Spinner';
 import { fold } from '../data/format';
+import { SearchField } from './ui/SearchTools';
 
 export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipient[]; onClose: () => void; onAsked: (id: number) => void }) {
   const id = useId();
@@ -73,17 +74,7 @@ export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipi
             </div>
           ) : (
             <>
-              <label className="control" htmlFor={`${id}-who`}>
-                <span className="sr-only">Procurar por nome, alcunha ou cargo</span>
-                <Icon name="search" />
-                <input
-                  id={`${id}-who`}
-                  type="search"
-                  placeholder="Nome, alcunha ou cargo…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </label>
+              <SearchField id={`${id}-who`} label="Procurar por nome, alcunha ou cargo" placeholder="Nome, alcunha ou cargo…" value={search} onChange={setSearch} />
               <ul className="qs-pick" aria-label="Membros dos Órgãos Sociais">
                 {found.map((r) => (
                   <li key={`${r.id}-${r.position}`}>

@@ -3,7 +3,7 @@ import { Icon } from './icons';
 import { PRIORITIES_URGENT_FIRST, PRIORITY, STATUS, STATUSES, type Board, type Priority, type Status } from '../data/logisticsApi';
 import type { Due, View } from '../data/logisticsBoardTypes';
 import type { Sort } from '../data/logisticsRows';
-import { SearchField } from './ui/SearchTools';
+import { SearchField, SelectField } from './ui/SearchTools';
 
 /** The board page search, status buttons, filters, order and list jump bar. */
 export function LogisticsBoardToolbar({
@@ -39,19 +39,16 @@ export function LogisticsBoardToolbar({
         Filtros{(who || prio || due || label) && ` (${[who, prio, due, label].filter(Boolean).length})`}
       </button>
       <div id={`${ids.who}-more`} className={moreFilters ? 'lx-toolbar__more lx-toolbar__more--open' : 'lx-toolbar__more'}>
-        <label className="control control--select control--sm" htmlFor={ids.who}>
-          <span className="sr-only">Responsável</span>
-          <select id={ids.who} value={who} onChange={(e) => setWho(e.target.value)}>
-            <option value="">Qualquer responsável</option>
-            <option value="mine">Os meus cartões</option>
-            <option value="none">Sem responsável</option>
-            {people.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField id={ids.who} label="Responsável" value={who} onChange={setWho} small>
+          <option value="">Qualquer responsável</option>
+          <option value="mine">Os meus cartões</option>
+          <option value="none">Sem responsável</option>
+          {people.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </SelectField>
         <label className="control control--select control--sm" htmlFor={ids.prio}>
           <span className="sr-only">Prioridade</span>
           <select id={ids.prio} value={prio} onChange={(e) => setPrio(e.target.value as Priority | '')}>
@@ -73,17 +70,14 @@ export function LogisticsBoardToolbar({
           </select>
         </label>
         {data.labels.length > 0 && (
-          <label className="control control--select control--sm" htmlFor={ids.label}>
-            <span className="sr-only">Etiqueta</span>
-            <select id={ids.label} value={label} onChange={(e) => setLabel(e.target.value)}>
-              <option value="">Todas as etiquetas</option>
-              {data.labels.map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField id={ids.label} label="Etiqueta" value={label} onChange={setLabel} small>
+            <option value="">Todas as etiquetas</option>
+            {data.labels.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </SelectField>
         )}
         {view === 'list' && (
           <label className="control control--select control--sm" htmlFor={ids.sort}>

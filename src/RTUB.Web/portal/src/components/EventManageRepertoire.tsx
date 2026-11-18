@@ -12,6 +12,7 @@ import { FieldError } from './ui/FieldError';
 import { AnswerActions } from './ui/AnswerActions';
 import { EmptyNote } from './ui/EmptyNote';
 import { SearchField } from './ui/SearchTools';
+import { IconAction } from './ui/IconAction';
 
 /**
  * The event's repertoire for Admin/Owner: one tab per day (the event's days
@@ -111,30 +112,9 @@ export function RepertoireManagerDialog({ event, onClose, onChanged }: { event: 
                   <li key={item.id} className="prize-manager__row">
                     <span className="repertoire-manager__pos">{i + 1}.</span>
                     <span className="prize-manager__name">{item.title}</span>
-                    <button type="button" className="icon-btn icon-btn--sm" onClick={() => move(i, -1)} disabled={busy || i === 0} title="Subir">
-                      <Icon name="up" />
-                      <span className="sr-only">Subir {item.title}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn icon-btn--sm"
-                      onClick={() => move(i, 1)}
-                      disabled={busy || i === current.items.length - 1}
-                      title="Descer"
-                    >
-                      <Icon name="down" />
-                      <span className="sr-only">Descer {item.title}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn icon-btn--sm icon-btn--danger"
-                      onClick={() => run(eventsApi.removeFromRepertoire(event.id, item.id))}
-                      disabled={busy}
-                      title="Tirar do repertório"
-                    >
-                      <Icon name="close" />
-                      <span className="sr-only">Tirar {item.title} do repertório</span>
-                    </button>
+                    <IconAction icon="up" label={`Subir ${item.title}`} title="Subir" onClick={() => move(i, -1)} disabled={busy || i === 0} />
+                    <IconAction icon="down" label={`Descer ${item.title}`} title="Descer" onClick={() => move(i, 1)} disabled={busy || i === current.items.length - 1} />
+                    <IconAction icon="close" label={`Tirar ${item.title} do repertório`} title="Tirar do repertório" onClick={() => run(eventsApi.removeFromRepertoire(event.id, item.id))} danger disabled={busy} />
                   </li>
                 ))}
               </ol>

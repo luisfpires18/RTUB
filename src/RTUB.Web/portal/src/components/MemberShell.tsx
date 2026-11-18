@@ -5,6 +5,7 @@ import { portal } from '../data/content';
 import { Icon, type IconName } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { unreadLabel, useUnread } from '../data/unread';
+import { IconAction } from './ui/IconAction';
 
 /**
  * The signed-in member shell: the header carries [inbox] [profile] [menu] on the right, and
@@ -173,10 +174,7 @@ export function MemberDrawer({ member }: { member?: Member }) {
         <div className="drawer__panel">
           <div className="drawer__top">
             <span className="drawer__title">Menu</span>
-            <button type="button" className="icon-btn" onClick={hide}>
-              <Icon name="close" />
-              <span className="sr-only">Fechar o menu</span>
-            </button>
+            <IconAction icon="close" label="Fechar o menu" onClick={hide} large />
           </div>
           <div className="drawer__menu">
             {member ? (

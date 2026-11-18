@@ -5,7 +5,7 @@ import { dateLabel, eventsApi, type EventContactRow, type EventContacts as Conta
 import { Icon } from '../components/icons';
 import { when } from '../components/EventDiscussionShared';
 import { fold } from '../data/format';
-import { Notice, SignInNotice } from '../components/Notice';
+import { Notice, SignInNotice, LinkNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
 import { Avatar } from '../components/ui/Avatar';
 import { BackLink } from '../components/ui/BackLink';
@@ -141,12 +141,7 @@ export default function EventContacts({ eventId }: { eventId: number }) {
       ) : list === 'signin' ? (
         <SignInNotice path={`/events/${eventId}/contacts`}>Os contactos são da área de membros.</SignInNotice>
       ) : list === 'forbidden' ? (
-        <div className="notice" role="status">
-          <p>Não tem acesso aos contactos desta atuação.</p>
-          <a className="btn btn--ghost btn--sm" href={portal.event(eventId)}>
-            Voltar à atuação
-          </a>
-        </div>
+        <LinkNotice href={portal.event(eventId)} label="Voltar à atuação">Não tem acesso aos contactos desta atuação.</LinkNotice>
       ) : list === null ? (
         <Notice>Não conseguimos abrir os contactos agora. Tenta outra vez daqui a pouco.</Notice>
       ) : (

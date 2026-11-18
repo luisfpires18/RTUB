@@ -8,6 +8,7 @@ import { Loading } from './ui/Loading';
 import { Avatar } from './ui/Avatar';
 import { FormField } from './ui/FormField';
 import { fold } from '../data/format';
+import { IconAction } from './ui/IconAction';
 
 export function DraftThread({ draft, onBack, onStarted }: { draft: Draft; onBack: () => void; onStarted: (id: number) => void }) {
   const [error, setError] = useState<string>();
@@ -31,10 +32,7 @@ export function DraftThread({ draft, onBack, onStarted }: { draft: Draft; onBack
   return (
     <div className="chat-thread">
       <header className="chat-thread__head">
-        <button type="button" className="icon-btn chat-thread__back" onClick={onBack}>
-          <Icon name="arrowLeft" />
-          <span className="sr-only">Voltar às conversas</span>
-        </button>
+        <IconAction icon="arrowLeft" label="Voltar às conversas" onClick={onBack} large className="chat-thread__back" />
         <ChatFace kind={group ? 'group' : 'direct'} avatarUrl={draft.people[0].avatarUrl} size={40} />
         <div className="chat-thread__who">
           <h2 className="chat-thread__title">{title}</h2>

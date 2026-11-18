@@ -8,6 +8,7 @@ import { QuestionDialog } from '../components/QuestionDialog';
 import { QuestionList } from '../components/QuestionList';
 import { Loading } from '../components/ui/Loading';
 import { PageHead } from '../components/ui/PageHead';
+import { SearchField, SelectField } from '../components/ui/SearchTools';
 
 /**
  * /questions - Perguntas aos Órgãos Sociais. Any signed-in member asks a question to
@@ -64,22 +65,15 @@ export default function Questions() {
       ) : (
         <>
           <div className="events-tools qs-tools" role="search">
-            <label className="control" htmlFor={ids.q}>
-              <span className="sr-only">Procurar perguntas</span>
-              <Icon name="search" />
-              <input id={ids.q} type="search" placeholder="Procurar perguntas…" value={text} onChange={(e) => setText(e.target.value)} />
-            </label>
-            <label className="control control--select" htmlFor={ids.who}>
-              <span className="sr-only">Para quem</span>
-              <select id={ids.who} value={recipient} onChange={(e) => setRecipient(e.target.value)}>
-                <option value="">Todos os membros</option>
-                {filterOptions.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SearchField id={ids.q} label="Procurar perguntas" placeholder="Procurar perguntas…" value={text} onChange={setText} />
+            <SelectField id={ids.who} label="Para quem" value={recipient} onChange={setRecipient}>
+              <option value="">Todos os membros</option>
+              {filterOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </SelectField>
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setAsking(true)}>
               <Icon name="plus" />
               Nova pergunta

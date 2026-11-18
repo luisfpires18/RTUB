@@ -12,6 +12,7 @@ import { Pager } from './ui/Pager';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 import { Banner } from './ui/Banner';
 import { IconAction } from './ui/IconAction';
+import { SelectField } from './ui/SearchTools';
 
 const REQUEST_PAGE_SIZES = [4, 8, 12, 16, 20];
 
@@ -91,15 +92,12 @@ export function RequestsSection({
         Pedidos de Reuniões
       </h2>
       <div className="mtg-requests__tools">
-        <label className="control control--select" htmlFor={ids.status}>
-          <span className="sr-only">Estado</span>
-          <select id={ids.status} value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Todos os Estados</option>
-            <option value="Pending">Pendente</option>
-            <option value="Confirmed">Aceite</option>
-            <option value="Rejected">Rejeitado</option>
-          </select>
-        </label>
+        <SelectField id={ids.status} label="Estado" value={status} onChange={setStatus}>
+          <option value="">Todos os Estados</option>
+          <option value="Pending">Pendente</option>
+          <option value="Confirmed">Aceite</option>
+          <option value="Rejected">Rejeitado</option>
+        </SelectField>
       </div>
 
       {success && (
