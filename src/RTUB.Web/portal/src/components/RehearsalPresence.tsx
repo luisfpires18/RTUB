@@ -7,6 +7,9 @@ import { Icon } from './icons';
 import { rehearsalsApi, presenceLabel, type MyAttendance } from '../data/rehearsalsApi';
 import { NOTES_MAX, problem, RehearsalLine } from './RehearsalShared';
 import { Loading } from './ui/Loading';
+import { FieldError } from './ui/FieldError';
+import { AnswerActions } from './ui/AnswerActions';
+import { FormField } from './ui/FormField';
 
 // ---------- the member's presença ----------
 
@@ -101,8 +104,7 @@ function PresenceForm({ data, onClose, onSaved }: { data: MyAttendance; onClose:
       </fieldset>
 
       {willAttend === true && data.instruments.length > 0 && (
-        <div className="form__field">
-          <label htmlFor={ids.instrument}>Instrumento</label>
+        <FormField id={ids.instrument} label="Instrumento">
           <span className="control control--select">
             <select id={ids.instrument} value={instrument} onChange={(e) => setInstrument(e.target.value)}>
               <option value="">{data.isLeitao ? 'Sem instrumento' : 'Não vou tocar'}</option>
@@ -113,7 +115,7 @@ function PresenceForm({ data, onClose, onSaved }: { data: MyAttendance; onClose:
               ))}
             </select>
           </span>
-        </div>
+        </FormField>
       )}
 
       {willAttend !== null && (
@@ -134,20 +136,8 @@ function PresenceForm({ data, onClose, onSaved }: { data: MyAttendance; onClose:
       )}
 
       {willAttend === true && data.status !== 'approved' && <p className="note">A presença fica pendente até ser confirmada no fim do ensaio.</p>}
-      {error && (
-        <p className="form__error" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="answer__actions">
-        <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-          Cancelar
-        </button>
-        <button type="submit" className="btn btn--primary" disabled={busy || willAttend === null}>
-          {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-          Guardar
-        </button>
-      </div>
+      <FieldError text={error} />
+      <AnswerActions cancelLabel="Cancelar" onCancel={onClose} label="Guardar" busy={busy} disabled={willAttend === null} />
     </form>
   );
 }
@@ -174,14 +164,7 @@ function RemovePresence({ data, onClose, onSaved }: { data: MyAttendance; onClos
         removê-la.
       </p>
       {error && <p className="form__error">{error}</p>}
-      <div className="answer__actions">
-        <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-          Manter
-        </button>
-        <button type="button" className="btn btn--danger" onClick={remove} disabled={busy}>
-          Remover a minha presença
-        </button>
-      </div>
+      <AnswerActions cancelLabel="Manter" onCancel={onClose} label="Remover a minha presença" onConfirm={remove} busy={busy} danger spinner={false} />
     </div>
   );
 }

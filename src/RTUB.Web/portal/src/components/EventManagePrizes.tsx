@@ -5,6 +5,7 @@ import { eventsApi, type EventPrize, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { failure } from './EventManageShared';
 import { Loading } from './ui/Loading';
+import { FieldError } from './ui/FieldError';
 
 /**
  * The event's prizes for Admin/Owner, inside the Prémios modal: rename or delete each one in
@@ -155,11 +156,7 @@ export function PrizeManager({ eventId, canAdd, onChanged }: { eventId: number; 
           </button>
         </form>
       )}
-      {error && (
-        <p className="form__error" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError text={error} />
     </section>
   );
 }

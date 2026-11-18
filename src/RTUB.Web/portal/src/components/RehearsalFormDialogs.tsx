@@ -5,6 +5,7 @@ import { Dialog } from './Dialog';
 import { today } from '../data/format';
 import { rehearsalsApi, type RehearsalSummary, type RehearsalInput } from '../data/rehearsalsApi';
 import { problem } from './RehearsalShared';
+import { FormField } from './ui/FormField';
 
 // ---------- Admin/Owner ----------
 
@@ -32,7 +33,6 @@ export function RehearsalFormDialog({ rehearsal, notes, onClose, onSaved }: { re
     onClose();
   };
 
-  const field = (key: keyof RehearsalInput) => (errors[key] ? 'form__field form__field--error' : 'form__field');
   const error = (key: string) => errors[key] && <p className="form__error">{errors[key]}</p>;
 
   return (
@@ -52,32 +52,22 @@ export function RehearsalFormDialog({ rehearsal, notes, onClose, onSaved }: { re
     >
       <form id="rehearsal-form" className="form" onSubmit={submit} noValidate>
         {!rehearsal && (
-          <div className={field('date')}>
-            <label htmlFor={ids.date}>Data</label>
+          <FormField id={ids.date} label="Data" error={errors.date}>
             <input id={ids.date} type="date" value={form.date} onChange={(e) => set({ date: e.target.value })} />
-            {error('date')}
-          </div>
+          </FormField>
         )}
-        <div className={field('location')}>
-          <label htmlFor={ids.location}>Local</label>
+        <FormField id={ids.location} label="Local" error={errors.location}>
           <input id={ids.location} maxLength={200} value={form.location} onChange={(e) => set({ location: e.target.value })} />
-          {error('location')}
-        </div>
-        <div className={field('theme')}>
-          <label htmlFor={ids.theme}>Tema (opcional)</label>
+        </FormField>
+        <FormField id={ids.theme} label="Tema (opcional)" error={errors.theme}>
           <input id={ids.theme} maxLength={500} value={form.theme} onChange={(e) => set({ theme: e.target.value })} />
-          {error('theme')}
-        </div>
-        <div className={field('description')}>
-          <label htmlFor={ids.description}>Descrição (opcional)</label>
+        </FormField>
+        <FormField id={ids.description} label="Descrição (opcional)" error={errors.description}>
           <textarea id={ids.description} rows={2} maxLength={1000} value={form.description} onChange={(e) => set({ description: e.target.value })} />
-          {error('description')}
-        </div>
-        <div className={field('notes')}>
-          <label htmlFor={ids.notes}>Notas (opcional)</label>
+        </FormField>
+        <FormField id={ids.notes} label="Notas (opcional)" error={errors.notes}>
           <textarea id={ids.notes} rows={3} maxLength={1000} value={form.notes} onChange={(e) => set({ notes: e.target.value })} />
-          {error('notes')}
-        </div>
+        </FormField>
         <p className="note">Os ensaios são das 21:30 à meia-noite.</p>
         {error('form')}
       </form>
@@ -137,22 +127,16 @@ export function RangeDialog({ onClose, onSaved }: { onClose: () => void; onSaved
       ) : (
         <form id="range-form" className="form" onSubmit={submit} noValidate>
           <div className="talk__lift-fields range-fields">
-            <div className={errors.from ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor={ids.from}>De</label>
+            <FormField id={ids.from} label="De" error={errors.from}>
               <input id={ids.from} type="date" min={today()} value={form.from} onChange={(e) => set({ from: e.target.value })} />
-              {error('from')}
-            </div>
-            <div className={errors.to ? 'form__field form__field--error' : 'form__field'}>
-              <label htmlFor={ids.to}>Até</label>
+            </FormField>
+            <FormField id={ids.to} label="Até" error={errors.to}>
               <input id={ids.to} type="date" min={form.from} value={form.to} onChange={(e) => set({ to: e.target.value })} />
-              {error('to')}
-            </div>
+            </FormField>
           </div>
-          <div className={errors.location ? 'form__field form__field--error' : 'form__field'}>
-            <label htmlFor={ids.location}>Local</label>
+          <FormField id={ids.location} label="Local" error={errors.location}>
             <input id={ids.location} maxLength={200} value={form.location} onChange={(e) => set({ location: e.target.value })} />
-            {error('location')}
-          </div>
+          </FormField>
           <div className="form__field">
             <label htmlFor={ids.theme}>Tema (opcional)</label>
             <input id={ids.theme} maxLength={500} value={form.theme} onChange={(e) => set({ theme: e.target.value })} />

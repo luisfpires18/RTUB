@@ -3,6 +3,7 @@
 import type { EventParticipant } from '../data/eventsApi';
 import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
+import { Avatar } from './ui/Avatar';
 
 /** "Quem vai" before and during an event, "Quem foi" once it is over. */
 const whoLabel = (past: boolean) => (past ? 'Quem foi' : 'Quem vai');
@@ -65,7 +66,7 @@ function People({ people }: { people: EventParticipant[] }) {
     <ul className="who">
       {people.map((p, i) => (
         <li key={i} className="who__person" title={p.fullName ?? undefined}>
-          <img className="who__avatar" src={p.avatarUrl} alt="" loading="lazy" width="72" height="72" />
+          <Avatar className="who__avatar" src={p.avatarUrl} size={72} />
           <p className="who__name">{p.name}</p>
           {p.badge && <MemberBadge kind={badgeKind(p.badge)}>{p.badge}</MemberBadge>}
           {p.instrument && <p className="who__meta">{p.instrument}</p>}

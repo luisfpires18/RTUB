@@ -4,6 +4,7 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import type { EventAuthor, EventPost, Outcome } from '../data/eventsApi';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { outcomeText } from '../data/api';
+import { Avatar } from './ui/Avatar';
 
 export const BODY_MAX = 5000;
 export const COMMENT_MAX = 2000;
@@ -49,7 +50,7 @@ export const showsTitle = (p: EventPost) => !p.body.replace(/\s+/g, ' ').trim().
 export function Who({ author, at, edited, children }: { author: EventAuthor; at: string; edited: boolean; children?: ReactNode }) {
   return (
     <header className="talk__who">
-      <img className="talk__avatar" src={author.avatarUrl} alt="" loading="lazy" width="44" height="44" />
+      <Avatar className="talk__avatar" src={author.avatarUrl} size={44} />
       <div className="talk__meta">
         <p className="talk__name" title={author.fullName ?? undefined}>
           {author.name}

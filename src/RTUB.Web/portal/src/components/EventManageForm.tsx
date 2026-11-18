@@ -9,6 +9,9 @@ import { today } from '../data/format';
 import { MAX_SOURCE_BYTES, EVENT_IMAGE, blank, fromEdit, type Form } from '../data/eventFormDraft';
 import { failure } from './EventManageShared';
 import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
+import { AnswerActions } from './ui/AnswerActions';
+import { FormField } from './ui/FormField';
 
 /**
  * Create (no `eventId`) or edit one event, with its optional image (cropped 3:2 in the browser,
@@ -114,11 +117,9 @@ export function EventFormDialog({
         <p>Não foi possível abrir esta atuação para editar.</p>
       ) : (
         <form className="form event-form" onSubmit={submit} noValidate>
-          <div className={field('name')}>
-            <label htmlFor={ids.name}>Nome</label>
+          <FormField id={ids.name} label="Nome" error={errors.name}>
             <input id={ids.name} type="text" maxLength={200} required value={form.name} onChange={(e) => set({ name: e.target.value })} />
-            {error('name')}
-          </div>
+          </FormField>
 
           <label className="form__check" htmlFor={ids.multi}>
             <input
@@ -137,17 +138,13 @@ export function EventFormDialog({
               {error('date')}
             </div>
             {form.multiDay ? (
-              <div className={field('endDate')}>
-                <label htmlFor={ids.end}>Último dia</label>
+              <FormField id={ids.end} label="Último dia" error={errors.endDate}>
                 <input id={ids.end} type="date" min={form.date} value={form.endDate ?? ''} onChange={(e) => set({ endDate: e.target.value })} />
-                {error('endDate')}
-              </div>
+              </FormField>
             ) : (
-              <div className={field('time')}>
-                <label htmlFor={ids.time}>Hora</label>
+              <FormField id={ids.time} label="Hora" error={errors.time}>
                 <input id={ids.time} type="time" value={form.time ?? ''} onChange={(e) => set({ time: e.target.value })} />
-                {error('time')}
-              </div>
+              </FormField>
             )}
           </div>
           {form.date && form.date < today() && (!form.multiDay || !form.endDate || form.endDate < today()) && (
@@ -155,13 +152,10 @@ export function EventFormDialog({
           )}
 
           <div className="form__row">
-            <div className={field('location')}>
-              <label htmlFor={ids.location}>Local</label>
+            <FormField id={ids.location} label="Local" error={errors.location}>
               <input id={ids.location} type="text" maxLength={200} value={form.location} onChange={(e) => set({ location: e.target.value })} />
-              {error('location')}
-            </div>
-            <div className={field('type')}>
-              <label htmlFor={ids.type}>Tipo</label>
+            </FormField>
+            <FormField id={ids.type} label="Tipo" error={errors.type}>
               <span className="control control--select">
                 <select id={ids.type} value={form.type} onChange={(e) => set({ type: e.target.value })}>
                   {types.map((t) => (
@@ -171,15 +165,12 @@ export function EventFormDialog({
                   ))}
                 </select>
               </span>
-              {error('type')}
-            </div>
+            </FormField>
           </div>
 
-          <div className={field('description')}>
-            <label htmlFor={ids.description}>Descrição (só membros a veem)</label>
+          <FormField id={ids.description} label="Descrição (só membros a veem)" error={errors.description}>
             <textarea id={ids.description} rows={4} maxLength={2000} value={form.description} onChange={(e) => set({ description: e.target.value })} />
-            {error('description')}
-          </div>
+          </FormField>
 
           <label className="form__check" htmlFor={ids.membersOnly}>
             <input id={ids.membersOnly} type="checkbox" checked={form.membersOnly} onChange={(e) => set({ membersOnly: e.target.checked })} />
@@ -238,21 +229,9 @@ export function EventFormDialog({
 
           {savedId === undefined && <p className="form__hint">Ao guardar, os membros recebem uma notificação da nova atuação.</p>}
 
-          {banner && (
-            <p className="form__banner" role="alert">
-              {banner}
-            </p>
-          )}
+          <Banner text={banner} />
 
-          <div className="answer__actions">
-            <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn--primary" disabled={busy}>
-              {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-              {savedId === undefined ? 'Adicionar' : 'Guardar'}
-            </button>
-          </div>
+          <AnswerActions cancelLabel="Cancelar" onCancel={onClose} label={savedId === undefined ? 'Adicionar' : 'Guardar'} busy={busy} />
         </form>
       )}
     </Dialog>

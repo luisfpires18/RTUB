@@ -7,6 +7,9 @@ import { portal } from '../data/content';
 import { eventsApi, dateLabel, timeLabel, type EventSummary, type EventEnrollment } from '../data/eventsApi';
 import { Icon } from './icons';
 import { Loading } from './ui/Loading';
+import { FieldError } from './ui/FieldError';
+import { AnswerActions } from './ui/AnswerActions';
+import { FormField } from './ui/FormField';
 
 const NOTES_MAX = 1000;
 
@@ -166,8 +169,7 @@ function AnswerForm({
       </fieldset>
 
       {choice.willAttend === true && options.length > 0 && (
-        <div className="form__field">
-          <label htmlFor={ids.instrument}>Instrumento</label>
+        <FormField id={ids.instrument} label="Instrumento">
           <span className="control control--select">
             <select id={ids.instrument} value={choice.instrument} onChange={(e) => setChoice((c) => ({ ...c, instrument: e.target.value }))}>
               <option value="">{enrollment.isLeitao ? 'Sem instrumento' : 'Não vou tocar'}</option>
@@ -178,7 +180,7 @@ function AnswerForm({
               ))}
             </select>
           </span>
-        </div>
+        </FormField>
       )}
 
       {choice.willAttend !== null && (
@@ -198,21 +200,9 @@ function AnswerForm({
         </details>
       )}
 
-      {error && (
-        <p className="form__error" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError text={error} />
 
-      <div className="answer__actions">
-        <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-          Cancelar
-        </button>
-        <button type="submit" className="btn btn--primary" disabled={busy || choice.willAttend === null}>
-          {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-          Guardar
-        </button>
-      </div>
+      <AnswerActions cancelLabel="Cancelar" onCancel={onClose} label="Guardar" busy={busy} disabled={choice.willAttend === null} />
     </form>
   );
 }
@@ -246,20 +236,8 @@ function Withdraw({
   return (
     <div className="answer">
       <p>A tua inscrição diz que foste. Se afinal não foste, podes retirá-la.</p>
-      {failed && (
-        <p className="form__error" role="alert">
-          Não foi possível retirar. Tenta outra vez daqui a pouco.
-        </p>
-      )}
-      <div className="answer__actions">
-        <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-          Manter
-        </button>
-        <button type="button" className="btn btn--danger" onClick={remove} disabled={busy}>
-          {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-          Retirar inscrição
-        </button>
-      </div>
+      {failed && <FieldError text="Não foi possível retirar. Tenta outra vez daqui a pouco." />}
+      <AnswerActions cancelLabel="Manter" onCancel={onClose} label="Retirar inscrição" onConfirm={remove} busy={busy} danger />
     </div>
   );
 }

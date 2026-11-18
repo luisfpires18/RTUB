@@ -3,6 +3,9 @@ import { useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { type ActionButton, type ActionRow, type Answer, type InstrumentOption } from '../data/pendingActionsApi';
 import { NOTES_MAX, rowDate } from '../data/pendingActionsView';
+import { FieldError } from './ui/FieldError';
+import { AnswerActions } from './ui/AnswerActions';
+import { FormField } from './ui/FormField';
 
 /** Vou / Fui with a choice of instrument (and an optional note), as on the module pages. Cancelling sends nothing. */
 export function AnswerDialog({
@@ -38,8 +41,7 @@ export function AnswerDialog({
   return (
     <Dialog title={`${label}: ${row.title}`} onClose={onClose}>
       <form className="answer" onSubmit={submit}>
-        <div className="form__field">
-          <label htmlFor={ids.instrument}>Instrumento</label>
+        <FormField id={ids.instrument} label="Instrumento">
           <span className="control control--select">
             <select id={ids.instrument} value={instrument} onChange={(e) => setInstrument(e.target.value)}>
               <option value="">Sem instrumento</option>
@@ -50,25 +52,12 @@ export function AnswerDialog({
               ))}
             </select>
           </span>
-        </div>
-        <div className="form__field">
-          <label htmlFor={ids.notes}>Nota (opcional)</label>
+        </FormField>
+        <FormField id={ids.notes} label="Nota (opcional)">
           <textarea id={ids.notes} rows={2} maxLength={NOTES_MAX[row.kind] ?? 500} value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </div>
-        {error && (
-          <p className="form__error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="answer__actions">
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Confirmar
-          </button>
-        </div>
+        </FormField>
+        <FieldError text={error ?? undefined} />
+        <AnswerActions cancelLabel="Cancelar" onCancel={onClose} label="Confirmar" busy={busy} />
       </form>
     </Dialog>
   );

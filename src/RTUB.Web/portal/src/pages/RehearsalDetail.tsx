@@ -1,6 +1,6 @@
 import { rehearsalActivity, CalendarOfferDialog } from '../components/CalendarOffer';
 import { useEffect, useState } from 'react';
-import { loginTo } from '../data/content';
+import { Notice, SignInNotice } from '../components/Notice';
 import { weekday, dateLabel, type Outcome } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { rehearsalsApi, type RehearsalDetail as Detail } from '../data/rehearsalsApi';
@@ -10,6 +10,8 @@ import { PresencePill } from '../components/RehearsalShared';
 import { RehearsalFormDialog } from '../components/RehearsalFormDialogs';
 import { Counts, Group, AddAttendee } from '../components/RehearsalAttendees';
 import { Loading } from '../components/ui/Loading';
+import { AnswerActions } from '../components/ui/AnswerActions';
+import { BackLink } from '../components/ui/BackLink';
 
 /**
  * /rehearsals/{id} - one rehearsal: its details, the member's own presença and everyone's
@@ -44,10 +46,7 @@ export default function RehearsalDetail({ rehearsalId }: { rehearsalId: number }
   };
 
   const back = (
-    <a className="back-link" href="/rehearsals">
-      <Icon name="arrow" />
-      Ensaios
-    </a>
+    <BackLink href="/rehearsals">Ensaios</BackLink>
   );
 
   if (detail === undefined) return <section className="page wrap">{back}<Loading label="A carregar o ensaio…" /></section>;
@@ -55,19 +54,11 @@ export default function RehearsalDetail({ rehearsalId }: { rehearsalId: number }
     return (
       <section className="page wrap">
         {back}
-        <div className="notice" role="status">
-          {detail === 'signin' ? (
-            <>
-              <p>Os ensaios são da área de membros.</p>
-              <a className="btn btn--primary btn--sm" href={loginTo(`/rehearsals/${rehearsalId}`)}>
-                <Icon name="login" />
-                Entrar
-              </a>
-            </>
-          ) : (
-            <p>{detail === 'missing' ? 'Este ensaio não existe ou já foi apagado.' : 'Não conseguimos abrir este ensaio agora.'}</p>
-          )}
-        </div>
+        {detail === 'signin' ? (
+          <SignInNotice path={`/rehearsals/${rehearsalId}`}>Os ensaios são da área de membros.</SignInNotice>
+        ) : (
+          <Notice>{detail === 'missing' ? 'Este ensaio não existe ou já foi apagado.' : 'Não conseguimos abrir este ensaio agora.'}</Notice>
+        )}
       </section>
     );
   }
@@ -122,22 +113,18 @@ export default function RehearsalDetail({ rehearsalId }: { rehearsalId: number }
               ? `Apagar o ensaio de ${day}? As presenças vão com ele. Não dá para desfazer.`
               : 'Reativar este ensaio? As presenças removidas no cancelamento não voltam.'}
           </p>
-          <div className="answer__actions">
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirm(undefined)}>
-              Não
-            </button>
-            <button
-              type="button"
-              className={confirm === 'delete' ? 'btn btn--danger btn--sm' : 'btn btn--primary btn--sm'}
-              onClick={() =>
-                confirm === 'delete'
-                  ? act(rehearsalsApi.remove(r.id), () => location.assign('/rehearsals'))
-                  : act(rehearsalsApi.reactivate(r.id), () => load(true))
-              }
-            >
-              {confirm === 'delete' ? 'Apagar' : 'Reativar'}
-            </button>
-          </div>
+          <AnswerActions
+            cancelLabel="Não"
+            onCancel={() => setConfirm(undefined)}
+            label={confirm === 'delete' ? 'Apagar' : 'Reativar'}
+            onConfirm={() =>
+              confirm === 'delete'
+                ? act(rehearsalsApi.remove(r.id), () => location.assign('/rehearsals'))
+                : act(rehearsalsApi.reactivate(r.id), () => load(true))
+            }
+            danger={confirm === 'delete'}
+            small
+          />
         </div>
       )}
       {error && <p className="form__error">{error}</p>}
