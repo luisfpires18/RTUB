@@ -75,7 +75,4 @@ public class Album : BaseEntity
     {
         return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
     }
-
-    // Property alias for backward compatibility
-    public string CoverImageSrc => GetCoverImageSource();
 }

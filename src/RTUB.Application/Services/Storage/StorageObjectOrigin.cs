@@ -75,12 +75,6 @@ public sealed class StorageOriginResolver
     public static StorageOriginResolver FromConfiguration(IConfiguration configuration) =>
         new(configuration[CurrentPublicUrlKey], configuration[ReferencePublicUrlKey]);
 
-    /// <summary>Whether a production reference origin is configured at all.</summary>
-    public bool HasReferenceOrigin => _referenceOrigin != null;
-
-    /// <summary>The normalized production reference origin, or null. Used by the CSP builder.</summary>
-    public string? ReferenceOrigin => _referenceOrigin;
-
     /// <summary>
     /// Classifies a stored URL. Anything that is not an absolute http/https URL - a bare object
     /// key, a relative path, null - is <see cref="StorageObjectOrigin.Unknown"/>, not "ours".

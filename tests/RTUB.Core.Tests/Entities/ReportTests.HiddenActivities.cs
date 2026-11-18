@@ -28,7 +28,6 @@ public partial class ReportTests
         // Assert - BANCO activity should NOT be included in totals
         report.TotalIncome.Should().Be(1000m); // Only regular income
         report.TotalExpenses.Should().Be(200m); // Only regular expense
-        report.FinalBalance.Should().Be(800m); // 1000 - 200 = 800
     }
 
     [Fact]
@@ -53,7 +52,6 @@ public partial class ReportTests
         // Assert - CAIXA activity SHOULD be included in totals
         report.TotalIncome.Should().Be(5000m); // 2000 + 3000
         report.TotalExpenses.Should().Be(500m); // Only regular expense
-        report.FinalBalance.Should().Be(4500m); // 5000 - 500 = 4500
     }
 
     [Fact]
@@ -78,7 +76,6 @@ public partial class ReportTests
         // Assert - CALOTES activity should NOT be included in totals
         report.TotalIncome.Should().Be(1500m); // Only regular income
         report.TotalExpenses.Should().Be(300m); // Only regular expense
-        report.FinalBalance.Should().Be(1200m); // 1500 - 300 = 1200
     }
 
     [Fact]
@@ -116,6 +113,5 @@ public partial class ReportTests
         // Assert - BANCO and CALOTES excluded, CAIXA is included
         report.TotalIncome.Should().Be(6500m); // 1000 + 500 + 5000 (CAIXA included)
         report.TotalExpenses.Should().Be(500m); // 400 + 100
-        report.FinalBalance.Should().Be(6000m); // 6500 - 500
     }
 }

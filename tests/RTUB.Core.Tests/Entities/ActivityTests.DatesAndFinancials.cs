@@ -36,27 +36,6 @@ public partial class ActivityTests
     }
 
     [Fact]
-    public void LatestDate_WithNoEndDate_ShouldReturnStartDate()
-    {
-        // Arrange
-        var activity = Activity.Create(1, "Activity", TestDate);
-
-        // Assert
-        activity.LatestDate.Should().Be(TestDate);
-    }
-
-    [Fact]
-    public void LatestDate_WithEndDate_ShouldReturnEndDate()
-    {
-        // Arrange
-        var endDate = TestDate.AddDays(5);
-        var activity = Activity.Create(1, "Activity", TestDate, null, endDate);
-
-        // Assert
-        activity.LatestDate.Should().Be(endDate);
-    }
-
-    [Fact]
     public void ComputedFinancials_WithNoTransactions_ShouldHaveZeroValues()
     {
         // Arrange

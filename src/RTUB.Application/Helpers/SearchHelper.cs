@@ -153,9 +153,4 @@ public class SearchHelper<T>
         _lastCaseSensitive = false;
         _lastAccentSensitive = false;
     }
-
-    /// <summary>
-    /// Checks if a search is currently active
-    /// </summary>
-    public bool IsSearching => !string.IsNullOrWhiteSpace(SearchTerm);
 }

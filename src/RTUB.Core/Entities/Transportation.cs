@@ -27,12 +27,6 @@ public class Transportation : BaseEntity
     public virtual Post Post { get; set; } = null!;
     public virtual ICollection<TransportationPassenger> Passengers { get; set; } = new List<TransportationPassenger>();
 
-    /// <summary>Number of passengers currently registered.</summary>
-    public int OccupiedSeats => Passengers.Count;
-
-    /// <summary>Remaining available seats.</summary>
-    public int AvailableSeats => TotalSeats - Passengers.Count;
-
     public static Transportation Create(int postId, string vehicleDescription, int totalSeats, string? notes = null)
     {
         if (postId <= 0) throw new ArgumentException("Post ID must be positive", nameof(postId));

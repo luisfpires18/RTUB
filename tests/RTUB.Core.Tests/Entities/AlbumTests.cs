@@ -114,18 +114,6 @@ public class AlbumTests
     }
 
     [Fact]
-    public void CoverImageSrc_UsesGetCoverImageSource()
-    {
-        // Arrange
-        var album = Album.Create("Test Album", 2020);
-        var url = "https://example.com/cover.jpg";
-        album.SetCoverImage(url);
-
-        // Act & Assert
-        album.CoverImageSrc.Should().Be(album.GetCoverImageSource());
-    }
-
-    [Fact]
     public void Create_WithIsPrivateTrue_CreatesPrivateAlbum()
     {
         // Arrange
