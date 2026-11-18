@@ -10,32 +10,34 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-Task 123 (`chore/123/dead-code-docs`): members with no production caller deleted with the tests that only covered them
-(`Transportation.OccupiedSeats` / `AvailableSeats`, `StorageOriginResolver.HasReferenceOrigin` / `ReferenceOrigin`,
-`ReportService.DeleteReportAsync`, `Activity.LatestDate`, `Report.FinalBalance`, `Album.CoverImageSrc`,
-`MimeTypeHelper.GetImageMimeType`, `SearchHelper.IsSearching`; 4,038 → 4,023 tests); stale lines fixed in
-`docs/performance-gate.md`, `docs/pwa-practices.md`, the ADR README and here.
-Task 124 (`chore/124/portal-data`, on top of 123): the portal's request helper (`call`, `Outcome`, `antiforgeryToken`)
-is imported from `data/api` everywhere (50 files went through `eventsApi`); one `queryString` (three hand-built copies
-gone; it now also takes numbers, booleans and null), `json` used by its three hand-written copies, one `Option` type in
-`data/sharedTypes.ts` (six copies), `fold` from `data/format.ts` (three copies). Same requests.
-Task 125 (`chore/125/ui-kit`, on top of 124): the UI kit leftovers that were exact copies. `IconAction` gained `large`
-(the 44 px button) and `className`; 43 hand-written icon buttons, 5 search fields and 7 selects use `IconAction` /
-`SearchField` / `SelectField`; new `LinkNotice` (`components/Notice.tsx`) for 3 notices with a link. Same elements,
-classes and attributes; a label written as text plus `{value}` is now one text node.
-Task 126 (`perf/126/portal-lazy`, on top of 125): `/meetings` loads its dialogs (`MeetingDialogHost`) when the first one
-is opened, like `EventManageLazy` (page chunk 15.7 → 6.5 KB gzip; the dialogs are an 11.2 KB chunk; the first dialog
-shows "A abrir…" while it arrives); `Avatar` images decode off the main thread (`decoding="async"`).
+None. Last: the second cleanup round, tasks 120-128 (PRs #326-#333, merged into `dev`; audit of 2026-11-18). No
+behaviour change except where noted.
+- 120: test hosts without the 13 background workers; one copy of the test helpers (`tests/Shared/RepoPaths.cs`,
+  `Api/AreaHttp.cs`); full suite 3 m 28 s → 2 m 11 s.
+- 121: treasury report history in one query; seven notification loops send one batch (`SendToSelectedUsersAsync`).
+- 122: `Endpoints/EndpointResults.cs` (one result mapper), `Helpers/ClaimsPrincipalExtensions.cs` (`user.IsMember()`,
+  `user.UserId()`), shared endpoint filters, redundant repository overrides removed.
+- 123: ten members with no production caller deleted; stale docs fixed.
+- 124: the portal imports the request helper from `data/api`; one `queryString`, `Option` (`data/sharedTypes.ts`) and
+  `fold`.
+- 125: `IconAction` (`large`, `className`), `SearchField`, `SelectField` and the new `LinkNotice` replace 58
+  hand-written copies.
+- 126: `/meetings` loads its dialogs on first open (page chunk 15.7 → 6.5 KB gzip; the first dialog shows "A abrir…");
+  `Avatar` decodes async.
+- 127: not done. Merging duplicate CSS blocks moves rules in the cascade and nothing here can prove the look is
+  unchanged (see Deferred).
+- 128: rule tests for `TreasuryAuthorization`, `ShopAuthorization` and `ClaimsPrincipalExtensions`
+  (`tests/Shared/TestPrincipal.cs`); visitors cannot read, create, vote, close or delete a poll (4,023 → 4,062 tests).
 
-Last: tasks 120-122 (PRs #326-#328, merged into `dev`): test hosts without the background workers and one copy of the
-test helpers (full suite 3 m 28 s → 2 m 11 s); report history in one query and seven push loops batched;
-`Endpoints/EndpointResults.cs`, `Helpers/ClaimsPrincipalExtensions.cs`, shared endpoint filters, redundant repository
-overrides removed. Before them, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `pages/`,
-`components/`, `data/`, `styles/`; one shared UI set in `components/ui/`; no file over 300 lines except five that are
-one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree.tsx`, `Data/SeedData.Member.cs`,
+Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `pages/`, `components/`, `data/`,
+`styles/`; one shared UI set in `components/ui/`; no file over 300 lines except five that are one function each
+(`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree.tsx`, `Data/SeedData.Member.cs`,
 `Services/AtaPdfService.cs`).
 
 ## Not verified yet
+- Cleanup round 120-128 on DEV: the lazy `/meetings` dialogs on a phone and through a push link (`?meeting=`); the
+  converted icon buttons and filters (Documentação, Loja, Inventário, event management, Perguntas, Pedidos, Reuniões,
+  Votações) were checked only on a local run for `/meetings`, `/questions` and `/inventory`.
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not
   in the repo, upload it on DEV/PROD), bandolim and cavaquinho chord shapes.
 - Release notes modal on a real iPhone / Android, and on DEV with `ShowPrerelease`.
@@ -64,6 +66,13 @@ one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree
 - `EventManage`, `GalleryManage` and `MeetingDialogs` keep their own error sentences (formal "Tente"/"Entre", other
   rules); 17 notices with their own buttons stay hand-written. Tabs (4) and avatar images differ in class and size.
 
+**CSS (phase 127, not done)**
+- 69 groups of identical declaration blocks under different selectors (about 805 source lines: `display:flex;
+  flex-wrap:wrap; gap:8px` ×14, a list reset ×24 differing only in gap, a focus ring ×7, `.lx-filters button` =
+  `.pa-tabs button`). Merging them changes rule order; it needs a before / after computed-style comparison
+  (`tests/responsive/responsive_audit.py` needs Playwright, which this machine's Python does not have). No CSS class is
+  unused.
+
 **Portal data layer (left after 124)**
 - No shared load hook: pages turn an `Outcome` into state in nine shapes (`null`, `[]`, `'signin'`, `'forbidden'`,
   `'missing'`, `'failed'`, objects), 26 with a hand-written `live` guard; `useOwnerLoad` (`components/OwnerUi.tsx`)
@@ -90,6 +99,11 @@ one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree
   in `ui/Pager.tsx` (one user).
 
 **Tests**
+- Gaps left after 128: `CalotesNotificationBackgroundService` has no test; `TreasuryService`, `TreasuryRecordsService`,
+  `ProductShopService`, `ShopPromotionService` and `FinanceManagementService` are tested only through the API; 14
+  `*Authorization` helpers have no direct rule test (Treasury and Shop do); no test that every push sender writes the
+  inbox copy. `TreasuryAuthorization`'s role checks do not ask `IsMember` themselves (the services check the sign-in
+  first). About 20 test classes each keep a private `SignedIn(...)` helper that `TestPrincipal` could replace.
 - One host per integration test class (about 68 boots, about 7 s each alone). One shared host for the 28
   `IntegrationTestBase` classes cut the Integration project from about 130 s to 87 s, but 3 tests failed
   (`HomePreviewTests` needs an empty database; `AuthAntiforgeryTests` hit the login rate limit, which is per IP).
@@ -218,5 +232,7 @@ one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 127 CSS merges,
-128 tests for money, permissions and push gaps.
+Owner decides the next task (GitHub Issues). Decisions the 2026-11-18 audit left to the owner: squash the 180 migrations
+(363 files, 686,048 lines); drop the unused columns (`MemberStatus.OverrideRetired`, `AspNetUsers.ExperiencePoints` /
+`Level`, `MeetingAtaAttachment.FileUrl`, `Report.PdfData`); the empty 401 of `PushEndpoints` / `ReleaseEndpoints`; the
+`NoStore` filter missing on the two public Gallery GETs; a lazy `Home`; splitting the five files over 300 lines.

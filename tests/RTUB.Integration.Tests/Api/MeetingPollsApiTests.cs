@@ -7,11 +7,38 @@ namespace RTUB.Integration.Tests.Api;
 
 public sealed class MeetingPollsApiTests : IClassFixture<MeetingsApiFactory>
 {
+    private readonly MeetingsApiFactory _factory;
+
     private readonly MeetingsKit _kit;
 
     public MeetingPollsApiTests(MeetingsApiFactory factory)
     {
+        _factory = factory;
         _kit = new MeetingsKit(factory);
+    }
+
+    [Fact]
+    public async Task Visitors_CannotReadCreateVoteCloseOrDeleteAPoll()
+    {
+        var president = await _kit.MemberAsync(Who.Veterano, Who.Holding(Position.PresidenteConselhoVeteranos));
+        var poll = new { audience = "ConselhoVeteranos", question = "Os visitantes votam?", options = new[] { "Sim", "Não" }, closesAt = (string?)null };
+        var id = await (await president.Client.PostAsJsonAsync("/api/meetings/polls", poll)).Content.ReadFromJsonAsync<int>();
+        var option = SinglePoll(await AreaHttp.Json(president.Client, "/api/meetings/polls"), id).GetProperty("options")[0].GetProperty("id").GetInt32();
+        var anonymous = AreaHttp.Anonymous(_factory, "10.66.9.1");
+        await AreaHttp.WithTokenAsync(anonymous);
+
+        HttpResponseMessage[] answers =
+        [
+            await anonymous.GetAsync("/api/meetings/polls"),
+            await anonymous.PostAsJsonAsync("/api/meetings/polls", poll),
+            await anonymous.PutAsJsonAsync($"/api/meetings/polls/{id}/vote", new { optionId = option }),
+            await anonymous.PostAsync($"/api/meetings/polls/{id}/close", null),
+            await anonymous.DeleteAsync($"/api/meetings/polls/{id}"),
+        ];
+
+        answers.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.Unauthorized);
+        var stored = SinglePoll(await AreaHttp.Json(president.Client, "/api/meetings/polls"), id);
+        stored.GetProperty("options").EnumerateArray().Sum(o => o.GetProperty("votes").GetInt32()).Should().Be(0, "a visitor's vote was not counted");
     }
 
     [Fact]
