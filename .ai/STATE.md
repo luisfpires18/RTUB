@@ -23,6 +23,9 @@ Task 125 (`chore/125/ui-kit`, on top of 124): the UI kit leftovers that were exa
 (the 44 px button) and `className`; 43 hand-written icon buttons, 5 search fields and 7 selects use `IconAction` /
 `SearchField` / `SelectField`; new `LinkNotice` (`components/Notice.tsx`) for 3 notices with a link. Same elements,
 classes and attributes; a label written as text plus `{value}` is now one text node.
+Task 126 (`perf/126/portal-lazy`, on top of 125): `/meetings` loads its dialogs (`MeetingDialogHost`) when the first one
+is opened, like `EventManageLazy` (page chunk 15.7 → 6.5 KB gzip; the dialogs are an 11.2 KB chunk; the first dialog
+shows "A abrir…" while it arrives); `Avatar` images decode off the main thread (`decoding="async"`).
 
 Last: tasks 120-122 (PRs #326-#328, merged into `dev`): test hosts without the background workers and one copy of the
 test helpers (full suite 3 m 28 s → 2 m 11 s); report history in one query and seven push loops batched;
@@ -158,6 +161,10 @@ one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree
 - Play cooldown and the system announcement live in one app instance's memory (a scale-out needs a shared store).
 
 **Performance** (`docs/performance-gate.md`)
+- Left by task 126: `StartupModals` (with `data/push.ts`) stays in the entry chunk because `App.tsx` also needs
+  `resetStartup` from the same module; `Home` is static in `main.tsx` (the LCP page: an owner decision);
+  `LogisticsBoard` (19 KB gzip) and `Shop` likely ship dialogs the same way `/meetings` did; four avatar images bypass
+  `Avatar` (`ui/PersonChip.tsx`, `MusicAlbumForm.tsx`, `MusicStatistics.tsx`, `GalleryFormParts.tsx`).
 - Left by task 121. `TreasuryService.Reports.cs:28` loads every activity and transaction for the reports list: SQLite
   cannot sum `decimal` in SQL, and a narrow projection would copy the `IsHiddenFromCalculations` rule. Push loops kept
   per recipient: mentions (a member named twice gets two pushes today), the reminder workers (cancellation between
@@ -211,5 +218,5 @@ one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 126 portal lazy
-loading, 127 CSS merges, 128 tests for money, permissions and push gaps.
+Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 127 CSS merges,
+128 tests for money, permissions and push gaps.

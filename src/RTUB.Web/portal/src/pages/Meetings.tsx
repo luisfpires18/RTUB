@@ -1,17 +1,21 @@
-import { useEffect, useId, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useState } from 'react';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingBoard } from '../data/meetingsTypes';
 import { RetryNotice, SignInNotice } from '../components/Notice';
 import { RequestsSection } from '../components/MeetingRequests';
-import { type Open, Dialogs } from '../components/MeetingDialogHost';
+import type { Open } from '../components/MeetingDialogHost';
+import { Dialog } from '../components/Dialog';
 import { Empty, MeetingSection } from '../components/MeetingSection';
 import { Loading } from '../components/ui/Loading';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageHead } from '../components/ui/PageHead';
 import { IconAction } from '../components/ui/IconAction';
 import { SearchField } from '../components/ui/SearchTools';
+
+// The dialogs load when the first one is opened: most of this page's code is theirs, and many visits open none.
+const Dialogs = lazy(() => import('../components/MeetingDialogHost').then((m) => ({ default: m.Dialogs })));
 
 const UPCOMING_EMPTY =
   'Não existem reuniões agendadas no momento. As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos.';
@@ -248,14 +252,22 @@ export default function Meetings() {
       )}
 
       {data && open && (
-        <Dialogs
-          open={open}
-          board={data}
-          onClose={close}
-          onChanged={reload}
-          onFlash={setFlash}
-          onRequestsChanged={() => setRequestsVersion((v) => v + 1)}
-        />
+        <Suspense
+          fallback={
+            <Dialog title="A abrir…" onClose={close}>
+              <Loading label="A abrir…" />
+            </Dialog>
+          }
+        >
+          <Dialogs
+            open={open}
+            board={data}
+            onClose={close}
+            onChanged={reload}
+            onFlash={setFlash}
+            onRequestsChanged={() => setRequestsVersion((v) => v + 1)}
+          />
+        </Suspense>
       )}
     </section>
   );
