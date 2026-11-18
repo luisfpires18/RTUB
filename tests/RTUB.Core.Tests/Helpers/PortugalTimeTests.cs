@@ -1,6 +1,7 @@
 using FluentAssertions;
 using RTUB.Core.Entities;
 using RTUB.Core.Helpers;
+using RTUB.Tests;
 
 namespace RTUB.Core.Tests.Helpers;
 
@@ -10,12 +11,7 @@ namespace RTUB.Core.Tests.Helpers;
 /// </summary>
 public class PortugalTimeTests
 {
-    private sealed class Clock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
-    }
-
-    private static Clock At(int y, int mo, int d, int h, int mi) => new(new DateTimeOffset(y, mo, d, h, mi, 0, TimeSpan.Zero));
+    private static TestClock At(int y, int mo, int d, int h, int mi) => new(new DateTimeOffset(y, mo, d, h, mi, 0, TimeSpan.Zero));
 
     private static DateTime Utc(int y, int mo, int d, int h, int mi) => new(y, mo, d, h, mi, 0, DateTimeKind.Utc);
 

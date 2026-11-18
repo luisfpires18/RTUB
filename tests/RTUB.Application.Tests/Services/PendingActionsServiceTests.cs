@@ -1,3 +1,4 @@
+using RTUB.Tests;
 using System.Security.Claims;
 using FluentAssertions;
 using Moq;
@@ -25,7 +26,7 @@ namespace RTUB.Application.Tests.Services;
 public partial class PendingActionsServiceTests
 {
     private static readonly DateTime Today = new(2026, 11, 6);
-    private readonly TimeProvider _clock = new FixedClock(new DateTimeOffset(2026, 11, 6, 12, 0, 0, TimeSpan.Zero));
+    private readonly TimeProvider _clock = new TestClock(new DateTimeOffset(2026, 11, 6, 12, 0, 0, TimeSpan.Zero));
     private readonly DatabaseFixture _db = new();
 
     private readonly Mock<IEnrollmentService> _enrollments = new();
@@ -221,11 +222,6 @@ public partial class PendingActionsServiceTests
 
         private PendingActionRowDto Row(string key) =>
             new(Kind, key, $"Ação {key}", null, null, null, required, !required, [new PendingActionButtonDto("Abrir", "/", true)]);
-    }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private sealed class Contexts(DatabaseFixture db) : IDbContextFactory<ApplicationDbContext>

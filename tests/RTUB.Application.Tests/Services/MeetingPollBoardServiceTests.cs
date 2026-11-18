@@ -1,3 +1,4 @@
+using RTUB.Tests;
 using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,7 +16,7 @@ namespace RTUB.Application.Tests.Services;
 public sealed class MeetingPollBoardServiceTests : IDisposable
 {
     private readonly DatabaseFixture _database = new();
-    private readonly FixedClock _clock = new(new DateTimeOffset(2026, 11, 17, 12, 0, 0, TimeSpan.Zero));
+    private readonly TestClock _clock = new(new DateTimeOffset(2026, 11, 17, 12, 0, 0, TimeSpan.Zero));
 
     [Fact]
     public async Task CvPoll_IsHiddenOutsideAudience_AndOwnerManagementDoesNotGrantVoting()
@@ -86,7 +87,7 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
         var created = await service.CreateAsync(Poll("ConselhoVeteranos", closesAt), SignedIn(president.Id));
         var poll = (await service.GetBoardAsync(SignedIn(veteran.Id))).Value!.Polls.Single();
 
-        _clock.Set(new DateTimeOffset(2026, 11, 17, 14, 0, 0, TimeSpan.Zero));
+        _clock.Now = new DateTimeOffset(2026, 11, 17, 14, 0, 0, TimeSpan.Zero);
         var expired = (await service.GetBoardAsync(SignedIn(veteran.Id))).Value!.Polls.Single();
         expired.Closed.Should().BeTrue();
         (await service.VoteAsync(created.Value, new MeetingPollVoteInput(poll.Options[0].Id), SignedIn(veteran.Id)))
@@ -249,13 +250,4 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
     }
 
     public void Dispose() => _database.Dispose();
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        private DateTimeOffset _now = now;
-
-        public override DateTimeOffset GetUtcNow() => _now;
-
-        public void Set(DateTimeOffset value) => _now = value;
-    }
 }

@@ -1,3 +1,4 @@
+using RTUB.Tests;
 using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,7 @@ public partial class EventAgendaServiceTests
     private readonly string _memberId;
     private readonly ClaimsPrincipal _member;
     // One frozen instant per test, so "today" cannot move between arranging and asserting.
-    private readonly TimeProvider _clock = new FixedClock(DateTimeOffset.UtcNow);
+    private readonly TimeProvider _clock = new TestClock(DateTimeOffset.UtcNow);
     private readonly DateTime _today;
 
     public EventAgendaServiceTests()
@@ -281,11 +282,6 @@ public partial class EventAgendaServiceTests
         db.Enrollments.Add(e);
         db.SaveChanges();
         return e.Id;
-    }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private sealed class Contexts(DatabaseFixture db) : IDbContextFactory<ApplicationDbContext>

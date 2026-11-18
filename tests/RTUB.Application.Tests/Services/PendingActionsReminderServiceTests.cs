@@ -12,6 +12,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
+using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -44,7 +45,7 @@ public class PendingActionsReminderServiceTests
         services.AddSingleton<IPushNotificationFactory, PushNotificationFactory>();
         return new PendingActionsReminderService(services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
             NullLogger<PendingActionsReminderService>.Instance,
-            Options.Create(new PendingActionsReminderOptions { CatchUpHours = catchUp }), new FixedClock(now));
+            Options.Create(new PendingActionsReminderOptions { CatchUpHours = catchUp }), new TestClock(now));
     }
 
     private static readonly DateTimeOffset Evening = new(2026, 11, 6, 18, 0, 0, TimeSpan.Zero);
@@ -196,11 +197,6 @@ public class PendingActionsReminderServiceTests
         });
         db.SaveChanges();
         return id;
-    }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private sealed class Contexts(DatabaseFixture db, Func<bool> failClaim) : IDbContextFactory<ApplicationDbContext>

@@ -9,6 +9,7 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Enums;
+using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -24,7 +25,7 @@ public sealed partial class MemberStatusServiceTests
 
         var services = new ServiceCollection().AddScoped<IMemberStatusService>(_ => Service()).BuildServiceProvider();
         var worker = new MemberStatusUpdateBackgroundService(NullLogger<MemberStatusUpdateBackgroundService>.Instance, services,
-            Options.Create(_options), new FixedClock(Now));
+            Options.Create(_options), new TestClock(new DateTimeOffset(Now, TimeSpan.Zero)));
 
         var run = await worker.RunUpdateAsync();
 

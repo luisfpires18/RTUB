@@ -5,6 +5,7 @@ using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
+using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -186,10 +187,10 @@ public partial class EventAgendaServiceTests
     [Fact]
     public void PortugalToday_IsThePortugueseCalendarDate_NotTheUtcOne()
     {
-        PortugalTime.Today(new FixedClock(JustAfterMidnightInPortugal)).Should().Be(new DateTime(2026, 10, 14));
+        PortugalTime.Today(new TestClock(JustAfterMidnightInPortugal)).Should().Be(new DateTime(2026, 10, 14));
         // Winter (WET, UTC+0): the dates agree.
-        PortugalTime.Today(new FixedClock(new DateTimeOffset(2026, 12, 31, 23, 30, 0, TimeSpan.Zero))).Should().Be(new DateTime(2026, 12, 31));
-        PortugalTime.Today(new FixedClock(new DateTimeOffset(2027, 1, 1, 0, 30, 0, TimeSpan.Zero))).Should().Be(new DateTime(2027, 1, 1));
+        PortugalTime.Today(new TestClock(new DateTimeOffset(2026, 12, 31, 23, 30, 0, TimeSpan.Zero))).Should().Be(new DateTime(2026, 12, 31));
+        PortugalTime.Today(new TestClock(new DateTimeOffset(2027, 1, 1, 0, 30, 0, TimeSpan.Zero))).Should().Be(new DateTime(2027, 1, 1));
     }
 
     [Fact]
@@ -200,7 +201,7 @@ public partial class EventAgendaServiceTests
         AddEvent("Termina hoje", new DateTime(2026, 10, 12), endDate: new DateTime(2026, 10, 14));
         AddEvent("Terminou ontem", new DateTime(2026, 10, 11), endDate: new DateTime(2026, 10, 13));
 
-        var agenda = await Service(new FixedClock(JustAfterMidnightInPortugal)).GetAgendaAsync(Visitor);
+        var agenda = await Service(new TestClock(JustAfterMidnightInPortugal)).GetAgendaAsync(Visitor);
 
         agenda.Upcoming.Select(e => e.Name).Should().Equal("Termina hoje", "Hoje");
         agenda.Upcoming.Should().OnlyContain(e => !e.Past);
@@ -215,7 +216,7 @@ public partial class EventAgendaServiceTests
         AddEvent("Termina hoje", new DateTime(2026, 10, 12), endDate: new DateTime(2026, 10, 14));
 
         // 23:59 on 14 Oct in Portugal = 22:59 UTC, well after the event's start time.
-        var agenda = await Service(new FixedClock(new DateTimeOffset(2026, 10, 14, 22, 59, 0, TimeSpan.Zero))).GetAgendaAsync(Visitor);
+        var agenda = await Service(new TestClock(new DateTimeOffset(2026, 10, 14, 22, 59, 0, TimeSpan.Zero))).GetAgendaAsync(Visitor);
 
         agenda.Upcoming.Select(e => e.Name).Should().Equal("Termina hoje", "Hoje");
         agenda.Past.Should().BeEmpty();
