@@ -39,6 +39,11 @@ public sealed class MeetingPollsApiTests : IClassFixture<MeetingsApiFactory>
         answers.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.Unauthorized);
         var stored = SinglePoll(await AreaHttp.Json(president.Client, "/api/meetings/polls"), id);
         stored.GetProperty("options").EnumerateArray().Sum(o => o.GetProperty("votes").GetInt32()).Should().Be(0, "a visitor's vote was not counted");
+
+        // The class shares one database and another test counts the Conselho de Veteranos polls: leave none behind.
+        (await president.Client.DeleteAsync($"/api/meetings/polls/{id}")).IsSuccessStatusCode.Should().BeTrue();
+        (await AreaHttp.Json(president.Client, "/api/meetings/polls")).GetProperty("polls").EnumerateArray()
+            .Should().NotContain(p => p.GetProperty("id").GetInt32() == id);
     }
 
     [Fact]
