@@ -5,6 +5,7 @@ import { Icon } from '../components/icons';
 import { today } from '../data/format';
 import { FormField } from '../components/ui/FormField';
 import { Spinner } from '../components/ui/Spinner';
+import { PageHead } from '../components/ui/PageHead';
 
 // Suggestions only: the event type stays free text.
 const examples = ['Serenata', 'Casamento', 'Batizado', 'Aniversário', 'Arraial', 'Arruada', 'Convívio', 'Missa', 'Festival'];
@@ -132,16 +133,13 @@ export default function RequestPage() {
 
   return (
     <section className="page wrap" aria-labelledby="request-page-title">
-      <header className="page__head">
-        <p className="eyebrow">Pedidos</p>
-        <h1 id="request-page-title" className="page__title">
-          Pedir uma atuação
-        </h1>
-        <p className="page__lead">
-          Uma serenata à janela, a entrada dos noivos, a festa da aldeia: diga-nos o que imagina e combinamos os
-          detalhes consigo.
-        </p>
-      </header>
+      <PageHead
+        plain
+        eyebrow="Pedidos"
+        title="Pedir uma atuação"
+        titleId="request-page-title"
+        lead="Uma serenata à janela, a entrada dos noivos, a festa da aldeia: diga-nos o que imagina e combinamos os detalhes consigo."
+      />
 
       <div className="request">
         <div className="request__form-card">

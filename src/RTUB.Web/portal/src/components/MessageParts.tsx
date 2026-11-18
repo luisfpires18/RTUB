@@ -3,6 +3,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, ty
 import { Icon } from './icons';
 import { MAX_BODY, type MessageItem } from '../data/messagesApi';
 import { Avatar } from './ui/Avatar';
+import { IconAction } from './ui/IconAction';
 
 /** Only "Notificações RTUB" wears the app logo (the one the portal header uses); groups a plain chat icon, people their photo. */
 const RTUB_LOGO = '/icons/rtub-logo-352.webp';
@@ -69,10 +70,7 @@ export function Composer({
             <strong>A responder a {replyTo.isMine ? 'ti' : (replyTo.sender?.displayName ?? 'Mensagem')}</strong>
             <span>{replyTo.body}</span>
           </div>
-          <button type="button" className="icon-btn icon-btn--sm" onClick={onCancelReply}>
-            <Icon name="close" />
-            <span className="sr-only">Cancelar a resposta</span>
-          </button>
+          <IconAction icon="close" label="Cancelar a resposta" onClick={onCancelReply} />
         </div>
       )}
       <div className="composer__row">

@@ -13,6 +13,7 @@ import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 import { Spinner } from './ui/Spinner';
+import { IconAction } from './ui/IconAction';
 
 // The ata of a meeting: the editor for whoever may write it (a draft is only theirs, decision A1) and
 // "Ver Ata" for readers of a published one. The server decides who writes, reads, publishes and confirms.
@@ -332,15 +333,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                             {i + 1}. {p.title}
                           </strong>
                           {!published && (
-                            <button
-                              type="button"
-                              className="icon-btn icon-btn--sm icon-btn--danger"
-                              onClick={() => set({ points: values.points.filter((x) => x.key !== p.key) })}
-                              title="Remover ponto"
-                            >
-                              <Icon name="trash" />
-                              <span className="sr-only">Remover o ponto {i + 1}</span>
-                            </button>
+                            <IconAction icon="trash" label={`Remover o ponto ${i + 1}`} title="Remover ponto" onClick={() => set({ points: values.points.filter((x) => x.key !== p.key) })} danger />
                           )}
                         </div>
                         <div className="form__field">

@@ -11,6 +11,7 @@ import { Loading } from './ui/Loading';
 import { Pager } from './ui/Pager';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 import { Banner } from './ui/Banner';
+import { IconAction } from './ui/IconAction';
 
 const REQUEST_PAGE_SIZES = [4, 8, 12, 16, 20];
 
@@ -105,10 +106,7 @@ export function RequestsSection({
         <div className="mtg-flash mtg-flash--ok" role="status">
           <Icon name="checkCircle" />
           <p>{success}</p>
-          <button type="button" className="icon-btn icon-btn--sm" onClick={() => setSuccess(undefined)}>
-            <Icon name="close" />
-            <span className="sr-only">Fechar a mensagem</span>
-          </button>
+          <IconAction icon="close" label="Fechar a mensagem" onClick={() => setSuccess(undefined)} />
         </div>
       )}
       <Banner text={error} />
@@ -136,21 +134,10 @@ export function RequestsSection({
                     {(r.canDelete || r.canRemind) && (
                       <span className="mtg-card__tools">
                         {r.canRemind && (
-                          <button type="button" className="icon-btn icon-btn--sm" onClick={() => setAction({ kind: 'remind', request: r })} title="Enviar Lembrete">
-                            <Icon name="bell" />
-                            <span className="sr-only">Enviar lembrete sobre {r.title}</span>
-                          </button>
+                          <IconAction icon="bell" label={`Enviar lembrete sobre ${r.title}`} title="Enviar Lembrete" onClick={() => setAction({ kind: 'remind', request: r })} />
                         )}
                         {r.canDelete && (
-                          <button
-                            type="button"
-                            className="icon-btn icon-btn--sm icon-btn--danger"
-                            onClick={() => setAction({ kind: 'delete', request: r })}
-                            title="Eliminar"
-                          >
-                            <Icon name="trash" />
-                            <span className="sr-only">Eliminar pedido {r.title}</span>
-                          </button>
+                          <IconAction icon="trash" label={`Eliminar pedido ${r.title}`} title="Eliminar" onClick={() => setAction({ kind: 'delete', request: r })} danger />
                         )}
                       </span>
                     )}

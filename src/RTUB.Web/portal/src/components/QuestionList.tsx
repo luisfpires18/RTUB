@@ -6,6 +6,7 @@ import { Icon } from './icons';
 import { type Question, type QuestionPage, api, stamp, statusLabel, statusPill } from '../data/questionsApi';
 import { Loading } from './ui/Loading';
 import { Banner } from './ui/Banner';
+import { IconAction } from './ui/IconAction';
 
 export function QuestionList({
   closed,
@@ -87,10 +88,7 @@ export function QuestionList({
                     </button>
                   )}
                   {x.isMine && (
-                    <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => onAction({ kind: 'delete', question: x })}>
-                      <Icon name="trash" />
-                      <span className="sr-only">Eliminar a pergunta «{x.title}»</span>
-                    </button>
+                    <IconAction icon="trash" label={`Eliminar a pergunta «${x.title}»`} onClick={() => onAction({ kind: 'delete', question: x })} danger />
                   )}
                 </div>
               </li>

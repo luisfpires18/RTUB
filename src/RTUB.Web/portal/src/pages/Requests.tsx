@@ -8,6 +8,7 @@ import { CreateEventOffer, RequestDialog } from '../components/RequestDialogs';
 import { RequestGroup } from '../components/RequestGroup';
 import { type RequestItem, type RequestList, api } from '../data/requestsApi';
 import { Loading } from '../components/ui/Loading';
+import { PageHead } from '../components/ui/PageHead';
 
 /**
  * /requests - Gestão de Pedidos. The performance requests sent through the public
@@ -48,13 +49,7 @@ export default function Requests() {
 
   return (
     <section className="page wrap requests-page" aria-labelledby="requests-title">
-      <header className="page__head">
-        <p className="eyebrow">Gestão</p>
-        <h1 id="requests-title" className="page__title">
-          Pedidos de atuação
-        </h1>
-        <p className="page__lead">Os pedidos feitos no portal, do primeiro contacto à resposta.</p>
-      </header>
+      <PageHead plain eyebrow="Gestão" title="Pedidos de atuação" titleId="requests-title" lead="Os pedidos feitos no portal, do primeiro contacto à resposta." />
 
       {data === 'signin' ? (
         <SignInNotice path={'/requests'}>Os pedidos são da área de membros.</SignInNotice>

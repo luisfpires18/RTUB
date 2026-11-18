@@ -9,6 +9,7 @@ import { Loading } from './ui/Loading';
 import { Banner } from './ui/Banner';
 import { FieldError } from './ui/FieldError';
 import { Spinner } from './ui/Spinner';
+import { CheckField } from './ui/CheckField';
 
 export function CancelDialog({
   card,
@@ -69,10 +70,9 @@ export function CancelDialog({
       <MeetingSummary card={card} heading="Reunião:" />
       <Banner text={banner} />
       <div className="form mtg-form">
-        <label className="form__check" htmlFor={`${id}-notify`}>
-          <input id={`${id}-notify`} type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+        <CheckField id={`${id}-notify`} checked={notify} onChange={setNotify}>
           Notificar todos os membros por email
-        </label>
+        </CheckField>
         {notify &&
           (draft === undefined ? (
             <Loading label="A carregar subscritores..." />

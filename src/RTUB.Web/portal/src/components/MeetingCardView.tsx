@@ -4,6 +4,7 @@ import { typeClass } from './MeetingUi';
 import type { MeetingCard } from '../data/meetingsTypes';
 import { dayBadge, shortDate, timeOf, weekdayName } from '../data/meetingsDates';
 import { type Open } from './MeetingDialogHost';
+import { IconAction } from './ui/IconAction';
 
 export function MeetingCardView({ card, onOpen }: { card: MeetingCard; onOpen: (o: Open) => void }) {
   const status = card.cancelled ? 'Cancelada' : card.past ? 'Realizada' : 'Agendada';
@@ -26,14 +27,8 @@ export function MeetingCardView({ card, onOpen }: { card: MeetingCard; onOpen: (
         </span>
         {card.can.manage && (
           <span className="mtg-card__tools">
-            <button type="button" className="icon-btn icon-btn--sm" onClick={() => onOpen({ kind: 'form', card })} title="Editar">
-              <Icon name="pencil" />
-              <span className="sr-only">Editar reunião {card.title}</span>
-            </button>
-            <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => onOpen({ kind: 'delete', card })} title="Eliminar">
-              <Icon name="trash" />
-              <span className="sr-only">Eliminar reunião {card.title}</span>
-            </button>
+            <IconAction icon="pencil" label={`Editar reunião ${card.title}`} title="Editar" onClick={() => onOpen({ kind: 'form', card })} />
+            <IconAction icon="trash" label={`Eliminar reunião ${card.title}`} title="Eliminar" onClick={() => onOpen({ kind: 'delete', card })} danger />
           </span>
         )}
       </div>
