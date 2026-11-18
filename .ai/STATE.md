@@ -10,24 +10,19 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-Task 120 (`chore/120/test-speed`): phase 1 of the second cleanup round (audit of 2026-11-18). Test hosts no longer start
-the application's 13 background workers; one copy of the shared test helpers (`tests/Shared/RepoPaths.cs`,
-`Api/AreaHttp.cs`); the sleep, the skipped tests and the tests that asserted nothing are gone (4,048 → 4,038 tests).
-Full suite on the same machine: 3 m 28 s → 2 m 11 s. No production code changed.
-Task 121 (`perf/121/backend-queries`, on top of 120): the treasury report history loads the report's transactions in
-one query (was one per audit log); seven notification loops send one batch (`SendToSelectedUsersAsync`: discussion post
-and comment, event and song video, new meeting, meeting request, public request). Same recipients and same output.
-Task 122 (`chore/122/backend-shared`, on top of 121): one copy of the shared backend pieces.
-`Endpoints/EndpointResults.cs` maps a service outcome to HTTP (19 endpoint files; an area keeps a short `ToResult` only
-for its own 404 title or special answers) and builds the one-field 400; `Helpers/ClaimsPrincipalExtensions.cs`
-(`user.IsMember()`, `user.UserId()`) replaces 31 copies; Music uses the shared `NoStore` / `RequireAntiforgery`;
-`RequireMember` lives in `EventEndpoints`; four repositories lost the `UpdateAsync` / `DeleteAsync` overrides that only
-preloaded audit names. Same answers, same audit text.
+Task 123 (`chore/123/dead-code-docs`): members with no production caller deleted with the tests that only covered them
+(`Transportation.OccupiedSeats` / `AvailableSeats`, `StorageOriginResolver.HasReferenceOrigin` / `ReferenceOrigin`,
+`ReportService.DeleteReportAsync`, `Activity.LatestDate`, `Report.FinalBalance`, `Album.CoverImageSrc`,
+`MimeTypeHelper.GetImageMimeType`, `SearchHelper.IsSearching`; 4,038 → 4,023 tests); stale lines fixed in
+`docs/performance-gate.md`, `docs/pwa-practices.md`, the ADR README and here.
 
-Last: tasks 110-119 (PRs #314-#325, merged into `dev`): the first cleanup round. No Blazor leftovers; `portal/src` in
-`pages/`, `components/`, `data/`, `styles/`; one shared UI set in `components/ui/`; no file over 300 lines except
-five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree.tsx`,
-`Data/SeedData.Member.cs`, `Services/AtaPdfService.cs`); unused code removed.
+Last: tasks 120-122 (PRs #326-#328, merged into `dev`): test hosts without the background workers and one copy of the
+test helpers (full suite 3 m 28 s → 2 m 11 s); report history in one query and seven push loops batched;
+`Endpoints/EndpointResults.cs`, `Helpers/ClaimsPrincipalExtensions.cs`, shared endpoint filters, redundant repository
+overrides removed. Before them, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `pages/`,
+`components/`, `data/`, `styles/`; one shared UI set in `components/ui/`; no file over 300 lines except five that are
+one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree.tsx`, `Data/SeedData.Member.cs`,
+`Services/AtaPdfService.cs`).
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not
@@ -101,8 +96,8 @@ five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx
 - `public-requests` rate limit partitions on `RemoteIpAddress`: confirm forwarded headers on DEV/PROD.
 
 **Push**
-- "Presença recusada" never sends (`CancelAttendanceAsync` has no caller); leaderboard comment/like push failures are
-  swallowed with no log; discussion pushes stop at the event start (UTC compare).
+- Leaderboard comment/like push failures are swallowed with no log; discussion pushes stop at the event start (UTC
+  compare).
 - `PushNotificationService` news up `WebPushClient` (no send tests); no `CancellationToken`; 5xx from a push service is
   not retried; fan-out runs inline in requests. `WebPush` 1.0.13 sends legacy `aesgcm` (move to RFC 8291/8292 only if
   an iPhone test push comes back `rejected`).
@@ -168,6 +163,13 @@ five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx
   IsInRole("Owner")` ×14 and `IsOwner` ×3 in the `*Authorization` helpers, full name built inline in 26 places.
 
 **Dead code and config**
+- Kept by task 123, used only by tests: `INerbaOrderService.GetAllAsync` / `GetByIdAsync` / `GetByEventIdAsync`,
+  `IMbwayTransferService.GetAllAsync` and `IRehearsalAttendanceService.GetAttendanceStatsAsync` (the money and
+  attendance tests read their writes back through them); five `IRankingService` methods,
+  `IDiscussionService.CreateForEventAsync`, `IMemberInstrumentService.HasInstrumentAsync` and
+  `IProductReservationService.GetByProductAndUserAsync` are called only inside their own service.
+  `ApplicationDbContext.Transportations` has no reader (dropping the `DbSet` could rename the table in the model).
+  `RTUB.csproj` names four packages it also gets through `RTUB.Application`.
 - `AspNetUsers.ExperiencePoints` / `Level` have no writer (the leaderboard computes XP per request): DB cleanup candidate.
 - `PostMedia` / `CommentImages`: production row counts needed before dropping (`docs/db-cleanup-inventory.md`).
 - Kept on purpose: npm `bootstrap-icons` (path-data source for `icons.tsx`).
@@ -177,12 +179,12 @@ five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx
 - Dependencies to bump: Microsoft 10.0.x train (unblocks `MockQueryable.Moq`), AWSSDK, QuestPDF 2026.x major.
 - `xUnit1051` suppressed.
 - `refresh-dev-database.yml` and Deploy • DEV use different concurrency groups (a push during a refresh can deploy
-  mid-refresh); pinned `checkout@v4` / `setup-dotnet@v4`.
+  mid-refresh); `refresh-dev-database.yml` still pins `checkout@v4` / `setup-dotnet@v4`.
 - Local runs read `ConnectionStrings:SqliteConnection`; point it at a scratch copy or the run writes to
   `src/RTUB.Web/app.db`. A local run without `Cloudflare:R2:PublicUrl` blocks R2 images in the CSP (local only).
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 123 dead code and
-stale docs, 124 portal data layer (one load hook, shared types), 125 UI kit leftovers, 126 portal lazy loading, 127 CSS
-merges, 128 tests for money, permissions and push gaps.
+Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 124 portal data
+layer (one load hook, shared types), 125 UI kit leftovers, 126 portal lazy loading, 127 CSS merges, 128 tests for money,
+permissions and push gaps.

@@ -2,7 +2,7 @@
 
 One file per accepted architectural decision. Records are append-only: supersede, never rewrite.
 
-Naming: `NNNN-short-slug.md` (e.g. `0001-sqlite-as-primary-store.md`).
+Naming: `NNNN-short-slug.md` (e.g. `0001-production-release-and-rollback.md`).
 
 Template:
 

@@ -62,7 +62,7 @@ Skipped on purpose, so the report card is not chased again. Add one only with a 
 
 ## RTUB brand assets
 
-One source: the square artwork `wwwroot/images/rtub_new_logo.png` (1254 px, not shipped as such). Everything else is
+One source: the square artwork `rtub_new_logo.png` (1254 px, not in the repository). Everything else is
 resized from it, never cropped or stretched:
 
 | File | Size | Used by |
