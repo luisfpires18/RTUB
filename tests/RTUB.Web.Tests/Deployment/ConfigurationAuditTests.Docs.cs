@@ -38,7 +38,7 @@ public partial class ConfigurationAuditTests
             }
         }
 
-        var stack = File.ReadAllText(Path.Combine(Root, "README.md")) + File.ReadAllText(Path.Combine(Root, ".github", "copilot-instructions.md"));
+        var stack = File.ReadAllText(Path.Combine(Root, "README.md")) + File.ReadAllText(Path.Combine(Root, "docs", "frontend-practices.md"));
         stack.Should().Contain("React 19").And.Contain("no Blazor", "the stack docs say the frontend is React-only");
     }
 
@@ -89,7 +89,7 @@ public partial class ConfigurationAuditTests
         }
     }
 
-    /// <summary>Every maintained Markdown doc: root docs, docs/ (ADRs excluded: append-only history), agents, RTUB skills.</summary>
+    /// <summary>Every maintained Markdown doc: root docs, docs/ (ADRs excluded: append-only history), .github templates, RTUB skills.</summary>
     private static IEnumerable<(string File, string[] Lines)> DocLines()
     {
         var files = new List<string> { "README.md", "CLAUDE.md", ".ai/STATE.md" }.Select(f => Path.Combine(Root, f))

@@ -168,5 +168,3 @@ redacted in the audit log (`AuditConfiguration`).
 | `.ai/STATE.md` | Living execution state — read first. |
 | `.claude/settings.json`, `.claude/settings.local.json` | Permissions and enabled plugins. |
 | `.claude/skills/` | Project-local skills (vendored upstream skills carry `UPSTREAM.md`). |
-| `.github/copilot-instructions.md` | Repository conventions for Copilot. |
-| `.github/agents/` | Role-specific agent guidance. |

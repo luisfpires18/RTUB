@@ -1,6 +1,6 @@
 # Frontend Practices
 
-The frontend is React 19 + Vite + TypeScript (`src/RTUB.Web/portal/`). React owns every page; the only other page is
+The frontend is React 19 + Vite + TypeScript (`src/RTUB.Web/portal/`); there is no Blazor. React owns every page; the only other page is
 the static server page `/Error` (`wwwroot/error.html`).
 
 | Topic | Doc |

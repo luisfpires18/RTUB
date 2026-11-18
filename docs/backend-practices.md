@@ -1,6 +1,6 @@
 # Backend Practices
 
-C# / .NET 10 / EF Core 10 / SQLite rules specific to this repo. Layer overview: `.github/copilot-instructions.md`.
+C# / .NET 10 / EF Core 10 / SQLite rules specific to this repo.
 
 ## Layers
 
@@ -14,7 +14,8 @@ RTUB.Web          host, minimal-API endpoints, a few controllers, React portal
 - `RTUB.Application` references no web UI types (`IBrowserFile`, `AuthenticationState`, `IJSRuntime`, `NavigationManager`).
 - Constructor injection only; services are Scoped and registered in `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs`.
 - Entities inherit `BaseEntity`, are created through static factories (`Entity.Create(...)`) and mutated through named
-  methods; keep the public parameterless constructor for EF.
+  methods; keep the public parameterless constructor for EF. Data annotations carry Portuguese messages; navigation
+  collections are `virtual ICollection<T>` initialized to `new List<T>()`.
 
 ## Data access
 
