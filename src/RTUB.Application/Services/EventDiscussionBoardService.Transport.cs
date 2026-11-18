@@ -20,7 +20,7 @@ public sealed partial class EventDiscussionBoardService
             return new EventResult<EventDiscussionDto>(EventResultStatus.Invalid, Errors: errors);
         }
 
-        // As before: the offer is a post (title = the car, text = the notes or "Transporte") plus its seats.
+        // The offer is a post (title = the car, text = the notes or "Transporte") plus its seats.
         var vehicle = input.Vehicle!.Trim();
         var notes = Blank(input.Notes);
         var discussion = await _discussions.GetOrCreateForEventAsync(eventId);

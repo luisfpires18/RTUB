@@ -22,7 +22,7 @@ public partial class OwnerOperationsService
     {
         var size = AuditPageSizes.Contains(filter.PageSize) ? filter.PageSize : AuditPageSizes[0];
         var page = Math.Max(1, filter.Page);
-        // #220: the search (stored changes or entity name) narrows the other filters, with an exact total.
+        // The search (stored changes or entity name) narrows the other filters, with an exact total.
         var (paged, total) = await _audit.GetPagedWithCountAsync(
             Blank(filter.User), Blank(filter.ExcludeUser), Blank(filter.EntityType), Blank(filter.Action), null, null,
             filter.CriticalOnly ? true : null, page, size, Blank(filter.Q), filter.HideSystem);
@@ -44,7 +44,7 @@ public partial class OwnerOperationsService
         ["NewsPost", "PushSubscription", "Trophy", "FiscalYear", "GalleryMedia", "Transaction", "Discussion", "MeetingAta", "Request"];
 
     /// <summary>
-    /// #220, read time only (never saved; the export and the stored name stay raw): a name for the page's old entries
+    /// Read time only (never saved; the export and the stored name stay raw): a name for the page's old entries
     /// whose stored name is weak - member ids in it become today's nicknames, and a missing name becomes the entity's
     /// current name when it still exists. One query for the members, then one per entity type present on the page; a
     /// deleted entity stays unnamed.
@@ -159,8 +159,8 @@ public partial class OwnerOperationsService
     }
 
     /// <summary>
-    /// The filtered log as the old export wrote it (indented JSON of the entries; the search is not applied), except that
-    /// redacted properties of old entries are hidden as on the page (#226 F04). The entries are detached copies: the
+    /// The filtered log as exported (indented JSON of the entries; the search is not applied), except that
+    /// redacted properties of old entries are hidden as on the page. The entries are detached copies: the
     /// stored rows are not touched.
     /// </summary>
     public async Task<string> ExportAuditLogsAsync(OwnerAuditFilter filter)
@@ -180,9 +180,9 @@ public partial class OwnerOperationsService
 
     /// <summary>
     /// Who signed in or was seen between two Portugal days (yyyy-MM-dd, both included; today when missing), most recent
-    /// first, from LoginEvents (task 050): sign-ins, active days, first and last time, and the sign-in times (newest
+    /// first, from LoginEvents: sign-ins, active days, first and last time, and the sign-in times (newest
     /// first, at most <see cref="LoginTimesMax"/>). A member with no LoginEvents row in the range whose LastLoginDate
-    /// falls in it is still listed (<c>FromHistory = false</c>, latest only), as before 050.
+    /// falls in it is still listed (<c>FromHistory = false</c>, latest only).
     /// </summary>
     public async Task<EventResult<OwnerLogins>> GetLoginsAsync(string? from, string? to)
     {

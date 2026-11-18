@@ -102,7 +102,7 @@ public sealed partial class GovernanceManagementService
         }
         catch (Exception ex)
         {
-            // The old page said "not available" on any storage error; so does the React one.
+            // Any storage error answers "not available".
             _logger.LogWarning(ex, "Could not sign the RGI URL");
             return EventResult<GovernanceRgiDto>.Ok(new GovernanceRgiDto(null));
         }

@@ -12,8 +12,8 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The member side of the React /rehearsals pages (React track 014, docs/react-rehearsals.md).
-/// Reads Rehearsals and RehearsalAttendances; no schema change. Rules, as the old page:
+/// The member side of the React /rehearsals pages (docs/react-rehearsals.md).
+/// Reads Rehearsals and RehearsalAttendances; no schema change. Rules:
 /// - a rehearsal is past once its day is before today; presenças can be approved once it is past, or today
 ///   when it starts at 21:00 or later (every real rehearsal starts at 21:30);
 /// - a member answers Vou / Não vou (instrument and note) on an upcoming, not cancelled rehearsal; a new "vou" is
@@ -81,7 +81,7 @@ public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
         }
 
         var manage = RehearsalsAuthorization.CanManage(user);
-        // Task 075: the current Ensaiador / Magister approve and refuse too (nothing else of management).
+        // The current Ensaiador / Magister approve and refuse too (nothing else of management).
         var approver = RehearsalsAuthorization.CanApprove(user,
             await db.Users.AsNoTracking().Where(u => u.Id == me).Select(u => u.Positions).FirstOrDefaultAsync());
         var rows = await db.RehearsalAttendances.AsNoTracking()
@@ -90,7 +90,7 @@ public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
             .OrderByDescending(a => a.CheckedInAt).ThenByDescending(a => a.Id)
             .ToListAsync();
 
-        // The old list: Admin approves or removes once the rehearsal can be approved; anyone removes their own.
+        // Admin approves or removes once the rehearsal can be approved; anyone removes their own.
         var approvable = IsApprovable(r, Today);
         RehearsalAttendeeDto Row(RehearsalAttendance a) => new(
             a.Id,
@@ -109,7 +109,7 @@ public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
             going.Where(a => a.EffectiveCategory() == MemberCategory.Leitao).Select(Row).ToList(),
             rows.Where(a => !a.WillAttend).Select(Row).ToList());
 
-        // As the old counters: what the going members play, then the other instruments they listed.
+        // What the going members play, then the other instruments they listed.
         var primary = going.Where(a => a.Instrument.HasValue).GroupBy(a => a.Instrument!.Value)
             .Select(g => (g.Key, g.Count()));
         var others = going.SelectMany(a => (a.OtherInstruments ?? string.Empty)
@@ -209,7 +209,7 @@ public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
             return EventResult<RehearsalStatsDto>.Fail(EventResultStatus.SignInRequired);
         }
 
-        // The old modal's rules: the current season by default; past, not cancelled rehearsals; "vou" rows only.
+        // The current season by default; past, not cancelled rehearsals; "vou" rows only.
         var seasonStart = FiscalYearHelper.GetCurrentFiscalYearStartYear();
         var start = (from ?? new DateOnly(seasonStart, 9, 1)).ToDateTime(TimeOnly.MinValue);
         var end = (to ?? new DateOnly(seasonStart + 1, 8, 31)).ToDateTime(TimeOnly.MinValue);

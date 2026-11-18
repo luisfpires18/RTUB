@@ -134,7 +134,7 @@ public sealed partial class MessagingService
     private static (string Kind, string Title, string Avatar) Heading(Conversation c, string me,
         IReadOnlyDictionary<string, (MessagingPerson Person, bool Expelled)> people)
     {
-        // Always the current name: older rows still say "Sistema RTUB" (task 058 renamed it).
+        // Always the current name: older rows still say "Sistema RTUB".
         if (c.IsSystemConversation)
         {
             return ("system", SystemTitle, GroupAvatar);

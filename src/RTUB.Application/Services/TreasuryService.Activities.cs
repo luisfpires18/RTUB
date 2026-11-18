@@ -58,7 +58,7 @@ public sealed partial class TreasuryService
         });
 
     /// <summary>
-    /// Task 074: an activity may account for an event that is not cancelled and starts in the report's fiscal year (the
+    /// An activity may account for an event that is not cancelled and starts in the report's fiscal year (the
     /// same events "As minhas ações pendentes" asks the treasurers about).
     /// </summary>
     private static async Task<(string, string)?> EventError(ApplicationDbContext db, int reportId, int? eventId)

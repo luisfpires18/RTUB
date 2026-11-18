@@ -11,7 +11,7 @@ namespace RTUB.Application.Services;
 
 public sealed partial class MemberAdminService
 {
-    // ---------- the Mod's limited edit (task 076) ----------
+    // ---------- the Mod's limited edit ----------
 
     public async Task<EventResult<MemberInfoDto>> GetInfoAsync(string id, ClaimsPrincipal user)
     {

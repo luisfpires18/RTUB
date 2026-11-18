@@ -11,9 +11,9 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The calculations behind the React /hall-of-fame (task 032, docs/react-member-area.md). Same
+/// The calculations behind the React /hall-of-fame (docs/react-member-area.md). Same
 /// twelve records, same data, same rules:
-/// - every account counts, as before (no category or expelled filter);
+/// - every account counts (no category or expelled filter);
 /// - ties: every member who shares the best value wins;
 /// - durations (Leitão → Caloiro, Caloiro → Tuno) are whole months between the two month/year pairs, and only a
 ///   positive duration counts;
@@ -89,7 +89,7 @@ public sealed class HallOfFameService : IHallOfFameService
 
     // ---------- the records ----------
 
-    /// <summary>The most recent month (the old "Última passagem"); the month is the label.</summary>
+    /// <summary>The most recent month ("Última passagem"); the month is the label.</summary>
     private static HallOfFameCategoryDto Latest(string key, string title, IEnumerable<ApplicationUser> users, Func<ApplicationUser, DateTime?> month)
     {
         var dated = users.Select(u => (User: u, Date: month(u))).Where(x => x.Date.HasValue).ToList();
@@ -190,7 +190,7 @@ public sealed class HallOfFameService : IHallOfFameService
 
     private static GovernanceMemberDto Person(ApplicationUser u) => GovernanceService.ToMember(u.Nickname, u.FirstName, u.LastName, u.ImageUrl);
 
-    /// <summary>"5 meses", "2 anos", "1 ano 3 meses", as the old page.</summary>
+    /// <summary>"5 meses", "2 anos", "1 ano 3 meses".</summary>
     internal static string FormatDuration(int months)
     {
         if (months < 12)

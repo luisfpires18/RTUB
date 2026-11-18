@@ -55,7 +55,7 @@ public sealed partial class LogisticsKanbanService
         }
         catch (Exception ex)
         {
-            // The old page treated the files as "not critical" too: the board still opens.
+            // The files are "not critical": the board still opens.
             _logger.LogWarning(ex, "Could not list the files of logistics board {Board}", boardName);
             return new();
         }

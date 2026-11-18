@@ -11,12 +11,12 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React Events area (React track 011, docs/react-events.md). Reads the existing Events,
+/// The React Events area (docs/react-events.md). Reads the existing Events,
 /// Enrollments, Trophies, EventVideos, EventRepertoires and Discussions; no schema change.
 /// Enrollment writes go through <see cref="IEnrollmentService"/>, so its notifications, category
 /// snapshot and retirement update stay exactly as they were.
 ///
-/// Upcoming/past is the old page's rule: an event is past once its last day (EndDate, else Date) is
+/// Upcoming/past: an event is past once its last day (EndDate, else Date) is
 /// before today in Portugal (<see cref="PortugalTime"/>, not the server's zone). Upcoming soonest first,
 /// past newest first, Id breaking ties.
 /// </summary>
@@ -83,7 +83,7 @@ public sealed partial class EventAgendaService : IEventAgendaService
         // Anonymous and cacheable: public events only, whoever asks.
         await using var db = await _contexts.CreateDbContextAsync();
         // Upcoming = not past (its last day is today or later), soonest first - decided by SQL, so only `count` rows
-        // leave the database (task 054). The agenda keeps its in-memory Upcoming: the member view needs every event.
+        // leave the database. The agenda keeps its in-memory Upcoming: the member view needs every event.
         var today = Today;
         var events = await db.Events.AsNoTracking()
             .Where(e => e.IsPublic && (e.EndDate ?? e.Date) >= today)
@@ -113,7 +113,7 @@ public sealed partial class EventAgendaService : IEventAgendaService
         EventMemberDetailDto? member = null;
         if (extras.IsMember)
         {
-            // The same rows "Quem vai" shows give the not-going count: one query fewer (task 054).
+            // The same rows "Quem vai" shows give the not-going count: one query fewer.
             var people = await PeopleAsync(db, id);
             var notGoing = people.Count(p => !p.WillAttend);
             var repertoire = (await db.EventRepertoires.AsNoTracking()
@@ -132,7 +132,7 @@ public sealed partial class EventAgendaService : IEventAgendaService
 
         var canManage = EventsAuthorization.CanManage(user);
         var me = EventsAuthorization.UserId(user);
-        // Task 075: the current Ensaiador / Magister prepare the repertoire of an upcoming, not cancelled event.
+        // The current Ensaiador / Magister prepare the repertoire of an upcoming, not cancelled event.
         var canPrepare = !canManage && extras.IsMember && !e.IsCancelled && !IsPast(e)
             && (await db.Users.AsNoTracking().Where(u => u.Id == me).Select(u => u.Positions).FirstOrDefaultAsync())
                 ?.Any(RehearsalsAuthorization.Approvers.Contains) == true;

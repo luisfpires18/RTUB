@@ -8,12 +8,11 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Messaging v2 (task 041, docs/react-messages.md): the React /messages over the v1 tables that task 027 preserved, with
-/// the v1 rules (git: a121f3f1^ MessagingService) and no schema change:
+/// Messaging v2 (docs/react-messages.md): the React /messages over the v1 tables, with
+/// the v1 rules and no schema change:
 /// - a member sees only the conversations they take part in (<see cref="Conversation.HasParticipant"/>); archived ones
 ///   stay hidden; there is no Admin / Owner reading of other people's chats;
-/// - "Notificações RTUB" (was "Sistema RTUB"; one per member, every push is kept there since task 058,
-///   <see cref="NotificationInbox"/>) conversations are read-only; announcement-only groups take messages from the Owner and the current
+/// - "Notificações RTUB" (one per member; every push is kept there,///   <see cref="NotificationInbox"/>) conversations are read-only; announcement-only groups take messages from the Owner and the current
 ///   Magister, Vice-Magister, Presidents of the CF / MAG / CV and the Ensaiador only (v1's list);
 /// - text only (1-2000), a reply quotes a message of the same conversation (snippet ≤200 + sender, denormalized as v1
 ///   did), one reaction per member per message from a fixed emoji set, mute per member (no push while muted);
@@ -31,7 +30,7 @@ public sealed partial class MessagingService : IMessagingService
     public const int MaxTitleLength = 200; // the Conversations.Title column
     public const int MaxGroupMembers = 100;
     public const string SystemTitle = "Notificações RTUB";
-    // The 352 px WebP (~34 KB) the portal header uses, shown at avatar size; was the 1024 px logo (~146 KB). #226 F09.
+    // The 352 px WebP (~34 KB) the portal header uses, shown at avatar size.
     public const string GroupAvatar = "/icons/rtub-logo-352.webp";
 
     /// <summary>The emoji a member can react with. Older reactions outside the set still show.</summary>

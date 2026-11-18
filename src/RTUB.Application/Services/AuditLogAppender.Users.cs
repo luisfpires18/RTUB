@@ -79,7 +79,7 @@ public partial class AuditLogAppender
             Timestamp = DateTime.UtcNow,
             Changes = changes.Count > 0 ? JsonSerializer.Serialize(changes) : null,
             IsCriticalAction = isCriticalChange,
-            // #220: the nickname members know, with the username that identifies the account.
+            // The nickname members know, with the username that identifies the account.
             EntityDisplayName = Fit(string.IsNullOrWhiteSpace(modifiedUser.Nickname) || modifiedUser.Nickname == modifiedUser.UserName
                 ? modifiedUser.UserName
                 : $"{modifiedUser.Nickname} ({modifiedUser.UserName})")

@@ -41,7 +41,7 @@ public sealed partial class MemberDirectoryService
         var recent = _time.GetUtcNow().UtcDateTime.AddDays(-15);
         var leitaoStatus = await LeitaoStatusesAsync(users.Where(u => u.IsLeitao()).Select(u => u.Id).ToList());
 
-        // As the old grids: members by nickname; Leitões by number of activities, then the most recent first.
+        // Members by nickname; Leitões by number of activities, then the most recent first.
         var members = regular
             .OrderBy(u => u.Nickname ?? "")
             .Select(u => Card(u, RegularBadges(u), positions.TryGetValue(u.Id, out var p) ? StatusHelper.GetPositionDisplay(p) : null,
@@ -131,7 +131,7 @@ public sealed partial class MemberDirectoryService
         }
         catch (Exception ex)
         {
-            // As before: without statuses the list still shows, from the members' own retired flag.
+            // Without statuses the list still shows, from the members' own retired flag.
             _logger.LogWarning(ex, "Could not load member statuses");
             statuses = new Dictionary<string, MemberStatusResult?>();
         }
@@ -166,7 +166,7 @@ public sealed partial class MemberDirectoryService
             return EventResult<IReadOnlyList<MemberBirthdayDto>>.Fail(EventResultStatus.SignInRequired);
         }
 
-        // The birthdays from today to the end of the year, soonest first, then by name - as the old list.
+        // The birthdays from today to the end of the year, soonest first, then by name -.
         var today = PortugalTime.Today(_time);
         var upcoming = (await UsersAsync())
             .Where(u => u.DateOfBirth.HasValue)
@@ -202,7 +202,7 @@ public sealed partial class MemberDirectoryService
         MemberTreeNodeDto Node(ApplicationUser u)
         {
             var who = GovernanceService.ToMember(u.Nickname, u.FirstName, u.LastName, u.ImageUrl);
-            // Afilhados by the month they became Caloiro, then by name - as the old tree.
+            // Afilhados by the month they became Caloiro, then by name -.
             var afilhados = children.TryGetValue(u.Id, out var list)
                 ? list.OrderBy(a => a.YearCaloiro ?? int.MaxValue).ThenBy(a => a.MonthCaloiro ?? int.MaxValue)
                     .ThenBy(a => a.FirstName).ThenBy(a => a.LastName).Select(Node).ToList()

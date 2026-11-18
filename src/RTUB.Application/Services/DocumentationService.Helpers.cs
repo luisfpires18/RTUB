@@ -58,12 +58,12 @@ public sealed partial class DocumentationService
             }
         }
 
-        // Logística 3/5 (067): a private board's pre-067 file folder is only for those who see the board (its access list,
+        // A private board's per-year file folder is only for those who see the board (its access list,
         // Mod, Admin, Owner), here as on the board - listing, download and delete all go through the visible folders.
         // Fail closed: a folder is hidden if any private board the caller may not see could own it - by its resolved
         // LegacyFolder or by its current sanitised name (unresolved boards, and boards that share a folder name with
         // another board, whose LegacyFolder is ""), compared case-insensitively.
-        // 104: a Logistics folder no board owns (a deleted board's, a name two old boards shared, a folder a rename has
+        // A Logistics folder no board owns (a deleted board's, a name two old boards shared, a folder a rename has
         // not finished moving) is for Mod, Admin and Owner only: it may hold a private board's files.
         var hidden = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         HashSet<string>? open = null;

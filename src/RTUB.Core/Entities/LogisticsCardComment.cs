@@ -1,7 +1,7 @@
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// A comment in a Logística card's discussion (task 066). Plain text, never HTML. <c>MentionsJson</c> holds the ids of the
+/// A comment in a Logística card's discussion. Plain text, never HTML. <c>MentionsJson</c> holds the ids of the
 /// members it mentions (validated as board viewers when written; notifications come in phase 4). The author may be gone
 /// (account deleted): <c>AuthorId</c> is then null.
 /// </summary>

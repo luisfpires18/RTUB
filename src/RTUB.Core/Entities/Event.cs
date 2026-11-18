@@ -46,7 +46,7 @@ public class Event : BaseEntity
     public bool IsPublic { get; set; } = true;
 
     /// <summary>
-    /// Task 074: a treasurer's shared answer "este evento não teve despesas nem receitas" for "As minhas ações pendentes"
+    /// A treasurer's shared answer "este evento não teve despesas nem receitas" for "As minhas ações pendentes"
     /// (both treasurers, every device). False = not decided; an activity linked to the event also classifies it. Audited
     /// with the event; reopened from the same page.
     /// </summary>

@@ -2,7 +2,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>Read side of the public Órgãos Sociais page (React track 008).</summary>
+/// <summary>Read side of the public Órgãos Sociais page.</summary>
 public interface IGovernanceService
 {
     /// <summary>

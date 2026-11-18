@@ -18,8 +18,8 @@ public class LogisticsList : BaseEntity
     public int BoardId { get; set; }
 
     /// <summary>
-    /// Task 067: the workflow state every card in this column has (the column is authoritative). Null only for a column
-    /// written before 067 (or by an older app), mapped once at startup by LogisticsWorkflow.
+    /// The workflow state every card in this column has (the column is authoritative). Null only for a column
+    /// written without one (an older app), mapped once at startup by LogisticsWorkflow.
     /// </summary>
     public RTUB.Core.Enums.CardStatus? State { get; set; }
 

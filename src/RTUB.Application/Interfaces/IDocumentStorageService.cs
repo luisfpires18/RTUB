@@ -37,7 +37,7 @@ public interface IDocumentStorageService
     Task<List<DocumentMetadata>> ListDocumentsInFolderAsync(string folderPath);
 
     /// <summary>
-    /// Every object under a prefix at any depth, folder markers ("…/") included, in one listing (#226 F01: one storage
+    /// Every object under a prefix at any depth, folder markers ("…/") included, in one listing (one storage
     /// round trip for a whole fiscal year instead of one per folder).
     /// </summary>
     /// <param name="prefix">The prefix, ending in "/" (e.g., "docs/Production/2025-2026/")</param>

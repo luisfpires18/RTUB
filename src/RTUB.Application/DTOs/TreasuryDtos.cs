@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /treasury pages ("Tesouraria", React track 024.
+// Contracts of the React /treasury pages ("Tesouraria").
 // Signed-in members only; who sees what is in TreasuryAuthorization.
 // No entity leaves the server. A member id reaches only a manager who needs it to change a record; members see names
 // and avatars. Amounts are euros as stored (decimal, no rounding).
@@ -25,11 +25,11 @@ public sealed record TreasuryTotalsDto(decimal TotalMoney, decimal Bank, decimal
 
 public sealed record TreasuryTransactionDto(int Id, DateTime Date, string Description, string Category, decimal Amount, string Type, string? ReceiptUrl);
 
-/// <summary>An activity of a report; <c>EventId</c> / <c>EventName</c>: the event it accounts for (task 074), if any.</summary>
+/// <summary>An activity of a report; <c>EventId</c> / <c>EventName</c>: the event it accounts for, if any.</summary>
 public sealed record TreasuryActivityDto(int Id, string Name, string? Description, DateTime StartDate, DateTime? EndDate, bool IsLocked,
     decimal Income, decimal Expenses, decimal Balance, IReadOnlyList<TreasuryTransactionDto> Transactions, int? EventId = null, string? EventName = null);
 
-/// <summary>An event an activity of this report may account for (task 074): not cancelled, starting in the report's fiscal year.</summary>
+/// <summary>An event an activity of this report may account for: not cancelled, starting in the report's fiscal year.</summary>
 public sealed record TreasuryEventOptionDto(int Id, string Name, DateTime Date, DateTime? EndDate);
 
 /// <summary>
@@ -44,7 +44,7 @@ public sealed record TreasuryReportDto(int Id, string Title, int Year, string? S
 /// <summary>"Dinheiro no Banco" (<c>Kind</c> = "bank") or "Dinheiro em Caixa" ("cash"); any sign, 0 clears it.</summary>
 public sealed record TreasuryBalanceInput(string? Kind, decimal? Value);
 
-/// <summary>An activity form. <c>EventId</c> (task 074): the event it accounts for, or null for none (also on edit: null unlinks).</summary>
+/// <summary>An activity form. <c>EventId</c>: the event it accounts for, or null for none (also on edit: null unlinks).</summary>
 public sealed record TreasuryActivityInput(string? Name, DateTime? StartDate, DateTime? EndDate, string? Description, int? EventId = null);
 
 public sealed record TreasuryLockInput(bool Locked);

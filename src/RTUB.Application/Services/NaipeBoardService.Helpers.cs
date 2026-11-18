@@ -75,7 +75,7 @@ public sealed partial class NaipeBoardService
             : (null!, EventResult<IReadOnlyList<NaipeTypeSettingDto>>.Fail(EventResultStatus.NotFound));
     }
 
-    /// <summary>Every instrument, by display order then instrument (the repository's order, as the old page loaded it).</summary>
+    /// <summary>Every instrument, by display order then instrument (the repository's order).</summary>
     private async Task<IReadOnlyList<NaipeTypeSettingDto>> SettingsAsync() =>
         (await _naipes.GetAllTypeConfigsAsync())
             .OrderBy(c => c.SortOrder)

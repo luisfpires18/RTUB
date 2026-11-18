@@ -4,8 +4,8 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// Admin/Owner management of other members' answers behind the React event page (React track 012E,
-/// docs/react-events.md): the old /events/{id}/enrollments "Adicionar Membro" and remove. A member's own
+/// Admin/Owner management of other members' answers behind the React event page
+/// (docs/react-events.md): "Adicionar Membro" and remove. A member's own
 /// answer stays the answer modal (<see cref="IEventAgendaService"/>). Writes go through
 /// <see cref="IEnrollmentService"/>; every write answers the whole list.
 /// </summary>

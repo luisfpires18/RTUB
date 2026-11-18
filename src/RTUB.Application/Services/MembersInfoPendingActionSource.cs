@@ -10,7 +10,7 @@ namespace RTUB.Application.Services;
 // Pending action: members with missing info.
 
 /// <summary>
-/// Membros (task 076; system role Mod, Admin or Owner - the ones who may use the limited member-information edit): every
+/// Membros (system role Mod, Admin or Owner - the ones who may use the limited member-information edit): every
 /// member in scope (not expelled, Leitão / Caloiro / Tuno) with an applicable field still empty (<see cref="MemberInfoRules"/>),
 /// counted and paged in SQL. "Completar" opens that member's focused edit on /members; the row leaves only once the field
 /// is saved, by anyone.
@@ -24,7 +24,7 @@ public sealed class MembersInfoPendingActionSource : IPendingActionSource
     public string Category => "responsibilities";
     public IReadOnlyList<(string Key, string Label)> Filters => [];
 
-    /// <summary>Mod or Admin; the Owner is left out on purpose (087, owner decision), even when the account also holds Admin.</summary>
+    /// <summary>Mod or Admin; the Owner is left out on purpose (owner decision), even when the account also holds Admin.</summary>
     public bool AppliesTo(PendingActionMember member) =>
         !member.Roles.Contains("Owner") && (member.Roles.Contains("Mod") || member.Roles.Contains("Admin"));
 

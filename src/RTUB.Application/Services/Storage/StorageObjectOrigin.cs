@@ -50,7 +50,7 @@ public enum StorageObjectOrigin
 ///
 /// <para>Production is unaffected. Its stored URLs sit under its own
 /// <c>Cloudflare:R2:PublicUrl</c>, so they resolve to <see cref="StorageObjectOrigin.CurrentEnvironment"/>
-/// and behave exactly as before, and it configures no reference origin at all.</para>
+/// and behave exactly, and it configures no reference origin at all.</para>
 /// </remarks>
 public sealed class StorageOriginResolver
 {

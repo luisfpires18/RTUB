@@ -3,13 +3,13 @@ using System.Security.Claims;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The classification rules (React track 019, docs/react-leaderboard.md), enforced server-side by
+/// The classification rules (docs/react-leaderboard.md), enforced server-side by
 /// <c>LeaderboardService</c>, with Owner inheriting Admin:
 ///
-/// - Visitors: nothing (401); the page sends them to sign in.
+/// - Visitors: nothing; the page sends them to sign in.
 /// - Any signed-in member (Mod included): the table, a member's details, the comments; comment, like, and delete their
 ///   own comments.
-/// - Admin or Owner: also delete any comment. (Editing the story text went with the Labels admin in 029A.)
+/// - Admin or Owner: also delete any comment. Nobody edits the story text.
 /// </summary>
 public static class LeaderboardAuthorization
 {

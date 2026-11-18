@@ -70,7 +70,7 @@ public sealed partial class QuestionBoardService
         return EventResult<QuestionDetailDto>.Ok(new QuestionDetailDto(Summary(question, me), replies));
     }
 
-    /// <summary>Every (member, position) pair of the Órgãos Sociais, Direção first, as the old dropdown offered.</summary>
+    /// <summary>Every (member, position) pair of the Órgãos Sociais, Direção first.</summary>
     private async Task<IReadOnlyList<QuestionRecipientOptionDto>> RecipientsAsync()
     {
         await using var db = await _contexts.CreateDbContextAsync();
@@ -121,7 +121,7 @@ public sealed partial class QuestionBoardService
             ? new GovernanceMemberDto("Membro", null, null)
             : GovernanceService.ToMember(user.Nickname, user.FirstName, user.LastName, user.ImageUrl);
 
-    /// <summary>"Direção - Magister" for the Direção, just the position elsewhere, as the old page showed it.</summary>
+    /// <summary>"Direção - Magister" for the Direção, just the position elsewhere.</summary>
     private static string Role(Position position) =>
         OrgaoSocialHelper.GetGroupForPosition(position) is OrgaoSocialGroup.Direcao
             ? $"{OrgaoSocialHelper.GetDisplayName(OrgaoSocialGroup.Direcao)} - {PositionHelper.GetDisplayName(position)}"

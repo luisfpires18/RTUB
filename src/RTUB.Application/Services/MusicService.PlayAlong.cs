@@ -9,7 +9,7 @@ namespace RTUB.Application.Services;
 
 public sealed partial class MusicService
 {
-    // ---------- tocar junto (094) ----------
+    // ---------- tocar junto ----------
 
     public async Task<MusicResult<MusicLearnListDto>> GetPlayAlongSongsAsync(ClaimsPrincipal user)
     {
@@ -39,7 +39,7 @@ public sealed partial class MusicService
             .ToList(), MusicAuthorization.CanManagePlayAlong(user)));
     }
 
-    /// <summary>Counts one open of the song's Aprender page (098).</summary>
+    /// <summary>Counts one open of the song's Aprender page.</summary>
     public async Task<MusicResult<bool>> RecordPlayAlongViewAsync(int songId, ClaimsPrincipal user)
     {
         if (!MusicAuthorization.IsMember(user))
@@ -59,7 +59,7 @@ public sealed partial class MusicService
         return changed == 0 ? MusicResult<bool>.Fail(MusicResultStatus.NotFound) : MusicResult<bool>.Ok(true);
     }
 
-    /// <summary>Stars or un-stars an Aprender song for the member (098).</summary>
+    /// <summary>Stars or un-stars an Aprender song for the member.</summary>
     public async Task<MusicResult<bool>> SetPlayAlongStarAsync(int songId, bool starred, ClaimsPrincipal user)
     {
         var userId = MusicAuthorization.UserId(user);

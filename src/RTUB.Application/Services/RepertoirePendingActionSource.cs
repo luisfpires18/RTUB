@@ -13,7 +13,7 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Repertório (current Ensaiador / Magister): upcoming, not cancelled events with no song in their repertoire.
 /// "Preparar repertório" opens the event's repertoire editor (the same editor; the Ensaiador / Magister may use it for
-/// upcoming events, task 075). "Não é necessário" is the member's own dismissal of that event; a repertoire saved by
+/// upcoming events). "Não é necessário" is the member's own dismissal of that event; a repertoire saved by
 /// anyone resolves it for everyone.
 /// </summary>
 public sealed class RepertoirePendingActionSource : IPendingActionSource

@@ -1,7 +1,7 @@
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// "As minhas ações pendentes" (task 071, docs/react-pending-actions.md): a member's own "no / not now" on an optional
+/// "As minhas ações pendentes" (docs/react-pending-actions.md): a member's own "no / not now" on an optional
 /// action, so it stops showing for that member and that period. Personal only: it never hides work for anyone else and
 /// it is never a shared decision (those live in their module, e.g. a treasury "Sem movimentos"). Required actions are
 /// never stored here; the service refuses them. Keyed by member + action kind + source + period, where the period is

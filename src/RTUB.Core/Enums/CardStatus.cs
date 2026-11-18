@@ -9,6 +9,6 @@ public enum CardStatus
     InProgress = 1,
     Done = 2,
 
-    /// <summary>Task 067: waiting on something outside the card ("Bloqueado").</summary>
+    /// <summary>Waiting on something outside the card ("Bloqueado").</summary>
     Blocked = 3
 }

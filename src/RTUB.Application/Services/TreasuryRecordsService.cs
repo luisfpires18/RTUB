@@ -10,15 +10,15 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// The React /treasury/calotes, /treasury/mbway and
-/// /treasury/nerba[/{eventId}] (React track 024, docs/react-treasury.md). Same tables; the writes go through the old
+/// /treasury/nerba[/{eventId}] (docs/react-treasury.md). Same tables; the writes go through the old
 /// services. Rules are server-side now (<see cref="TreasuryAuthorization"/>); three of these pages had no sign-in at all.
 /// - calotes: treasury members see every debt of a fiscal year, Caloiros and Leitões only their own; Mod / Admin / Owner
 ///   add (member not a Leitão, amount &gt; 0, a new debt inherits the member's commitment date), edit, remove and set the
 ///   commitment date for all of a member's debts of the year;
 /// - MBWay: every transfer, newest first, totals per recipient (never counted in report totals); Mod / Admin / Owner add,
-///   Owner edits and deletes; the recipient is a member (the old service refused anything else);
+///   Owner edits and deletes; the recipient is a member (the service refuses anything else);
 /// - Nerba: events of type Nerba, upcoming then past; items per day of a multi-day event; Mod / Admin / Owner manage.
-/// The member pickers return names and avatars (no e-mail, though it is still searched, as before).
+/// The member pickers return names and avatars (no e-mail, though it is still searched).
 /// </summary>
 public sealed partial class TreasuryRecordsService : ITreasuryRecordsService
 {

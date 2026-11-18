@@ -28,7 +28,7 @@ public sealed partial class MeetingBoardService
             return EventResult<MeetingAtaEditorDto>.Fail(EventResultStatus.Forbidden);
         }
 
-        // Only a saved draft is published (the old "Publicar" appeared once the ata had been saved).
+        // Only a saved draft is published ("Publicar" appears once the ata is saved).
         if (context.Existing is null || context.Existing.Status == MeetingAtaStatus.Published)
         {
             return EventResult<MeetingAtaEditorDto>.Fail(EventResultStatus.Closed);
@@ -44,7 +44,7 @@ public sealed partial class MeetingBoardService
         details.Meeting ??= meeting;
         var pdf = _pdf.GenerateAtaPdf(details);
 
-        // As before: the PDF goes to Documentation in the current fiscal year's folder; a storage failure is logged and
+        // The PDF goes to Documentation in the current fiscal year's folder; a storage failure is logged and
         // does not stop the publication.
         var fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
         var folderName = meeting.Type == MeetingType.ConselhoVeteranos ? $"Atas CV {fiscalYear}"
@@ -62,7 +62,7 @@ public sealed partial class MeetingBoardService
             _logger.LogWarning(ex, "Failed to create ATA folder or upload PDF to {FolderPath}, but ATA was published", folderPath);
         }
 
-        _trees.Forget(folderPath); // the ata folder is shown in Documentation (#226 F01), even half written
+        _trees.Forget(folderPath); // the ata folder is shown in Documentation, even half written
 
         try
         {
@@ -132,7 +132,7 @@ public sealed partial class MeetingBoardService
             return EventResult<MeetingAtaViewDto>.Fail(EventResultStatus.Closed);
         }
 
-        // Only someone who attended ("Vou") confirms or refuses, as the old view and the confirmation service required.
+        // Only someone who attended ("Vou") confirms or refuses.
         var participation = await _participations.GetParticipationByMeetingAndUserAsync(context.Meeting.Id, access.UserId);
         if (participation?.WillAttend != true)
         {

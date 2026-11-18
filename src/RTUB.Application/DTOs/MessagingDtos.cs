@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Messaging v2 (task 041, docs/react-messages.md): the React /messages over the preserved v1 tables (Conversations,
+// Messaging v2 (docs/react-messages.md): the React /messages over the preserved v1 tables (Conversations,
 // Messages, MessageReactions, ConversationUserSettings). Text only - no attachments, no media. Dates are UTC.
 
 /// <summary>A person as the chat shows them: nickname first (else the full name), never an address or phone.</summary>
@@ -20,7 +20,7 @@ public sealed record ConversationListItem(
     bool Pinned,
     bool CanSend);
 
-/// <summary>The header badge (task 044): unread messages, summed over the member's conversations - the list's <c>UnreadCount</c>s.</summary>
+/// <summary>The header badge: unread messages, summed over the member's conversations - the list's <c>UnreadCount</c>s.</summary>
 public sealed record UnreadSummary(int UnreadCount);
 
 /// <summary>An emoji and who used it, from the caller's point of view.</summary>

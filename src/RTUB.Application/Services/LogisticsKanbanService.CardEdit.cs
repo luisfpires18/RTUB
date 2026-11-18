@@ -25,13 +25,13 @@ public sealed partial class LogisticsKanbanService
 
         await using var db = await _contexts.CreateDbContextAsync();
         var events = await db.Events.AsNoTracking().OrderByDescending(e => e.Date).Select(e => new LogisticsEventDto(e.Id, e.Name, e.Date)).ToListAsync();
-        // The old picker: the event name, the first ten matches.
+        // The picker: the event name, the first ten matches.
         return EventResult<IReadOnlyList<LogisticsEventDto>>.Ok(events.Where(e => EventParticipantsAdminService.Fold(e.Name).Contains(q)).Take(10).ToList());
     }
 
     // ---------------------------------------------------------------- cards
 
-    /// <summary>Every member who sees the board reads the details (task 065); a private board's card is 404 to others (067).</summary>
+    /// <summary>Every member who sees the board reads the details; a private board's card is 404 to others.</summary>
     public async Task<EventResult<LogisticsCardDetailDto>> GetCardAsync(int id, ClaimsPrincipal user)
     {
         var (refused, db, _, _) = await OpenCardAsync<LogisticsCardDetailDto>(id, user);
@@ -47,9 +47,9 @@ public sealed partial class LogisticsKanbanService
     }
 
     /// <summary>
-    /// The card's own fields (task 066): owner, collaborators and managers. <c>Version</c> must be the card's current one
+    /// The card's own fields: owner, collaborators and managers. <c>Version</c> must be the card's current one
     /// (409 otherwise, nothing saved). Only a manager changes (or clears) the owner: anyone else sends none (kept) or the
-    /// current one; another id is forged (403). Every changed field leaves one history line.
+    /// current one; another id is forged. Every changed field leaves one history line.
     /// </summary>
     public Task<EventResult<LogisticsCardDetailDto>> UpdateCardAsync(int id, LogisticsCardInput input, ClaimsPrincipal user) =>
         ChangeCardAsync(id, user, assignedMayChange: true, async (db, card, access) =>
@@ -95,7 +95,7 @@ public sealed partial class LogisticsKanbanService
                 return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.Conflict);
             }
 
-            // A description that still carries the old base64 file block keeps it, unseen, as the old page did.
+            // A description that still carries a legacy base64 file block keeps it, unseen.
             var stored = card.Description ?? "";
             var marker = stored.IndexOf(LegacyFilesMarker, StringComparison.Ordinal);
             var description = input.Description?.Trim() ?? "";
@@ -158,7 +158,7 @@ public sealed partial class LogisticsKanbanService
         });
 
     /// <summary>
-    /// Tick or untick one item (task 065): managers, owner or collaborators. Only <c>Done</c> changes; the text, order and
+    /// Tick or untick one item: managers, owner or collaborators. Only <c>Done</c> changes; the text, order and
     /// count stay. <c>Task</c> must match the item at <paramref name="index"/>, so a checklist changed meanwhile is
     /// refused instead of ticking another item.
     /// </summary>
@@ -192,16 +192,16 @@ public sealed partial class LogisticsKanbanService
                 return EventResult<LogisticsCardDetailDto>.Invalid("cardIds", "Escolha cartões deste quadro (outros que não este).");
             }
 
-            // Each link keeps a copy of the linked card's title, as before; saving the links refreshes those copies.
+            // Each link keeps a copy of the linked card's title; saving the links refreshes those copies.
             card.SetAttachments(JsonSerializer.Serialize(ids.Select(c => new StoredLink(0, linked[c], c))));
             return null;
         });
 
-    /// <summary>A collaborator (managers only, task 066: reassignment is manager-only); one history line.</summary>
+    /// <summary>A collaborator (managers only: reassignment is manager-only); one history line.</summary>
     public Task<EventResult<LogisticsCardDetailDto>> AddAssignmentAsync(int id, LogisticsAssignmentInput input, ClaimsPrincipal user) =>
         ChangeCardAsync(id, user, assignedMayChange: false, async (db, card, access) =>
         {
-            // Assignment never grants access (067): the member must already see the board.
+            // Assignment never grants access: the member must already see the board.
             if (string.IsNullOrEmpty(input.UserId) || !(await BoardViewersAsync(db, access.Board, new[] { input.UserId })).Contains(input.UserId))
             {
                 return EventResult<LogisticsCardDetailDto>.Invalid("userId", NoAccess);

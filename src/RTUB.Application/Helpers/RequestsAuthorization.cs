@@ -5,12 +5,12 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The performance-requests admin rules (task 031, docs/react-requests-questions.md), enforced server-side by
+/// The performance-requests admin rules (docs/react-requests-questions.md), enforced server-side by
 /// <c>RequestAdminService</c>, with Owner inheriting Admin as everywhere else on the React track:
 ///
-/// - Visitors: nothing (401); the page sends them to sign in.
-/// - Leitões: nothing (403), unless Admin or Owner.
-/// - Any other signed-in member: every request, contact details included (as the old page showed them).
+/// - Visitors: nothing; the page sends them to sign in.
+/// - Leitões: nothing, unless Admin or Owner.
+/// - Any other signed-in member: every request, contact details included.
 /// - Admin or Owner: also approve, reject and delete.
 /// </summary>
 public static class RequestsAuthorization

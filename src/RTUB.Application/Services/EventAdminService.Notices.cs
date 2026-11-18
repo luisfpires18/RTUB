@@ -112,7 +112,7 @@ public sealed partial class EventAdminService
 
         var (sent, failed) = await _push.SendToSelectedUsersAsync(recipients, _pushFactory.CreateEventCustomNotification(e, message));
 
-        // Audited as the old page did; an audit failure never turns a sent notice into an error.
+        // Audited; an audit failure never turns a sent notice into an error.
         try
         {
             await _audit.AddAsync(new AuditLog

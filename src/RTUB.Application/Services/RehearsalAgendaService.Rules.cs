@@ -14,7 +14,7 @@ public sealed partial class RehearsalAgendaService
 {
     // ---------- rules and mapping (shared with RehearsalAdminService) ----------
 
-    // "Today" is Portugal's calendar date (#226 F02; was the server's DateTime.Today).
+    // "Today" is Portugal's calendar date.
     private DateTime Today => PortugalTime.Today(_time);
 
     internal static bool IsPast(Rehearsal r, DateTime today) => r.Date.Date < today;
@@ -61,7 +61,7 @@ public sealed partial class RehearsalAgendaService
 
     internal static string? Blank(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 
-    /// <summary>September to August, as the old fiscal-year filter.</summary>
+    /// <summary>September to August.</summary>
     private static string Season(DateTime date)
     {
         var start = date.Month >= 9 ? date.Year : date.Year - 1;

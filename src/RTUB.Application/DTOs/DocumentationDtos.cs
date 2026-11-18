@@ -1,11 +1,11 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /documentation ("Documentação", React track 022). Documents
+// Contracts of the React /documentation ("Documentação"). Documents
 // live only in storage (docs/{environment}/{fiscal year}/{folder}/{file}); no table. Storage keys never leave the server:
 // a document is named by its fiscal year, folder and file name, and the server checks all three against the listing.
 
 /// <summary>
-/// <c>FiscalYear</c>: the year shown (the current one by default, as the old page). <c>Folders</c>: only those the caller
+/// <c>FiscalYear</c>: the year shown (the current one by default). <c>Folders</c>: only those the caller
 /// may see, in storage order, Logistics boards in place of the Logistics folder. <c>CanManage</c>: Owner, Admin or Mod.
 /// </summary>
 public sealed record DocumentationDto(
@@ -16,13 +16,13 @@ public sealed record DocumentationDto(
     long MaxFileBytes,
     bool CanManage);
 
-/// <summary><c>Name</c> addresses the folder ("Logistics/Board" for a board); <c>Label</c> is what the old page showed.</summary>
+/// <summary><c>Name</c> addresses the folder ("Logistics/Board" for a board); <c>Label</c> is the name shown.</summary>
 public sealed record DocumentFolderDto(string Name, string Label, IReadOnlyList<DocumentFileDto> Documents);
 
-/// <summary>A document by file name, as the old card: name, type and size.</summary>
+/// <summary>A document by file name: name, type and size.</summary>
 public sealed record DocumentFileDto(string Name, string Extension, long SizeBytes);
 
-/// <summary>A pre-signed download URL (attachment), valid for a limited time, as the old page opened.</summary>
+/// <summary>A pre-signed download URL (attachment), valid for a limited time.</summary>
 public sealed record DocumentLinkDto(string Url);
 
 public sealed record DocumentFolderInput(string? Name);

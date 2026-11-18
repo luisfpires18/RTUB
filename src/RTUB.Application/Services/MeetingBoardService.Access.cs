@@ -32,7 +32,7 @@ public sealed partial class MeetingBoardService
         return access.IsBlocked ? (null, EventResultStatus.Forbidden) : (access, EventResultStatus.Ok);
     }
 
-    /// <summary>The meetings this member sees: the old service filter (CV, Direção, Leitão), unchanged.</summary>
+    /// <summary>The meetings this member sees: the service filter (CV, Direção, Leitão).</summary>
     private async Task<List<Meeting>> VisibleMeetingsAsync(MeetingAccess access) =>
         (await _meetings.GetAllMeetingsAsync(null, 1, int.MaxValue, access.UserId)).ToList();
 
@@ -74,7 +74,7 @@ public sealed partial class MeetingBoardService
 
     /// <summary>
     /// A meeting whose ata may be touched: seen, not cancelled, on or after its day. <c>CanWrite</c> is the old
-    /// <c>CanCreateOrEditAta</c> with the old page's knowledge: it only knew a meeting's ata from the day after, so on the
+    /// <c>CanCreateOrEditAta</c> knows a meeting's ata only from the day after, so on the
     /// day itself the secretaries named on an ata are not yet counted.
     /// </summary>
     private async Task<(AtaContext? Context, EventResultStatus Refusal)> AtaContextAsync(MeetingAccess access, int id)
@@ -95,7 +95,7 @@ public sealed partial class MeetingBoardService
     }
 
     /// <summary>
-    /// The ata "Ver Ata" may open: the meeting is before today, the member passes the old reading rule, and the ata is
+    /// The ata "Ver Ata" may open: the meeting is before today, the member passes the reading rule, and the ata is
     /// published, or a draft they may write (decision A1). Null = nothing to show (a draft is never revealed).
     /// </summary>
     private MeetingAta? ReadableAta(MeetingAccess access, AtaContext context)
@@ -109,7 +109,7 @@ public sealed partial class MeetingBoardService
         return ata.Status == MeetingAtaStatus.Published || context.CanWrite ? ata : null;
     }
 
-    /// <summary>The old ata-writing rule; roles are "Owner" or nothing (decision A2), an existing ata only from the day after.</summary>
+    /// <summary>The ata-writing rule; roles are "Owner" or nothing (decision A2), an existing ata only from the day after.</summary>
     private bool CanWriteAta(MeetingAccess access, Meeting meeting, MeetingAta? existing) =>
         _atas.CanCreateOrEditAta(
             access.UserId,

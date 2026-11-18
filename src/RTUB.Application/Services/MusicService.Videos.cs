@@ -55,7 +55,7 @@ public sealed partial class MusicService
             title = $"{song!.Title} - Vídeo {await ctx.SongVideos.CountAsync(v => v.SongId == songId) + 1}";
         }
 
-        // Uploads to storage and notifies the members who can see the album, as before.
+        // Uploads to storage and notifies the members who can see the album.
         var video = await _songs.AddVideoAsync(songId, upload.Content, upload.FileName!, upload.ContentType, userId, title);
         return MusicResult<MusicVideoDto>.Ok(new MusicVideoDto(video.Id, title, video.Url, video.MimeType, true));
     }

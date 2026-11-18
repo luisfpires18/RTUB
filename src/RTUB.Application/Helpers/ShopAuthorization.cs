@@ -3,7 +3,7 @@ using System.Security.Claims;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The shop rules (React track 021, docs/react-shop.md), enforced server-side by <c>ProductShopService</c>,
+/// The shop rules (docs/react-shop.md), enforced server-side by <c>ProductShopService</c>,
 /// with Owner
 /// inheriting Admin:
 ///

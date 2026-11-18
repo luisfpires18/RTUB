@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// Rehearsal management behind the React pages (React track 014): Admin or Owner only, enforced here.
+/// Rehearsal management behind the React pages: Admin or Owner only, enforced here.
 /// Writes go through <see cref="IRehearsalService"/> and <see cref="IRehearsalAttendanceService"/>, so their
 /// side effects (approval push, retirement status, category snapshot) are unchanged.
 /// </summary>
@@ -18,7 +18,7 @@ public interface IRehearsalAdminService
 
     Task<EventResult<bool>> DeleteAsync(int id, ClaimsPrincipal user);
 
-    /// <summary>Cancels (reason required) and, as before, deletes every presença; no email is sent.</summary>
+    /// <summary>Cancels (reason required) and, deletes every presença; no email is sent.</summary>
     Task<EventResult<bool>> CancelAsync(int id, RehearsalCancelInput input, ClaimsPrincipal user);
 
     /// <summary>Reactivates an upcoming cancelled rehearsal; presenças are not restored.</summary>
@@ -28,10 +28,10 @@ public interface IRehearsalAdminService
 
     Task<EventResult<RehearsalNoticeResultDto>> SendNoticeAsync(int id, RehearsalNoticeInput input, ClaimsPrincipal user);
 
-    /// <summary>Approves a pending presença once the rehearsal can be approved (the member gets a push, as before).</summary>
+    /// <summary>Approves a pending presença once the rehearsal can be approved (the member gets a push).</summary>
     Task<EventResult<bool>> ApproveAsync(int id, int attendanceId, ClaimsPrincipal user);
 
-    /// <summary>Task 075: refuse a pending presença (recorded as not attended, the member notified); same gate as approval.</summary>
+    /// <summary>Refuse a pending presença (recorded as not attended, the member notified); same gate as approval.</summary>
     Task<EventResult<bool>> RefuseAsync(int id, int attendanceId, ClaimsPrincipal user);
 
     /// <summary>Admin/Owner once the rehearsal can be approved; anyone their own presença.</summary>

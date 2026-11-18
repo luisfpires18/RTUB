@@ -6,7 +6,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// A member's own push preferences (task 082, issue #263): reads and replaces the muted keys of one account, and
+/// A member's own push preferences: reads and replaces the muted keys of one account, and
 /// answers the send path's "who turned this key off". Validation is the catalogue's: unknown keys and the mandatory key
 /// are refused (never normalised away, so a stale client learns it). Saving is a whole replace of the account's rows,
 /// last write wins; it never touches a device subscription or <see cref="ApplicationUser.PushNotificationsOptedOut"/>.

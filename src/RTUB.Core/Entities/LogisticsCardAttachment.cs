@@ -3,7 +3,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// A file or external link attached to one Logística card (task 066) - not the board's files, not a link to another card.
+/// A file or external link attached to one Logística card - not the board's files, not a link to another card.
 /// Files live at a stable storage key (<c>StoragePath</c>, outside the fiscal-year Documentação tree); links keep their
 /// http(s) <c>Url</c>.
 /// </summary>

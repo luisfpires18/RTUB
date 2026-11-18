@@ -10,7 +10,7 @@ public partial class ReportPdfService
 {
     private readonly TimeProvider _time;
 
-    /// <summary>The "Gerado em" stamp: Portugal's wall clock (#226 F02; was the server's DateTime.Now, UTC on Azure).</summary>
+    /// <summary>The "Gerado em" stamp: Portugal's wall clock.</summary>
     internal string GeneratedAt() => PortugalTime.Now(_time).ToString("dd/MM/yyyy HH:mm");
 
     private readonly IMemoryCache _cache;

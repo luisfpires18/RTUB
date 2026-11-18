@@ -78,11 +78,9 @@ public static partial class SeedData
             }
         }
 
-        // An empty-database bootstrap seeds the Owner and nothing else. This check used to sit
-        // inside the create-success branch, so a call with the Owner already present fell through
-        // to the bulk member seeding below. That path is unreachable from InitializeAsync (it
-        // returns early once any user exists) and the bulk members now fail closed for want of a
-        // password, so the guard is hoisted to cover both cases.
+        // An empty-database bootstrap seeds the Owner and nothing else. The guard
+        // covers both cases (Owner just created or already present), so an empty database never
+        // reaches the bulk member seeding below.
         if (isEmptyDb)
         {
             return;

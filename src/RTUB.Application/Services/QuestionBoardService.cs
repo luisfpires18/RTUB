@@ -9,10 +9,9 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /questions (task 031,
-/// docs/react-requests-questions.md). Same data and rules, through <see cref="IQuestionService"/> (which keeps sending
-/// the push notifications), now enforced server-side (<see cref="QuestionsAuthorization"/>; the old page only hid
-/// buttons):
+/// The React /questions
+/// (docs/react-requests-questions.md). Data through <see cref="IQuestionService"/> (which sends
+/// the push notifications), rules enforced server-side (<see cref="QuestionsAuthorization"/>):
 /// - the lists: open and closed questions, 10 a page by default, by latest activity, searched over title, content and
 ///   both members' names, filtered by recipient;
 /// - ask: a title (1-100) and a question (10-5000), to a member who holds the chosen Órgãos Sociais position now;
@@ -102,7 +101,7 @@ public sealed partial class QuestionBoardService : IQuestionBoardService
             errors["content"] = new[] { $"A pergunta tem no máximo {MaxContentLength} caracteres." };
         }
 
-        // The recipient must hold the chosen position now (the old page only offered such pairs).
+        // The recipient must hold the chosen position now.
         var recipients = await RecipientsAsync();
         var chosen = recipients.FirstOrDefault(r => r.Id == input.RecipientId && r.Position == input.Position);
         if (chosen is null || !Enum.TryParse<Position>(chosen.Position, out var position))

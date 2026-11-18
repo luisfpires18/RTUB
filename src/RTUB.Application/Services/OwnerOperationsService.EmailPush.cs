@@ -82,7 +82,7 @@ public partial class OwnerOperationsService
         return EventResult<OwnerEmailResult>.Ok(new OwnerEmailResult(success, count, recipients.Count, success ? null : message ?? "Erro ao enviar emails."));
     }
 
-    /// <summary>Accounts with a confirmed address, as the old page listed them.</summary>
+    /// <summary>Accounts with a confirmed address.</summary>
     private async Task<List<ApplicationUser>> EmailAccountsAsync()
     {
         await using var db = await _contexts.CreateDbContextAsync();
@@ -126,7 +126,7 @@ public partial class OwnerOperationsService
         };
         var (sent, failed) = await _push.SendToSelectedUsersAsync(userIds, notification);
 
-        // Audited as before; a failure here never fails the send.
+        // Audited; a failure here never fails the send.
         try
         {
             var actorId = actor.FindFirstValue(ClaimTypes.NameIdentifier);

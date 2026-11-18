@@ -5,20 +5,20 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// Who may do what on /meetings (task 034, docs/react-meetings.md), enforced server-side by
+/// Who may do what on /meetings (docs/react-meetings.md), enforced server-side by
 /// <c>MeetingBoardService</c>. Which meetings a member sees at all stays
 /// <c>MeetingService.GetAllMeetingsAsync</c>'s filter, unchanged.
 ///
-/// The old page's words, kept on purpose:
+/// Rules kept on purpose:
 /// - "Veterano" / "Tunossauro" is <see cref="ApplicationUser.CurrentRole"/> (computed from YearTuno / MonthTuno), not the
 ///   category; Leitão is the category. Tuno Honorário and Fundador have no rule of their own.
 /// - A Leitão is refused the whole page, whatever their role (Owner and Admin included).
 /// - Owner is not exempt from what a meeting type shows (CV / Direção) nor from the requests gate (decision A3 / A4).
 /// - Admin alone never writes an ata: the page passed only "Owner" to <c>CanCreateOrEditAta</c> (decision A2).
-/// - Task 075 (#256, owner's matrix): each body's CURRENT president creates and manages that body's meetings - Presidente
+/// - Owner's matrix: each body's CURRENT president creates and manages that body's meetings - Presidente
 ///   da Mesa: AG / AGE; Magister (the Direção's president: there is no separate "Presidente da Direção" position):
 ///   Direção; Presidente do CV: CV - and Owner every type. Someone with several presidencies gets the union (no
-///   first-match). Admin alone gives none of this. (Before 075 only Owner, the Mesa and the CV president, Mesa first.)
+///   first-match). Admin alone gives none of this.
 /// </summary>
 public sealed class MeetingAccess
 {
@@ -48,10 +48,10 @@ public sealed class MeetingAccess
 
     public string UserId => User.Id;
 
-    /// <summary>The Owner role (the old page's cached <c>isOwner</c>).</summary>
+    /// <summary>The Owner role .</summary>
     public bool IsOwner { get; }
 
-    /// <summary>The Admin role (the old page's cached <c>isAdmin</c>).</summary>
+    /// <summary>The Admin role .</summary>
     public bool IsAdmin { get; }
 
     /// <summary>"Acesso Restrito": a Leitão gets nothing on /meetings, whatever their role.</summary>
@@ -68,7 +68,7 @@ public sealed class MeetingAccess
 
     // ---------- meetings ----------
 
-    /// <summary>The position presiding over a meeting type's body (task 075): Mesa for AG / AGE, Magister for Direção, CV president for CV.</summary>
+    /// <summary>The position presiding over a meeting type's body: Mesa for AG / AGE, Magister for Direção, CV president for CV.</summary>
     public static Position PresidentOf(MeetingType type) => type switch
     {
         MeetingType.ConselhoVeteranos => Position.PresidenteConselhoVeteranos,
@@ -119,17 +119,17 @@ public sealed class MeetingAccess
     /// <summary>"Propor Reunião de CV": Veterano / Tunossauro by time or Magister; never the Presidente do CV.</summary>
     public bool CanProposeCv => !Has(Position.PresidenteConselhoVeteranos) && (IsVeteranoByTime || Has(Position.Magister));
 
-    /// <summary>"Propor Reunião Direção" (old <c>IsDirecaoMember</c>): Owner, Admin with the Tuno category, Direção positions.</summary>
+    /// <summary>"Propor Reunião Direção": Owner, Admin with the Tuno category, Direção positions.</summary>
     public bool CanProposeDirecao => IsOwner || (IsAdmin && User.IsTuno()) || HoldsDirecaoPosition(User);
 
     /// <summary>"Propor Assembleia Geral": Owner, Magister, Presidente do CV, Presidente do Conselho Fiscal.</summary>
     public bool CanProposeAg =>
         IsOwner || Has(Position.Magister) || Has(Position.PresidenteConselhoVeteranos) || Has(Position.PresidenteConselhoFiscal);
 
-    /// <summary>The "Pedidos de Reuniões" section (old <c>CanViewCVRequests</c>): Veterano / Tunossauro by time or Magister.</summary>
+    /// <summary>The "Pedidos de Reuniões" section: Veterano / Tunossauro by time or Magister.</summary>
     public bool CanSeeRequests => IsVeteranoByTime || Has(Position.Magister);
 
-    /// <summary>Accept / reject (old <c>CanApproveRejectRequests</c>): Owner; CV the Presidente do CV; AG the Presidente da Mesa.</summary>
+    /// <summary>Accept / reject: Owner; CV the Presidente do CV; AG the Presidente da Mesa.</summary>
     public bool CanDecide(MeetingRequest request)
     {
         if (IsOwner)
@@ -163,13 +163,13 @@ public sealed class MeetingAccess
     // ---------- atas ----------
 
     /// <summary>
-    /// The roles the old page passed to <c>MeetingAtaService.CanCreateOrEditAta</c>: "Owner" only, never "Admin"
+    /// The roles passed to <c>MeetingAtaService.CanCreateOrEditAta</c>: "Owner" only, never "Admin"
     /// (decision A2: Admin alone does not write atas).
     /// </summary>
     public IReadOnlyList<string> AtaRoles => IsOwner ? new[] { "Owner" } : Array.Empty<string>();
 
     /// <summary>
-    /// Old <c>CanViewMeetingAta</c>, on top of seeing the meeting: Owner; CV Veterano / Tunossauro by time, Magister or the
+    /// On top of seeing the meeting: Owner; CV Veterano / Tunossauro by time, Magister or the
     /// meeting's Tuno representative; AG anyone but a Leitão; Direção anyone who sees it. Published atas only: a draft is
     /// for the people who may write it (decision A1).
     /// </summary>

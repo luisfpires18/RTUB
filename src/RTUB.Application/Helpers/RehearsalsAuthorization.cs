@@ -4,7 +4,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The Rehearsals rules (React track 014, docs/react-rehearsals.md), enforced server-side by
+/// The Rehearsals rules (docs/react-rehearsals.md), enforced server-side by
 /// <c>RehearsalAgendaService</c> and <c>RehearsalAdminService</c>. Roles inherit: Owner includes Admin.
 ///
 /// - Visitors: nothing.
@@ -13,9 +13,9 @@ namespace RTUB.Application.Helpers;
 /// - Mod, Admin or Owner (<see cref="CanEdit"/>): create (one or a range) and edit a rehearsal.
 /// - Admin or Owner (<see cref="CanManage"/>, was IsInRole("Admin") only): everything above plus cancel / reactivate,
 ///   delete, push notice, approve or remove anyone's presença and add a member once the rehearsal can be approved.
-/// - Task 075 (<see cref="CanApprove"/>): the current Ensaiador or Magister also approve and refuse pending presenças
+/// - <see cref="CanApprove"/>: the current Ensaiador or Magister also approve and refuse pending presenças
 ///   once a rehearsal can be approved, even without Admin - only that, no other rehearsal management, and never their own
-///   presença (only Admin / Owner may, as before).
+///   presença (only Admin / Owner may).
 /// </summary>
 public static class RehearsalsAuthorization
 {
@@ -25,7 +25,7 @@ public static class RehearsalsAuthorization
 
     public static bool CanManage(ClaimsPrincipal user) => IsMember(user) && (user.IsInRole("Admin") || user.IsInRole("Owner"));
 
-    /// <summary>The positions whose holders review presenças (task 075).</summary>
+    /// <summary>The positions whose holders review presenças.</summary>
     public static readonly Position[] Approvers = [Position.Ensaiador, Position.Magister];
 
     /// <summary>

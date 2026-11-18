@@ -4,7 +4,7 @@ using RTUB.Core.Entities;
 
 namespace RTUB.Application.Data.Configurations;
 
-/// <summary>EF Core configuration for <see cref="NewsPost"/> (the public "Novidades" feed, React track 025).</summary>
+/// <summary>EF Core configuration for <see cref="NewsPost"/> (the public "Novidades" feed).</summary>
 public class NewsPostConfiguration : IEntityTypeConfiguration<NewsPost>
 {
     public void Configure(EntityTypeBuilder<NewsPost> builder)

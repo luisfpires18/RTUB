@@ -158,7 +158,7 @@ public partial class ApplicationDbContext
 
     public DbSet<GalleryMediaPersonTag> GalleryMediaPersonTags { get; set; }
 
-    // News feed DbSet (React track 025)
+    // News feed DbSet
     public DbSet<NewsPost> NewsPosts { get; set; }
 
     // Questions DbSets
@@ -175,18 +175,18 @@ public partial class ApplicationDbContext
 
     public DbSet<NaipeTypeConfig> NaipeTypeConfigs { get; set; } = null!;
 
-    // Owner dashboard (task 050): sign-ins and hours seen
+    // Owner dashboard: sign-ins and hours seen
     public DbSet<LoginEvent> LoginEvents { get; set; } = null!;
 
-    // Page views per day and route for /owner/dashboard (task 089)
+    // Page views per day and route for /owner/dashboard
     public DbSet<PageView> PageViews { get; set; } = null!;
 
     // Event Contact DbSet
     public DbSet<EventContact> EventContacts { get; set; }
 
-    // As minhas ações pendentes (task 071): a member's own dismissals of optional actions
+    // As minhas ações pendentes: a member's own dismissals of optional actions
     public DbSet<PendingActionDismissal> PendingActionDismissals { get; set; } = null!;
 
-    // Push preferences (task 082): the push kinds a member turned off, per account
+    // Push preferences: the push kinds a member turned off, per account
     public DbSet<PushPreference> PushPreferences { get; set; } = null!;
 }

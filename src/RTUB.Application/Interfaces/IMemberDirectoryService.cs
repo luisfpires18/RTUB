@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>Read side of the React members area (React track 017): directory, details, active members, birthdays, hierarchy.</summary>
+/// <summary>Read side of the React members area: directory, details, active members, birthdays, hierarchy.</summary>
 public interface IMemberDirectoryService
 {
     Task<EventResult<MemberDirectoryDto>> GetDirectoryAsync(MemberDirectoryQuery query, ClaimsPrincipal user);

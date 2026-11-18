@@ -10,7 +10,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Member activity status (task 044B). Two strictly separate paths over the same batch-loaded activity and
+/// Member activity status. Two strictly separate paths over the same batch-loaded activity and
 /// <see cref="MemberActivityStatusEvaluator"/>:
 /// <list type="bullet">
 /// <item><b>Read</b> (<see cref="GetMemberStatusAsync"/>, <see cref="GetMemberStatusesBatchAsync"/>): calculate and

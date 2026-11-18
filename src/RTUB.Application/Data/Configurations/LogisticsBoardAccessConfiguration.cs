@@ -5,7 +5,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Data.Configurations;
 
 /// <summary>
-/// Task 067: a board's responsible member (a plain id: an account deleted reads as none), its access list (one row per member; goes with the
+/// A board's responsible member (a plain id: an account deleted reads as none), its access list (one row per member; goes with the
 /// board or the account) and its legacy file folder.
 /// </summary>
 public class LogisticsBoardAccessConfiguration : IEntityTypeConfiguration<LogisticsBoard>, IEntityTypeConfiguration<LogisticsBoardMember>

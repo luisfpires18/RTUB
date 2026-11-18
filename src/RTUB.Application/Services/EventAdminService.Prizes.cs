@@ -1,4 +1,4 @@
-// Event admin: prizes (012B).
+// Event admin: prizes.
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.DTOs;
@@ -9,13 +9,12 @@ namespace RTUB.Application.Services;
 
 public sealed partial class EventAdminService
 {
-    // ---------- prizes (012B) ----------
+    // ---------- prizes ----------
 
     public const int MaxPrizeNameLength = 200;
 
     /// <summary>
-    /// Where a prize can be added: a festival whose last day has passed. The old page only offered the
-    /// prizes button on past festivals; existing prizes stay editable and deletable on any event.
+    /// Where a prize can be added: a festival whose last day has passed. Existing prizes stay editable and deletable on any event.
     /// </summary>
     public static bool TakesPrizes(Event e, DateTime today) => e.Type == EventType.Festival && IsPast(e, today);
 

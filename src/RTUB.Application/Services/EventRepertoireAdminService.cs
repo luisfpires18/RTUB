@@ -8,10 +8,10 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old /member/events repertoire modal behind the React event page (React track 012D). Same rules,
-/// now server-side: Admin or Owner (075: also the current Ensaiador / Magister for upcoming events); songs go on one of the event's days (or a day that already has
+/// Repertoire management behind the React event page. Rules enforced
+/// server-side: Admin or Owner (also the current Ensaiador / Magister for upcoming events); songs go on one of the event's days (or a day that already has
 /// songs), appended after the day's last; a song appears once per event (the database's unique
-/// EventId+SongId index; the old modal only checked the day and failed silently on another day); a day
+/// EventId+SongId index, checked across every day); a day
 /// can be cleared. The song picker shows only what Music would show the caller. No schema change.
 /// </summary>
 public sealed partial class EventRepertoireAdminService : IEventRepertoireAdminService
@@ -99,8 +99,8 @@ public sealed partial class EventRepertoireAdminService : IEventRepertoireAdminS
                 return EventResult<EventRepertoireManageDto>.Invalid("songId", "Escolha uma música da lista.");
             }
 
-            // Once per event (the unique index), and no second song of the same title: the old picker
-            // listed each title once, so two versions of one song never went in together.
+            // Once per event (the unique index), and no second song of the same title: the picker
+            // lists each title once, so two versions of one song never go in together.
             if (await db.EventRepertoires.AnyAsync(r => r.EventId == id && r.SongId == input.SongId)
                 || (await TakenTitlesAsync(db, id)).Contains(Fold(title)))
             {
@@ -196,7 +196,7 @@ public sealed partial class EventRepertoireAdminService : IEventRepertoireAdminS
             return EventResult<EventRepertoireManageDto>.Invalid("itemIds", "O repertório mudou entretanto. Recarregue e tente outra vez.");
         }
 
-        // The existing service orders by song id (positions 1..n), as the old drag-and-drop did.
+        // The existing service orders by song id (positions 1..n).
         await _repertoire.UpdateRepertoireOrderAsync(id, day.Value, order.Select(i => songOf[i]).ToList());
         return EventResult<EventRepertoireManageDto>.Ok(await ManageAsync(e));
     }

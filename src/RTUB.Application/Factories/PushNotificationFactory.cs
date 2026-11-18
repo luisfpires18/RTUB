@@ -14,7 +14,7 @@ public partial class PushNotificationFactory : IPushNotificationFactory
 
     private readonly TimeProvider _time;
 
-    /// <summary>"hoje" / "amanhã" / "N dias" count Portugal's calendar days (#226 F02; was the server's UTC date).</summary>
+    /// <summary>"hoje" / "amanhã" / "N dias" count Portugal's calendar days.</summary>
     public PushNotificationFactory(TimeProvider? time = null)
     {
         _time = time ?? TimeProvider.System;

@@ -23,7 +23,7 @@ public sealed partial class MessagingService
         return conversation is not null && conversation.HasParticipant(me) ? conversation : null;
     }
 
-    /// <summary>Null: no such message for this member (404). Forbidden: a read-only "Sistema RTUB" message. Ok otherwise.</summary>
+    /// <summary>Null: no such message for this member. Forbidden: a read-only "Sistema RTUB" message. Ok otherwise.</summary>
     private static async Task<EventResultStatus?> ReactableAsync(ApplicationDbContext db, int messageId, string me)
     {
         var target = await db.Messages.AsNoTracking().Where(m => m.Id == messageId)
@@ -109,7 +109,7 @@ public sealed partial class MessagingService
     }
 
     /// <summary>
-    /// Old "Sistema RTUB" messages carry links built from the request's host: only the path is kept, so a link can only
+    /// Older "Sistema RTUB" messages carry links built from the request's host: only the path is kept, so a link can only
     /// open a page of this site. Anything that is not a plain https or site-relative link is dropped.
     /// </summary>
     internal static string? SafeLink(string? link)

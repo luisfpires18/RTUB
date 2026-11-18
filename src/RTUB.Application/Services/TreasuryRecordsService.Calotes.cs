@@ -47,7 +47,7 @@ public sealed partial class TreasuryRecordsService
             return EventResult<TreasuryCalotesDto>.Invalid(error.Item1, error.Item2);
         }
 
-        // A new debt joins the member's commitment of the year, as the old page did.
+        // A new debt joins the member's commitment of the year.
         var commitment = (await db.MemberDebts.AsNoTracking().Where(d => d.UserId == debtor.Id && d.FiscalYearId == year.Id)
             .Select(d => d.CompromisedUntil).ToListAsync()).Where(d => d.HasValue).Min();
         await _debts.AddDebtAsync(debtor.Id, input.Amount!.Value, Text(input.Description), year.Id, commitment);
@@ -112,7 +112,7 @@ public sealed partial class TreasuryRecordsService
         }
 
         await using var db = await _contexts.CreateDbContextAsync();
-        // ponytail: every account in memory (~100), as the old pages loaded every user; page it if it grows.
+        // ponytail: every account in memory (~100); page it if it grows.
         var members = await db.Users.AsNoTracking().ToListAsync();
         return EventResult<IReadOnlyList<TreasuryPersonDto>>.Ok(members
             .Where(u => !forDebts || !u.IsLeitao())

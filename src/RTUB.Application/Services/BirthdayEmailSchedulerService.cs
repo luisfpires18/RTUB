@@ -206,7 +206,7 @@ public class BirthdayEmailSchedulerService : BackgroundService
             timeOfDay = new TimeSpan(9, 0, 0); // Default to 9 AM
         }
 
-        // The configured time is Portugal's clock, summer and winter (#226 F02; was UTC).
+        // The configured time is Portugal's clock, summer and winter.
         return PortugalTime.NextUtc(_time, timeOfDay);
     }
 }

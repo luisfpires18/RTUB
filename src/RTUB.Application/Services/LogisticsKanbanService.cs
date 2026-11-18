@@ -9,24 +9,22 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /logistics and /logistics/{id} pages (React track 023, docs/react-logistics.md). Same
-/// tables and rules, now enforced server-side (<see cref="LogisticsAuthorization"/>; the old pages re-checked in the
-/// circuit):
+/// The React /logistics and /logistics/{id} pages (docs/react-logistics.md). Rules
+/// enforced server-side (<see cref="LogisticsAuthorization"/>):
 /// - boards: active and completed, newest first, search over name and description; name (≤ 200) required,
 ///   description ≤ 2000, optional event; finish / reopen; delete takes its lists and cards (cascade);
 /// - lists by position (new ones last), name ≤ 100; delete takes its cards; cards by position;
 /// - cards: title (≤ 200) required, description ≤ 2000, optional "Atribuir a" member, status TODO / WIP / DONE,
 ///   labels (text + colour), start and due dates, checklist, links to other cards of the board, assigned members;
-///   the JSON columns keep their old shape, so old rows (comma labels included) read as before;
-/// - moving a card renumbers the positions of the lists it leaves and enters (the old move wrote only the moved
-///   card's position, so positions could collide);
+///   the JSON columns keep their stored shape, so older rows (comma labels included) read;
+/// - moving a card renumbers the positions of the lists it leaves and enters, so positions never collide;
 /// - board files: one folder per board for the current fiscal year
-///   (docs/{env}/{year}/Logistics/{board}/, shared by all its cards, as before), ≤ 10 MB, the old file types;
-/// - reminders (task 069): managers for board viewers, workers for themselves; sent by LogisticsReminderDelivery;
-/// - task 065: every member who sees the board (Leitões included) reads the card details; the members a card is
+///   (docs/{env}/{year}/Logistics/{board}/, shared by all its cards), ≤ 10 MB, the old file types;
+/// - reminders: managers for board viewers, workers for themselves; sent by LogisticsReminderDelivery;
+/// - every member who sees the board (Leitões included) reads the card details; the members a card is
 ///   assigned to ("Atribuir a" or "Membros atribuídos") may tick its checklist items and change its status, nothing
 ///   else, re-checked against the database on every write.
-/// Task 069: assignment and mention pushes (<see cref="LogisticsNotifier"/>), sent after the commit.
+/// Assignment and mention pushes (<see cref="LogisticsNotifier"/>), sent after the commit.
 /// </summary>
 public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
 {
@@ -75,7 +73,7 @@ public sealed partial class LogisticsKanbanService : ILogisticsKanbanService
         _logger = logger;
     }
 
-    // The JSON columns, in the shape the old page wrote (Id was always 0).
+    // The JSON columns, in their stored shape (Id is always 0).
     private sealed record StoredLabel(int Id, string Text, string Color);
 
     private sealed record StoredTask(int Id, string Task, bool Done);

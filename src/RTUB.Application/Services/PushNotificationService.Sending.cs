@@ -108,14 +108,14 @@ public partial class PushNotificationService
     }
 
     /// <summary>
-    /// Every push is also kept in the recipients' "Notificações RTUB" (task 058), before the push itself and whether or
+    /// Every push is also kept in the recipients' "Notificações RTUB", before the push itself and whether or
     /// not push is configured: a member without push still finds it in /messages.
     /// </summary>
     private Task KeepAsync(IEnumerable<string>? userIds, SendPushNotificationDto notification) =>
         _inbox?.KeepAsync(userIds, notification) ?? Task.CompletedTask;
 
     /// <summary>
-    /// Task 082: the accounts that turned this push's key off on /profile, applied here so every send path (one member,
+    /// The accounts that turned this push's key off on /profile, applied here so every send path (one member,
     /// selected members, broadcast, background jobs, the Owner's text) honours it and a stale client cannot bypass it.
     /// Decided after the inbox copy, which a preference never stops. A push without a key (the test push) and the
     /// mandatory key mute nobody.

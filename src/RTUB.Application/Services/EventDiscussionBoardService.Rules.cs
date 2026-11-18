@@ -12,7 +12,7 @@ public sealed partial class EventDiscussionBoardService
 
     private static string Me(ClaimsPrincipal user) => EventsAuthorization.UserId(user)!;
 
-    /// <summary>Authors delete their own; the Owner deletes anyone's (the old page's rule).</summary>
+    /// <summary>Authors delete their own; the Owner deletes anyone's.</summary>
     private static bool CanDelete(string authorId, ClaimsPrincipal user) =>
         authorId == EventsAuthorization.UserId(user) || EventsAuthorization.IsOwner(user);
 

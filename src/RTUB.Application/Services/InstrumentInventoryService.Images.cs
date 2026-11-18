@@ -38,7 +38,7 @@ public sealed partial class InstrumentInventoryService
             }
         }
 
-        // As the old save: the previous image and thumbnail are deleted, then both new ones are stored.
+        // The previous image and thumbnail are deleted, then both new ones are stored.
         var key2 = S3KeyNormalizer.NormalizeForS3Key(instrument.Name);
         if (!string.IsNullOrEmpty(instrument.ImageUrl))
         {
@@ -127,7 +127,7 @@ public sealed partial class InstrumentInventoryService
         return errors;
     }
 
-    /// <summary>Empty optional fields are stored as null, as the old form's blank inputs were.</summary>
+    /// <summary>Empty optional fields are stored as null.</summary>
     private static void Apply(Instrument instrument, InstrumentInput input)
     {
         static string? Blank(string? s) => string.IsNullOrEmpty(s) ? null : s;

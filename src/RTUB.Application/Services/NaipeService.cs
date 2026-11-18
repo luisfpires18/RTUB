@@ -108,7 +108,7 @@ public partial class NaipeService : INaipeService
         }
 
         var content = NaipeContent.Create(type, title, url, mimeType, isVideo, sortOrder, userId, description);
-        // The automatic audit entry ("Created", with the fields) is the record; #226 F16 removed the second, manual one.
+        // The automatic audit entry ("Created", with the fields) is the record; no second, manual one.
         var createdContent = await _naipeContentRepository.AddAsync(content);
 
         // Send push notification to all subscribed users
@@ -127,7 +127,7 @@ public partial class NaipeService : INaipeService
         if (!isOwner && !isAdmin)
             throw new UnauthorizedAccessException("Only the content owner or administrators can update naipe content.");
 
-        // The automatic audit entry ("Modified", old -> new) is the record; #226 F16 removed the second, manual one.
+        // The automatic audit entry ("Modified", old -> new) is the record; no second, manual one.
         content.Update(title, description, sortOrder);
         await _naipeContentRepository.UpdateAsync(content);
     }
@@ -145,7 +145,7 @@ public partial class NaipeService : INaipeService
         // Delete media from Cloudflare R2
         await _naipeMediaStorageService.DeleteMediaAsync(content.Url);
 
-        // The automatic audit entry ("Deleted", with the fields) is the record; #226 F16 removed the second, manual one.
+        // The automatic audit entry ("Deleted", with the fields) is the record; no second, manual one.
         await _naipeContentRepository.DeleteAsync(content);
     }
 

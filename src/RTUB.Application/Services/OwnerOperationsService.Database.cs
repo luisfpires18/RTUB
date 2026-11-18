@@ -75,7 +75,7 @@ public partial class OwnerOperationsService
         new(columns, rows.Select(r => (IReadOnlyList<string>)columns.Select(c => Cell(r.GetValueOrDefault(c))).ToList()).ToList(),
             total, page, pageSize);
 
-    /// <summary>How the old grid showed a value.</summary>
+    /// <summary>How the grid shows a value.</summary>
     internal static string Cell(object? value) => value switch
     {
         null => "[NULL]",

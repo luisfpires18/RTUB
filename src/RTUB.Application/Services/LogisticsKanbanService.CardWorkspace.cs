@@ -11,7 +11,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Task 066 (Logística 2/5): the card as a task workspace - one owner ("Responsável", the old "Atribuir a" member) and
+/// The card as a task workspace - one owner ("Responsável", the "Atribuir a" member) and
 /// collaborators (the "Membros atribuídos" rows), priority, a version against silent overwrites, checklist edits one item
 /// at a time, a discussion with @mentions, a history and the card's own files and links.
 ///
@@ -40,10 +40,10 @@ public sealed partial class LogisticsKanbanService
     {
         public int BoardId => Board.Id;
 
-        /// <summary>Owner, collaborator or manager - and still able to see the board: assignment never grants access (067).</summary>
+        /// <summary>Owner, collaborator or manager - and still able to see the board: assignment never grants access.</summary>
         public bool CanWork => Viewer && (Manager || Owner || Collaborator);
 
-        /// <summary>Pushes the change sends once it is saved (task 069; <see cref="LogisticsNotifier"/>).</summary>
+        /// <summary>Pushes the change sends once it is saved (<see cref="LogisticsNotifier"/>).</summary>
         public List<(LogisticsNotice Kind, string[] To)> Notices { get; } = new();
     }
 
@@ -53,7 +53,7 @@ public sealed partial class LogisticsKanbanService
         var boardId = await db.LogisticsLists.Where(l => l.Id == card.ListId).Select(l => l.BoardId).SingleAsync();
         var board = (await db.LogisticsBoards.FindAsync(boardId))!;
         var collaborator = me is not null && await db.LogisticsCardAssignments.AnyAsync(a => a.CardId == card.Id && a.UserId == me);
-        // RefusalAsync already refused visitors and expelled accounts; the board rule (067) decides the rest.
+        // RefusalAsync already refused visitors and expelled accounts; the board rule decides the rest.
         return new CardAccess(board, me, Viewer: me is not null && await CanSeeBoardAsync(db, board, user), LogisticsAuthorization.CanManage(user),
             Owner: me is not null && card.AssignedToUserId == me, collaborator, ReadOnly: card.ArchivedAt is not null || board.ArchivedAt is not null);
     }
@@ -77,7 +77,7 @@ public sealed partial class LogisticsKanbanService
         var access = await AccessAsync(db, card, user);
         if (!access.Viewer)
         {
-            // A private board's card is not disclosed (067).
+            // A private board's card is not disclosed.
             await db.DisposeAsync();
             return (EventResult<T>.Fail(EventResultStatus.NotFound), null, null, null);
         }

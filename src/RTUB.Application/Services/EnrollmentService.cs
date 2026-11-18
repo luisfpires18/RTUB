@@ -112,12 +112,12 @@ public partial class EnrollmentService : IEnrollmentService
             await _memberStatusService.ReconcileMemberStatusAsync(enrollment.UserId);
         }
 
-        // Send notification if user is now attending (was not attending before)
+        // Send notification when a member starts going
         if (willAttend && !wasAttending)
         {
             await NotifyEnrollmentAsync(enrollment, cancellationToken);
         }
-        // Send notification if user is no longer attending (was attending before)
+        // Send notification when a member who was going stops going
         else if (!willAttend && wasAttending)
         {
             await NotifyCancellationAsync(enrollment, cancellationToken);

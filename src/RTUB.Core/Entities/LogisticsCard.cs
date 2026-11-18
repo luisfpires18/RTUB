@@ -32,16 +32,16 @@ public class LogisticsCard : BaseEntity
     [Required]
     public CardStatus Status { get; set; } = CardStatus.Todo;
 
-    /// <summary>Task 066: low / normal / high / urgent; existing rows are normal (column default).</summary>
+    /// <summary>Low / normal / high / urgent; existing rows are normal (column default).</summary>
     public CardPriority Priority { get; set; } = CardPriority.Normal;
 
     /// <summary>
-    /// Task 066: bumped on every save of the card's own fields (title, details, priority, dates, owner), so a save made
+    /// Bumped on every save of the card's own fields (title, details, priority, dates, owner), so a save made
     /// from an older copy is refused instead of silently overwriting the newer one.
     /// </summary>
     public int Version { get; set; }
 
-    /// <summary>Task 067: archived cards leave the board's columns and are read-only until a manager restores them.</summary>
+    /// <summary>Archived cards leave the board's columns and are read-only until a manager restores them.</summary>
     public DateTime? ArchivedAt { get; set; }
 
     // Labels for organization (stored as comma-separated string)

@@ -86,7 +86,7 @@ public partial class EventService : IEventService
         var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
 
         eventEntity.UpdateDetails(name, date, location, description, type);
-        // Null keeps the event's visibility (#227): only an explicit choice changes it.
+        // Null keeps the event's visibility: only an explicit choice changes it.
         eventEntity.IsPublic = isPublic ?? eventEntity.IsPublic;
 
         if (endDate.HasValue)
@@ -142,7 +142,7 @@ public partial class EventService : IEventService
             await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
         }
 
-        // Task 074: activities that accounted for this event lose the link (Activity.EventId has no foreign key), in the
+        // Activities that accounted for this event lose the link (Activity.EventId has no foreign key), in the
         // same save as the deletion, so no activity is left pointing at a deleted event. Both changes are audited.
         await using var db = _contextFactory.CreateDbContext();
         foreach (var activity in await db.Activities.Where(a => a.EventId == id).ToListAsync(cancellationToken))
@@ -150,7 +150,7 @@ public partial class EventService : IEventService
             activity.EventId = null;
         }
 
-        // Task 077: the same for gallery media uploaded for the event (the media stays in the gallery).
+        // The same for gallery media uploaded for the event (the media stays in the gallery).
         foreach (var media in await db.GalleryMedia.Where(m => m.EventId == id).ToListAsync(cancellationToken))
         {
             media.EventId = null;

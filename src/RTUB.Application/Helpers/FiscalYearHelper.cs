@@ -14,8 +14,8 @@ public static class FiscalYearHelper
     /// </summary>
     public const int AppYearCreated = 2025;
     /// <summary>
-    /// Calculates the current fiscal year start year: the year turns on 1 September in Portugal (#226 F02; was the
-    /// server's DateTime.Today, an hour late on Azure's UTC). <paramref name="time"/> is for tests; callers use the clock.
+    /// Calculates the current fiscal year start year: the year turns on 1 September in Portugal, never on the
+    /// server's UTC clock. <paramref name="time"/> is for tests; callers use the clock.
     /// </summary>
     /// <returns>The start year of the current fiscal year</returns>
     public static int GetCurrentFiscalYearStartYear(TimeProvider? time = null) =>

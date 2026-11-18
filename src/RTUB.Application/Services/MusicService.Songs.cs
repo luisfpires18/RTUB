@@ -94,7 +94,7 @@ public sealed partial class MusicService
             oldUrls = await ctx.SongYouTubeUrls.AsNoTracking().Where(y => y.SongId == songId).Select(y => y.Url).ToListAsync();
         }
 
-        // Duration is not edited here, as before; it is carried over.
+        // Duration is not edited here; it is carried over.
         await _songs.UpdateSongAsync(songId, input.Title!.Trim(), input.TrackNumber, Blank(input.LyricAuthor?.Trim()),
             Blank(input.MusicAuthor?.Trim()), Blank(input.Adaptation?.Trim()), song!.Duration);
         await _songs.SetSongSpotifyUrlAsync(songId, Blank(input.SpotifyUrl?.Trim()));

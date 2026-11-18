@@ -1,10 +1,10 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /requests (task 031). Signed-in members except Leitões,
-// as before; the contact details are the ones the requester typed into the public form.
+// Contracts of the React /requests. Signed-in members except Leitões,
+//; the contact details are the ones the requester typed into the public form.
 
 /// <summary>
-/// The requests of one fiscal year ("" = every year; by creation date), newest first, split as the old page did:
+/// The requests of one fiscal year ("" = every year; by creation date), newest first, split:
 /// <c>Pending</c> (still to answer: pending or in analysis) and <c>Answered</c> (confirmed or rejected).
 /// <c>CanManage</c>: Admin or Owner (approve, reject, delete).
 /// </summary>
@@ -31,6 +31,6 @@ public sealed record RequestItemDto(
 
 /// <summary>
 /// After approving: the request, and the React agenda's create-form link prefilled from it (name "EventType em
-/// Location", place, date, "Pedido de Name"), as the old page offered right after approval.
+/// Location", place, date, "Pedido de Name").
 /// </summary>
 public sealed record RequestApprovedDto(RequestItemDto Request, string CreateEventUrl);

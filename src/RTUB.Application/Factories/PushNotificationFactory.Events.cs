@@ -82,7 +82,7 @@ public partial class PushNotificationFactory
         };
     }
 
-    // Push links are relative paths to the item itself (task 058): the service worker opens them on its own origin, so
+    // Push links are relative paths to the item itself: the service worker opens them on its own origin, so
     // they never depend on the request's Host header, and a tap lands on the event / rehearsal, not on a list.
     public SendPushNotificationDto CreateLogisticsNotification(LogisticsNotice kind, int boardId, int cardId, string cardTitle, string boardName,
         string? actorName = null, DateTime? dueDate = null)

@@ -26,11 +26,11 @@ public sealed partial class MeetingBoardService
         IEnumerable<Meeting> meetings = await VisibleMeetingsAsync(access);
         if (range is { } r)
         {
-            // The old filter, kept as it was: from 1 September to 31 August at midnight.
+            // The filter: from 1 September to 31 August at midnight.
             meetings = meetings.Where(m => m.Date >= r.Start && m.Date <= r.End);
         }
 
-        // In memory: the old search ran a case-insensitive Contains inside the SQL query.
+        // In memory: a case-insensitive Contains.
         var q = search?.Trim();
         if (!string.IsNullOrEmpty(q))
         {
@@ -120,7 +120,7 @@ public sealed partial class MeetingBoardService
 
         meeting.OrganizerUserId = access.UserId;
 
-        // The old service push to the meeting type's audience comes with it.
+        // The service push to the meeting type's audience comes with it.
         var created = await _meetings.CreateMeetingAsync(meeting);
         return EventResult<MeetingSavedDto>.Ok(new MeetingSavedDto(created.Id, await CardOrNullAsync(access, created.Id)));
     }
@@ -150,7 +150,7 @@ public sealed partial class MeetingBoardService
             return Invalid<MeetingSavedDto>(errors);
         }
 
-        // The organizer stays; a cancelled meeting stays cancelled (the old edit form silently reactivated it).
+        // The organizer stays; a cancelled meeting stays cancelled (an edit never reactivates it).
         meeting.Id = existing.Id;
         meeting.OrganizerUserId = existing.OrganizerUserId;
         meeting.IsCancelled = existing.IsCancelled;

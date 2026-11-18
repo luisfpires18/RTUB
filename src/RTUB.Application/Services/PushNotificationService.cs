@@ -23,7 +23,7 @@ public partial class PushNotificationService : IPushNotificationService
     private readonly NotificationInbox? _inbox;
     private readonly IPushPreferenceStore? _preferences;
 
-    /// <summary>The named <see cref="HttpClient"/> every send goes through; the host registers it (task 054).</summary>
+    /// <summary>The named <see cref="HttpClient"/> every send goes through; the host registers it.</summary>
     public const string HttpClientName = "WebPush";
 
     public PushNotificationService(
@@ -35,7 +35,7 @@ public partial class PushNotificationService : IPushNotificationService
     {
     }
 
-    /// <summary>The host's constructor: the pooled client from <see cref="IHttpClientFactory"/> (task 054).</summary>
+    /// <summary>The host's constructor: the pooled client from <see cref="IHttpClientFactory"/>.</summary>
     public PushNotificationService(
         IPushSubscriptionRepository subscriptionRepository,
         IUserProfileRepository userProfileRepository,

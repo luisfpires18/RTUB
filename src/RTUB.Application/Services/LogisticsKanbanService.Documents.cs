@@ -12,7 +12,7 @@ namespace RTUB.Application.Services;
 /// docs/{env}/{fiscal year of the upload}/Logistics/{board folder}/{name}, shown in both places; deleting it on either
 /// side removes it from both (Documentação also drops the card's attachment row).
 /// - Board folder (<see cref="LogisticsBoard.LegacyFolder"/>): the board's sanitised name, unique among boards and among
-///   Logistics folders no board owns (a deleted board's files, a name two old boards shared); else "Name 2", "Name 3".
+///   Logistics folders no board owns (a deleted board's files, a name two boards shared); else "Name 2", "Name 3".
 /// - A rename moves the folder, in every fiscal year, to the new name; card rows follow their files.
 /// - Same name in a folder: "name (2).ext", never an overwrite (card and board files share the folder).
 /// - Deleting a board leaves its folder.

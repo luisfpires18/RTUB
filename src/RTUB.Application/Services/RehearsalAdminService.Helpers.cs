@@ -56,7 +56,7 @@ public sealed partial class RehearsalAdminService
 
     private sealed record Member(string Id, bool Subscribed);
 
-    /// <summary>Everyone (as the old modal: all users), and the Leitões and Caloiros among them, with their push state.</summary>
+    /// <summary>Everyone (all users), and the Leitões and Caloiros among them, with their push state.</summary>
     private async Task<(List<Member> All, List<Member> LeitoesCaloiros)> AudienceAsync()
     {
         var subscribed = (await _push.GetSubscribedUserIdsAsync()).ToHashSet();

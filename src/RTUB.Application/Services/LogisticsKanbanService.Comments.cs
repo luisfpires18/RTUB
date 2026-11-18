@@ -29,7 +29,7 @@ public sealed partial class LogisticsKanbanService
             {
                 CardId = card.Id, AuthorId = access.UserId, Body = body, MentionsJson = mentions.Count > 0 ? JsonSerializer.Serialize(mentions) : null,
             });
-            // 069: the mentioned members, once, when the comment is posted (an edit never notifies again).
+            // The mentioned members, once, when the comment is posted (an edit never notifies again).
             access.Notices.Add((LogisticsNotice.Mention, mentions.ToArray()));
             return null;
         });

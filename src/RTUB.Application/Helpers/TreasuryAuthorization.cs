@@ -5,19 +5,19 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The Tesouraria rules (React track 024, docs/react-treasury.md), enforced server-side by <c>TreasuryService</c> and
-/// <c>TreasuryRecordsService</c>. The old pages only hid buttons; three of them (calotes, MBWay, Nerba) had no sign-in at all.
+/// The Tesouraria rules (docs/react-treasury.md), enforced server-side by <c>TreasuryService</c> and
+/// <c>TreasuryRecordsService</c>.
 ///
-/// - Visitors: nothing (401).
-/// - Treasury members (<see cref="CanView"/>): Mod, Admin, Owner, and every member who is neither Leitão nor Caloiro (the
-///   old /finance sent Caloiros away and showed Leitões nothing). They read reports, receipts, PDFs, every calote, MBWay
+/// - Visitors: nothing.
+/// - Treasury members (<see cref="CanView"/>): Mod, Admin, Owner, and every member who is neither Leitão nor Caloiro (Caloiros
+///   and Leitões see nothing). They read reports, receipts, PDFs, every calote, MBWay
 ///   and Nerba.
 /// - Caloiros and Leitões: only their own calotes (the daily push reminds them of those).
 /// - Reports, activities, transactions, bank / cash (<see cref="CanManageReports"/>): Admin, Owner, or a Mod of the
 ///   treasury team (1.º / 2.º Tesoureiro). Publish and delete drafts (<see cref="CanPublish"/>): Owner or the treasury
 ///   team. Transaction history: Admin and Owner.
-/// - Calotes, MBWay add, Nerba (<see cref="CanManageRecords"/>): Mod, Admin, Owner (Owner inherits Admin since 024).
-///   MBWay edit and delete: Owner only, as before.
+/// - Calotes, MBWay add, Nerba (<see cref="CanManageRecords"/>): Mod, Admin, Owner (Owner inherits Admin).
+///   MBWay edit and delete: Owner only.
 /// </summary>
 public static class TreasuryAuthorization
 {

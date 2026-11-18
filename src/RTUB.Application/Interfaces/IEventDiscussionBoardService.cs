@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// An event's conversation behind the React /events/{id}/discussion (React track 013). Every rule is decided
+/// An event's conversation behind the React /events/{id}/discussion. Every rule is decided
 /// here from the caller; writes go through the existing Post, Comment, Transportation and Mention services, so
 /// their push notifications are unchanged. Every write answers the whole conversation.
 /// </summary>

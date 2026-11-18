@@ -13,7 +13,7 @@ public sealed partial class MeetingBoardService
     // ---------- the meeting form ----------
 
     /// <param name="savedRepresentativeId">The representative already saved on the meeting being edited: it stays valid even
-    /// once that member is no longer a plain Tuno (the old form kept it selected).</param>
+    /// once that member is no longer a plain Tuno.</param>
     private (Meeting? Meeting, Errors Errors) ReadMeeting(
         MeetingInput input, MeetingAccess access, List<ApplicationUser> users, string? savedRepresentativeId)
     {
@@ -81,7 +81,7 @@ public sealed partial class MeetingBoardService
     private static MeetingPersonOptionDto TunoOption(ApplicationUser u) =>
         new(u.Id, $"{u.Nickname ?? $"{u.FirstName} {u.LastName}"} - {YearsAsTuno(u)}");
 
-    /// <summary>The old "x anos y meses de Tuno", from YearTuno / MonthTuno.</summary>
+    /// <summary>"x anos y meses de Tuno", from YearTuno / MonthTuno.</summary>
     public static string YearsAsTuno(ApplicationUser user)
     {
         if (user.YearTuno == null)
@@ -112,7 +112,7 @@ public sealed partial class MeetingBoardService
         return $"{years} {(years == 1 ? "ano" : "anos")} {months} {(months == 1 ? "mês" : "meses")} de Tuno";
     }
 
-    /// <summary>The old ata view's names: First "Nickname" Last.</summary>
+    /// <summary>The ata view's names: First "Nickname" Last.</summary>
     private static string FullName(ApplicationUser user)
     {
         var first = user.FirstName ?? string.Empty;
@@ -132,7 +132,7 @@ public sealed partial class MeetingBoardService
     private static string Kind(MeetingType type) =>
         type == MeetingType.ConselhoVeteranos ? "cv" : MeetingAccess.IsAssembly(type) ? "ag" : "direcao";
 
-    /// <summary>The create / edit form's choices, labelled as the old select was.</summary>
+    /// <summary>The create / edit form's choices, labelled.</summary>
     private static IReadOnlyList<MeetingTypeOptionDto> TypeOptions(IEnumerable<MeetingType> types) =>
         types.Select(t => new MeetingTypeOptionDto(t.ToString(), t switch
         {
@@ -157,7 +157,7 @@ public sealed partial class MeetingBoardService
     }
 
     /// <summary>
-    /// The year filter: null = the current fiscal year (the old default), "all" or "" = every year, else "YYYY-YYYY"
+    /// The year filter: null = the current fiscal year, "all" or "" = every year, else "YYYY-YYYY"
     /// (1 September to 31 August).
     /// </summary>
     private static bool TryFiscalYear(string? value, out string? selected, out (DateTime Start, DateTime End)? range)

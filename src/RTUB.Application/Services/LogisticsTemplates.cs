@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The Logística templates (task 067): the four workflow columns and suggested tasks, with checklists and deadlines
+/// The Logística templates: the four workflow columns and suggested tasks, with checklists and deadlines
 /// relative to the event date (days before it; 0 = the day). The page previews them with real dates from the chosen
 /// event, lets the manager edit or leave out any task, and creates the board only on confirmation
 /// (<see cref="LogisticsKanbanService.ComposeBoardAsync"/>). Nothing is assigned or notified.

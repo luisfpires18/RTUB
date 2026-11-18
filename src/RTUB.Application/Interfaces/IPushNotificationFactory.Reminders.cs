@@ -15,7 +15,7 @@ public partial interface IPushNotificationFactory
     SendPushNotificationDto CreatePendingPublicRequestsReminderNotification(int pendingCount);
 
     /// <summary>
-    /// Task 078: the daily "As minhas ações pendentes" summary, only for a member whose page has something pending. No
+    /// The daily "As minhas ações pendentes" summary, only for a member whose page has something pending. No
     /// count and no item details (lock screens); the link opens /pending-actions.
     /// </summary>
     SendPushNotificationDto CreatePendingActionsReminderNotification();
@@ -159,11 +159,11 @@ public partial interface IPushNotificationFactory
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateMentionNotification(Event @event, string mentionerNickname, string postTitle, bool isComment);
 
-    /// <summary>The /profile test push (#230): fixed text, opens the push section of /profile.</summary>
+    /// <summary>The /profile test push: fixed text, opens the push section of /profile.</summary>
     SendPushNotificationDto CreatePushTestNotification();
 
     /// <summary>
-    /// Logística (task 069): assignment, mention or reminder for one card. Card title and board name only - never the
+    /// Logística: assignment, mention or reminder for one card. Card title and board name only - never the
     /// card's details or a comment's text. Opens the card on its board.
     /// </summary>
     SendPushNotificationDto CreateLogisticsNotification(LogisticsNotice kind, int boardId, int cardId, string cardTitle, string boardName,

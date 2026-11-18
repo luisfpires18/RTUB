@@ -109,8 +109,7 @@ public sealed partial class MusicService
         var title = input.Title!.Trim();
         var description = Blank(input.Description?.Trim());
         var owner = MusicAuthorization.CanManageExclusive(user);
-        // Only an Owner changes exclusivity; everyone else keeps the album's current setting (the
-        // retired page reset it to false whenever a Mod or Admin saved an exclusive album).
+        // Only an Owner changes exclusivity; everyone else keeps the album's current setting.
         var exclusive = owner ? input.IsExclusive : existing.IsExclusive;
 
         if (cover is null || exclusive != existing.IsExclusive)
@@ -120,7 +119,7 @@ public sealed partial class MusicService
 
         if (cover is not null)
         {
-            // Keeps the exclusivity just saved, replaces the old cover in storage.
+            // Keeps the exclusivity just saved, replaces the previous cover in storage.
             await _albums.UpdateAlbumWithCoverAsync(albumId, title, input.Year, description, input.IsPrivate,
                 cover.Content, CoverFileName(cover.ContentType), cover.ContentType);
         }

@@ -8,14 +8,14 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React event discussion page (React track 013, docs/react-events.md).
+/// The React event discussion page (docs/react-events.md).
 /// Same rules, now enforced here instead of only hidden in the UI:
 /// - any signed-in member reads, posts, comments (not on a locked post) and offers a lift;
 /// - authors edit their own posts, comments and lift offers;
-/// - authors delete their own; the Owner deletes anyone's (as before; Admin did not);
+/// - authors delete their own; the Owner deletes anyone's (not Admin);
 /// - Admin/Owner pin and lock posts and manage any car's passengers;
 /// - the driver seats and unseats passengers; a passenger may leave.
-/// Writes reuse PostService / CommentService (push to the event's members and to mentions, as before),
+/// Writes reuse PostService / CommentService (push to the event's members and to mentions),
 /// TransportationService and MentionService. No schema change.
 /// </summary>
 public sealed partial class EventDiscussionBoardService : IEventDiscussionBoardService

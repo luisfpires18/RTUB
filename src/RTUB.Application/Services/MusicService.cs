@@ -7,7 +7,7 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React Music area (React track 006, docs/react-music.md): viewer-aware reads, the play
+/// The React Music area (docs/react-music.md): viewer-aware reads, the play
 /// cooldown, and writes that go through the existing <see cref="IAlbumService"/> and
 /// <see cref="ISongService"/> so audit logging, storage clean-up and video push notifications stay
 /// exactly where they were. No schema change: everything maps onto the existing Music tables.

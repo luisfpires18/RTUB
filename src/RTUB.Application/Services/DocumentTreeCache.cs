@@ -6,7 +6,7 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// #226 F01: one storage listing per fiscal year ("docs/{environment}/{year}/", every object at any depth), shared by
+/// One storage listing per fiscal year ("docs/{environment}/{year}/", every object at any depth), shared by
 /// every Documentation request for <see cref="Lifetime"/>. It holds storage metadata only - never a user's filtered view,
 /// an authorization decision or a pre-signed URL: each request still filters the folders it may see.
 /// Every writer under docs/ calls <see cref="Forget"/> after its write (Documentation, Logistics board files, Meetings

@@ -10,11 +10,11 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Task 069 (issue #249): a card's reminders and "As minhas tarefas".
+/// A card's reminders and "As minhas tarefas".
 ///
 /// Reminders live on the card. Managers schedule them for members who see the board; the card's owner and collaborators
 /// (Leitões included) schedule their own, for themselves only - any other target is 403. Only the creator of a personal
-/// reminder (while still working on the card) or a manager changes or deletes it; pre-069 reminders (no creator) are
+/// reminder (while still working on the card) or a manager changes or deletes it; legacy reminders (no creator) are
 /// managers'. Members see their own reminders; managers see all. Archived work: 409. Delivery: LogisticsReminderDelivery.
 /// </summary>
 public sealed partial class LogisticsKanbanService
@@ -177,7 +177,7 @@ public sealed partial class LogisticsKanbanService
     /// <summary>
     /// Cards that are work for <paramref name="user"/>'s lists: not archived, on a board they see (members-visible, or
     /// private with them on the access list, or any for Mod / Admin / Owner) that is not archived. The one visibility rule
-    /// of "As minhas tarefas" and of "As minhas ações pendentes" → Logística (task 073); callers add the assignment filter.
+    /// of "As minhas tarefas" and of "As minhas ações pendentes" → Logística; callers add the assignment filter.
     /// </summary>
     internal static IQueryable<LogisticsCard> WorkableCards(ApplicationDbContext db, ClaimsPrincipal user)
     {
