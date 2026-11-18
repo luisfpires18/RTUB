@@ -5,6 +5,11 @@
   padding-block: clamp(20px, 4vw, 48px) clamp(40px, 6vw, 80px);
 }
 
+/* Grid items default to their content's width: the lane's long track would widen the page past the phone. */
+.playalong > * {
+  min-width: 0;
+}
+
 .playalong__head {
   display: flex;
   flex-wrap: wrap;
@@ -214,7 +219,7 @@
 
 .playalong__word {
   position: relative;
-  white-space: pre;
+  white-space: pre-wrap;
 }
 
 .playalong__word.is-sung {
@@ -236,6 +241,8 @@
 }
 
 .playalong__solo {
+  /* Inline blocks so a line of chords alone can wrap between them. */
+  display: inline-block;
   margin-right: 0.8em;
   color: var(--purple-ink);
 }
@@ -245,14 +252,18 @@
   gap: 6px;
 }
 
+/* A song with many sections scrolls inside the bar on a phone; the page never scrolls sideways. */
 .playalong__sections {
   display: flex;
   gap: 3px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
 }
 
 .playalong__part {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1 0 0;
+  min-width: 52px;
   min-height: 44px;
   padding: 0 6px;
   overflow: hidden;
@@ -269,26 +280,4 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.playalong__part--refrain {
-  background: color-mix(in srgb, var(--purple) 30%, var(--bg-card));
-  color: var(--ink-soft);
-}
-
-.playalong__part--instrumental {
-  background: var(--bg-raise);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.playalong__part:hover,
-.playalong__part[aria-current] {
-  color: #fff;
-  box-shadow: inset 0 0 0 2px var(--purple-ink);
-}
-
-.playalong__progress {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--bg-card);
 }
