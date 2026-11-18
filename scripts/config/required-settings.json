@@ -808,6 +808,20 @@
       "notes": "PROD only: daily SQLite backup to the private rtub-db bucket (needs Always On). Falls back to Cloudflare__R2__SecretAccessKey; prefer a token scoped to the backup bucket. Never on DEV."
     },
     {
+      "name": "App__BaseUrl",
+      "group": "app",
+      "secret": false,
+      "local": "optional",
+      "dev": "optional",
+      "prod": "optional",
+      "source": [
+        "committed appsettings",
+        "Azure App Settings"
+      ],
+      "devProd": "differ",
+      "notes": "The site address in email links (password reset, event cancellation and notices). Committed per environment: appsettings.Staging.json (DEV) and appsettings.Production.json (PROD). Empty locally: the request host is used."
+    },
+    {
       "name": "LoginRateLimit__PermitLimit",
       "group": "ratelimit",
       "secret": false,

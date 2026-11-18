@@ -19,7 +19,7 @@ user-secrets and GitHub.
 
 | Source | Holds | Never holds |
 | --- | --- | --- |
-| Committed `appsettings.json` / `appsettings.Production.json` | non-secret defaults: schedulers, rate limits, `WebPush:Enabled`, `Cloudflare:R2:Bucket` / `ProductionBucket`, `DatabaseBackup:Enabled` (`false`; `true` in Production) | any secret |
+| Committed `appsettings.json` / `appsettings.Staging.json` (DEV) / `appsettings.Production.json` | non-secret defaults: `App:BaseUrl` (the site address in email links, one per environment), schedulers, rate limits, `WebPush:Enabled`, `Cloudflare:R2:Bucket` / `ProductionBucket`, `DatabaseBackup:Enabled` (`false`; `true` in Production) | any secret |
 | user-secrets (local, `UserSecretsId` of `src/RTUB.Web/RTUB.csproj`) | local secrets and overrides | (outside the repo) |
 | Azure App Settings (`rtub-dev`, `rtub`) | every DEV / PROD secret and environment value | (names in docs, values in Azure only) |
 | GitHub environment variables / secrets | deploy identity (`AZURE_*`), `RELEASE_STORAGE_ACCOUNT`, the DEV-refresh secrets | app settings (no workflow sets them) |

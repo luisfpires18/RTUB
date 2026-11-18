@@ -74,7 +74,7 @@ public static class EventEndpoints
             ToResult(await admin.RemoveImageAsync(id, http.User), _ => Results.NoContent()));
 
         writes.MapPost("/{id:int}/cancel", async (int id, EventCancelInput input, HttpContext http, IEventAdminService admin) =>
-                ToResult(await admin.CancelAsync(id, input, http.User, BaseUrl(http))))
+                ToResult(await admin.CancelAsync(id, input, http.User, SiteAddress.Of(http))))
             .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
 
         writes.MapPost("/{id:int}/reactivate", async (int id, HttpContext http, IEventAdminService admin) =>
@@ -84,7 +84,7 @@ public static class EventEndpoints
             ToResult(await admin.GetNoticeAudienceAsync(id, http.User)));
 
         writes.MapPost("/{id:int}/notices", async (int id, EventNoticeInput input, HttpContext http, IEventAdminService admin) =>
-                ToResult(await admin.SendNoticeAsync(id, input, http.User, BaseUrl(http))))
+                ToResult(await admin.SendNoticeAsync(id, input, http.User, SiteAddress.Of(http))))
             .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
 
         // Prizes (Admin/Owner). Visitors already read prize names in every event summary.
@@ -280,9 +280,6 @@ public static class EventEndpoints
         string.IsNullOrEmpty(context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier))
             ? Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.", statusCode: StatusCodes.Status401Unauthorized)
             : await next(context);
-
-    /// <summary>The absolute site address the push and email links are built from.</summary>
-    private static string BaseUrl(HttpContext http) => $"{http.Request.Scheme}://{http.Request.Host}";
 
     private static IResult NotFound() => Results.Problem(title: "Atuação não encontrada.", statusCode: StatusCodes.Status404NotFound);
 
