@@ -1,7 +1,7 @@
 // The participants dialog of /meetings (who goes, who does not, add members).
 import { useEffect, useId, useState } from 'react';
 import { Dialog } from './Dialog';
-import type { Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingCandidate, MeetingCard, MeetingParticipant, MeetingParticipants } from '../data/meetingsTypes';

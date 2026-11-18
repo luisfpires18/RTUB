@@ -3,10 +3,9 @@ import { Banner } from './ui/Banner';
 import { FieldError } from './ui/FieldError';
 import { ExternalLink } from './AppShared';
 import { Dialog } from './Dialog';
-import { call, type Outcome } from '../data/eventsApi';
+import { call, type Outcome, outcomeText } from '../data/api';
 import { Icon } from './icons';
 import { Avatar } from './ui/Avatar';
-import { outcomeText } from '../data/api';
 import { Loading } from './ui/Loading';
 
 // Órgãos Sociais for members. The RGI for Member, Mod, Admin and

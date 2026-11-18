@@ -10,9 +10,7 @@ export type Governance = { fiscalYears: string[]; fiscalYear: string | null; bod
 /** One mandate; the server picks the default and ignores an unknown year. */
 export function getGovernance(fiscalYear?: string): Promise<Governance> {
   const query = fiscalYear ? `?fiscalYear=${encodeURIComponent(fiscalYear)}` : '';
-  return fetch(`/api/public/governance${query}`, { headers: { Accept: 'application/json' } }).then((r) =>
-    r.ok ? (r.json() as Promise<Governance>) : Promise.reject(new Error(`HTTP ${r.status}`)),
-  );
+  return fetch(`/api/public/governance${query}`, { headers: { Accept: 'application/json' } }).then(json<Governance>);
 }
 
 /** GET /api/gallery (Endpoints/GalleryEndpoints.cs). Viewer-aware: visitors get public items only. */

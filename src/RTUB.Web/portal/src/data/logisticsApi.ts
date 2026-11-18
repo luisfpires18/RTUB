@@ -1,5 +1,4 @@
-import { antiforgeryToken, queryString, outcomeText } from './api';
-import { call, type Outcome } from './eventsApi';
+import { antiforgeryToken, queryString, outcomeText, call, type Outcome } from './api';
 
 // /api/logistics (Endpoints/LogisticsEndpoints.cs). Signed-in members read (Leitões too);
 // assignees tick checklists and change status; Mod, Admin and Owner manage. The server decides every rule

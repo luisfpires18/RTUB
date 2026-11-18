@@ -1,10 +1,9 @@
 // Shop types, API client and small helpers.
-import { call, type Outcome } from './eventsApi';
-import { outcomeText } from './api';
+import { call, type Outcome, outcomeText } from './api';
+import type { Option } from './sharedTypes';
 
 // /api/shop: visitors receive a public-only catalogue; members retain their existing actions.
 
-type Option = { value: string; label: string };
 export type Reservation = { id: number; username: string; displayName: string | null; size: string | null; createdAt: string };
 export type Product = {
   id: number;

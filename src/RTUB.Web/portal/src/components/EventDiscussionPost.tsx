@@ -2,7 +2,8 @@
 
 import { useId, useState } from 'react';
 import { FieldError } from './ui/FieldError';
-import { eventsApi, type EventPost, type Outcome, type EventDiscussion as Discussion } from '../data/eventsApi';
+import { eventsApi, type EventPost, type EventDiscussion as Discussion } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { BODY_MAX, problem, Text, showsTitle, Who, submitOnCtrlEnter } from './EventDiscussionShared';
 import { Lift } from './EventDiscussionLift';

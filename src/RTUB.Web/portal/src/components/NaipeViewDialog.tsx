@@ -1,7 +1,7 @@
 // Naipes item view dialog with comments.
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
-import { type Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { naipesApi, type NaipeComment, type NaipeItem } from '../data/naipesApi';
 import { MemberBadge } from './MemberBadge';

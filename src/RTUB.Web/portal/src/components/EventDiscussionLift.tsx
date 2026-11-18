@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useState } from 'react';
 import { FieldError } from './ui/FieldError';
-import { eventsApi, type EventPost, type MemberOption, type Outcome, type EventDiscussion as Discussion } from '../data/eventsApi';
+import { eventsApi, type EventPost, type MemberOption, type EventDiscussion as Discussion } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { problem } from './EventDiscussionShared';
 import { EmptyNote } from './ui/EmptyNote';

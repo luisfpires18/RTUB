@@ -1,10 +1,9 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
-import { call, type Outcome } from '../data/eventsApi';
+import { call, type Outcome, outcomeText } from '../data/api';
 import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
 import { euros } from '../data/format';
-import { outcomeText } from '../data/api';
 import { Banner } from './ui/Banner';
 import { DialogFooter } from './ui/DialogFooter';
 import { FormField } from './ui/FormField';

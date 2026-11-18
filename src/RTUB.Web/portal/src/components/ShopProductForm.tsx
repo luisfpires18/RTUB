@@ -2,7 +2,7 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Cropper } from './Cropper';
 import { Dialog } from './Dialog';
-import { type Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { type ProductInput, api, MAX_SOURCE, CROP_TEXT, problem } from '../data/shopApi';
 import { Loading } from './ui/Loading';

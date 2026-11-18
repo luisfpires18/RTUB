@@ -1,4 +1,4 @@
-import { call } from './eventsApi';
+import { call, queryString } from './api';
 
 // /api/meetings (Endpoints/MeetingEndpoints.cs). Signed-in members only; a Leitão is refused everything
 // and a meeting the member does not see is a 404. The server decides every rule (MeetingBoardService): the
@@ -7,18 +7,11 @@ import { call } from './eventsApi';
 
 import type { MeetingCard, MeetingBoard, MeetingForm, MeetingInput, MeetingSaved, MeetingEmailDraft, MeetingNoticeResult, MeetingCancelDraft, MeetingPushDraft, MeetingParticipants, MeetingCandidate, MeetingAtaEditor, MeetingAtaInput, MeetingAtaView, MeetingRequestPage, MeetingRequestInput, MeetingDraft, MeetingPollBoard, MeetingPollInput } from './meetingsTypes';
 
-const query = (params: Record<string, string | number | null | undefined>) => {
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v !== null && v !== undefined && v !== '') p.set(k, String(v));
-  const s = p.toString();
-  return s ? `?${s}` : '';
-};
-
 const base = '/api/meetings';
 
 export const meetingsApi = {
   // fy: null = the server's default (the current fiscal year), "all" = every year, else "YYYY-YYYY".
-  board: (fy: string | null, q: string) => call<MeetingBoard>('GET', `${base}${query({ fy, q })}`),
+  board: (fy: string | null, q: string) => call<MeetingBoard>('GET', `${base}${queryString({ fy, q })}`),
   meeting: (id: number) => call<MeetingCard>('GET', `${base}/${id}`),
   form: () => call<MeetingForm>('GET', `${base}/form`),
   create: (input: MeetingInput) => call<MeetingSaved>('POST', base, input),
@@ -41,7 +34,7 @@ export const meetingsApi = {
   participants: (id: number) => call<MeetingParticipants>('GET', `${base}/${id}/participants`),
   removeParticipation: (id: number, participationId: number) =>
     call<MeetingParticipants>('DELETE', `${base}/${id}/participants/${participationId}`),
-  candidates: (id: number, q: string) => call<MeetingCandidate[]>('GET', `${base}/${id}/participants/candidates${query({ q })}`),
+  candidates: (id: number, q: string) => call<MeetingCandidate[]>('GET', `${base}/${id}/participants/candidates${queryString({ q })}`),
   addParticipant: (id: number, userId: string) => call<MeetingParticipants>('POST', `${base}/${id}/participants`, { userId }),
   // Atas.
   ata: (id: number) => call<MeetingAtaView>('GET', `${base}/${id}/ata`),
@@ -52,7 +45,7 @@ export const meetingsApi = {
   ataPdfUrl: (id: number) => `${base}/${id}/ata/pdf`,
   // Meeting requests ("Pedidos de Reuniões").
   requests: (status: string, fy: string | null, page: number, pageSize: number) =>
-    call<MeetingRequestPage>('GET', `${base}/requests${query({ status, fy, page, pageSize })}`),
+    call<MeetingRequestPage>('GET', `${base}/requests${queryString({ status, fy, page, pageSize })}`),
   propose: (input: MeetingRequestInput) => call<{ id: number }>('POST', `${base}/requests`, input),
   accept: (requestId: number) => call<MeetingDraft>('POST', `${base}/requests/${requestId}/accept`),
   reject: (requestId: number) => call<void>('POST', `${base}/requests/${requestId}/reject`),

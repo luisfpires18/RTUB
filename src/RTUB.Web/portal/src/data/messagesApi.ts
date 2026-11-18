@@ -1,6 +1,5 @@
 // Types, API calls and date/sort helpers for the /messages page.
-import { call, type Outcome } from './eventsApi';
-import { outcomeText } from './api';
+import { call, type Outcome, outcomeText } from './api';
 
 // /api/conversations + /api/messages (Endpoints/MessagingEndpoints.cs): Messaging v2 over the preserved v1
 // tables. The server decides every rule (MessagingService): a conversation the member is not in is a 404, and

@@ -5,10 +5,11 @@ import { CheckField } from './ui/CheckField';
 import { Banner } from './ui/Banner';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
-import { memberAdminApi, type MemberInstrument, type Option } from '../data/membersApi';
+import { memberAdminApi, type MemberInstrument } from '../data/membersApi';
 import { CATEGORIES, type Form, blank, fromEdit, problem } from '../data/memberFormState';
 import { Instruments, MentorPicker, MonthYear } from './MemberFormFields';
 import { Loading } from './ui/Loading';
+import type { Option } from '../data/sharedTypes';
 
 /** "Adicionar membro" / "Editar membro": the member's fields, rules and dependent fields. */
 export function MemberFormDialog({

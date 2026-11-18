@@ -1,6 +1,5 @@
 // /api/news calls, input type and limits shared by the news page and its dialogs.
-import { type NewsFeed, type NewsPost, outcomeText } from './api';
-import { call, type Outcome } from './eventsApi';
+import { type NewsFeed, type NewsPost, outcomeText, call, type Outcome } from './api';
 
 export type Input = { title: string; body: string; publish: boolean; membersOnly: boolean };
 export type Tab = 'all' | 'public' | 'private';

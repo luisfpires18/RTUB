@@ -1,6 +1,6 @@
 // Shared frame of the card workspace panels: the titled section and the "apply" callback type.
 import type { ReactNode } from 'react';
-import type { Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import type { CardDetail } from '../data/logisticsApi';
 
 export const Section = ({ id, title, extra, children }: { id: string; title: string; extra?: ReactNode; children: ReactNode }) => (

@@ -1,4 +1,4 @@
-import { call, type Outcome } from './eventsApi';
+import { call, type Outcome } from './api';
 
 // /api/owner/* (Endpoints/OwnerEndpoints.cs). Owner only, every call: a visitor gets 401 and any other member
 // 403 from the server, whatever this page shows. Writes carry the X-CSRF-TOKEN header (call()).

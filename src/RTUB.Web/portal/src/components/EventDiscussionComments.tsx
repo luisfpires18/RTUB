@@ -1,7 +1,8 @@
 // The comments under a discussion post.
 
 import { useId, useRef, useState } from 'react';
-import { eventsApi, type EventPost, type Outcome, type EventDiscussion as Discussion } from '../data/eventsApi';
+import { eventsApi, type EventPost, type EventDiscussion as Discussion } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { FieldError } from './ui/FieldError';
 import { COMMENT_MAX, problem, Text, Who, submitOnCtrlEnter } from './EventDiscussionShared';

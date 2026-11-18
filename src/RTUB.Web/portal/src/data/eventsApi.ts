@@ -26,9 +26,6 @@ import type {
   RepertoireSong,
 } from './eventsTypes';
 
-// The shared request helper lives in api.ts (the shell's unread badge needs it on every page, and
-// importing it from here pulled this whole client into the entry chunk); re-exported for the pages that import it here.
-export { antiforgeryToken, call, type Outcome } from './api';
 import { call } from './api';
 
 export const eventsApi = {

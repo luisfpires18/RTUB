@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
-import { eventsApi, MAX_EVENT_VIDEO_BYTES, type ManagedVideo, type EventSummary, type Outcome } from '../data/eventsApi';
+import { eventsApi, MAX_EVENT_VIDEO_BYTES, type ManagedVideo, type EventSummary } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
 import { Loading } from './ui/Loading';

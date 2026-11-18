@@ -1,11 +1,10 @@
 // Leaderboard types, API client and small helpers.
-import { call, type Outcome } from './eventsApi';
-import { queryString, outcomeText } from './api';
+import { call, type Outcome, queryString, outcomeText } from './api';
+import type { Option } from './sharedTypes';
 
 // /api/leaderboard (Endpoints/LeaderboardEndpoints.cs). Signed-in members only; the server decides
 // every rule (LeaderboardService). Hiding a button here is only a convenience.
 
-type Option = { value: string; label: string };
 export type Entry = {
   position: number;
   id: string;

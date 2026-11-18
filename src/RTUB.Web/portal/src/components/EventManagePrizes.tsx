@@ -1,7 +1,8 @@
 // Prize list manager shown on the event page.
 
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { eventsApi, type EventPrize, type Outcome } from '../data/eventsApi';
+import { eventsApi, type EventPrize } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { failure } from './EventManageShared';
 import { Loading } from './ui/Loading';

@@ -3,13 +3,14 @@ import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Cropper } from './Cropper';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { type Option, type Input, api, MAX_IMAGE, IMAGE_TYPES, CROP_TEXT, problem } from '../data/inventoryApi';
+import { type Input, api, MAX_IMAGE, IMAGE_TYPES, CROP_TEXT, problem } from '../data/inventoryApi';
 import { Thumb } from './InventoryDialogs';
 import { Loading } from './ui/Loading';
 import { Banner } from './ui/Banner';
 import { DialogFooter } from './ui/DialogFooter';
 import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
+import type { Option } from '../data/sharedTypes';
 
 const blank = (): Input => ({
   name: '',

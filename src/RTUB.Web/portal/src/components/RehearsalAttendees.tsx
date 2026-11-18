@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useState } from 'react';
 import { FieldError } from './ui/FieldError';
-import type { MemberOption, Outcome } from '../data/eventsApi';
+import type { MemberOption } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { rehearsalsApi, type Attendee, type InstrumentCount } from '../data/rehearsalsApi';
