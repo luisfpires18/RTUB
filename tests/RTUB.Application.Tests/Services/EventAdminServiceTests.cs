@@ -21,10 +21,10 @@ namespace RTUB.Application.Tests.Services;
 public partial class EventAdminServiceTests
 {
     private static readonly ClaimsPrincipal Visitor = new(new ClaimsIdentity());
-    private static readonly ClaimsPrincipal Member = SignedIn("Member");
-    private static readonly ClaimsPrincipal Mod = SignedIn("Mod");
-    private static readonly ClaimsPrincipal Admin = SignedIn("Admin");
-    private static readonly ClaimsPrincipal Owner = SignedIn("Owner");
+    private static readonly ClaimsPrincipal Member = TestPrincipal.WithRole("Member");
+    private static readonly ClaimsPrincipal Mod = TestPrincipal.WithRole("Mod");
+    private static readonly ClaimsPrincipal Admin = TestPrincipal.WithRole("Admin");
+    private static readonly ClaimsPrincipal Owner = TestPrincipal.WithRole("Owner");
 
     private static readonly byte[] Webp = "RIFF\0\0\0\0WEBPVP8 "u8.ToArray();
     private static readonly byte[] Jpeg = { 0xFF, 0xD8, 0xFF, 0xE0, 0, 0x10, (byte)'J', (byte)'F', (byte)'I', (byte)'F', 0, 1 };
@@ -160,14 +160,6 @@ public partial class EventAdminServiceTests
     }
 
     // ---------- helpers ----------
-
-    private static ClaimsPrincipal SignedIn(string role) =>
-        new(new ClaimsIdentity(new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.Name, "u-" + role),
-            new Claim(ClaimTypes.Role, role),
-        }, "test"));
 
     private static EventImageUpload Upload(byte[] bytes, string type = "image/webp") =>
         new(new MemoryStream(bytes), type == "image/jpeg" ? "event-image.jpg" : "event-image.webp", type, bytes.Length);

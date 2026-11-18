@@ -16,7 +16,7 @@ public partial class PendingActionsServiceTests
     {
         var me = AddUser([MemberCategory.Leitao], retired: false);
 
-        var page = (await Service().GetPageAsync(SignedIn(me))).Value!;
+        var page = (await Service().GetPageAsync(TestPrincipal.SignedIn(me))).Value!;
 
         page.Status.Should().Be("active");
         page.Today.Should().Be("2026-11-06");
@@ -32,14 +32,14 @@ public partial class PendingActionsServiceTests
         var retired = AddUser([MemberCategory.Tuno], retired: true);
         var none = AddUser([], retired: false);
 
-        var r = await Service().GetPageAsync(SignedIn(retired));
-        var n = (await Service().GetPageAsync(SignedIn(none))).Value!;
+        var r = await Service().GetPageAsync(TestPrincipal.SignedIn(retired));
+        var n = (await Service().GetPageAsync(TestPrincipal.SignedIn(none))).Value!;
 
         r.Status.Should().Be(EventResultStatus.NotFound, "087: the page is not for a Reformado at all");
         (await Service().CountPendingAsync(retired)).Should().Be(0, "no reminder push either");
         n.Status.Should().Be("none");
         n.Panels.Should().BeEmpty();
-        (await Service().GetPanelAsync(SignedIn(retired), "events", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
+        (await Service().GetPanelAsync(TestPrincipal.SignedIn(retired), "events", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
     }
 
     [Fact]
@@ -48,8 +48,8 @@ public partial class PendingActionsServiceTests
         var expelled = AddUser([MemberCategory.Tuno], retired: false, expelled: true);
 
         (await Service().GetPageAsync(new ClaimsPrincipal(new ClaimsIdentity()))).Status.Should().Be(EventResultStatus.SignInRequired);
-        (await Service().GetPageAsync(SignedIn(expelled))).Status.Should().Be(EventResultStatus.SignInRequired);
-        (await Service().GetPageAsync(SignedIn("ghost"))).Status.Should().Be(EventResultStatus.SignInRequired);
+        (await Service().GetPageAsync(TestPrincipal.SignedIn(expelled))).Status.Should().Be(EventResultStatus.SignInRequired);
+        (await Service().GetPageAsync(TestPrincipal.SignedIn("ghost"))).Status.Should().Be(EventResultStatus.SignInRequired);
         (await Service().CountPendingAsync("ghost")).Should().Be(0);
     }
 
@@ -70,8 +70,8 @@ public partial class PendingActionsServiceTests
         AddEnrollment(going, me, true);
         AddEnrollment(notGoing, me, false);
 
-        var upcoming = (await Service().GetPanelAsync(SignedIn(me), "events", "upcoming", 1)).Value!;
-        var past = (await Service().GetPanelAsync(SignedIn(me), "events", "past", 1)).Value!;
+        var upcoming = (await Service().GetPanelAsync(TestPrincipal.SignedIn(me), "events", "upcoming", 1)).Value!;
+        var past = (await Service().GetPanelAsync(TestPrincipal.SignedIn(me), "events", "past", 1)).Value!;
 
         upcoming.Total.Should().Be(3);
         upcoming.Rows.Select(r => r.SourceKey).Should().Equal(Key(today), Key(soon), Key(far));
@@ -97,14 +97,14 @@ public partial class PendingActionsServiceTests
         AddAttendance(answered, me);
         AddAttendance(next, other);
 
-        var upcoming = (await Service().GetPanelAsync(SignedIn(me), "rehearsals", "upcoming", 1)).Value!;
-        var past = (await Service().GetPanelAsync(SignedIn(me), "rehearsals", "past", 1)).Value!;
+        var upcoming = (await Service().GetPanelAsync(TestPrincipal.SignedIn(me), "rehearsals", "upcoming", 1)).Value!;
+        var past = (await Service().GetPanelAsync(TestPrincipal.SignedIn(me), "rehearsals", "past", 1)).Value!;
 
         upcoming.Rows.Select(r => r.SourceKey).Should().Equal(Key(next));
         upcoming.Rows.Single().Href.Should().Be($"/rehearsals/{next}");
         past.Rows.Select(r => r.SourceKey).Should().Equal(Key(lastWeek));
         (await Service().CountPendingAsync(me)).Should().Be(2);
-        (await Service().GetPanelAsync(SignedIn(other), "rehearsals", "upcoming", 1)).Value!.Rows.Select(r => r.SourceKey)
+        (await Service().GetPanelAsync(TestPrincipal.SignedIn(other), "rehearsals", "upcoming", 1)).Value!.Rows.Select(r => r.SourceKey)
             .Should().Equal([Key(answered)], "each member's own answers only");
     }
 
@@ -118,10 +118,10 @@ public partial class PendingActionsServiceTests
         AddRehearsal(Today.AddDays(1));
         var service = Service();
 
-        var page1 = (await service.GetPanelAsync(SignedIn(me), "events", "upcoming", 1)).Value!;
-        var page3 = (await service.GetPanelAsync(SignedIn(me), "events", "upcoming", 3)).Value!;
-        var beyond = (await service.GetPanelAsync(SignedIn(me), "events", "upcoming", 99)).Value!;
-        var rehearsals = (await service.GetPanelAsync(SignedIn(me), "rehearsals", "upcoming", 1)).Value!;
+        var page1 = (await service.GetPanelAsync(TestPrincipal.SignedIn(me), "events", "upcoming", 1)).Value!;
+        var page3 = (await service.GetPanelAsync(TestPrincipal.SignedIn(me), "events", "upcoming", 3)).Value!;
+        var beyond = (await service.GetPanelAsync(TestPrincipal.SignedIn(me), "events", "upcoming", 99)).Value!;
+        var rehearsals = (await service.GetPanelAsync(TestPrincipal.SignedIn(me), "rehearsals", "upcoming", 1)).Value!;
 
         page1.Rows.Select(r => r.SourceKey).Should().Equal(ids.Take(3).Select(Key));
         page1.Total.Should().Be(7);
@@ -131,7 +131,7 @@ public partial class PendingActionsServiceTests
 
         // The only row of the last page is answered elsewhere: asking for page 3 again answers page 2, with the new count.
         AddEnrollment(ids[6], me, true);
-        var after = (await service.GetPanelAsync(SignedIn(me), "events", "upcoming", 3)).Value!;
+        var after = (await service.GetPanelAsync(TestPrincipal.SignedIn(me), "events", "upcoming", 3)).Value!;
         after.Page.Should().Be(2);
         after.Total.Should().Be(6);
         after.Rows.Should().HaveCount(3);
@@ -143,10 +143,10 @@ public partial class PendingActionsServiceTests
         var me = AddUser([MemberCategory.Tuno], retired: false);
         AddEvent("Próxima", Today.AddDays(1));
 
-        var panel = (await Service().GetPanelAsync(SignedIn(me), "events", "everything", 0)).Value!;
+        var panel = (await Service().GetPanelAsync(TestPrincipal.SignedIn(me), "events", "everything", 0)).Value!;
 
         panel.Filter.Should().Be("upcoming");
         panel.Page.Should().Be(1);
-        (await Service().GetPanelAsync(SignedIn(me), "inbox", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
+        (await Service().GetPanelAsync(TestPrincipal.SignedIn(me), "inbox", null, 1)).Status.Should().Be(EventResultStatus.NotFound);
     }
 }

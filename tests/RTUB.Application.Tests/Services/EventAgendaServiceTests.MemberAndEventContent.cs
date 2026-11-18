@@ -208,7 +208,7 @@ public partial class EventAgendaServiceTests
     [InlineData(new[] { "Owner" }, true, true, true)]
     public void Roles_Inherit_OwnerAboveAdminAboveMod(string[] roles, bool canManage, bool canTrackContacts, bool canEdit)
     {
-        var user = SignedIn(Guid.NewGuid().ToString(), roles);
+        var user = TestPrincipal.SignedIn(Guid.NewGuid().ToString(), roles);
 
         RTUB.Application.Helpers.EventsAuthorization.CanManage(user).Should().Be(canManage);
         RTUB.Application.Helpers.EventsAuthorization.CanEdit(user).Should().Be(canEdit);
@@ -223,8 +223,8 @@ public partial class EventAgendaServiceTests
         var leitao = AddUser("Leitão", categories: MemberCategory.Leitao);
         var tuno = AddUser("Tuno", categories: MemberCategory.Tuno);
 
-        (await _service.GetEventAsync(id, SignedIn(leitao)))!.CanTrackContacts.Should().BeTrue();
-        (await _service.GetEventAsync(id, SignedIn(tuno)))!.CanTrackContacts.Should().BeFalse();
+        (await _service.GetEventAsync(id, TestPrincipal.SignedIn(leitao)))!.CanTrackContacts.Should().BeTrue();
+        (await _service.GetEventAsync(id, TestPrincipal.SignedIn(tuno)))!.CanTrackContacts.Should().BeFalse();
     }
 
     [Fact]

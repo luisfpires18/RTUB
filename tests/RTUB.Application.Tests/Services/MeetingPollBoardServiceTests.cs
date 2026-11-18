@@ -1,4 +1,3 @@
-using RTUB.Tests;
 using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -29,26 +28,26 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
         await SeedAsync(president, veteran, tuno, magister, owner);
         var service = Service();
 
-        var created = await service.CreateAsync(Poll("ConselhoVeteranos"), SignedIn(president.Id));
+        var created = await service.CreateAsync(Poll("ConselhoVeteranos"), TestPrincipal.SignedIn(president.Id));
         created.Status.Should().Be(EventResultStatus.Ok);
 
-        var veteranBoard = (await service.GetBoardAsync(SignedIn(veteran.Id))).Value!;
+        var veteranBoard = (await service.GetBoardAsync(TestPrincipal.SignedIn(veteran.Id))).Value!;
         veteranBoard.Polls.Should().ContainSingle();
         veteranBoard.Polls[0].CanVote.Should().BeTrue();
 
-        var magisterBoard = (await service.GetBoardAsync(SignedIn(magister.Id))).Value!;
+        var magisterBoard = (await service.GetBoardAsync(TestPrincipal.SignedIn(magister.Id))).Value!;
         magisterBoard.Polls.Should().ContainSingle();
 
-        var tunoBoard = (await service.GetBoardAsync(SignedIn(tuno.Id))).Value!;
+        var tunoBoard = (await service.GetBoardAsync(TestPrincipal.SignedIn(tuno.Id))).Value!;
         tunoBoard.Polls.Should().BeEmpty();
-        (await service.VoteAsync(created.Value, new MeetingPollVoteInput(1), SignedIn(tuno.Id)))
+        (await service.VoteAsync(created.Value, new MeetingPollVoteInput(1), TestPrincipal.SignedIn(tuno.Id)))
             .Status.Should().Be(EventResultStatus.NotFound);
 
-        var ownerBoard = (await service.GetBoardAsync(SignedIn(owner.Id, "Owner"))).Value!;
+        var ownerBoard = (await service.GetBoardAsync(TestPrincipal.SignedIn(owner.Id, "Owner"))).Value!;
         ownerBoard.Polls.Should().ContainSingle();
         ownerBoard.Polls[0].CanManage.Should().BeTrue();
         ownerBoard.Polls[0].CanVote.Should().BeFalse();
-        (await service.VoteAsync(created.Value, new MeetingPollVoteInput(1), SignedIn(owner.Id, "Owner")))
+        (await service.VoteAsync(created.Value, new MeetingPollVoteInput(1), TestPrincipal.SignedIn(owner.Id, "Owner")))
             .Status.Should().Be(EventResultStatus.Forbidden);
     }
 
@@ -59,17 +58,17 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
         var veteran = Member("veteran", yearTuno: 2010);
         await SeedAsync(president, veteran);
         var service = Service();
-        var created = await service.CreateAsync(Poll("ConselhoVeteranos"), SignedIn(president.Id));
-        var poll = (await service.GetBoardAsync(SignedIn(veteran.Id))).Value!.Polls.Single();
+        var created = await service.CreateAsync(Poll("ConselhoVeteranos"), TestPrincipal.SignedIn(president.Id));
+        var poll = (await service.GetBoardAsync(TestPrincipal.SignedIn(veteran.Id))).Value!.Polls.Single();
         var first = poll.Options[0].Id;
         var second = poll.Options[1].Id;
 
-        (await service.VoteAsync(created.Value, new MeetingPollVoteInput(first), SignedIn(veteran.Id)))
+        (await service.VoteAsync(created.Value, new MeetingPollVoteInput(first), TestPrincipal.SignedIn(veteran.Id)))
             .Status.Should().Be(EventResultStatus.Ok);
-        (await service.VoteAsync(created.Value, new MeetingPollVoteInput(second), SignedIn(veteran.Id)))
+        (await service.VoteAsync(created.Value, new MeetingPollVoteInput(second), TestPrincipal.SignedIn(veteran.Id)))
             .Status.Should().Be(EventResultStatus.Ok);
 
-        var updated = (await service.GetBoardAsync(SignedIn(veteran.Id))).Value!.Polls.Single();
+        var updated = (await service.GetBoardAsync(TestPrincipal.SignedIn(veteran.Id))).Value!.Polls.Single();
         updated.TotalVotes.Should().Be(1);
         updated.MyOptionId.Should().Be(second);
         updated.Options.Single(option => option.Id == first).Votes.Should().Be(0);
@@ -84,18 +83,18 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
         await SeedAsync(president, veteran);
         var service = Service();
         var closesAt = "2026-11-17T13:00";
-        var created = await service.CreateAsync(Poll("ConselhoVeteranos", closesAt), SignedIn(president.Id));
-        var poll = (await service.GetBoardAsync(SignedIn(veteran.Id))).Value!.Polls.Single();
+        var created = await service.CreateAsync(Poll("ConselhoVeteranos", closesAt), TestPrincipal.SignedIn(president.Id));
+        var poll = (await service.GetBoardAsync(TestPrincipal.SignedIn(veteran.Id))).Value!.Polls.Single();
 
         _clock.Now = new DateTimeOffset(2026, 11, 17, 14, 0, 0, TimeSpan.Zero);
-        var expired = (await service.GetBoardAsync(SignedIn(veteran.Id))).Value!.Polls.Single();
+        var expired = (await service.GetBoardAsync(TestPrincipal.SignedIn(veteran.Id))).Value!.Polls.Single();
         expired.Closed.Should().BeTrue();
-        (await service.VoteAsync(created.Value, new MeetingPollVoteInput(poll.Options[0].Id), SignedIn(veteran.Id)))
+        (await service.VoteAsync(created.Value, new MeetingPollVoteInput(poll.Options[0].Id), TestPrincipal.SignedIn(veteran.Id)))
             .Status.Should().Be(EventResultStatus.Closed);
 
-        var manual = await service.CreateAsync(Poll("ConselhoVeteranos"), SignedIn(president.Id));
-        (await service.CloseAsync(manual.Value, SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
-        (await service.VoteAsync(manual.Value, new MeetingPollVoteInput(1), SignedIn(veteran.Id)))
+        var manual = await service.CreateAsync(Poll("ConselhoVeteranos"), TestPrincipal.SignedIn(president.Id));
+        (await service.CloseAsync(manual.Value, TestPrincipal.SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
+        (await service.VoteAsync(manual.Value, new MeetingPollVoteInput(1), TestPrincipal.SignedIn(veteran.Id)))
             .Status.Should().Be(EventResultStatus.Closed);
     }
 
@@ -106,9 +105,9 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
         var tuno = Member("tuno", yearTuno: 2026);
         await SeedAsync(president, tuno);
 
-        (await Service().CreateAsync(Poll("ConselhoVeteranos"), SignedIn(tuno.Id)))
+        (await Service().CreateAsync(Poll("ConselhoVeteranos"), TestPrincipal.SignedIn(tuno.Id)))
             .Status.Should().Be(EventResultStatus.Forbidden);
-        (await Service().CreateAsync(Poll("ConselhoVeteranos"), SignedIn(president.Id)))
+        (await Service().CreateAsync(Poll("ConselhoVeteranos"), TestPrincipal.SignedIn(president.Id)))
             .Status.Should().Be(EventResultStatus.Ok);
     }
 
@@ -121,7 +120,7 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
         var magister = Member("magister", position: Position.Magister);
         await SeedAsync(president, veteran, tuno, magister);
 
-        (await Service().CreateAsync(Poll("ConselhoVeteranos"), SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
+        (await Service().CreateAsync(Poll("ConselhoVeteranos"), TestPrincipal.SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
 
         _push.Verify(push => push.SendToSelectedUsersAsync(
             It.Is<IEnumerable<string>>(ids => ids.OrderBy(id => id).SequenceEqual(new[] { "cv-president", "magister", "veteran" })),
@@ -138,7 +137,7 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
         leitao.Categories = [MemberCategory.Leitao];
         await SeedAsync(president, tuno, leitao);
 
-        (await Service().CreateAsync(Poll("AssembleiaGeral"), SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
+        (await Service().CreateAsync(Poll("AssembleiaGeral"), TestPrincipal.SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
 
         _push.Verify(push => push.SendToSelectedUsersAsync(
             It.Is<IEnumerable<string>>(ids => ids.OrderBy(id => id).SequenceEqual(new[] { "ag-president", "tuno" })),
@@ -157,27 +156,27 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
         var service = Service();
 
         // Created by Owner: the body's president manages it (may close) but did not create it.
-        var ownerPoll = (await service.CreateAsync(Poll("ConselhoVeteranos"), SignedIn(owner.Id, "Owner"))).Value;
-        var card = (await service.GetBoardAsync(SignedIn(president.Id))).Value!.Polls.Single();
+        var ownerPoll = (await service.CreateAsync(Poll("ConselhoVeteranos"), TestPrincipal.SignedIn(owner.Id, "Owner"))).Value;
+        var card = (await service.GetBoardAsync(TestPrincipal.SignedIn(president.Id))).Value!.Polls.Single();
         card.CanManage.Should().BeTrue();
         card.CanDelete.Should().BeFalse();
-        (await service.DeleteAsync(ownerPoll, SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Forbidden);
-        (await service.DeleteAsync(ownerPoll, SignedIn(veteran.Id))).Status.Should().Be(EventResultStatus.Forbidden);
-        (await service.DeleteAsync(ownerPoll, SignedIn(tuno.Id))).Status.Should().Be(EventResultStatus.NotFound);
-        (await service.DeleteAsync(ownerPoll, SignedIn(owner.Id, "Owner"))).Status.Should().Be(EventResultStatus.Ok);
+        (await service.DeleteAsync(ownerPoll, TestPrincipal.SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Forbidden);
+        (await service.DeleteAsync(ownerPoll, TestPrincipal.SignedIn(veteran.Id))).Status.Should().Be(EventResultStatus.Forbidden);
+        (await service.DeleteAsync(ownerPoll, TestPrincipal.SignedIn(tuno.Id))).Status.Should().Be(EventResultStatus.NotFound);
+        (await service.DeleteAsync(ownerPoll, TestPrincipal.SignedIn(owner.Id, "Owner"))).Status.Should().Be(EventResultStatus.Ok);
 
         // Created by the president: they delete it, votes included.
-        var ownPoll = (await service.CreateAsync(Poll("ConselhoVeteranos"), SignedIn(president.Id))).Value;
-        var own = (await service.GetBoardAsync(SignedIn(president.Id))).Value!.Polls.Single();
+        var ownPoll = (await service.CreateAsync(Poll("ConselhoVeteranos"), TestPrincipal.SignedIn(president.Id))).Value;
+        var own = (await service.GetBoardAsync(TestPrincipal.SignedIn(president.Id))).Value!.Polls.Single();
         own.CanDelete.Should().BeTrue();
-        (await service.VoteAsync(ownPoll, new MeetingPollVoteInput(own.Options[0].Id), SignedIn(veteran.Id))).Status.Should().Be(EventResultStatus.Ok);
-        (await service.DeleteAsync(ownPoll, SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
+        (await service.VoteAsync(ownPoll, new MeetingPollVoteInput(own.Options[0].Id), TestPrincipal.SignedIn(veteran.Id))).Status.Should().Be(EventResultStatus.Ok);
+        (await service.DeleteAsync(ownPoll, TestPrincipal.SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Ok);
 
         await using var db = _database.CreateContext();
         db.MeetingPolls.Should().BeEmpty();
         db.MeetingPollOptions.Should().BeEmpty();
         db.MeetingPollVotes.Should().BeEmpty();
-        (await service.DeleteAsync(ownPoll, SignedIn(president.Id))).Status.Should().Be(EventResultStatus.NotFound);
+        (await service.DeleteAsync(ownPoll, TestPrincipal.SignedIn(president.Id))).Status.Should().Be(EventResultStatus.NotFound);
     }
 
     [Fact]
@@ -195,8 +194,8 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
             pollId = poll.Id;
         }
 
-        (await Service().DeleteAsync(pollId, SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Forbidden);
-        (await Service().DeleteAsync(pollId, SignedIn(owner.Id, "Owner"))).Status.Should().Be(EventResultStatus.Ok);
+        (await Service().DeleteAsync(pollId, TestPrincipal.SignedIn(president.Id))).Status.Should().Be(EventResultStatus.Forbidden);
+        (await Service().DeleteAsync(pollId, TestPrincipal.SignedIn(owner.Id, "Owner"))).Status.Should().Be(EventResultStatus.Ok);
     }
 
     private readonly Mock<IPushNotificationService> _push = new();
@@ -237,17 +236,6 @@ public sealed class MeetingPollBoardServiceTests : IDisposable
 
     private static MeetingPollInput Poll(string audience, string? closesAt = null) =>
         new(audience, "Qual a melhor opção?", ["Primeira opção", "Segunda opção"], closesAt);
-
-    private static ClaimsPrincipal SignedIn(string userId, string? role = null)
-    {
-        var claims = new List<Claim> { new(ClaimTypes.NameIdentifier, userId) };
-        if (role is not null)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
-
-        return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
-    }
 
     public void Dispose() => _database.Dispose();
 }

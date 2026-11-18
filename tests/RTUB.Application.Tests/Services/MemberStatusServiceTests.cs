@@ -11,7 +11,6 @@ using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Services;
 

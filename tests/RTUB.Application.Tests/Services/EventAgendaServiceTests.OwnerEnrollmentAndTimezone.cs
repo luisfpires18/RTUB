@@ -5,7 +5,6 @@ using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
-using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -17,7 +16,7 @@ public partial class EventAgendaServiceTests
     {
         AddEvent("Serenata", _today.AddDays(5));
 
-        (await _service.GetAgendaAsync(SignedIn(_memberId, "Owner"))).CanManage.Should().BeTrue();
+        (await _service.GetAgendaAsync(TestPrincipal.SignedIn(_memberId, "Owner"))).CanManage.Should().BeTrue();
         (await _service.GetAgendaAsync(_member)).CanManage.Should().BeFalse();
     }
 
@@ -128,8 +127,8 @@ public partial class EventAgendaServiceTests
         var leitao = AddUser("Leitão", categories: new[] { MemberCategory.Leitao });
         var id = AddEvent("Serenata", _today.AddDays(5));
 
-        var enrollment = (await _service.GetEnrollmentAsync(id, SignedIn(leitao))).Value!;
-        var result = await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(true, "Pandeireta", null), SignedIn(leitao));
+        var enrollment = (await _service.GetEnrollmentAsync(id, TestPrincipal.SignedIn(leitao))).Value!;
+        var result = await _service.SaveEnrollmentAsync(id, new EventEnrollmentInput(true, "Pandeireta", null), TestPrincipal.SignedIn(leitao));
 
         enrollment.IsLeitao.Should().BeTrue();
         enrollment.Instruments.Should().HaveCount(Enum.GetValues<InstrumentType>().Length);
@@ -167,7 +166,7 @@ public partial class EventAgendaServiceTests
         var other = AddUser("Faltou");
         Enroll(id, other, willAttend: false);
 
-        (await _service.RemoveEnrollmentAsync(id, SignedIn(other))).Status.Should().Be(EventResultStatus.Closed);
+        (await _service.RemoveEnrollmentAsync(id, TestPrincipal.SignedIn(other))).Status.Should().Be(EventResultStatus.Closed);
         var result = await _service.RemoveEnrollmentAsync(id, _member);
 
         result.Status.Should().Be(EventResultStatus.Ok);

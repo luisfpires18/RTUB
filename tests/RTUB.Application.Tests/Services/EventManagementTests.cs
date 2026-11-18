@@ -21,10 +21,10 @@ namespace RTUB.Application.Tests.Services;
 public partial class EventManagementTests
 {
     private static readonly ClaimsPrincipal Visitor = new(new ClaimsIdentity());
-    private static readonly ClaimsPrincipal Member = SignedIn("Member");
-    private static readonly ClaimsPrincipal Mod = SignedIn("Mod");
-    private static readonly ClaimsPrincipal Admin = SignedIn("Admin");
-    private static readonly ClaimsPrincipal Owner = SignedIn("Owner");
+    private static readonly ClaimsPrincipal Member = TestPrincipal.WithRole("Member");
+    private static readonly ClaimsPrincipal Mod = TestPrincipal.WithRole("Mod");
+    private static readonly ClaimsPrincipal Admin = TestPrincipal.WithRole("Admin");
+    private static readonly ClaimsPrincipal Owner = TestPrincipal.WithRole("Owner");
 
     private readonly DatabaseFixture _db = new();
     private readonly Mock<IEventService> _events = new();
@@ -214,14 +214,6 @@ public partial class EventManagementTests
     }
 
     // ---------- helpers ----------
-
-    private static ClaimsPrincipal SignedIn(string role) =>
-        new(new ClaimsIdentity(new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.Name, "u-" + role),
-            new Claim(ClaimTypes.Role, role),
-        }, "test"));
 
     private static EventInput Input(string name = "Serenata", string date = "2031-05-03", string? time = "19:00", string? endDate = null,
         string location = "Bragança", string type = "Atuacao", string? description = null) =>

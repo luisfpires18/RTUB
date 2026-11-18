@@ -2,7 +2,6 @@ using FluentAssertions;
 using RTUB.Application.Extensions;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using RTUB.Tests;
 
 namespace RTUB.Application.Tests.Extensions;
 

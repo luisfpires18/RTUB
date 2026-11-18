@@ -22,10 +22,10 @@ namespace RTUB.Application.Tests.Services;
 public class EventPrizesTests
 {
     private static readonly ClaimsPrincipal Visitor = new(new ClaimsIdentity());
-    private static readonly ClaimsPrincipal Member = SignedIn("Member");
-    private static readonly ClaimsPrincipal Mod = SignedIn("Mod");
-    private static readonly ClaimsPrincipal Admin = SignedIn("Admin");
-    private static readonly ClaimsPrincipal Owner = SignedIn("Owner");
+    private static readonly ClaimsPrincipal Member = TestPrincipal.WithRole("Member");
+    private static readonly ClaimsPrincipal Mod = TestPrincipal.WithRole("Mod");
+    private static readonly ClaimsPrincipal Admin = TestPrincipal.WithRole("Admin");
+    private static readonly ClaimsPrincipal Owner = TestPrincipal.WithRole("Owner");
 
     private readonly DatabaseFixture _db = new();
     private readonly EventAdminService _service;
@@ -190,14 +190,6 @@ public class EventPrizesTests
     }
 
     // ---------- helpers ----------
-
-    private static ClaimsPrincipal SignedIn(string role) =>
-        new(new ClaimsIdentity(new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.Name, "u-" + role),
-            new Claim(ClaimTypes.Role, role),
-        }, "test"));
 
     private int AddEvent(string name, DateTime date, EventType type, DateTime? endDate = null)
     {
