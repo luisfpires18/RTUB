@@ -10,6 +10,16 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 138 (`fix/138/portal-loads`), seventh phase of the audit round.
+- The nine loads the audit found racing (a late answer for an older year, tab, search or page replaced the newer one)
+  now drop old answers: `useLatest` in Documentação, Órgãos Sociais, Calotes, Novidades and the Owner logins dialog;
+  an effect cleanup in the transactions history, Órgãos Sociais management, Música (album songs, play-along) and the
+  prizes dialog; `useLoad` in Aniversários.
+- `useLoad(load, deps, pick)` in `components/AppShared.tsx`; `useOwnerLoad` is now a wrapper over it. Pickers `orNull`
+  and `orAccess` in `data/apiCall.ts`, checked by `npm run check:load`. Pin: `PortalLoadGuardSourceTests`.
+- Not done: converting the other ~45 single-setter loads to `useLoad` (no JS test runner to check them; they cannot
+  race, their inputs never change while the page is open).
+
 Task 137 (`chore/137/test-speed`), sixth phase of the audit round.
 - Measured first: a test host's cost is the app's start, and the app built its 384 endpoints twice per start.
   `app.BuildEndpointsOnce()` (owner approved the `Program.cs` change, 2026-11-18) builds them once: Integration tests
@@ -20,14 +30,6 @@ Task 137 (`chore/137/test-speed`), sixth phase of the audit round.
 - `Local` launch profile: one command, port 5178, `.local/app.db`, no real bucket, no mail, no backup.
 - Docs: where the test time goes, disk and temp (`docs/ci-cd-and-azure-environments.md`), *Local run* (runbook).
 
-Task 136 (`test/136/rule-tests`), fifth phase of the audit round. Tests only: no file under `src/` changed.
-- Rule tests for the 14 `*Authorization` helpers that had none (`tests/RTUB.Application.Tests/Helpers/`): one row per
-  role, a visitor, and role claims on an identity nobody signed in. `EventsAuthorization.CanTrackContactsAsync` (a
-  Leitão by category, from the database) is not covered there.
-- `TestPrincipal` carries a name claim and has `WithRole` and `NotSignedIn`; the 10 private `SignedIn` / `Principal`
-  helpers of the Application tests are gone.
-- `NotificationInboxTests`: only `PushNotificationService` may use the WebPush library, so no sender skips the inbox.
-
 Merged and not released yet (they matter at the next release): task 130 squashed the 180 migrations into
 `20261118134743_Baseline` (`Data/MigrationBaseline.cs`; Rollback • PROD to 2.3.12 or older needs `allow_newer_schema`);
 task 131 stopped using five columns, which stay until the drop release (`docs/db-cleanup-inventory.md` → *Pending
@@ -36,7 +38,8 @@ drop*); task 132 taught `release.sh` `cmd_schema_gate` the squash; task 133 fixe
 pushes and the calotes reminder on Portugal's clock (`docs/backend-practices.md` → *Portugal time*); task 135 deleted
 the download proxy, rate-limited `/api/account/*`, built email links from `App:BaseUrl` (PROD `https://www.rtub.pt`,
 DEV `https://rtub-dev.azurewebsites.net`, owner 2026-11-18) and limited gallery uploads to seven checked types
-(`docs/react-identity.md`, `docs/react-gallery.md`).
+(`docs/react-identity.md`, `docs/react-gallery.md`); task 136 added rule tests for the 14 `*Authorization` helpers
+(`tests/RTUB.Application.Tests/Helpers/`, `TestPrincipal.WithRole` / `NotSignedIn`).
 
 Before it: the second cleanup round, tasks 120-129 (PRs #326-#334, merged into `dev`; audit of 2026-11-18). No
 behaviour change except where noted.
@@ -102,9 +105,9 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   unused.
 
 **Portal data layer (left after 124)**
-- No shared load hook: pages turn an `Outcome` into state in nine shapes (`null`, `[]`, `'signin'`, `'forbidden'`,
-  `'missing'`, `'failed'`, objects), 26 with a hand-written `live` guard; `useOwnerLoad` (`components/OwnerUi.tsx`)
-  serves the Owner pages only. Converting them cannot be checked without a JS test runner.
+- `useLoad` exists since task 138 (the Owner pages and Aniversários use it). About 45 mount-once loads still turn an
+  `Outcome` into state by hand, in eleven shapes; they cannot race. Converting them cannot be checked without a JS
+  test runner.
 - Still copied: the antiforgery token fetch (`signInApi.ts` ×2 and `publicRequestApi.ts` need the field name and a fresh
   token), the XHR upload (`galleryUploadApi.ts`, `logisticsApi.ts`), the sign-in status mapping (`passkey.ts`,
   `signInApi.ts`), `fold` variants (`hierarchyTree.ts` null-safe, `treasuryApi.ts` with `\p{M}`, `musicFormHelpers.ts`
@@ -286,7 +289,7 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   `/api/me/profile` 15 queries, `/api/members` 7, `/api/leaderboard` 7. Every route loads 137 kB gzip first.
 
 ## Next
-Phases the audit proposed, each waiting for the owner's "yes, phase N": 138 a shared portal load hook, 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
+Phases the audit proposed, each waiting for the owner's "yes, phase N": 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
 portal intro animation is not to be removed or shortened. The drop release does not go to 3.0.0 (owner, 2026-11-18): the
 "MAJOR bump" wording in the docs changes with phase 142. Not proposed: the CSS merges, backend query work.
 

@@ -1,3 +1,4 @@
+import { useLatest } from '../components/AppShared';
 import { useEffect, useId, useRef, useState } from 'react';
 import { EmptyBlock } from '../components/ui/EmptyNote';
 import { Banner } from '../components/ui/Banner';
@@ -39,8 +40,9 @@ export default function News() {
     document.title = 'Novidades · RTUB';
   }, []);
 
+  const latest = useLatest();
   const load = (t: Tab = tab) =>
-    api.feed(1, t).then((o) => {
+    latest(api.feed(1, t), (o) => {
       setPage(1);
       setMore('idle');
       setFeed(o.kind === 'ok' ? o.data : null);

@@ -22,6 +22,15 @@ export type Outcome<T> =
   | { kind: 'conflict' }
   | { kind: 'failed'; title?: string };
 
+// ---------- pickers: what a page keeps of an answer (for `useLoad`) ----------
+
+/** The data, or null for any failure. */
+export const orNull = <T,>(o: Outcome<T>) => (o.kind === 'ok' ? o.data : null);
+
+/** The data, a sign-in prompt, the refusal, or null for any other failure (the Owner pages). */
+export const orAccess = <T,>(o: Outcome<T>) =>
+  o.kind === 'ok' ? o.data : o.kind === 'signin' ? ('signin' as const) : o.kind === 'forbidden' ? ('forbidden' as const) : null;
+
 /**
  * The sentence a page shows when a call did not work. `what` finishes "Não foi possível …" ("guardar", "apagar a
  * pasta"); `messages` holds the area's own words for a kind (forbidden, notfound, closed, conflict, ...). A form

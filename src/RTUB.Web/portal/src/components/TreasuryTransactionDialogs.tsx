@@ -124,8 +124,12 @@ export function HistoryDialog({ reportId, onClose }: { reportId: number; onClose
   const [data, setData] = useState<History | 'failed'>();
 
   useEffect(() => {
+    let live = true;
     setData(undefined);
-    treasuryApi.history(reportId, page, PAGE).then((o) => setData(o.kind === 'ok' ? o.data : 'failed'));
+    treasuryApi.history(reportId, page, PAGE).then((o) => live && setData(o.kind === 'ok' ? o.data : 'failed'));
+    return () => {
+      live = false;
+    };
   }, [reportId, page]);
 
   const pages = data && data !== 'failed' ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;

@@ -1,6 +1,7 @@
 // Owner tracing logins dialog.
 import { useEffect, useId, useState } from 'react';
 import { Dialog } from './Dialog';
+import { useLatest } from './AppShared';
 import { dateTime, ownerApi, ownerProblem, type Logins } from '../data/ownerApi';
 import { matches, SearchBox } from './OwnerUi';
 import { Pager } from './ui/Pager';
@@ -22,11 +23,13 @@ export function LoginsDialog({ onClose }: { onClose: () => void }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
-  const load = async () => {
+  const latest = useLatest();
+  const load = () => {
     setLogins(undefined);
-    const o = await ownerApi.logins(from, to);
-    setLogins(o.kind === 'ok' ? o.data : ownerProblem(o, 'carregar os logins'));
-    setPage(1);
+    latest(ownerApi.logins(from, to), (o) => {
+      setLogins(o.kind === 'ok' ? o.data : ownerProblem(o, 'carregar os logins'));
+      setPage(1);
+    });
   };
 
   useEffect(() => {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useState } from 'react';
 import { Avatar } from '../components/ui/Avatar';
 import { PageHead } from '../components/ui/PageHead';
 import { getGovernance, type Governance as GovernanceData, type GovernanceMember } from '../data/api';
-import { useCurrentUser } from '../components/AppShared';
+import { useCurrentUser, useLatest } from '../components/AppShared';
 import { portal } from '../data/content';
 import {
   AssignDialog,
@@ -40,10 +40,18 @@ export default function Governance() {
   const signedIn = user?.authenticated === true;
   const yearId = useId();
 
-  const load = useCallback((fiscalYear?: string) => {
-    setFailed(false);
-    getGovernance(fiscalYear).then(setData, () => setFailed(true));
-  }, []);
+  const latest = useLatest();
+  const load = useCallback(
+    (fiscalYear?: string) => {
+      setFailed(false);
+      // a failure is applied the same way, so an old year's error cannot hide the new year's data
+      latest(
+        getGovernance(fiscalYear).then((d) => () => setData(d), () => () => setFailed(true)),
+        (apply) => apply(),
+      );
+    },
+    [latest],
+  );
 
   useEffect(() => {
     document.title = 'Órgãos Sociais · RTUB';
@@ -54,8 +62,12 @@ export default function Governance() {
   // Management state only for Mod/Admin/Owner; anyone else gets 401/403 and keeps the public view.
   useEffect(() => {
     if (!signedIn) return setManage(null);
+    let live = true;
     setManage(undefined);
-    governanceApi.manage(year).then((o) => setManage(o.kind === 'ok' ? o.data : null));
+    governanceApi.manage(year).then((o) => live && setManage(o.kind === 'ok' ? o.data : null));
+    return () => {
+      live = false;
+    };
   }, [signedIn, year]);
 
   const choose = (fiscalYear: string) => {

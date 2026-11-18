@@ -1,6 +1,6 @@
 // Small hooks and pieces used all over the portal: latest-request guard, session, links, loading.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { getCurrentUser, type CurrentUser } from '../data/api';
+import { getCurrentUser, type CurrentUser, type Outcome } from '../data/api';
 import { portal } from '../data/content';
 import { Icon } from './icons';
 
@@ -14,6 +14,7 @@ import { Icon } from './icons';
 export function useLatest() {
   const last = useRef(0);
   useEffect(() => {
+    last.current = 0; // mounted again (StrictMode's test remount in development)
     return () => {
       last.current = -1; // unmounted: nothing applies any more
     };
@@ -25,6 +26,29 @@ export function useLatest() {
       if (id === last.current) apply(value);
     });
   }, []);
+}
+
+/**
+ * Loads on mount and whenever `deps` change, and keeps `pick(answer)` (a picker from `data/apiCall.ts`). An answer
+ * that arrives after the inputs changed again, or after the page is gone, is dropped. `reload()` asks again and keeps
+ * the old value on screen meanwhile; `set` replaces the value (after a save).
+ */
+export function useLoad<T, S>(load: () => Promise<Outcome<T>>, deps: unknown[], pick: (o: Outcome<T>) => S): [S | undefined, () => void, (next: S) => void] {
+  const [state, setState] = useState<S>();
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    let live = true;
+    load().then((o) => {
+      if (live) setState(pick(o));
+    });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...deps, version]);
+
+  return [state, () => setVersion((v) => v + 1), setState];
 }
 
 // ---------- session ----------

@@ -30,7 +30,11 @@ export function PrizesDialog({
 
   useEffect(() => {
     if (history) return;
-    eventsApi.agenda().then((o) => setPast(o.kind === 'ok' ? o.data.past : null));
+    let live = true;
+    eventsApi.agenda().then((o) => live && setPast(o.kind === 'ok' ? o.data.past : null));
+    return () => {
+      live = false;
+    };
   }, [history]);
 
   const won = past?.filter((e) => e.trophies.length > 0 && e.id !== current?.id) ?? [];

@@ -4,6 +4,8 @@ import { EmptyNote } from './ui/EmptyNote';
 import { ToolsBar, SearchField, SelectField } from './ui/SearchTools';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Dialog } from './Dialog';
+import { useLoad } from './AppShared';
+import { orNull } from '../data/apiCall';
 import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
 import { membersApi, shortDate, type ActiveMember, type Birthday } from '../data/membersApi';
@@ -98,13 +100,9 @@ export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => vo
 
 /** "Aniversários": the birthdays still to come this year, soonest first. */
 export function BirthdaysDialog({ onClose }: { onClose: () => void }) {
-  const [list, setList] = useState<Birthday[] | null>();
   const search = useSearch();
   const id = useId();
-
-  useEffect(() => {
-    membersApi.birthdays(search.q).then((o) => setList(o.kind === 'ok' ? o.data : null));
-  }, [search.q]);
+  const [list] = useLoad(() => membersApi.birthdays(search.q), [search.q], orNull<Birthday[]>);
 
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;

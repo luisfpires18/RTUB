@@ -1,3 +1,4 @@
+import { useLatest } from '../components/AppShared';
 import { useEffect, useId, useState } from 'react';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
@@ -28,8 +29,9 @@ export default function TreasuryCalotes() {
   const [deleting, setDeleting] = useState<{ debt: Debt; who: string }>();
   const ids = { search: useId(), year: useId() };
 
+  const latest = useLatest();
   const load = (year = fy) =>
-    treasuryApi.calotes(year).then((o) => setData(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : 'failed'));
+    latest(treasuryApi.calotes(year), (o) => setData(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : 'failed'));
 
   useEffect(() => {
     load();

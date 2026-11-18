@@ -8,27 +8,15 @@ import { EmptyState } from './ui/EmptyState';
 import { PageHead } from './ui/PageHead';
 import { IconAction } from './ui/IconAction';
 import { fold } from '../data/format';
+import { orAccess } from '../data/apiCall';
+import { useLoad } from './AppShared';
 
 /** What an Owner page shows: the data, a sign-in prompt, the refusal, or a failure (null). */
 type Loaded<T> = T | 'signin' | 'forbidden' | null | undefined;
 
 /** Loads on mount and whenever `deps` change; `reload()` asks again. */
 export function useOwnerLoad<T>(load: () => Promise<Outcome<T>>, deps: unknown[]): [Loaded<T>, () => void, (next: T) => void] {
-  const [state, setState] = useState<Loaded<T>>();
-  const [version, setVersion] = useState(0);
-
-  useEffect(() => {
-    let live = true;
-    load().then((o) => {
-      if (live) setState(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : o.kind === 'forbidden' ? 'forbidden' : null);
-    });
-    return () => {
-      live = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, version]);
-
-  return [state, () => setVersion((v) => v + 1), setState];
+  return useLoad(load, deps, orAccess<T>);
 }
 
 /**

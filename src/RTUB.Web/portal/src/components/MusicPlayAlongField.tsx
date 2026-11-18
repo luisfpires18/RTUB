@@ -21,11 +21,15 @@ export function PlayAlongField({ songId, has, onChange }: { songId: number; has:
       setChart(null);
       return;
     }
+    let live = true;
     musicApi.playAlong(songId).then((r) => {
-      if (r.kind !== 'ok') return;
+      if (!live || r.kind !== 'ok') return;
       setChart(r.data.chart);
       setPicking(r.data.chart.picking);
     });
+    return () => {
+      live = false;
+    };
   }, [songId, has]);
 
   const togglePicking = async (on: boolean) => {
