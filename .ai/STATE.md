@@ -132,10 +132,10 @@ five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx
 
 **Performance** (`docs/performance-gate.md`)
 - Left by task 121. `TreasuryService.Reports.cs:28` loads every activity and transaction for the reports list: SQLite
-  cannot sum `decimal` in SQL, and a narrow projection would copy the `IsHiddenFromCalculations` rule. Push loops kept per
-  recipient: mentions (a member named twice gets two pushes today), the reminder workers (cancellation between sends,
-  one log line each) and `MeetingBoardService.Messages.cs:219` (failure isolated per recipient). Not done, low traffic:
-  `Notify*` methods loading whole entities (`EnrollmentService.Notifications.cs`,
+  cannot sum `decimal` in SQL, and a narrow projection would copy the `IsHiddenFromCalculations` rule. Push loops kept
+  per recipient: mentions (a member named twice gets two pushes today), the reminder workers (cancellation between
+  sends, one log line each) and `MeetingBoardService.Messages.cs:219` (failure isolated per recipient). Not done, low
+  traffic: `Notify*` methods loading whole entities (`EnrollmentService.Notifications.cs`,
   `RehearsalAttendanceService.Notifications.cs`), per-row `UpdateAsync` in the reorder loops
   (`EventRepertoireService.cs:59`, `EventService.Videos.cs`), `CalotesNotificationBackgroundService.cs:138`,
   `RehearsalAdminService.cs:148`, `PendingActionsReminderService.cs:125`.
@@ -164,6 +164,7 @@ five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 122 shared backend helpers (endpoint result mapping, claims
-helpers, repository overrides), 123 dead code and stale docs, 124 portal data layer (one load hook, shared types),
-125 UI kit leftovers, 126 portal lazy loading, 127 CSS merges, 128 tests for money, permissions and push gaps.
+Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 122 shared
+backend helpers (endpoint result mapping, claims helpers, repository overrides), 123 dead code and stale docs, 124
+portal data layer (one load hook, shared types), 125 UI kit leftovers, 126 portal lazy loading, 127 CSS merges, 128
+tests for money, permissions and push gaps.
