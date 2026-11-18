@@ -10,6 +10,7 @@ import { Loading } from './ui/Loading';
 import { FormField } from './ui/FormField';
 import { DialogFooter } from './ui/DialogFooter';
 import { Banner } from './ui/Banner';
+import { EmptyNote } from './ui/EmptyNote';
 
 const MAX_RECEIPT = 10 * 1024 * 1024;
 
@@ -135,7 +136,7 @@ export function HistoryDialog({ reportId, onClose }: { reportId: number; onClose
       ) : !data ? (
         <Loading label="A carregar o histórico…" />
       ) : data.entries.length === 0 ? (
-        <p className="note">Não há registos de transações neste relatório.</p>
+        <EmptyNote>Não há registos de transações neste relatório.</EmptyNote>
       ) : (
         <>
           <ul className="tr-history">

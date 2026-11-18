@@ -12,6 +12,7 @@ import { DialogFooter } from './ui/DialogFooter';
 import { Spinner } from './ui/Spinner';
 import { Banner } from './ui/Banner';
 import { FieldError } from './ui/FieldError';
+import { IconAction } from './ui/IconAction';
 
 /** One member's debts of the year, with the commitment date (managers change it) and, for managers, edit / remove. */
 export function DebtsDialog({
@@ -93,14 +94,8 @@ export function DebtsDialog({
                 <span className="tr-out tr-transaction__amount">{euros(d.amount)}</span>
                 {calotes.canManage && (
                   <span className="tr-transaction__tools">
-                    <button type="button" className="icon-btn icon-btn--sm" onClick={() => onEdit(d)}>
-                      <Icon name="pencil" />
-                      <span className="sr-only">Editar calote</span>
-                    </button>
-                    <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => onDelete(d)}>
-                      <Icon name="trash" />
-                      <span className="sr-only">Remover calote</span>
-                    </button>
+                    <IconAction icon="pencil" label="Editar calote" onClick={() => onEdit(d)} />
+                    <IconAction icon="trash" label="Remover calote" onClick={() => onDelete(d)} danger />
                   </span>
                 )}
               </li>

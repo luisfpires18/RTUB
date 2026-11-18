@@ -10,6 +10,7 @@ import { DialogFooter } from './ui/DialogFooter';
 import { FormField } from './ui/FormField';
 import { FieldError } from './ui/FieldError';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
+import { EmptyNote } from './ui/EmptyNote';
 
 // /api/shop/promotions: bundle offers ("3 CDs por 20 € em vez de 30 €"). Visitors see offers made of public products,
 // members all of them; Mod, Admin and Owner create, edit and delete. The server decides and validates everything.
@@ -62,7 +63,7 @@ export function PromotionsSection() {
       </div>
 
       {data.promotions.length === 0 ? (
-        <p className="note">Ainda não há promoções. Junte produtos num pacote com preço especial.</p>
+        <EmptyNote>Ainda não há promoções. Junte produtos num pacote com preço especial.</EmptyNote>
       ) : (
         <ul className="shop-grid">
           {data.promotions.map((p) => (

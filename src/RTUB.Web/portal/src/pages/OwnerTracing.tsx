@@ -9,6 +9,7 @@ import { DetailsDialog, DeleteDialog, TruncateDialog } from '../components/Owner
 import { LoginsDialog } from '../components/OwnerLoginsDialog';
 import { Pager } from '../components/ui/Pager';
 import { EmptyState } from '../components/ui/EmptyState';
+import { IconAction } from '../components/ui/IconAction';
 
 const EMPTY: AuditFilter = { user: '', excludeUser: '', entityType: '', action: '', critical: false, hideSystem: false, q: '', page: 1, pageSize: 20 };
 const NO_TEXT = { q: '', user: '', excludeUser: '' };
@@ -208,15 +209,7 @@ export default function OwnerTracing() {
                         Detalhes
                         <span className="sr-only"> de {primaryName(entry)}</span>
                       </button>
-                      <button
-                        type="button"
-                        className="icon-btn icon-btn--sm icon-btn--danger"
-                        onClick={() => setOpen({ kind: 'delete', entry })}
-                        title="Apagar este registo"
-                      >
-                        <Icon name="trash" />
-                        <span className="sr-only">Apagar o registo de {primaryName(entry)}</span>
-                      </button>
+                      <IconAction icon="trash" label={`Apagar o registo de ${primaryName(entry)}`} title="Apagar este registo" onClick={() => setOpen({ kind: 'delete', entry })} danger />
                     </span>
                   </div>
                 </li>

@@ -4,6 +4,10 @@ import { Icon } from './icons';
 import { matches, type Activity, type Report, type Transaction } from '../data/treasuryApi';
 import { day, euros } from '../data/format';
 import { PAGE, when } from '../data/treasuryReportView';
+import { IconAction } from './ui/IconAction';
+import { SearchField } from './ui/SearchTools';
+import { EmptyNote } from './ui/EmptyNote';
+import { LoadMore } from './ui/LoadMore';
 
 export function ActivityPanel({
   activity: a,
@@ -91,23 +95,20 @@ export function ActivityPanel({
         )}
 
         {a.transactions.length === 0 ? (
-          <p className="note">Sem transações.</p>
+          <EmptyNote>Sem transações.</EmptyNote>
         ) : (
           <>
-            <label className="control control--sm" htmlFor={id}>
-              <span className="sr-only">Procurar transação em {a.name}</span>
-              <Icon name="search" />
-              <input
-                id={id}
-                type="search"
-                placeholder="Procurar por descrição ou categoria"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setLimit(PAGE);
-                }}
-              />
-            </label>
+            <SearchField
+              id={id}
+              label={`Procurar transação em ${a.name}`}
+              placeholder="Procurar por descrição ou categoria"
+              value={search}
+              onChange={(v) => {
+                setSearch(v);
+                setLimit(PAGE);
+              }}
+              small
+            />
             {search && (
               <p className="note">
                 A mostrar {shown.length} de {a.transactions.length} transações.
@@ -135,26 +136,16 @@ export function ActivityPanel({
                     )}
                     {editable && (
                       <>
-                        <button type="button" className="icon-btn icon-btn--sm" onClick={() => onEditTransaction(t)}>
-                          <Icon name="pencil" />
-                          <span className="sr-only">Editar {t.description}</span>
-                        </button>
-                        <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => onDeleteTransaction(t)}>
-                          <Icon name="trash" />
-                          <span className="sr-only">Eliminar {t.description}</span>
-                        </button>
+                        <IconAction icon="pencil" label={`Editar ${t.description}`} onClick={() => onEditTransaction(t)} />
+                        <IconAction icon="trash" label={`Eliminar ${t.description}`} onClick={() => onDeleteTransaction(t)} danger />
                       </>
                     )}
                   </span>
                 </li>
               ))}
             </ul>
-            {shown.length === 0 && <p className="note">Nenhuma transação encontrada.</p>}
-            {shown.length > limit && (
-              <button type="button" className="btn btn--ghost btn--sm tr-more" onClick={() => setLimit(limit + PAGE)}>
-                Mostrar mais ({shown.length - limit})
-              </button>
-            )}
+            {shown.length === 0 && <EmptyNote>Nenhuma transação encontrada.</EmptyNote>}
+            <LoadMore remaining={shown.length - limit} onMore={() => setLimit(limit + PAGE)} className="tr-more" />
           </>
         )}
       </div>

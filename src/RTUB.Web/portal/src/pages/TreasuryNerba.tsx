@@ -9,6 +9,8 @@ import { Loading } from '../components/ui/Loading';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 import { PageHead } from '../components/ui/PageHead';
 import { BackLink } from '../components/ui/BackLink';
+import { IconAction } from '../components/ui/IconAction';
+import { EmptyNote } from '../components/ui/EmptyNote';
 /**
  * /treasury/nerba - Encomendas Nerba. Treasury members:
  * the Nerba events, upcoming (nearest first) then past (latest first), with item count and total. Mod, Admin and Owner
@@ -53,10 +55,7 @@ export default function TreasuryNerba() {
           </a>
           {n?.canManage && s.count > 0 && (
             <span className="lx-board__tools">
-              <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => setDeleting(s)}>
-                <Icon name="trash" />
-                <span className="sr-only">Eliminar as encomendas de {s.event.name}</span>
-              </button>
+              <IconAction icon="trash" label={`Eliminar as encomendas de ${s.event.name}`} onClick={() => setDeleting(s)} danger />
             </span>
           )}
         </li>
@@ -77,7 +76,7 @@ export default function TreasuryNerba() {
         <>
           <TreasuryTabs current="nerba" />
           {n.upcoming.length === 0 && n.past.length === 0 ? (
-            <p className="note">Não há eventos Nerba.</p>
+            <EmptyNote>Não há eventos Nerba.</EmptyNote>
           ) : (
             <>
               {n.upcoming.length > 0 && (

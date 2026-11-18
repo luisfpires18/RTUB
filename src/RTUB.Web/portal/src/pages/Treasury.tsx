@@ -12,6 +12,8 @@ import { DialogFooter } from '../components/ui/DialogFooter';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 import { PageHead } from '../components/ui/PageHead';
 import { FieldError } from '../components/ui/FieldError';
+import { IconAction } from '../components/ui/IconAction';
+import { EmptyNote } from '../components/ui/EmptyNote';
 /**
  * /treasury - Tesouraria. Treasury members: the annual reports, newest first,
  * with income, expenses and balance, search and PDF. Admin, Owner and treasury-team Mods create a report; Owner and the
@@ -69,7 +71,7 @@ export default function Treasury() {
           </ToolsBar>
 
           {shown.length === 0 ? (
-            <p className="note">{search ? 'Nenhum relatório corresponde à pesquisa.' : 'Ainda não há relatórios de contas.'}</p>
+            <EmptyNote>{search ? 'Nenhum relatório corresponde à pesquisa.' : 'Ainda não há relatórios de contas.'}</EmptyNote>
           ) : (
             <ul className="tr-reports">
               {shown.map((r) => (
@@ -105,14 +107,8 @@ export default function Treasury() {
                     </a>
                     {reports.canPublish && !r.isPublished && (
                       <>
-                        <button type="button" className="icon-btn icon-btn--sm" onClick={() => setPublishing(r)}>
-                          <Icon name="check" />
-                          <span className="sr-only">Publicar {r.title}</span>
-                        </button>
-                        <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => setDeleting(r)}>
-                          <Icon name="trash" />
-                          <span className="sr-only">Eliminar {r.title}</span>
-                        </button>
+                        <IconAction icon="check" label={`Publicar ${r.title}`} onClick={() => setPublishing(r)} />
+                        <IconAction icon="trash" label={`Eliminar ${r.title}`} onClick={() => setDeleting(r)} danger />
                       </>
                     )}
                   </span>

@@ -14,6 +14,9 @@ import { PageHead } from '../components/ui/PageHead';
 import { BackLink } from '../components/ui/BackLink';
 import { Segmented } from '../components/ui/Segmented';
 import { Banner } from '../components/ui/Banner';
+import { IconAction } from '../components/ui/IconAction';
+import { SearchField, ToolsBar } from '../components/ui/SearchTools';
+import { EmptyNote } from '../components/ui/EmptyNote';
 type Sort = 'item' | 'type' | 'stock' | 'pricePerUnit' | 'total';
 const COLUMNS: { key: Sort; label: string; numeric?: boolean }[] = [
   { key: 'item', label: 'Item' },
@@ -123,16 +126,12 @@ export default function TreasuryNerbaEvent({ eventId }: { eventId: number }) {
       </dl>
 
       {inDay.length === 0 ? (
-        <p className="note">{dayFilter ? 'Nenhum item neste dia.' : 'Este evento ainda não tem encomendas.'}</p>
+        <EmptyNote>{dayFilter ? 'Nenhum item neste dia.' : 'Este evento ainda não tem encomendas.'}</EmptyNote>
       ) : (
         <>
-          <div className="events-tools" role="search">
-            <label className="control" htmlFor={`${id}-search`}>
-              <span className="sr-only">Procurar item</span>
-              <Icon name="search" />
-              <input id={`${id}-search`} type="search" placeholder="Procurar por item ou tipo" value={search} onChange={(e) => setSearch(e.target.value)} />
-            </label>
-          </div>
+          <ToolsBar>
+            <SearchField id={`${id}-search`} label="Procurar item" placeholder="Procurar por item ou tipo" value={search} onChange={setSearch} />
+          </ToolsBar>
           <div className="tr-table-wrap">
             <table className="tr-table">
               <thead>
@@ -167,14 +166,8 @@ export default function TreasuryNerbaEvent({ eventId }: { eventId: number }) {
                     </td>
                     {n.canManage && (
                       <td className="tr-row-tools">
-                        <button type="button" className="icon-btn icon-btn--sm" onClick={() => setForm({ order: o })}>
-                          <Icon name="pencil" />
-                          <span className="sr-only">Editar {o.item}</span>
-                        </button>
-                        <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => setDeleting(o)}>
-                          <Icon name="trash" />
-                          <span className="sr-only">Eliminar {o.item}</span>
-                        </button>
+                        <IconAction icon="pencil" label={`Editar ${o.item}`} onClick={() => setForm({ order: o })} />
+                        <IconAction icon="trash" label={`Eliminar ${o.item}`} onClick={() => setDeleting(o)} danger />
                       </td>
                     )}
                   </tr>
@@ -182,7 +175,7 @@ export default function TreasuryNerbaEvent({ eventId }: { eventId: number }) {
               </tbody>
             </table>
           </div>
-          {rows.length === 0 && <p className="note">Nenhum item corresponde à pesquisa.</p>}
+          {rows.length === 0 && <EmptyNote>Nenhum item corresponde à pesquisa.</EmptyNote>}
         </>
       )}
 

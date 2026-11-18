@@ -6,6 +6,9 @@ import { Flash, matches, SearchBox } from './OwnerUi';
 import { type Message } from '../data/ownerEmailsView';
 import { Pager } from './ui/Pager';
 import { Avatar } from './ui/Avatar';
+import { IconAction } from './ui/IconAction';
+import { CheckField } from './ui/CheckField';
+import { EmptyNote } from './ui/EmptyNote';
 
 export function Recipients({ data, onChanged }: { data: EmailRecipients; onChanged: (next: EmailRecipients) => void }) {
   const id = useId();
@@ -104,14 +107,13 @@ function PeopleList({
         }}
       />
       {people.length === 0 ? (
-        <p className="note">Ninguém.</p>
+        <EmptyNote>Ninguém.</EmptyNote>
       ) : (
         <>
           <div className="owner-people__bar">
-            <label className="form__check" htmlFor={`${id}-all`}>
-              <input id={`${id}-all`} type="checkbox" checked={allChosen} onChange={(e) => toggle(filtered.map((p) => p.id), e.target.checked)} />
+            <CheckField id={`${id}-all`} checked={allChosen} onChange={(on) => toggle(filtered.map((p) => p.id), on)}>
               Selecionar todos
-            </label>
+            </CheckField>
             <button
               type="button"
               className="btn btn--ghost btn--sm"
@@ -139,16 +141,11 @@ function PeopleList({
                   <strong>{p.nickname}</strong>
                   <span className="note">{p.fullName}</span>
                 </span>
-                <button type="button" className="icon-btn icon-btn--sm" disabled={busy} onClick={() => onAction([p])} title={`${actionLabel} ${p.nickname}`}>
-                  <Icon name={actionIcon} />
-                  <span className="sr-only">
-                    {actionLabel} {p.nickname}
-                  </span>
-                </button>
+                <IconAction icon={actionIcon} label={`${actionLabel} ${p.nickname}`} title={`${actionLabel} ${p.nickname}`} onClick={() => onAction([p])} disabled={busy} />
               </li>
             ))}
           </ul>
-          {filtered.length === 0 && <p className="note">Ninguém corresponde à pesquisa.</p>}
+          {filtered.length === 0 && <EmptyNote>Ninguém corresponde à pesquisa.</EmptyNote>}
           {filtered.length > 10 && (
             <Pager
               total={filtered.length}

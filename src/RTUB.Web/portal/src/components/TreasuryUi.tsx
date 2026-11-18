@@ -2,8 +2,9 @@ import { useEffect, useId, useState } from 'react';
 import { portal } from '../data/content';
 import { Icon } from './icons';
 import { treasuryApi, type Person } from '../data/treasuryApi';
-import { DEFAULT_AVATAR } from '../data/membersApi';
 import { Notice, RetryNotice, SignInNotice } from './Notice';
+import { EmptyNote } from './ui/EmptyNote';
+import { Avatar } from './ui/Avatar';
 
 // Shared pieces of the React /treasury pages.
 
@@ -78,7 +79,7 @@ export function MemberPicker({ forDebts, label, onPick }: { forDebts: boolean; l
         <Icon name="search" />
         <input id={id} type="search" placeholder="Procurar por alcunha, nome ou e-mail" value={query} onChange={(e) => setQuery(e.target.value)} />
       </span>
-      {found && found.length === 0 && <p className="note">Ninguém encontrado.</p>}
+      {found && found.length === 0 && <EmptyNote>Ninguém encontrado.</EmptyNote>}
       {found && found.length > 0 && (
         <ul className="talk__picks">
           {found.map((m) => (
@@ -90,7 +91,7 @@ export function MemberPicker({ forDebts, label, onPick }: { forDebts: boolean; l
                   setQuery('');
                 }}
               >
-                <img src={m.avatarUrl ?? DEFAULT_AVATAR} alt="" width="28" height="28" loading="lazy" />
+                <Avatar src={m.avatarUrl} size={28} />
                 <span>
                   {m.displayName}
                   {m.fullName && <small>{m.fullName}</small>}

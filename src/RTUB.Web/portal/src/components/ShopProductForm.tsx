@@ -11,6 +11,7 @@ import { DialogFooter } from './ui/DialogFooter';
 import { FormField } from './ui/FormField';
 import { FieldError } from './ui/FieldError';
 import { Banner } from './ui/Banner';
+import { CheckField } from './ui/CheckField';
 
 export function Confirm({
   title,
@@ -79,7 +80,7 @@ export function ProductForm({ id, canManage, onClose, onSaved }: { id?: number; 
   if (form === undefined || form === 'failed') {
     return (
       <Dialog title="Editar produto" onClose={onClose}>
-        {form === undefined ? <Loading label="A carregar…" /> : <p className="form__banner">Não foi possível abrir este produto.</p>}
+        {form === undefined ? <Loading label="A carregar…" /> : <Banner role="none" text="Não foi possível abrir este produto." />}
       </Dialog>
     );
   }
@@ -141,10 +142,9 @@ export function ProductForm({ id, canManage, onClose, onSaved }: { id?: number; 
               <input id={`${fid}-stock`} type="number" min="0" step="1" value={form.stock} onChange={(e) => set({ stock: Math.trunc(Number(e.target.value) || 0) })} />
             </FormField>
           </div>
-          <label className="form__check" htmlFor={`${fid}-public`}>
-            <input id={`${fid}-public`} type="checkbox" checked={form.isPublic} onChange={(e) => set({ isPublic: e.target.checked })} />
+          <CheckField id={`${fid}-public`} checked={form.isPublic} onChange={(on) => set({ isPublic: on })}>
             Público (não membros). Sem esta opção, o produto é só para membros e pode ser reservado.
-          </label>
+          </CheckField>
           <div className="form__field">
             <label className="form__check" htmlFor={`${fid}-all-years`}>
               <input

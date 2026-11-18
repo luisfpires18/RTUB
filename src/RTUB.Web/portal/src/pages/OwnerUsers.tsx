@@ -9,6 +9,7 @@ import { DetailsDialog, RoleDialog } from '../components/OwnerUserDialogs';
 import { Pager } from '../components/ui/Pager';
 import { Spinner } from '../components/ui/Spinner';
 import { EmptyState } from '../components/ui/EmptyState';
+import { ToolsBar } from '../components/ui/SearchTools';
 
 /**
  * /users: every account, online first, searchable; the Owner sees an account's details,
@@ -67,7 +68,7 @@ export default function OwnerUsers() {
       {(data) => (
         <>
           <Flash message={message} onDismiss={() => setMessage(undefined)} />
-          <div className="events-tools" role="search">
+          <ToolsBar>
             <SearchBox label="Procurar utilizador" placeholder="Procurar por nome, username, email, alcunha ou ID" value={q} onChange={setQ} />
             <div className="trace-toggles" role="group" aria-label="Filtros rápidos">
               <button
@@ -83,7 +84,7 @@ export default function OwnerUsers() {
                 Só Mod, Admin e Owner
               </button>
             </div>
-          </div>
+          </ToolsBar>
           {data.items.length === 0 ? (
             <EmptyState icon="people" title="Nenhum utilizador encontrado" role="status">
               <p>Ajusta a pesquisa.</p>

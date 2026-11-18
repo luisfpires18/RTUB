@@ -16,6 +16,9 @@ import { PageHead } from '../components/ui/PageHead';
 import { BackLink } from '../components/ui/BackLink';
 import { Banner } from '../components/ui/Banner';
 import { FieldError } from '../components/ui/FieldError';
+import { IconAction } from '../components/ui/IconAction';
+import { SearchField, ToolsBar } from '../components/ui/SearchTools';
+import { EmptyNote } from '../components/ui/EmptyNote';
 const PAGE = 12;
 
 /**
@@ -72,7 +75,7 @@ export default function TreasuryMbway() {
         <>
           <TreasuryTabs current="mbway" />
           {t.transfers.length === 0 ? (
-            <p className="note">Não há transferências MBWAY registadas.</p>
+            <EmptyNote>Não há transferências MBWAY registadas.</EmptyNote>
           ) : (
             <>
               <dl className="tr-tiles">
@@ -83,24 +86,20 @@ export default function TreasuryMbway() {
                   </div>
                 ))}
               </dl>
-              <div className="events-tools" role="search">
-                <label className="control" htmlFor={id}>
-                  <span className="sr-only">Procurar transferência</span>
-                  <Icon name="search" />
-                  <input
-                    id={id}
-                    type="search"
-                    placeholder="Procurar por nome, telefone ou descrição"
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setLimit(PAGE);
-                    }}
-                  />
-                </label>
-              </div>
+              <ToolsBar>
+                <SearchField
+                  id={id}
+                  label="Procurar transferência"
+                  placeholder="Procurar por nome, telefone ou descrição"
+                  value={search}
+                  onChange={(v) => {
+                    setSearch(v);
+                    setLimit(PAGE);
+                  }}
+                />
+              </ToolsBar>
               {shown.length === 0 ? (
-                <p className="note">Nenhuma transferência corresponde à pesquisa.</p>
+                <EmptyNote>Nenhuma transferência corresponde à pesquisa.</EmptyNote>
               ) : (
                 <ul className="tr-cards">
                   {shown.slice(0, limit).map((x) => (
@@ -110,14 +109,8 @@ export default function TreasuryMbway() {
                         <span className="tr-muted">{day(x.date)}</span>
                         {t.canEdit && (
                           <span className="tr-card__tools">
-                            <button type="button" className="icon-btn icon-btn--sm" onClick={() => setForm({ transfer: x })}>
-                              <Icon name="pencil" />
-                              <span className="sr-only">Editar transferência</span>
-                            </button>
-                            <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => setDeleting(x)}>
-                              <Icon name="trash" />
-                              <span className="sr-only">Eliminar transferência</span>
-                            </button>
+                            <IconAction icon="pencil" label="Editar transferência" onClick={() => setForm({ transfer: x })} />
+                            <IconAction icon="trash" label="Eliminar transferência" onClick={() => setDeleting(x)} danger />
                           </span>
                         )}
                       </div>

@@ -3,6 +3,7 @@ import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { AccountDone } from '../components/ui/AccountDone';
 import { FormField } from '../components/ui/FormField';
+import { PageHead } from '../components/ui/PageHead';
 
 // What another app shared with the installed RTUB: the manifest's share_target sends a GET to /share?title&text&url.
 // The query stays in the address bar on purpose, so a reload keeps the shared content. Nothing is stored or sent on.
@@ -35,12 +36,7 @@ export default function Share() {
 
   return (
     <section className="page wrap" aria-labelledby="share-title">
-      <header className="page__head">
-        <p className="eyebrow">Partilhar</p>
-        <h1 id="share-title" className="page__title">
-          Partilhar conteúdo
-        </h1>
-      </header>
+      <PageHead plain eyebrow="Partilhar" title="Partilhar conteúdo" titleId="share-title" />
 
       <div className="request__form-card account-card">
         {empty ? (

@@ -135,9 +135,11 @@ public class OwnerOperationsSourceTests
         var tracing = string.Join("\n", page, dialogs, Read(Portal, "components/OwnerTracingParts.tsx"), Read(Portal, "data/ownerTracingHelpers.ts"));
         var card = page[tracing.IndexOf("<ul className=\"owner-logs\">", StringComparison.Ordinal)..page.IndexOf("<Pager", StringComparison.Ordinal)];
 
-        string[] order = ["owner-log__name", "owner-log__type", "owner-action", "Crítica", "owner-log__meta", "name=\"eye\"", "icon-btn--danger"];
+        string[] order = ["owner-log__name", "owner-log__type", "owner-action", "Crítica", "owner-log__meta", "name=\"eye\"", "<IconAction icon=\"trash\""];
         order.Select(m => card.IndexOf(m, StringComparison.Ordinal)).Should().BeInAscendingOrder().And.NotContain(-1);
         card.Should().Contain("owner-log--critical").And.NotContain("ID: ");
+        card.Should().Contain("title=\"Apagar este registo\"").And.Contain(" danger />");
+        Read(Portal, "components/ui/IconAction.tsx").Should().Contain("icon-btn icon-btn--sm icon-btn--danger");
         tracing.Should().NotContain("`ID: ${");
         tracing.Should().Contain("${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}");
 

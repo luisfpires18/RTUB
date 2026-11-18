@@ -9,6 +9,9 @@ import { Loading } from './ui/Loading';
 import { DialogFooter } from './ui/DialogFooter';
 import { Banner } from './ui/Banner';
 import { FormField } from './ui/FormField';
+import { EmptyNote } from './ui/EmptyNote';
+import { CheckField } from './ui/CheckField';
+import { FactRow } from './ui/FactRow';
 
 export function DetailDialog({ id, onClose }: { id: number; onClose: () => void }) {
   const [detail, setDetail] = useState<Detail | 'missing' | null>();
@@ -17,10 +20,7 @@ export function DetailDialog({ id, onClose }: { id: number; onClose: () => void 
   }, [id]);
 
   const field = (label: string, value: ReactNode) => (
-    <div className="member-field">
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-    </div>
+    <FactRow label={label}>{value}</FactRow>
   );
 
   return (
@@ -89,10 +89,9 @@ export function ReserveDialog({ product, sizes, onClose, onDone }: { product: Pr
         <FormField id={`${id}-name`} label="Nome para apresentação (opcional)" error={errors.displayName} hint="Em branco, fica o teu nome de membro.">
           <input id={`${id}-name`} type="text" maxLength={200} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
         </FormField>
-        <label className="form__check" htmlFor={`${id}-sizes`}>
-          <input id={`${id}-sizes`} type="checkbox" checked={hasSizes} onChange={(e) => setHasSizes(e.target.checked)} />
+        <CheckField id={`${id}-sizes`} checked={hasSizes} onChange={(on) => setHasSizes(on)}>
           Este produto tem tamanhos
-        </label>
+        </CheckField>
         {hasSizes && (
           <FormField id={`${id}-size`} label="Tamanho" error={errors.size}>
             <span className="control control--select">
@@ -115,26 +114,14 @@ export function ReserveDialog({ product, sizes, onClose, onDone }: { product: Pr
 function ReservationLines({ r }: { r: Reservation }) {
   return (
     <dl className="member-fields">
-      <div className="member-field">
-        <dt>Reservado por</dt>
-        <dd>{r.username}</dd>
-      </div>
+      <FactRow label="Reservado por">{r.username}</FactRow>
       {r.displayName && (
-        <div className="member-field">
-          <dt>Nome para apresentação</dt>
-          <dd>{r.displayName}</dd>
-        </div>
+        <FactRow label="Nome para apresentação">{r.displayName}</FactRow>
       )}
       {r.size && (
-        <div className="member-field">
-          <dt>Tamanho</dt>
-          <dd>{r.size}</dd>
-        </div>
+        <FactRow label="Tamanho">{r.size}</FactRow>
       )}
-      <div className="member-field">
-        <dt>Data da reserva</dt>
-        <dd>{when(r.createdAt)}</dd>
-      </div>
+      <FactRow label="Data da reserva">{when(r.createdAt)}</FactRow>
     </dl>
   );
 }
@@ -197,9 +184,9 @@ export function ReservationsDialog({ product, onClose, onChanged }: { product: P
         {list === undefined ? (
           <Loading label="A carregar as reservas…" />
         ) : list === null ? (
-          <p className="form__banner">Não foi possível carregar as reservas.</p>
+          <Banner role="none" text="Não foi possível carregar as reservas." />
         ) : list.length === 0 ? (
-          <p className="note">Não existem reservas para este produto.</p>
+          <EmptyNote>Não existem reservas para este produto.</EmptyNote>
         ) : (
           <ul className="member-rows">
             {list.map((r) => (

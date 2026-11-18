@@ -7,6 +7,8 @@ import { ROLES } from '../data/ownerUsersView';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { Spinner } from './ui/Spinner';
 import { Banner } from './ui/Banner';
+import { CloseFooter, DialogFooter } from './ui/DialogFooter';
+import { Avatar } from './ui/Avatar';
 
 export function DetailsDialog({ id, onClose, onUnlocked }: { id: string; onClose: () => void; onUnlocked: (u: OwnerUserDetail) => void }) {
   const [user, setUser] = useState<OwnerUserDetail | string>();
@@ -32,11 +34,7 @@ export function DetailsDialog({ id, onClose, onUnlocked }: { id: string; onClose
     <Dialog
       title="Detalhes do utilizador"
       onClose={onClose}
-      footer={
-        <button type="button" className="btn btn--ghost" onClick={onClose}>
-          Fechar
-        </button>
-      }
+      footer={<CloseFooter onClose={onClose} />}
     >
       {user === undefined ? (
         <p className="note" role="status">
@@ -47,7 +45,7 @@ export function DetailsDialog({ id, onClose, onUnlocked }: { id: string; onClose
       ) : (
         <div className="owner-detail">
           <div className="owner-detail__who">
-            <img className="owner-person__avatar" src={user.avatarUrl} alt="" width="48" height="48" />
+            <Avatar className="owner-person__avatar" src={user.avatarUrl} size={48} eager />
             <div>
               <strong>{user.nickname}</strong>
               <p className="note">{user.fullName}</p>
@@ -126,19 +124,10 @@ export function RoleDialog({ user, onClose, onSaved }: { user: OwnerUserCard; on
     <Dialog
       title="Editar a função"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--primary" onClick={() => (role === user.role ? onClose() : setConfirming(true))}>
-            Guardar
-          </button>
-        </>
-      }
+      footer={<DialogFooter busy={false} onClose={onClose} onSubmit={() => (role === user.role ? onClose() : setConfirming(true))} label="Guardar" />}
     >
       <div className="owner-detail__who">
-        <img className="owner-person__avatar" src={user.avatarUrl} alt="" width="48" height="48" />
+        <Avatar className="owner-person__avatar" src={user.avatarUrl} size={48} eager />
         <div>
           <strong>{user.nickname}</strong>
           <p className="note">{user.fullName}</p>
