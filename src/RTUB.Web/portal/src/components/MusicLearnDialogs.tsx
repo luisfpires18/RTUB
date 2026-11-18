@@ -26,8 +26,12 @@ export function AddDialog({ taken, onChanged, onClose }: { taken: Set<number>; o
     setSongId(null);
     setHas(false);
     if (albumId === null) return;
+    let live = true;
     // `taken` is the list as it was when the dialog opened: a song added here stays selected.
-    musicApi.album(albumId).then((r) => r.kind === 'ok' && setSongs(r.data.songs.filter((s) => !taken.has(s.id))));
+    musicApi.album(albumId).then((r) => live && r.kind === 'ok' && setSongs(r.data.songs.filter((s) => !taken.has(s.id))));
+    return () => {
+      live = false;
+    };
   }, [albumId, taken]);
 
   return (

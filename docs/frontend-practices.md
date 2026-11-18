@@ -44,6 +44,11 @@ Code a beginner can read: one job per file, no file over 300 lines.
   `--header-h`; the drawer, footer and player pad by the other insets. Add insets only where an edge is reached.
 - Accessibility: labelled controls (`aria-label` without visible text), `alt` on images, keyboard-reachable dialogs with visible focus.
 - Writes go through the module's API client, which sends the antiforgery header (`X-CSRF-TOKEN`).
+- A load whose input can change while the page stays open (a year, a tab, a search, a page number) drops an answer
+  for an older input, or that answer replaces the newer one. Use `useLoad(load, deps, pick)` (`components/AppShared.tsx`,
+  pickers `orNull` / `orAccess` in `data/apiCall.ts`, checked by `npm run check:load`) for an effect that keeps one
+  value; `useLatest()` for a `load(x)` called from a control; otherwise an effect cleanup (`live = false`). Pinned by
+  `PortalLoadGuardSourceTests`.
 
 ## Build and tests
 

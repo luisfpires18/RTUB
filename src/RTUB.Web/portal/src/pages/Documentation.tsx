@@ -1,3 +1,4 @@
+import { useLatest } from '../components/AppShared';
 import { useEffect, useId, useState } from 'react';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
@@ -31,9 +32,12 @@ export default function Documentation() {
     document.title = 'Documentação · RTUB';
   }, []);
 
-  const load = (first = false) =>
-    api.list(fiscalYear).then((o) => {
+  const latest = useLatest();
+  /** `first`: open the first folder; `opened`: also open this one (a folder just created). */
+  const load = (first = false, opened?: string) =>
+    latest(api.list(fiscalYear), (o) => {
       if (o.kind === 'ok' && first) setOpen(new Set(o.data.folders.slice(0, 1).map((f) => f.name)));
+      if (opened !== undefined) setOpen((s) => new Set(s).add(opened));
       setDocs(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : o.kind === 'forbidden' ? 'forbidden' : null);
     });
 
@@ -164,7 +168,7 @@ export default function Documentation() {
               onDone={(name) => {
                 // Created in the current year: show that year with the new folder open.
                 if (fiscalYear !== null) setFiscalYear(null);
-                else load().then(() => setOpen((o) => new Set(o).add(name)));
+                else load(false, name);
               }}
             />
           )}
