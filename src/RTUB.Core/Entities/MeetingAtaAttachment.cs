@@ -23,9 +23,6 @@ public class MeetingAtaAttachment : BaseEntity
     [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
     public string? Description { get; set; }
 
-    [MaxLength(500, ErrorMessage = "A URL do ficheiro não pode exceder 500 caracteres")]
-    public string? FileUrl { get; set; }
-
     [Required(ErrorMessage = "A inclusão no PDF é obrigatória")]
     public bool IncludeInPdf { get; set; }
 }

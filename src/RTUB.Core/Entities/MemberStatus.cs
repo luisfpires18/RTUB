@@ -73,11 +73,6 @@ public class MemberStatus : BaseEntity
     /// </summary>
     public int TotalActivitiesCount { get; set; }
 
-    /// <summary>
-    /// Never read or written: the activity rules alone decide the state. Kept only so the schema needs no migration; drop it in a later one.
-    /// </summary>
-    public bool OverrideRetired { get; set; }
-
     /// <summary>When the projection last changed (it is rewritten only when a value differs).</summary>
     public DateTime LastUpdatedAt { get; set; }
 }

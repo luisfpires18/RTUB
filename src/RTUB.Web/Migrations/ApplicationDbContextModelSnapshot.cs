@@ -343,9 +343,6 @@ namespace RTUB.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ExperiencePoints")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -367,9 +364,6 @@ namespace RTUB.Migrations
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("Level")
-                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("INTEGER");
@@ -2153,10 +2147,6 @@ namespace RTUB.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("FileUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
                     b.Property<bool>("IncludeInPdf")
                         .HasColumnType("INTEGER");
 
@@ -2545,9 +2535,6 @@ namespace RTUB.Migrations
 
                     b.Property<DateTime>("LastUpdatedAt")
                         .HasColumnType("TEXT");
-
-                    b.Property<bool>("OverrideRetired")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("ProgressDescription")
                         .HasMaxLength(200)
@@ -3633,9 +3620,6 @@ namespace RTUB.Migrations
 
                     b.Property<bool>("IsPublished")
                         .HasColumnType("INTEGER");
-
-                    b.Property<byte[]>("PdfData")
-                        .HasColumnType("BLOB");
 
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("TEXT");

@@ -10,6 +10,11 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 131 (`chore/131/unused-columns`, on top of 130): the app stops using `AspNetUsers.ExperiencePoints` / `Level`,
+`MemberStatuses.OverrideRetired`, `MeetingAtaAttachments.FileUrl` and `Reports.PdfData`. `UserXpLevelDefaults` gives the
+two NOT NULL ones a database default (an `AspNetUsers` rebuild); `StopMappingUnusedColumns` changes only the snapshot.
+The columns stay until the drop release (`docs/db-cleanup-inventory.md` → *Pending drop*). Rehearsed on a real-data
+copy: same 31,537 rows, no foreign-key violations, defaults 0 / 1, and release 2.3.13 still starts on the result.
 Task 130 (`chore/130/squash-migrations`): the 180 migrations are one `20261118134743_Baseline` (same tables, columns,
 foreign keys and indexes; 686,048 → 14,890 lines). Startup gives a database that ran the old chain only the Baseline's
 history row (`Data/MigrationBaseline.cs`); one that stopped earlier is refused. Rehearsed on a copy of the local
@@ -106,6 +111,8 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   in `ui/Pager.tsx` (one user).
 
 **Tests**
+- `AuditLogAppender` still handles binary properties, but no entity has one since task 131 (its test went with
+  `Report.PdfData`).
 - Gaps left after 128: `CalotesNotificationBackgroundService` has no test; `TreasuryService`, `TreasuryRecordsService`,
   `ProductShopService`, `ShopPromotionService` and `FinanceManagementService` are tested only through the API; 14
   `*Authorization` helpers have no direct rule test (Treasury and Shop do); no test that every push sender writes the
@@ -239,8 +246,7 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Task 131: stop using the unused columns (`AspNetUsers.ExperiencePoints` / `Level` get a database default first;
-`MemberStatuses.OverrideRetired`, `MeetingAtaAttachments.FileUrl`, `Reports.PdfData` leave the model). After that
-release is live on PROD: the drop migration (MAJOR bump). Other owner decisions left by the audit: the empty 401 of
-`PushEndpoints` / `ReleaseEndpoints`; the `NoStore` filter missing on the two public Gallery GETs; a lazy `Home`; the
-five files over 300 lines.
+After the release with tasks 130-131 is live on PROD: the hand-written drop of the five columns (MAJOR bump,
+`docs/db-cleanup-inventory.md`). Other owner decisions left by the audit: the empty 401 of `PushEndpoints` /
+`ReleaseEndpoints`; the `NoStore` filter missing on the two public Gallery GETs; a lazy `Home`; the five files over 300
+lines.

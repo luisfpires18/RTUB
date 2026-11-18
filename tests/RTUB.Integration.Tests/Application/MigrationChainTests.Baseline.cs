@@ -8,7 +8,7 @@ namespace RTUB.Integration.Tests;
 public partial class MigrationChainTests
 {
     [Fact]
-    public async Task ADatabaseThatRanTheSquashedChain_AdoptsTheBaseline_KeepsItsOldRows_AndRunsNothing()
+    public async Task ADatabaseThatRanTheSquashedChain_AdoptsTheBaseline_KeepsItsOldRows_AndRunsOnlyLaterMigrations()
     {
         await using var context = CreateContext();
         await context.Database.MigrateAsync();
@@ -16,12 +16,15 @@ public partial class MigrationChainTests
 
         await MigrationBaseline.AdoptAsync(context.Database);
 
-        (await context.Database.GetPendingMigrationsAsync()).Should().BeEmpty("the schema is already there");
+        (await context.Database.GetPendingMigrationsAsync()).Should().NotBeEmpty("the later migrations still run")
+            .And.OnlyContain(id => string.CompareOrdinal(id, MigrationBaseline.BaselineId) > 0, "the Baseline itself is not run again");
         (await ScalarsAsync(context, "SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId")).Should().Equal(
             "20261101211252_AddUserPasskeys", MigrationBaseline.LastSquashedId, MigrationBaseline.BaselineId);
 
         await MigrationBaseline.AdoptAsync(context.Database);
         (await ScalarsAsync(context, "SELECT MigrationId FROM __EFMigrationsHistory")).Should().HaveCount(3, "adopting twice adds nothing");
+        await context.Database.MigrateAsync();
+        (await context.Database.GetPendingMigrationsAsync()).Should().BeEmpty("the later migrations apply on top of the adopted Baseline");
     }
 
     [Fact]
