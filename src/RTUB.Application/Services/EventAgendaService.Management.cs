@@ -129,12 +129,12 @@ public sealed partial class EventAgendaService
 
     /// <summary>Create and edit: Mod and above. Delete stays <see cref="ManageRefusal{T}"/> (Admin / Owner).</summary>
     private static EventResult<T>? EditRefusal<T>(ClaimsPrincipal user) =>
-        !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !EventsAuthorization.CanEdit(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 
     private static EventResult<T>? ManageRefusal<T>(ClaimsPrincipal user) =>
-        !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !EventsAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 
@@ -142,7 +142,7 @@ public sealed partial class EventAgendaService
     {
         await using var db = await _contexts.CreateDbContextAsync();
         var e = await db.Events.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
-        return e is null ? null : ToSummary(e, await LoadExtrasAsync(db, new List<int> { id }, EventsAuthorization.UserId(user)));
+        return e is null ? null : ToSummary(e, await LoadExtrasAsync(db, new List<int> { id }, user.UserId()));
     }
 
     private sealed record ValidEvent(string Name, DateTime Start, DateTime? End, string Location, EventType Type, string Description);

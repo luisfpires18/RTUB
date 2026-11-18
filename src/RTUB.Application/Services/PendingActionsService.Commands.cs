@@ -14,7 +14,7 @@ public sealed partial class PendingActionsService
 {
     public async Task<EventResult<bool>> DismissAsync(ClaimsPrincipal user, PendingActionDismissInput input)
     {
-        if (EventsAuthorization.UserId(user) is not { } userId)
+        if (user.UserId() is not { } userId)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }
@@ -73,7 +73,7 @@ public sealed partial class PendingActionsService
 
     public async Task<EventResult<bool>> RespondAsync(ClaimsPrincipal user, PendingActionResponseInput input)
     {
-        if (EventsAuthorization.UserId(user) is not { } userId)
+        if (user.UserId() is not { } userId)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }

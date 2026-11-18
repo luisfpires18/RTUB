@@ -20,12 +20,10 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class MembersAuthorization
 {
-    public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
+    public static bool CanManage(ClaimsPrincipal user) => user.IsMember() && (user.IsInRole("Admin") || user.IsInRole("Owner"));
 
-    public static bool CanManage(ClaimsPrincipal user) => IsMember(user) && (user.IsInRole("Admin") || user.IsInRole("Owner"));
-
-    public static bool CanDeleteAnyMember(ClaimsPrincipal user) => IsMember(user) && user.IsInRole("Owner");
+    public static bool CanDeleteAnyMember(ClaimsPrincipal user) => user.IsMember() && user.IsInRole("Owner");
 
     /// <summary>The limited member-information edit and the instruments - Mod, Admin, Owner.</summary>
-    public static bool CanEditInfo(ClaimsPrincipal user) => CanManage(user) || (IsMember(user) && user.IsInRole("Mod"));
+    public static bool CanEditInfo(ClaimsPrincipal user) => CanManage(user) || (user.IsMember() && user.IsInRole("Mod"));
 }

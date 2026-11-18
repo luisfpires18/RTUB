@@ -13,7 +13,7 @@ public sealed partial class QuestionBoardService
 {
     public async Task<EventResult<bool>> RemindAsync(int id, ClaimsPrincipal user)
     {
-        if (QuestionsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }
@@ -34,7 +34,7 @@ public sealed partial class QuestionBoardService
 
     public async Task<EventResult<bool>> DeleteAsync(int id, ClaimsPrincipal user)
     {
-        if (QuestionsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }

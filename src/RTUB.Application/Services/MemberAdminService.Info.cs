@@ -118,7 +118,7 @@ public sealed partial class MemberAdminService
     }
 
     private static EventResult<T>? InfoRefusal<T>(ClaimsPrincipal user) =>
-        !MembersAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !MembersAuthorization.CanEditInfo(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 

@@ -19,13 +19,9 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class DocumentationAuthorization
 {
-    public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
+    public static bool IsOwner(ClaimsPrincipal user) => user.IsMember() && user.IsInRole("Owner");
 
-    public static bool IsOwner(ClaimsPrincipal user) => IsMember(user) && user.IsInRole("Owner");
-
-    public static bool CanManage(ClaimsPrincipal user) => IsMember(user) && (user.IsInRole("Owner") || user.IsInRole("Admin") || user.IsInRole("Mod"));
-
-    public static string? UserId(ClaimsPrincipal user) => IsMember(user) ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
+    public static bool CanManage(ClaimsPrincipal user) => user.IsMember() && (user.IsInRole("Owner") || user.IsInRole("Admin") || user.IsInRole("Mod"));
 
     public static bool CanOpen(ApplicationUser member, bool isOwner) => isOwner || !member.IsLeitao();
 

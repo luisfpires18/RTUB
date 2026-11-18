@@ -37,7 +37,7 @@ public sealed partial class QuestionBoardService : IQuestionBoardService
 
     public async Task<EventResult<QuestionPageDto>> GetPageAsync(bool closed, string? search, string? recipientId, int page, int pageSize, ClaimsPrincipal user)
     {
-        if (QuestionsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<QuestionPageDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -55,7 +55,7 @@ public sealed partial class QuestionBoardService : IQuestionBoardService
 
     public async Task<EventResult<IReadOnlyList<QuestionRecipientOptionDto>>> GetRecipientsAsync(ClaimsPrincipal user)
     {
-        if (!QuestionsAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<IReadOnlyList<QuestionRecipientOptionDto>>.Fail(EventResultStatus.SignInRequired);
         }
@@ -65,7 +65,7 @@ public sealed partial class QuestionBoardService : IQuestionBoardService
 
     public async Task<EventResult<QuestionDetailDto>> GetAsync(int id, ClaimsPrincipal user)
     {
-        if (QuestionsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<QuestionDetailDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -75,7 +75,7 @@ public sealed partial class QuestionBoardService : IQuestionBoardService
 
     public async Task<EventResult<QuestionDetailDto>> AskAsync(QuestionInput input, ClaimsPrincipal user)
     {
-        if (QuestionsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<QuestionDetailDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -121,7 +121,7 @@ public sealed partial class QuestionBoardService : IQuestionBoardService
 
     public async Task<EventResult<QuestionDetailDto>> ReplyAsync(int id, QuestionReplyInput input, ClaimsPrincipal user)
     {
-        if (QuestionsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<QuestionDetailDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -158,7 +158,7 @@ public sealed partial class QuestionBoardService : IQuestionBoardService
 
     public async Task<EventResult<QuestionDetailDto>> CloseAsync(int id, ClaimsPrincipal user)
     {
-        if (QuestionsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<QuestionDetailDto>.Fail(EventResultStatus.SignInRequired);
         }

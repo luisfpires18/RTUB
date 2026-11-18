@@ -156,7 +156,7 @@ public sealed partial class GovernanceManagementService : IGovernanceManagementS
             return EventResult<GovernanceManageDto>.Invalid("assignment", error);
         }
 
-        await _assignments.CreateRoleAssignmentAsync(member.Id, position, start, start + 1, null, GovernanceAuthorization.UserId(user));
+        await _assignments.CreateRoleAssignmentAsync(member.Id, position, start, start + 1, null, user.UserId());
         await _roles.PromoteUserForPositionAsync(member, position, start, FiscalYearHelper.GetCurrentFiscalYearStartYear());
         if (start == FiscalYearHelper.GetCurrentFiscalYearStartYear())
         {
@@ -204,7 +204,7 @@ public sealed partial class GovernanceManagementService : IGovernanceManagementS
     }
 
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        !GovernanceAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !GovernanceAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 }

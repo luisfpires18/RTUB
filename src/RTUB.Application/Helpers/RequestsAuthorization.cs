@@ -15,11 +15,7 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class RequestsAuthorization
 {
-    public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
-
-    public static bool CanManage(ClaimsPrincipal user) => IsMember(user) && (user.IsInRole("Admin") || user.IsInRole("Owner"));
+    public static bool CanManage(ClaimsPrincipal user) => user.IsMember() && (user.IsInRole("Admin") || user.IsInRole("Owner"));
 
     public static bool CanOpen(ApplicationUser member, ClaimsPrincipal user) => CanManage(user) || !member.IsLeitao();
-
-    public static string? UserId(ClaimsPrincipal user) => IsMember(user) ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
 }

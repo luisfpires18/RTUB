@@ -19,7 +19,7 @@ public sealed partial class RehearsalAdminService
             return refused!;
         }
 
-        await _attendance.UpdateAttendanceAsync(a.Id, true, a.Instrument, RehearsalsAuthorization.UserId(user));
+        await _attendance.UpdateAttendanceAsync(a.Id, true, a.Instrument, user.UserId());
         return EventResult<bool>.Ok(true);
     }
 
@@ -36,7 +36,7 @@ public sealed partial class RehearsalAdminService
             return refused!;
         }
 
-        await _attendance.CancelAttendanceAsync(a.Id, RehearsalsAuthorization.UserId(user));
+        await _attendance.CancelAttendanceAsync(a.Id, user.UserId());
         return EventResult<bool>.Ok(true);
     }
 
@@ -46,7 +46,7 @@ public sealed partial class RehearsalAdminService
     /// </summary>
     private async Task<(RehearsalAttendance? Attendance, EventResult<bool>? Refusal)> PendingClaimAsync(int id, int attendanceId, ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return (null, EventResult<bool>.Fail(EventResultStatus.SignInRequired));
         }
@@ -79,7 +79,7 @@ public sealed partial class RehearsalAdminService
 
     public async Task<EventResult<bool>> RemoveAttendanceAsync(int id, int attendanceId, ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }

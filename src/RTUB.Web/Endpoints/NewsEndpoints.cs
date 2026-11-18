@@ -43,13 +43,11 @@ public static class NewsEndpoints
             ToResult(await service.DeleteAsync(id, http.User), _ => Results.NoContent()));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Entre para continuar.", statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Só Admin ou Owner gerem as Novidades.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Publicação não encontrada.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Publicação não encontrada.", status => status switch
+        {
+            EventResultStatus.SignInRequired => Results.Problem(title: "Entre para continuar.", statusCode: StatusCodes.Status401Unauthorized),
+            EventResultStatus.Forbidden => Results.Problem(title: "Só Admin ou Owner gerem as Novidades.", statusCode: StatusCodes.Status403Forbidden),
+            _ => null,
+        });
 }

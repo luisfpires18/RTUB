@@ -46,7 +46,7 @@ public sealed partial class TreasuryRecordsService : ITreasuryRecordsService
 
     private async Task<ApplicationUser?> MemberAsync(ClaimsPrincipal user)
     {
-        if (TreasuryAuthorization.UserId(user) is not { } id)
+        if (user.UserId() is not { } id)
         {
             return null;
         }

@@ -30,7 +30,7 @@ public sealed class MemberMapService : IMemberMapService
 
     public async Task<EventResult<MemberMapDto>> GetAsync(ClaimsPrincipal user)
     {
-        if (!MembersAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<MemberMapDto>.Fail(EventResultStatus.SignInRequired);
         }

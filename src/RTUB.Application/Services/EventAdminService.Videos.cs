@@ -73,7 +73,7 @@ public sealed partial class EventAdminService
 
         // Storage key events/{env}/videos/{eventId}_{timestamp}_{file}, the next sort position and the
         // push to the other members all come from the existing EventService.
-        await _events.AddVideoAsync(id, upload.Content, upload.FileName!, upload.ContentType, EventsAuthorization.UserId(user)!, title);
+        await _events.AddVideoAsync(id, upload.Content, upload.FileName!, upload.ContentType, user.UserId()!, title);
         return EventResult<IReadOnlyList<EventManagedVideoDto>>.Ok(await VideosAsync(id));
     }
 
@@ -95,7 +95,7 @@ public sealed partial class EventAdminService
             return EventResult<IReadOnlyList<EventManagedVideoDto>>.Invalid("title", $"O título não pode ter mais de {MaxVideoTitleLength} caracteres.");
         }
 
-        await _events.UpdateVideoTitleAsync(videoId, string.IsNullOrEmpty(title) ? null : title, EventsAuthorization.UserId(user)!, isAdmin: true);
+        await _events.UpdateVideoTitleAsync(videoId, string.IsNullOrEmpty(title) ? null : title, user.UserId()!, isAdmin: true);
         return EventResult<IReadOnlyList<EventManagedVideoDto>>.Ok(await VideosAsync(id));
     }
 
@@ -137,7 +137,7 @@ public sealed partial class EventAdminService
 
         // Deletes the stored file first (only what this environment owns; a storage failure is logged
         // and the row still goes), then the row - EventService.DeleteVideoAsync, unchanged.
-        await _events.DeleteVideoAsync(videoId, EventsAuthorization.UserId(user)!, isAdmin: true);
+        await _events.DeleteVideoAsync(videoId, user.UserId()!, isAdmin: true);
         return EventResult<IReadOnlyList<EventManagedVideoDto>>.Ok(await VideosAsync(id));
     }
 

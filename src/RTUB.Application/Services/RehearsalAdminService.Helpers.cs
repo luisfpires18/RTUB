@@ -14,13 +14,13 @@ public sealed partial class RehearsalAdminService
     // ---------- helpers ----------
 
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        !RehearsalsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !RehearsalsAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 
     /// <summary>Create and edit: Mod and above. Everything else stays <see cref="Refusal{T}"/> (Admin / Owner).</summary>
     private static EventResult<T>? EditRefusal<T>(ClaimsPrincipal user) =>
-        !RehearsalsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !RehearsalsAuthorization.CanEdit(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 

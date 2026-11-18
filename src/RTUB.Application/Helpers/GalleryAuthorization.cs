@@ -12,13 +12,8 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class GalleryAuthorization
 {
-    public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
-
-    public static string? UserId(ClaimsPrincipal user) =>
-        IsMember(user) ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
-
-    public static bool CanManageAll(ClaimsPrincipal user) => IsMember(user) && (user.IsInRole("Admin") || user.IsInRole("Owner"));
+    public static bool CanManageAll(ClaimsPrincipal user) => user.IsMember() && (user.IsInRole("Admin") || user.IsInRole("Owner"));
 
     public static bool CanEdit(ClaimsPrincipal user, string uploaderId) =>
-        CanManageAll(user) || (UserId(user) is { } me && me == uploaderId);
+        CanManageAll(user) || (user.UserId() is { } me && me == uploaderId);
 }

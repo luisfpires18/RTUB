@@ -16,7 +16,7 @@ public sealed partial class LogisticsKanbanService
     /// <summary>401 for visitors (or a deleted account); 403 for expelled accounts and, on management, for non-managers.</summary>
     private async Task<EventResult<T>?> RefusalAsync<T>(ClaimsPrincipal user, bool manage)
     {
-        if (LogisticsAuthorization.UserId(user) is not { } id)
+        if (user.UserId() is not { } id)
         {
             return EventResult<T>.Fail(EventResultStatus.SignInRequired);
         }

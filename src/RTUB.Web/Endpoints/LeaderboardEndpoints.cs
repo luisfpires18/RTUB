@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
+using static RTUB.Web.Endpoints.EndpointResults;
 
 namespace RTUB.Web.Endpoints;
 
@@ -36,15 +37,4 @@ public static class LeaderboardEndpoints
         writes.MapDelete("/comments/{commentId:int}", async (int commentId, HttpContext http, ILeaderboardService service) =>
             ToResult(await service.DeleteCommentAsync(commentId, http.User), _ => Results.NoContent()));
     }
-
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
 }

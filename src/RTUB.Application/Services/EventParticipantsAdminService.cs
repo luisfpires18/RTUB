@@ -169,7 +169,7 @@ public sealed class EventParticipantsAdminService : IEventParticipantsAdminServi
             .ToLowerInvariant();
 
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !EventsAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 }

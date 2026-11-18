@@ -60,7 +60,7 @@ public sealed partial class InstrumentInventoryService
     // ---------- helpers ----------
 
     private async Task<EventResult<T>?> RefusalAsync<T>(ClaimsPrincipal user) =>
-        !InventoryAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !await CanManageAsync(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 
@@ -72,7 +72,7 @@ public sealed partial class InstrumentInventoryService
             return true;
         }
 
-        if (InventoryAuthorization.UserId(user) is not { } id)
+        if (user.UserId() is not { } id)
         {
             return false;
         }

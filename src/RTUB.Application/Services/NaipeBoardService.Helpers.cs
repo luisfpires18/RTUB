@@ -29,7 +29,7 @@ public sealed partial class NaipeBoardService
 
     private async Task<IReadOnlyList<NaipeCommentItemDto>> CommentsAsync(int id, ClaimsPrincipal user)
     {
-        var me = NaipesAuthorization.UserId(user);
+        var me = user.UserId();
         var manage = NaipesAuthorization.CanManage(user);
         return (await _naipes.GetCommentsAsync(id, me))
             .OrderByDescending(c => c.CreatedAt)
@@ -39,7 +39,7 @@ public sealed partial class NaipeBoardService
 
     private async Task<(NaipeContentDto Item, EventResult<T>? Refused)> ItemAsync<T>(int id, ClaimsPrincipal user)
     {
-        if (!NaipesAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return (null!, EventResult<T>.Fail(EventResultStatus.SignInRequired));
         }
@@ -59,7 +59,7 @@ public sealed partial class NaipeBoardService
     }
 
     private static EventResult<IReadOnlyList<NaipeTypeSettingDto>>? SettingsRefusal(ClaimsPrincipal user) =>
-        !NaipesAuthorization.IsMember(user) ? EventResult<IReadOnlyList<NaipeTypeSettingDto>>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<IReadOnlyList<NaipeTypeSettingDto>>.Fail(EventResultStatus.SignInRequired)
         : !NaipesAuthorization.CanManage(user) ? EventResult<IReadOnlyList<NaipeTypeSettingDto>>.Fail(EventResultStatus.Forbidden)
         : null;
 

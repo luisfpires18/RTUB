@@ -14,7 +14,7 @@ public sealed partial class MusicService
 
     public async Task<MusicResult<MusicVideoDto>> UploadVideoAsync(int songId, MusicVideoUpload upload, ClaimsPrincipal user)
     {
-        var userId = MusicAuthorization.UserId(user);
+        var userId = user.UserId();
         if (userId is null)
         {
             return MusicResult<MusicVideoDto>.Fail(MusicResultStatus.SignInRequired);
@@ -68,7 +68,7 @@ public sealed partial class MusicService
             return MusicResult<bool>.Fail(status);
         }
 
-        var userId = MusicAuthorization.UserId(user)!;
+        var userId = user.UserId()!;
         var admin = MusicAuthorization.IsAdmin(user);
         if (!admin && video!.CreatedByUserId != userId)
         {
@@ -89,7 +89,7 @@ public sealed partial class MusicService
     private static IQueryable<Album> Visible(ApplicationDbContext ctx, ClaimsPrincipal user)
     {
         var albums = ctx.Albums.AsNoTracking();
-        if (!MusicAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return albums.Where(a => !a.IsPrivate && !a.IsExclusive);
         }
@@ -99,7 +99,7 @@ public sealed partial class MusicService
             return albums;
         }
 
-        var userId = MusicAuthorization.UserId(user);
+        var userId = user.UserId();
         return albums.Where(a => !a.IsExclusive || a.AlbumAccesses.Any(x => x.UserId == userId));
     }
 
@@ -112,7 +112,7 @@ public sealed partial class MusicService
         }
 
         var exists = await ctx.Albums.AnyAsync(a => a.Id == albumId);
-        return exists && !MusicAuthorization.IsMember(user) ? MusicResultStatus.SignInRequired : MusicResultStatus.NotFound;
+        return exists && !user.IsMember() ? MusicResultStatus.SignInRequired : MusicResultStatus.NotFound;
     }
 
     private sealed record SongRef(int Id, string Title, int? TrackNumber, bool HasMusic, int? Duration, int AlbumId, string AlbumTitle, string? Lyrics);
@@ -135,7 +135,7 @@ public sealed partial class MusicService
 
     private async Task<(MusicResultStatus, SongVideo?, SongRef?)> FindVideoAsync(int videoId, ClaimsPrincipal user)
     {
-        if (!MusicAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return (MusicResultStatus.SignInRequired, null, null);
         }

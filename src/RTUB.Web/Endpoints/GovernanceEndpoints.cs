@@ -48,14 +48,6 @@ public static class GovernanceEndpoints
             ToResult(await manage.RemoveAsync(id, http.User)));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result) => result.Status switch
-    {
-        EventResultStatus.Ok => Results.Ok(result.Value),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Cargo não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result) =>
+        EndpointResults.ToResult(result, notFound: "Cargo não encontrado.");
 }

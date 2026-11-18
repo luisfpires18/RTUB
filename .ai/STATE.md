@@ -17,6 +17,12 @@ Full suite on the same machine: 3 m 28 s → 2 m 11 s. No production code change
 Task 121 (`perf/121/backend-queries`, on top of 120): the treasury report history loads the report's transactions in
 one query (was one per audit log); seven notification loops send one batch (`SendToSelectedUsersAsync`: discussion post
 and comment, event and song video, new meeting, meeting request, public request). Same recipients and same output.
+Task 122 (`chore/122/backend-shared`, on top of 121): one copy of the shared backend pieces.
+`Endpoints/EndpointResults.cs` maps a service outcome to HTTP (19 endpoint files; an area keeps a short `ToResult` only
+for its own 404 title or special answers) and builds the one-field 400; `Helpers/ClaimsPrincipalExtensions.cs`
+(`user.IsMember()`, `user.UserId()`) replaces 31 copies; Music uses the shared `NoStore` / `RequireAntiforgery`;
+`RequireMember` lives in `EventEndpoints`; four repositories lost the `UpdateAsync` / `DeleteAsync` overrides that only
+preloaded audit names. Same answers, same audit text.
 
 Last: tasks 110-119 (PRs #314-#325, merged into `dev`): the first cleanup round. No Blazor leftovers; `portal/src` in
 `pages/`, `components/`, `data/`, `styles/`; one shared UI set in `components/ui/`; no file over 300 lines except
@@ -148,6 +154,19 @@ five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx
 - Avatar and gallery thumbnails (schema), CSS split per area, route-chunk preload, static asset precompression,
   `IMemoryCache` `SizeLimit` for cached PDFs.
 
+**Backend duplicates (left after 122)**
+- `OwnerEndpoints`, `MusicEndpoints` (`MusicResult`) and `AccountRecoveryEndpoints` keep their own result mappers (other
+  shapes: Owner answers 404 where the others answer 401 / 403). `PushEndpoints` / `ReleaseEndpoints` keep a private
+  non-null `UserId` and answer an empty 401 after the filter.
+- The shared filters live in `EventEndpoints` and log "Events API … failed" for every area, Music included.
+- `AddAsync` overrides in the Enrollment, EventRepertoire, MeetingParticipation and RehearsalAttendance repositories
+  still preload for the audit log: the preload also fills the returned entity's navigations, so callers must be checked
+  first.
+- Not done: 14 one-line repository wrappers of base methods, `MeetingAtaRepository` outside `Repository<T>`, five "load
+  member, 401, 403" blocks (`DocumentationService.Helpers.cs:21`, `LogisticsKanbanService.Helpers.cs:25`,
+  `RequestAdminService.cs:174`, `TreasuryService.Rules.cs:131`, `TreasuryRecordsService.cs:55`), `IsInRole("Admin") ||
+  IsInRole("Owner")` ×14 and `IsOwner` ×3 in the `*Authorization` helpers, full name built inline in 26 places.
+
 **Dead code and config**
 - `AspNetUsers.ExperiencePoints` / `Level` have no writer (the leaderboard computes XP per request): DB cleanup candidate.
 - `PostMedia` / `CommentImages`: production row counts needed before dropping (`docs/db-cleanup-inventory.md`).
@@ -164,7 +183,6 @@ five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 122 shared
-backend helpers (endpoint result mapping, claims helpers, repository overrides), 123 dead code and stale docs, 124
-portal data layer (one load hook, shared types), 125 UI kit leftovers, 126 portal lazy loading, 127 CSS merges, 128
-tests for money, permissions and push gaps.
+Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 123 dead code and
+stale docs, 124 portal data layer (one load hook, shared types), 125 UI kit leftovers, 126 portal lazy loading, 127 CSS
+merges, 128 tests for money, permissions and push gaps.

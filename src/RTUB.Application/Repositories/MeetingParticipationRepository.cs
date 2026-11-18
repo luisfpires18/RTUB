@@ -34,39 +34,6 @@ public class MeetingParticipationRepository : Repository<MeetingParticipation>, 
         return entity;
     }
 
-    public override async Task UpdateAsync(MeetingParticipation entity)
-    {
-        using var context = CreateContext();
-
-        // Preload User and Meeting into context Local cache for audit log display name resolution
-        if (!string.IsNullOrEmpty(entity.UserId))
-            await context.Users.FindAsync(entity.UserId);
-        if (entity.MeetingId > 0)
-            await context.Meetings.FindAsync(entity.MeetingId);
-
-        var tracked = await context.MeetingParticipations.FindAsync(entity.Id)
-            ?? throw new InvalidOperationException(
-                $"MeetingParticipation with Id {entity.Id} not found in the database.");
-        context.Entry(tracked).CurrentValues.SetValues(entity);
-        await context.SaveChangesAsync();
-    }
-
-    public override async Task DeleteAsync(int id)
-    {
-        using var context = CreateContext();
-        var entity = await context.MeetingParticipations.FindAsync(id);
-        if (entity == null) return;
-
-        // Preload User and Meeting into context Local cache for audit log display name resolution
-        if (!string.IsNullOrEmpty(entity.UserId))
-            await context.Users.FindAsync(entity.UserId);
-        if (entity.MeetingId > 0)
-            await context.Meetings.FindAsync(entity.MeetingId);
-
-        context.MeetingParticipations.Remove(entity);
-        await context.SaveChangesAsync();
-    }
-
     public override async Task<IEnumerable<MeetingParticipation>> GetAllAsync()
     {
         using var context = CreateContext();

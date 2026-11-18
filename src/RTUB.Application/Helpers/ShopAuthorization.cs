@@ -16,14 +16,10 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class ShopAuthorization
 {
-    public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
-
-    public static bool CanCreate(ClaimsPrincipal user) => CanManage(user) || (IsMember(user) && user.IsInRole("Mod"));
+    public static bool CanCreate(ClaimsPrincipal user) => CanManage(user) || (user.IsMember() && user.IsInRole("Mod"));
 
     /// <summary>See a product's reservations and delete anyone's: Mod and above.</summary>
     public static bool CanManageReservations(ClaimsPrincipal user) => CanCreate(user);
 
-    public static bool CanManage(ClaimsPrincipal user) => IsMember(user) && (user.IsInRole("Admin") || user.IsInRole("Owner"));
-
-    public static string? UserId(ClaimsPrincipal user) => IsMember(user) ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
+    public static bool CanManage(ClaimsPrincipal user) => user.IsMember() && (user.IsInRole("Admin") || user.IsInRole("Owner"));
 }

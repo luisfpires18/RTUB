@@ -29,17 +29,11 @@ public static class PendingActionsEndpoints
             .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Esta ação é obrigatória: não pode ser dispensada.",
-            statusCode: StatusCodes.Status403Forbidden),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.Conflict => Results.Problem(title: "Já tinhas respondido entretanto.", statusCode: StatusCodes.Status409Conflict,
-            type: "pending-actions:answered"),
-        _ => Results.Problem(title: "Esta ação já não está pendente.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Esta ação já não está pendente.", status => status switch
+        {
+            EventResultStatus.Forbidden => Results.Problem(title: "Esta ação é obrigatória: não pode ser dispensada.", statusCode: StatusCodes.Status403Forbidden),
+            EventResultStatus.Conflict => Results.Problem(title: "Já tinhas respondido entretanto.", statusCode: StatusCodes.Status409Conflict, type: "pending-actions:answered"),
+            _ => null,
+        });
 }

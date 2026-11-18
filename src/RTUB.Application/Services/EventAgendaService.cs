@@ -65,7 +65,7 @@ public sealed partial class EventAgendaService : IEventAgendaService
         await using var db = await _contexts.CreateDbContextAsync();
         // ponytail: whole table in memory (57 events today); page it if it ever reaches thousands.
         var events = await VisibleTo(db.Events.AsNoTracking(), user).ToListAsync();
-        var extras = await LoadExtrasAsync(db, events.Select(e => e.Id).ToList(), EventsAuthorization.UserId(user));
+        var extras = await LoadExtrasAsync(db, events.Select(e => e.Id).ToList(), user.UserId());
 
         var canEdit = EventsAuthorization.CanEdit(user);
         return new EventAgendaDto(
@@ -103,7 +103,7 @@ public sealed partial class EventAgendaService : IEventAgendaService
             return null;
         }
 
-        var extras = await LoadExtrasAsync(db, new List<int> { id }, EventsAuthorization.UserId(user));
+        var extras = await LoadExtrasAsync(db, new List<int> { id }, user.UserId());
         var videos = (await db.EventVideos.AsNoTracking().Where(v => v.EventId == id).ToListAsync())
             .Where(v => IsSafeUrl(v.Url))
             .OrderBy(v => v.SortOrder).ThenBy(v => v.Id)
@@ -131,7 +131,7 @@ public sealed partial class EventAgendaService : IEventAgendaService
         }
 
         var canManage = EventsAuthorization.CanManage(user);
-        var me = EventsAuthorization.UserId(user);
+        var me = user.UserId();
         // The current Ensaiador / Magister prepare the repertoire of an upcoming, not cancelled event.
         var canPrepare = !canManage && extras.IsMember && !e.IsCancelled && !IsPast(e)
             && (await db.Users.AsNoTracking().Where(u => u.Id == me).Select(u => u.Positions).FirstOrDefaultAsync())
@@ -143,7 +143,7 @@ public sealed partial class EventAgendaService : IEventAgendaService
 
     public async Task<EventResult<EventEnrollmentDto>> GetEnrollmentAsync(int id, ClaimsPrincipal user)
     {
-        var userId = EventsAuthorization.UserId(user);
+        var userId = user.UserId();
         if (userId is null)
         {
             return EventResult<EventEnrollmentDto>.Fail(EventResultStatus.SignInRequired);
@@ -157,7 +157,7 @@ public sealed partial class EventAgendaService : IEventAgendaService
 
     public async Task<EventResult<EventEnrollmentDto>> SaveEnrollmentAsync(int id, EventEnrollmentInput input, ClaimsPrincipal user)
     {
-        var userId = EventsAuthorization.UserId(user);
+        var userId = user.UserId();
         if (userId is null)
         {
             return EventResult<EventEnrollmentDto>.Fail(EventResultStatus.SignInRequired);
@@ -212,7 +212,7 @@ public sealed partial class EventAgendaService : IEventAgendaService
 
     public async Task<EventResult<EventEnrollmentDto>> RemoveEnrollmentAsync(int id, ClaimsPrincipal user)
     {
-        var userId = EventsAuthorization.UserId(user);
+        var userId = user.UserId();
         if (userId is null)
         {
             return EventResult<EventEnrollmentDto>.Fail(EventResultStatus.SignInRequired);

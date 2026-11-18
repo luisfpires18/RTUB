@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;
@@ -17,7 +18,7 @@ public sealed partial class MessagingService
 
     public async Task<EventResult<MessageItem>> SendAsync(int conversationId, SendMessageRequest input, ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<MessageItem>.Fail(EventResultStatus.SignInRequired);
         }
@@ -74,7 +75,7 @@ public sealed partial class MessagingService
 
     public async Task<EventResult<bool>> MarkReadAsync(int conversationId, ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }
@@ -105,7 +106,7 @@ public sealed partial class MessagingService
     /// </summary>
     public async Task<EventResult<bool>> RemoveDirectAsync(int conversationId, ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }
@@ -128,7 +129,7 @@ public sealed partial class MessagingService
 
     public async Task<EventResult<ConversationSettings>> SetMutedAsync(int conversationId, bool muted, ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<ConversationSettings>.Fail(EventResultStatus.SignInRequired);
         }
@@ -155,7 +156,7 @@ public sealed partial class MessagingService
 
     public async Task<EventResult<MessageItem>> ReactAsync(int messageId, ReactionRequest input, ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<MessageItem>.Fail(EventResultStatus.SignInRequired);
         }
@@ -201,7 +202,7 @@ public sealed partial class MessagingService
 
     public async Task<EventResult<MessageItem>> RemoveReactionAsync(int messageId, ClaimsPrincipal user)
     {
-        if (UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<MessageItem>.Fail(EventResultStatus.SignInRequired);
         }

@@ -12,9 +12,6 @@ public sealed partial class MessagingService
 {
     // ---------- helpers ----------
 
-    private static string? UserId(ClaimsPrincipal user) =>
-        user.Identity?.IsAuthenticated == true ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
-
     /// <summary>The conversation, only if the member takes part in it and it is not archived; null otherwise (a 404).</summary>
     private static async Task<Conversation?> FindMineAsync(ApplicationDbContext db, int id, string me, bool tracked)
     {

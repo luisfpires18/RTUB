@@ -38,8 +38,7 @@ public static class DocumentationEndpoints
             {
                 if (form.Files.GetFile("file") is not { } file)
                 {
-                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["file"] = new[] { "Escolha um ficheiro." } },
-                        title: "Há campos por corrigir.");
+                    return EndpointResults.Invalid("file", "Escolha um ficheiro.");
                 }
 
                 await using var content = file.OpenReadStream();
@@ -52,14 +51,6 @@ public static class DocumentationEndpoints
             ToResult(await service.DeleteDocumentAsync(fiscalYear, folder, name, http.User), _ => Results.NoContent()));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Documento ou pasta não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Documento ou pasta não encontrado.");
 }

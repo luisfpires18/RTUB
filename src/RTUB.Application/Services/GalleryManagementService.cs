@@ -54,7 +54,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
 
     public async Task<EventResult<IReadOnlyList<GalleryTaggableDto>>> SearchPeopleAsync(string? query, ClaimsPrincipal user)
     {
-        if (!GalleryAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<IReadOnlyList<GalleryTaggableDto>>.Fail(EventResultStatus.SignInRequired);
         }
@@ -98,7 +98,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
 
     public async Task<EventResult<GalleryItemDto>> UploadAsync(GalleryUpload upload, ClaimsPrincipal user)
     {
-        if (GalleryAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<GalleryItemDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -224,7 +224,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
 
     private async Task<EventResult<T>?> RefusalAsync<T>(int id, ClaimsPrincipal user)
     {
-        if (!GalleryAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<T>.Fail(EventResultStatus.SignInRequired);
         }

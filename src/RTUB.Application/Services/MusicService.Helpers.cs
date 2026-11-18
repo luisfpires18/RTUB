@@ -17,11 +17,11 @@ public sealed partial class MusicService
     private const string DefaultAvatar = "/images/default-avatar.webp";
 
     private static MusicPermissionsDto Permissions(ClaimsPrincipal user) => new(
-        MusicAuthorization.IsMember(user),
+        user.IsMember(),
         MusicAuthorization.CanManage(user),
         MusicAuthorization.CanDelete(user),
         MusicAuthorization.CanManageExclusive(user),
-        MusicAuthorization.IsMember(user),
+        user.IsMember(),
         MusicAuthorization.CanSeeDetailedStatistics(user));
 
     private static MusicAlbumSummaryDto CleanAlbum(MusicAlbumSummaryDto a) =>
@@ -68,7 +68,7 @@ public sealed partial class MusicService
                 EntityType = entityType,
                 EntityId = entityId,
                 Action = "Played",
-                UserId = MusicAuthorization.UserId(user),
+                UserId = user.UserId(),
                 UserName = user.Identity?.IsAuthenticated == true ? user.Identity.Name : null,
                 Timestamp = DateTime.UtcNow,
                 Changes = changes,

@@ -34,39 +34,6 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
         return entity;
     }
 
-    public override async Task UpdateAsync(Enrollment entity)
-    {
-        using var context = CreateContext();
-
-        // Preload User and Event into context Local cache for audit log display name resolution
-        if (!string.IsNullOrEmpty(entity.UserId))
-            await context.Users.FindAsync(entity.UserId);
-        if (entity.EventId > 0)
-            await context.Events.FindAsync(entity.EventId);
-
-        var tracked = await context.Enrollments.FindAsync(entity.Id)
-            ?? throw new InvalidOperationException(
-                $"Enrollment with Id {entity.Id} not found in the database.");
-        context.Entry(tracked).CurrentValues.SetValues(entity);
-        await context.SaveChangesAsync();
-    }
-
-    public override async Task DeleteAsync(int id)
-    {
-        using var context = CreateContext();
-        var entity = await context.Enrollments.FindAsync(id);
-        if (entity == null) return;
-
-        // Preload User and Event into context Local cache for audit log display name resolution
-        if (!string.IsNullOrEmpty(entity.UserId))
-            await context.Users.FindAsync(entity.UserId);
-        if (entity.EventId > 0)
-            await context.Events.FindAsync(entity.EventId);
-
-        context.Enrollments.Remove(entity);
-        await context.SaveChangesAsync();
-    }
-
     public override async Task<IEnumerable<Enrollment>> GetAllAsync()
     {
         using var context = CreateContext();

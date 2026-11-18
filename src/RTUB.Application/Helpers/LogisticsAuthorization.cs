@@ -20,8 +20,5 @@ public static class LogisticsAuthorization
     public static bool CanManage(ClaimsPrincipal user) =>
         user.Identity?.IsAuthenticated == true && (user.IsInRole("Admin") || user.IsInRole("Mod") || user.IsInRole("Owner"));
 
-    public static string? UserId(ClaimsPrincipal user) =>
-        user.Identity?.IsAuthenticated == true ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
-
     public static bool CanView(ApplicationUser member, ClaimsPrincipal user) => CanManage(user) || !member.IsExpelled;
 }

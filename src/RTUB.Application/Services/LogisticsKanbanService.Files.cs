@@ -88,7 +88,7 @@ public sealed partial class LogisticsKanbanService
             return EventResult<LogisticsFileDto>.Invalid("file", "Tipo de ficheiro não suportado. Formatos permitidos: PDF, Word, Excel, TXT, PNG, JPG");
         }
 
-        _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
+        _audit.SetUser(user.Identity?.Name, user.UserId());
         var stored = Path.GetFileName(await StoreInDocumentationAsync(board!, name, upload.Content, upload.ContentType));
         return EventResult<LogisticsFileDto>.Ok(new LogisticsFileDto(stored, Path.GetExtension(stored), upload.Length, $"f:{stored}", null));
     }
@@ -126,7 +126,7 @@ public sealed partial class LogisticsKanbanService
             return EventResult<bool>.Fail(EventResultStatus.NotFound);
         }
 
-        _audit.SetUser(user.Identity?.Name, LogisticsAuthorization.UserId(user));
+        _audit.SetUser(user.Identity?.Name, user.UserId());
         await _storage.DeleteDocumentAsync(path);
         _trees.Forget(path); // the same document in Documentação
         return EventResult<bool>.Ok(true);

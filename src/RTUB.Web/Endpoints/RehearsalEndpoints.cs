@@ -88,17 +88,10 @@ public static class RehearsalEndpoints
             .WithMetadata(new RequestSizeLimitAttribute(1024));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Closed => Results.Problem(title: "Este ensaio já não permite esta ação.",
-            statusCode: StatusCodes.Status409Conflict),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.",
-            statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Ensaio não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Ensaio não encontrado.", status => status switch
+        {
+            EventResultStatus.Closed => Results.Problem(title: "Este ensaio já não permite esta ação.", statusCode: StatusCodes.Status409Conflict),
+            _ => null,
+        });
 }

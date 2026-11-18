@@ -13,13 +13,13 @@ public sealed partial class MusicService
 
     public async Task<MusicResult<MusicLearnListDto>> GetPlayAlongSongsAsync(ClaimsPrincipal user)
     {
-        if (!MusicAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return MusicResult<MusicLearnListDto>.Fail(MusicResultStatus.SignInRequired);
         }
 
         await using var ctx = await _contexts.CreateDbContextAsync();
-        var userId = MusicAuthorization.UserId(user);
+        var userId = user.UserId();
         var albums = Visible(ctx, user).Select(a => a.Id);
         var songs = await ctx.Songs.AsNoTracking()
             .Where(s => albums.Contains(s.AlbumId) && ctx.SongPlayAlongs.Any(p => p.SongId == s.Id))
@@ -42,7 +42,7 @@ public sealed partial class MusicService
     /// <summary>Counts one open of the song's Aprender page.</summary>
     public async Task<MusicResult<bool>> RecordPlayAlongViewAsync(int songId, ClaimsPrincipal user)
     {
-        if (!MusicAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return MusicResult<bool>.Fail(MusicResultStatus.SignInRequired);
         }
@@ -62,7 +62,7 @@ public sealed partial class MusicService
     /// <summary>Stars or un-stars an Aprender song for the member.</summary>
     public async Task<MusicResult<bool>> SetPlayAlongStarAsync(int songId, bool starred, ClaimsPrincipal user)
     {
-        var userId = MusicAuthorization.UserId(user);
+        var userId = user.UserId();
         if (userId is null)
         {
             return MusicResult<bool>.Fail(MusicResultStatus.SignInRequired);
@@ -139,7 +139,7 @@ public sealed partial class MusicService
 
     public async Task<MusicResult<MusicPlayAlongDto>> GetPlayAlongAsync(int songId, ClaimsPrincipal user)
     {
-        if (!MusicAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return MusicResult<MusicPlayAlongDto>.Fail(MusicResultStatus.SignInRequired);
         }

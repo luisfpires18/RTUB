@@ -49,7 +49,7 @@ public sealed partial class LogisticsKanbanService
 
     private static async Task<CardAccess> AccessAsync(ApplicationDbContext db, LogisticsCard card, ClaimsPrincipal user)
     {
-        var me = LogisticsAuthorization.UserId(user);
+        var me = user.UserId();
         var boardId = await db.LogisticsLists.Where(l => l.Id == card.ListId).Select(l => l.BoardId).SingleAsync();
         var board = (await db.LogisticsBoards.FindAsync(boardId))!;
         var collaborator = me is not null && await db.LogisticsCardAssignments.AnyAsync(a => a.CardId == card.Id && a.UserId == me);

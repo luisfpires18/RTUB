@@ -39,22 +39,13 @@ public static class InventoryEndpoints
         writes.MapPost("/{id:int}/image", async (int id, IFormCollection form, HttpContext http, IInstrumentInventoryService service) =>
                 form.Files.GetFile("image") is { } image && form.Files.GetFile("thumbnail") is { } thumbnail
                     ? ToResult(await service.SetImageAsync(id, Upload(image), Upload(thumbnail), http.User))
-                    : Results.ValidationProblem(new Dictionary<string, string[]> { ["image"] = new[] { "Escolha uma imagem e recorte a miniatura." } },
-                        title: "Há campos por corrigir."))
+                    : EndpointResults.Invalid("image", "Escolha uma imagem e recorte a miniatura."))
             .WithMetadata(new RequestSizeLimitAttribute(2 * InstrumentInventoryService.MaxImageBytes + 64 * 1024));
     }
 
     private static InstrumentImageUpload Upload(IFormFile file) =>
         new(file.OpenReadStream(), file.FileName, file.ContentType ?? string.Empty, file.Length);
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Instrumento não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Instrumento não encontrado.");
 }

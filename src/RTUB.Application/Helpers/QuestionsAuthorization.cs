@@ -18,10 +18,6 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class QuestionsAuthorization
 {
-    public static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
-
-    public static string? UserId(ClaimsPrincipal user) => IsMember(user) ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
-
     public static bool IsAuthor(Question question, string me) => question.AuthorId == me;
 
     public static bool IsRecipient(Question question, string me) => question.AssignedMemberId == me;

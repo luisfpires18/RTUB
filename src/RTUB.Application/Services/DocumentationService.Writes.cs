@@ -153,7 +153,7 @@ public sealed partial class DocumentationService
             return;
         }
 
-        var actor = DocumentationAuthorization.UserId(user);
+        var actor = user.UserId();
         foreach (var row in rows)
         {
             db.LogisticsCardAttachments.Remove(row);

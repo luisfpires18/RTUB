@@ -68,7 +68,7 @@ public sealed partial class LogisticsKanbanService
             {
                 db.LogisticsCardActivities.Add(new LogisticsCardActivity
                 {
-                    CardId = card.Id, ActorId = LogisticsAuthorization.UserId(user), Action = "status",
+                    CardId = card.Id, ActorId = user.UserId(), Action = "status",
                     Detail = $"Estado: {StatusName(card.Status)} → {StatusName(state)} (coluna «{Cut(name)}»)",
                 });
                 card.SetStatus(state);
@@ -130,7 +130,7 @@ public sealed partial class LogisticsKanbanService
             {
                 db.LogisticsCardActivities.Add(new LogisticsCardActivity
                 {
-                    CardId = card.Id, ActorId = LogisticsAuthorization.UserId(user), Action = "list",
+                    CardId = card.Id, ActorId = user.UserId(), Action = "list",
                     Detail = card.Status == state ? $"Movido para «{Cut(target.Name)}» (coluna eliminada)"
                         : $"Movido para «{Cut(target.Name)}» (coluna eliminada); estado: {StatusName(card.Status)} → {StatusName(state)}",
                 });

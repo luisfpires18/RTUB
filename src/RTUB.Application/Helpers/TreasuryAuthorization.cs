@@ -21,9 +21,6 @@ namespace RTUB.Application.Helpers;
 /// </summary>
 public static class TreasuryAuthorization
 {
-    public static string? UserId(ClaimsPrincipal user) =>
-        user.Identity?.IsAuthenticated == true ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
-
     public static bool IsManager(ClaimsPrincipal user) => user.IsInRole("Admin") || user.IsInRole("Mod") || user.IsInRole("Owner");
 
     public static bool CanView(ApplicationUser member, ClaimsPrincipal user) => IsManager(user) || (!member.IsLeitao() && !member.IsCaloiro());
