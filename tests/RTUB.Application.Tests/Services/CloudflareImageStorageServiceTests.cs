@@ -103,20 +103,4 @@ public class CloudflareImageStorageServiceTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
-
-    [Fact]
-    public void Constructor_LogsInitializationMessage()
-    {
-        // This test has been removed as the constructor no longer logs an initialization message
-        // The constructor only logs errors when configuration is missing
-        // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
-
-        // Act
-        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
-
-        // Assert - Service should be created without logging
-        service.Should().NotBeNull();
-    }
 }

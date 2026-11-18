@@ -98,11 +98,6 @@ public class AuthenticationTests : IntegrationTestBase
             initialLastLoginDate.Should().NotBeNull();
         }
 
-        // Wait for 6 seconds to ensure the 5-minute cache window allows an update
-        // Note: In a real scenario, we'd wait 5+ minutes, but for testing we can verify
-        // the mechanism works by checking the initial update happened
-        await Task.Delay(TimeSpan.FromSeconds(1));
-
         // Make another authenticated request to trigger cookie validation
         var authenticatedResponse = await client.GetAsync("/");
         authenticatedResponse.StatusCode.Should().Be(HttpStatusCode.OK);

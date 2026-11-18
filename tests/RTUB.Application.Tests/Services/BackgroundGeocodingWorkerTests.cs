@@ -59,20 +59,6 @@ public class BackgroundGeocodingWorkerTests
     }
 
     [Fact]
-    public void BackgroundGeocodingWorker_CanBeConstructed()
-    {
-        // Arrange
-        var mockQueue = new Mock<IGeocodingQueue>();
-        var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
-
-        // Act
-        var worker = new BackgroundGeocodingWorker(_mockLogger.Object, scopeFactory, mockQueue.Object);
-
-        // Assert
-        worker.Should().NotBeNull();
-    }
-
-    [Fact]
     public async Task BackgroundGeocodingWorker_CanStartAndStop()
     {
         // Arrange
