@@ -4,11 +4,11 @@ using Microsoft.Extensions.Logging;
 
 namespace RTUB.Application.Services.Geocoding;
 
-// Nominatim geocoding: querying strategies and picking the best match.
+// Nominatim geocoding: one search request (retried once if it failed) and picking the best match.
 
 public partial class NominatimGeocodingService
 {
-    private async Task<(double Latitude, double Longitude)?> TryGeocodeWithStrategies(string cityName, string? countryCode, CancellationToken cancellationToken)
+    private async Task<(double Latitude, double Longitude)?> GeocodeAsync(string cityName, string? countryCode, CancellationToken cancellationToken)
     {
         // Check local fallback coordinates first (explicit overrides)
         if (LocalFallbackCoordinates.TryGetValue(cityName, out var fallbackCoords))
@@ -17,20 +17,18 @@ public partial class NominatimGeocodingService
             return fallbackCoords;
         }
 
-        // Strategy 1: Search as city with country filter (most common case)
-        var result = await TryGeocode(cityName, countryCode, "city,town,village,municipality", cancellationToken);
-        if (result.HasValue) return result;
+        // One search; FindBestMatch already prefers a city / town / village. Only a failed request (network, timeout,
+        // non-success status) is tried once more: "nothing found" is an answer and asking again gets the same one.
+        var (result, failed) = await TryGeocode(cityName, countryCode, cancellationToken);
+        if (failed)
+        {
+            (result, _) = await TryGeocode(cityName, countryCode, cancellationToken);
+        }
 
-        // Strategy 2: Include smaller settlements (for villages)
-        result = await TryGeocode(cityName, countryCode, "city,town,village,hamlet,municipality,suburb", cancellationToken);
-        if (result.HasValue) return result;
-
-        // Strategy 3: Broader search without strict type filtering (last resort)
-        result = await TryGeocode(cityName, countryCode, null, cancellationToken);
         return result;
     }
 
-    private async Task<(double Latitude, double Longitude)?> TryGeocode(string query, string? countryCode, string? featureType, CancellationToken cancellationToken)
+    private async Task<((double Latitude, double Longitude)? Coordinates, bool Failed)> TryGeocode(string query, string? countryCode, CancellationToken cancellationToken)
     {
         // Rate limiting: ensure we don't exceed 1 request per second
         await _rateLimiter.WaitAsync(cancellationToken);
@@ -66,7 +64,7 @@ public partial class NominatimGeocodingService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Nominatim request failed: {StatusCode}", response.StatusCode);
-                return null;
+                return (null, true);
             }
 
             var content = await response.Content.ReadAsStringAsync();
@@ -74,7 +72,7 @@ public partial class NominatimGeocodingService
 
             if (results == null || results.Count == 0)
             {
-                return null;
+                return (null, false);
             }
 
             // Find the best match
@@ -82,21 +80,20 @@ public partial class NominatimGeocodingService
 
             if (bestResult != null)
             {
-                var coordinates = ExtractCoordinates(bestResult);
-                return coordinates;
+                return (ExtractCoordinates(bestResult), false);
             }
 
-            return null;
+            return (null, false);
         }
         catch (TaskCanceledException)
         {
             _logger.LogWarning("Nominatim request timed out for query: {Query}", query);
-            return null;
+            return (null, true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calling Nominatim API for query: {Query}", query);
-            return null;
+            return (null, true);
         }
     }
 

@@ -76,8 +76,8 @@ public partial class NominatimGeocodingService : IGeocodingService
         // Not in cache - geocode and store
         try
         {
-            // Try geocoding with strategies
-            var coordinates = await TryGeocodeWithStrategies(cityName, normalizedCountryCode, cancellationToken);
+            // Local fallback first, then Nominatim
+            var coordinates = await GeocodeAsync(cityName, normalizedCountryCode, cancellationToken);
 
             if (coordinates.HasValue)
             {
