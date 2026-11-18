@@ -29,6 +29,7 @@ export function Avatar({
       width={size}
       height={size}
       loading={eager ? undefined : 'lazy'}
+      decoding="async"
       onError={
         noFallback
           ? undefined
