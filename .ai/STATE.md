@@ -36,6 +36,11 @@ Task 118 (`chore/118/remove-leftovers`, on top of 117): Copilot instructions and
 comments (task / track / issue numbers, "as before") rewritten as present-tense rules; old-URL redirects deleted (any
 unmapped path is 404); retired-route checks merged into `RetiredRoutesTests`; 64 portal exports trimmed;
 `musicApi.ts` uses the shared request helper; TWA script, `.deployment` and stale doc references gone.
+Task 119 (`chore/119/ui-consistency`, on top of 118): one shared UI set in `components/ui/` (24 components: PageHead,
+BackLink, EmptyState/EmptyNote/EmptyBlock, Banner, FieldError, FormField, CheckField, DialogFooter/CloseFooter,
+ConfirmDialog/AsyncConfirmDialog, Pager/TextPager/SimplePager, SearchTools, Segmented, Avatar, PersonChip, PersonLine,
+FactRow, IconAction, LoadMore, Spinner, Loading, AnswerActions, AccountDone); hand-written copies replaced across every
+area (page heads 40→0, form errors 110→1, banners 85→1). Same DOM; small differences in the PR.
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not
@@ -65,6 +70,13 @@ unmapped path is 404); retired-route checks merged into `RetiredRoutesTests`; 64
 **Portal (left after phase 3)**
 - `EventManage`, `GalleryManage` and `MeetingDialogs` keep their own error sentences (formal "Tente"/"Entre", other
   rules); 17 notices with their own buttons stay hand-written. Tabs (4) and avatar images differ in class and size.
+
+**UI kit (left after 119)**
+- Kept hand-written on purpose (different look or attributes): `lx-tabs`/`lx-views`/`news-tabs`/`playalong__group`
+  button groups, `pa-pager`, OwnerUi `Flash`/`SearchBox`, `span.control` fields, radio and `role="switch"` rows,
+  `form__label`-headed fields whose error has no id, MeetingAta required-marker fields, link-style icon actions.
+- Possible next kit additions: SelectField with an icon, SearchField `autoFocus`/extra class, IconAction as `<a>` and
+  with `aria-expanded`, a single-primary-button footer, DialogFooter keeping Cancelar enabled while busy.
 
 **Tests**
 - Integration test hosts run `PendingActionsReminderService`, so a full `dotnet test` between 18:00 and 24:00 Portugal
