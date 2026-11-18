@@ -165,6 +165,16 @@ public partial class MigrationChainTests : IDisposable
             .Should().Contain("IX_MessageReaction_MessageId_UserId");
     }
 
+    [Fact]
+    public async Task TheBaseline_HasNoRetiredTables_AndKeepsTheIdentityAndMessagingTables()
+    {
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+
+        var tables = await ScalarsAsync(context, "SELECT name FROM sqlite_master WHERE type = 'table';");
+        tables.Should().NotContain(RetiredTables).And.Contain(IdentityTables).And.Contain(MessagingTables);
+    }
+
     /// <summary>Task 043: the retired Games / Bets / MyTuno, Labels and Slideshows tables (docs/db-cleanup-inventory.md).</summary>
     private static readonly string[] RetiredTables =
     [

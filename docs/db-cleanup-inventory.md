@@ -8,7 +8,8 @@
   (`docs/release-and-rollback.md`).
 - Delete the entity, its configuration, its `DbSet`, its `EntityDisplay` case and any `AuditConfiguration` entry in the
   same change as the migration; then `dotnet ef migrations has-pending-model-changes` must report none.
-- Never edit historical migrations to remove names. The new migration drops; the old ones stay.
+- Never edit a migration that has run in production. The new migration drops. (The chain up to 2026-11-17 is squashed
+  into `Baseline`, task 130; the names below are in git history.)
 - On SQLite, dropping a column makes EF rebuild the table with `PRAGMA foreign_keys` outside a transaction. Keep such a
   migration on its own so a failure cannot leave other drops committed without their history row.
 
@@ -48,7 +49,5 @@ delete their R2 objects first.
 
 ## Do not touch
 
-- `UpdateCardStatusEnumValues` and `NerbaOrderEventRequired` migration classes have no `[Migration]` attribute, so EF
-  never ran them, and both hold destructive SQL. Do not "fix" them by adding the attribute.
 - A local `__EFMigrationsHistory` once showed 8 non-dated ids, unexplained. Check production read-only before a release
   that migrates.

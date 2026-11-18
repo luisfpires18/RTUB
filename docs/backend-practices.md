@@ -35,6 +35,8 @@ RTUB.Web          host, minimal-API endpoints, a few controllers, React portal
 - Live in `src/RTUB.Web/Migrations`; the context is wired with `MigrationsAssembly("RTUB")` (the web assembly name), so
   `dotnet ef migrations add <Name> --project src/RTUB.Web`.
 - Commit the `.Designer.cs` with every migration.
+- The chain starts at `Baseline` (task 130); existing databases adopt it at startup. See `docs/release-and-rollback.md`
+  → *The Baseline*.
 - Keep each migration compatible with the previous production release (expand/contract): an app rollback never touches
   the schema. See `docs/release-and-rollback.md` → *Migrations: the N-1 rule*.
 

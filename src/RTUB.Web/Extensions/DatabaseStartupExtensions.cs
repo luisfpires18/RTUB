@@ -21,11 +21,11 @@ public static class DatabaseStartupExtensions
                 {
                     var db = sp.GetRequiredService<ApplicationDbContext>();
 
+                    // A database that ran the squashed chain gets the Baseline's history row instead of running it.
+                    await MigrationBaseline.AdoptAsync(db.Database);
+
                     // Only migrate if there are pending migrations (performance optimization)
                     var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
-                    bool hadMemberStatusMigration = pendingMigrations.Any(m =>
-                        m.Contains("AddMemberStatusTable") ||
-                        m.Contains("AddTotalActivitiesCountToMemberStatus"));
 
                     if (pendingMigrations.Any())
                     {
@@ -99,25 +99,6 @@ public static class DatabaseStartupExtensions
                     catch (Exception ex)
                     {
                         logger.LogError(ex, "Failed to move the logistics files into Documentação on startup");
-                    }
-
-                    // Initialize MemberStatus table if the migration just ran
-                    // This ensures "Gestao de membros ativos" has data immediately after deployment
-                    // instead of waiting for the scheduled daily update
-                    if (hadMemberStatusMigration)
-                    {
-                        try
-                        {
-                            logger.LogInformation("MemberStatus migration detected. Starting initial population...");
-                            var memberStatusService = sp.GetRequiredService<IMemberStatusService>();
-                            var run = await memberStatusService.ReconcileAllMemberStatusesAsync();
-                            logger.LogInformation("Initial MemberStatus population completed: {Run}", run);
-                        }
-                        catch (Exception ex)
-                        {
-                            // Log error but don't fail startup - scheduled update will populate later
-                            logger.LogError(ex, "Failed to populate MemberStatus table on startup. Data will be populated during next scheduled update.");
-                        }
                     }
                 }
                 catch (Exception ex)
