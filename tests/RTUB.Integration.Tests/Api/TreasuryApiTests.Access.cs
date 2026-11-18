@@ -36,25 +36,6 @@ public partial class TreasuryApiTests
             response.Headers.Location!.ToString().Should().Be("/login?returnUrl=" + Uri.EscapeDataString(page));
         }
 
-        var old = new Dictionary<string, string>
-        {
-            ["/finance"] = "/treasury",
-            [$"/finance/report/{reportId}"] = $"/treasury/reports/{reportId}",
-            ["/calotes"] = "/treasury/calotes",
-            ["/calotes?fy=2025-2026&reportId=3"] = "/treasury/calotes?fy=2025-2026",
-            ["/mbway"] = "/treasury/mbway",
-            ["/mbway/3"] = "/treasury/mbway",
-            ["/nerba"] = "/treasury/nerba",
-            ["/nerba/3"] = "/treasury/nerba",
-            ["/nerba/event/7"] = "/treasury/nerba/7",
-        };
-        foreach (var (from, to) in old)
-        {
-            var response = await anonymous.GetAsync(from);
-            response.StatusCode.Should().Be(HttpStatusCode.Redirect, from);
-            response.Headers.Location!.ToString().Should().Be(to, from);
-        }
-
         var (member, _) = await SignInAsync(MemberCategory.Tuno);
         foreach (var page in new[] { "/treasury", $"/treasury/reports/{reportId}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/1" })
         {

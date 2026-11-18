@@ -59,7 +59,7 @@ public static class DatabaseStartupExtensions
                         logger.LogError(ex, "Failed to sync positions and roles with the current mandate on startup");
                     }
 
-                    // The premade /messages groups (061): retired ones (VETERANOS, TUNOSSAUROS...) are archived on deploy,
+                    // The premade /messages groups: retired ones (VETERANOS, TUNOSSAUROS...) are archived on deploy,
                     // not only at the daily job, which MemberStatusUpdate:Enabled can switch off. Idempotent; never fails startup.
                     try
                     {
@@ -70,8 +70,8 @@ public static class DatabaseStartupExtensions
                         logger.LogError(ex, "Failed to sync the premade message groups on startup");
                     }
 
-                    // Logística 3/5 (067): pre-067 columns get their workflow state (mixed ones split, no card changes
-                    // status) and pre-067 boards their file folder name, once. Idempotent; never fails startup.
+                    // Logística: columns without a workflow state get one (mixed ones split, no card changes
+                    // status) and boards without a file folder name get one, once. Idempotent; never fails startup.
                     try
                     {
                         var mapped = await LogisticsWorkflow.MapLegacyAsync(db);
@@ -86,7 +86,7 @@ public static class DatabaseStartupExtensions
                         logger.LogError(ex, "Failed to map the legacy logistics columns on startup");
                     }
 
-                    // Logística files live in Documentação (104): files still kept outside it move into their board's
+                    // Logística files live in Documentação: files still kept outside it move into their board's
                     // folder, once. Idempotent, best effort per file; never fails startup.
                     try
                     {

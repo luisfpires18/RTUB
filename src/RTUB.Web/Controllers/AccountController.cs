@@ -36,7 +36,7 @@ public class AccountController : ControllerBase
         Response.Headers.CacheControl = "no-store";
 
 
-        // The build, as /api/version reports it: the footer reads it from here, one request fewer per page load (task 054).
+        // The build, as /api/version reports it: the footer reads it from here, one request fewer per page load.
         var version = RTUB.Web.Services.BuildInfo.Current.Version;
         var user = User.Identity?.IsAuthenticated == true ? await _userManager.GetUserAsync(User) : null;
 
@@ -47,7 +47,7 @@ public class AccountController : ControllerBase
             return Ok(new { authenticated = false, version });
         }
 
-        // Task 089: every React page asks here once per load; the Referer is the page. Members only (a visitor cannot
+        // Every React page asks here once per load; the Referer is the page. Members only (a visitor cannot
         // grow the buffer), counted in memory, path only.
         _pageViews.Record(Request.Headers.Referer.ToString(), Request.Host.Value);
 
@@ -62,9 +62,9 @@ public class AccountController : ControllerBase
             avatarUrl = user.ProfilePictureSrc,
             categories = user.Categories.Select(StatusHelper.GetCategoryDisplay).ToArray(),
             menu = MemberMenuAccess.For(User, user),
-            // Task 087: a Reformado has no "As minhas ações pendentes" (no menu entry, no page, no reminder push).
+            // A Reformado has no "As minhas ações pendentes" (no menu entry, no page, no reminder push).
             retired = user.IsRetired,
-            // Task 079: the configured public origin for links that leave RTUB (Google Calendar). Never the request's host.
+            // The configured public origin for links that leave RTUB (Google Calendar). Never the request's host.
             publicOrigin = _publicOrigin
         });
     }

@@ -22,7 +22,7 @@ public static class DocumentationEndpoints
         docs.MapGet("/", async (string? fiscalYear, HttpContext http, IDocumentationService service) =>
             ToResult(await service.GetAsync(fiscalYear, http.User)));
 
-        // A short-lived pre-signed download URL; the page opens it in the same tab, as the old page did.
+        // A short-lived pre-signed download URL; the page opens it in the same tab.
         docs.MapGet("/file", async (string? fiscalYear, string? folder, string? name, HttpContext http, IDocumentationService service) =>
             ToResult(await service.GetDownloadAsync(fiscalYear, folder, name, http.User)));
 

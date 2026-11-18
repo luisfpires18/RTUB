@@ -6,7 +6,7 @@ using RTUB.Core.Entities;
 
 namespace RTUB.Web.Services;
 
-/// <summary>Task 083 (#264). Bound to "ReleaseNotes".</summary>
+/// <summary>Bound to "ReleaseNotes".</summary>
 public sealed class ReleaseNotesOptions
 {
     /// <summary>
@@ -20,7 +20,7 @@ public sealed class ReleaseNotesOptions
 }
 
 /// <summary>
-/// The member-facing release notes (task 083, issue #264; docs/release-and-rollback.md → Release notes). The notes
+/// The member-facing release notes (docs/release-and-rollback.md → Release notes). The notes
 /// are the <c>releases/*.json</c> files packaged inside this build (RTUB.csproj), read once: the running artifact can
 /// only ever show its own notes, never a newer release's, a rolled-back one's or anything fetched at runtime. A
 /// member's acknowledgement is a <see cref="PendingActionDismissal"/> row of kind <see cref="AckKind"/> with the version

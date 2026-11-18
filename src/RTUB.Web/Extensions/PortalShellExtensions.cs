@@ -1,14 +1,14 @@
 namespace RTUB.Web.Extensions;
 
-// React shell routes, /Error, legacy redirects and /login.
+// React shell routes, /Error and /login.
 public static class PortalShellExtensions
 {
     public static WebApplication MapPortalShell(this WebApplication app)
     {
         // --------- React shell routes ---------
         // React owns exactly the paths mapped from here down to /login: public ones first, then the members-only ones
-        // that send visitors to sign in. /Error is a static server page; nothing else renders HTML. Old addresses
-        // redirect to their page today (MapLegacyRedirects). List: docs/react-portal-pilot.md.
+        // that send visitors to sign in. /Error is a static server page; nothing else renders HTML. Any other path
+        // answers 404. List: docs/react-portal-pilot.md.
         // The hashed /portal/assets/* are ordinary static files (cached above); the shell itself is no-cache so a
         // deploy is picked up at once.
         var portalShell = new StaticFileOptions
@@ -41,7 +41,7 @@ public static class PortalShellExtensions
             {
                 if (context.User.Identity?.IsAuthenticated != true)
                 {
-                    // 069: the query comes back too (/logistics/{id}?card=, /messages?c=); /login keeps local targets only.
+                    // The query comes back too (/logistics/{id}?card=, /messages?c=); /login keeps local targets only.
                     return Results.Redirect("/login?returnUrl=" + Uri.EscapeDataString(context.Request.Path + context.Request.QueryString));
                 }
 
@@ -93,9 +93,7 @@ public static class PortalShellExtensions
             return Results.Content(page, "text/html", System.Text.Encoding.UTF8);
         });
 
-        app.MapLegacyRedirects();
-
-        // React Login (track 007). Everyone signed out gets the React shell, like the routes above.
+        // Login. Everyone signed out gets the React shell, like the routes above.
         // A signed-in member never sees the form and goes to the members' landing page. The return
         // URL is deliberately ignored here: /login is also the cookie's AccessDeniedPath, so a member
         // bounced off a page their role cannot open would be sent straight back to it, in a loop.

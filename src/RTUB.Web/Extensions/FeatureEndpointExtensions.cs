@@ -7,25 +7,25 @@ public static class FeatureEndpointExtensions
 {
     public static WebApplication MapFeatureEndpoints(this WebApplication app)
     {
-        // --------- Public request API for the React portal (React track 003) ---------
+        // --------- Public request API for the React portal ---------
         app.MapPublicRequestEndpoints();
 
-        // --------- Music API for the React Music area (React track 006) ---------
+        // --------- Music API for the React Music area ---------
         app.MapMusicEndpoints();
 
-        // --------- Public Órgãos Sociais for the React /roles (React track 008) ---------
+        // --------- Public Órgãos Sociais for the React /roles ---------
         app.MapGovernanceEndpoints();
 
-        // --------- Gallery timeline for the React /gallery (React track 009) ---------
+        // --------- Gallery timeline for the React /gallery ---------
         app.MapGalleryEndpoints();
 
-        // --------- Events API for the React /events and the home preview (React tracks 010, 011) ---------
+        // --------- Events API for the React /events and the home preview ---------
         app.MapEventEndpoints();
 
-        // --------- Rehearsals API for the React /rehearsals (React track 014) ---------
+        // --------- Rehearsals API for the React /rehearsals ---------
         app.MapRehearsalEndpoints();
 
-        // --------- Members area for the React /members (React track 017) ---------
+        // --------- Members area for the React /members ---------
         app.MapMemberEndpoints();
         app.MapLeaderboardEndpoints();
         app.MapInventoryEndpoints();
@@ -35,35 +35,35 @@ public static class FeatureEndpointExtensions
         app.MapPendingActionsEndpoints();
         app.MapTreasuryEndpoints();
 
-        // --------- Public "Novidades" feed for the React /news (React track 025) ---------
+        // --------- Public "Novidades" feed for the React /news ---------
         app.MapNewsEndpoints();
 
-        // --------- Requests admin and Perguntas for the React /requests and /questions (task 031) ---------
+        // --------- Requests admin and Perguntas for the React /requests and /questions ---------
         app.MapRequestAdminEndpoints();
         app.MapQuestionEndpoints();
 
-        // --------- Messaging v2 for the React /messages over the preserved v1 tables (task 041) ---------
+        // --------- Messaging v2 for the React /messages over the preserved v1 tables ---------
         app.MapMessagingEndpoints();
 
-        // --------- Profile, members map and Hall of Fame for the React /profile, /members/map and /hall-of-fame (task 032) ---------
+        // --------- Profile, members map and Hall of Fame for the React /profile, /members/map and /hall-of-fame ---------
         app.MapMemberAreaEndpoints();
 
-        // --------- Naipes for the React /naipes and /naipes/config (task 033) ---------
+        // --------- Naipes for the React /naipes and /naipes/config ---------
         app.MapNaipeEndpoints();
 
-        // --------- Meetings for the React /meetings (task 034) ---------
+        // --------- Meetings for the React /meetings ---------
         app.MapMeetingEndpoints();
 
-        // --------- Owner tools for the React /emails, /notifications, /users, /owner/tracing and /owner/db (task 035) ---------
+        // --------- Owner tools for the React /emails, /notifications, /users, /owner/tracing and /owner/db ---------
         app.MapOwnerEndpoints();
 
-        // --------- Password recovery and email confirmation for the React identity pages (task 036) ---------
+        // --------- Password recovery and email confirmation for the React identity pages ---------
         app.MapAccountRecoveryEndpoints();
 
-        // --------- The member's own push subscriptions for the React /profile (task 038) ---------
+        // --------- The member's own push subscriptions for the React /profile ---------
         app.MapPushEndpoints();
 
-        // --------- Release notes for signed-in members (task 083, #264) ---------
+        // --------- Release notes for signed-in members ---------
         app.MapReleaseEndpoints();
 
         return app;

@@ -111,10 +111,9 @@ public partial class MembersApiTests
     }
 
     [Fact]
-    public async Task Routes_AreReact_AndTheOldOnesRedirect()
+    public async Task Routes_AreReact()
     {
         var (member, _) = await SignInAsync("Member");
-        var (admin, _) = await SignInAsync("Admin");
 
         foreach (var path in new[] { "/members", "/members/hierarchy" })
         {
@@ -123,13 +122,6 @@ public partial class MembersApiTests
             var visitor = await Anonymous().GetAsync(path);
             visitor.StatusCode.Should().Be(HttpStatusCode.Redirect);
             visitor.Headers.Location!.ToString().Should().StartWith("/login?returnUrl=");
-        }
-
-        (await Anonymous().GetAsync("/hierarchy")).Headers.Location!.ToString().Should().Be("/members/hierarchy");
-
-        foreach (var client in new[] { member, admin })
-        {
-            (await client.GetAsync("/members/manage")).Headers.Location!.ToString().Should().Be("/members", "the tools are on the React /members since 018");
         }
 
         var web = typeof(RTUB.Program).Assembly;

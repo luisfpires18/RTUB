@@ -1,31 +1,9 @@
-// MemberAreaRetirementTests: test class moved here from MemberAreaApiTests.cs.
 using FluentAssertions;
 
 namespace RTUB.Integration.Tests.Api;
-/// <summary>032: the three Blazor pages and what only they used are gone; the member menu links the React pages.</summary>
-public class MemberAreaRetirementTests
+/// <summary>The React profile, members map and Hall of Fame pages and the member menu. What is gone is in RetiredRoutesTests.</summary>
+public class MemberAreaPagesTests
 {
-    [Fact]
-    public void BlazorPages_AndWhatOnlyTheyUsed_AreGone()
-    {
-        var src = Path.Combine(RepoRoot(), "src");
-        foreach (var gone in new[]
-                 {
-                     "RTUB.Web/Pages/Members/Profile.razor", "RTUB.Web/Pages/Members/MemberMap.razor", "RTUB.Web/Pages/Activities/HallOfFame.razor",
-                     "RTUB.Shared/Components/Profile/ProfileHeader.razor", "RTUB.Shared/Components/Profile/ProfileSection.razor",
-                     "RTUB.Shared/Components/Ranking/RankCard.razor", "RTUB.Shared/Components/Profile/UnifiedTimeline.razor",
-                     "RTUB.Shared/Components/Forms/MonthYearPicker.razor", "RTUB.Shared/Components/UI/PushNotificationToggle.razor",
-                     "RTUB.Shared/Components/Uploads/ImageCropper.razor", "RTUB.Web/wwwroot/js/memberMap.js", "RTUB.Web/wwwroot/js/imageCropper.js",
-                 })
-        {
-            File.Exists(Path.Combine(src, gone)).Should().BeFalse("{0} was retired in 032", gone);
-        }
-
-        var web = typeof(RTUB.Program).Assembly;
-        web.GetType("RTUB.Pages.Members.Profile").Should().BeNull();
-        web.GetType("RTUB.Pages.Members.MemberMap").Should().BeNull();
-        web.GetType("RTUB.Pages.Activities.HallOfFame").Should().BeNull();
-    }
 
     [Fact]
     public void ReactPages_AreLinked_AndSayNoMigration()

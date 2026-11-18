@@ -84,16 +84,14 @@ public class GovernanceTests : IntegrationTestBase
         html.Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
     }
 
-    /// <summary>016: the RGI and the management are on the React /roles; /member/roles only redirects (keeping ?fy=).</summary>
+    /// <summary>The RGI and the management are on the React /roles; /member/roles answers 404.</summary>
     [Fact]
-    public async Task MembersGovernance_IsRetired_AndRedirectsToTheReactRolesPage()
+    public async Task MembersGovernance_IsRetired_AndManagementIsOnTheReactRolesPage()
     {
         var client = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await client.GetAsync("/member/roles?fy=2024-2025");
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Be("/roles?fy=2024-2025");
-        (await client.PostAsync("/member/roles", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+        (await client.GetAsync("/member/roles?fy=2024-2025")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.PostAsync("/member/roles", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         typeof(RTUB.Program).Assembly.GetType("RTUB.Pages.Members.MemberGovernance").Should().BeNull("the Blazor page was retired");
         typeof(RTUB.Program).Assembly.GetTypes()

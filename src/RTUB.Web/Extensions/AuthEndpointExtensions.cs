@@ -25,7 +25,7 @@ public static class AuthEndpointExtensions
             return Results.Json(RTUB.Web.Services.BuildInfo.Current);
         }).AllowAnonymous();
 
-        // --------- System announcement (task 037) ---------
+        // --------- System announcement ---------
         // The Owner's latest announcement while it is fresh (AnnouncementService), for every open React page, signed in or
         // not. 204 when there is none. Polled, so never stored by anything.
         app.MapGet("/api/announcement", (HttpContext context, RTUB.Web.Services.AnnouncementService announcements) =>
@@ -40,7 +40,7 @@ public static class AuthEndpointExtensions
         // The IFormCollection parameter makes this endpoint an antiforgery-protected form
         // endpoint: the framework requires a valid token and returns 400 before the handler
         // runs. Do not replace it with HttpContext.Request.ReadFormAsync() — that silently
-        // removes CSRF protection. The React /login (React track 007) takes the token from
+        // removes CSRF protection. The React /login takes the token from
         // GET /api/public/antiforgery-token and posts with Accept: application/json, so every
         // outcome below answers as JSON ({ error } with 401, or { redirect }) instead of a
         // redirect. Same checks, same order, either way.
@@ -98,7 +98,7 @@ public static class AuthEndpointExtensions
         })
         .RequireRateLimiting(RTUB.Web.Extensions.ServiceCollectionExtensions.LoginRateLimitPolicy);
 
-        // Face ID / fingerprint sign-in (task 057): POST /auth/passkey/options + /auth/passkey/login.
+        // Face ID / fingerprint sign-in: POST /auth/passkey/options + /auth/passkey/login.
         app.MapPasskeyEndpoints();
 
         // LOGOUT (HTTP POST)

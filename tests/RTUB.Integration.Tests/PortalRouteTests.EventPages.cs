@@ -1,4 +1,4 @@
-// PortalRouteTests: EventsRetirement tests.
+// PortalRouteTests: the React event pages, their answers and their management.
 using System.Net;
 using FluentAssertions;
 
@@ -6,96 +6,24 @@ namespace RTUB.Integration.Tests;
 
 public partial class PortalRouteTests
 {
-    [Theory]
-    [InlineData("/")]
-    [InlineData("/privacy")]
-    [InlineData("/profile")]
-    [InlineData("/request")]
-    [InlineData("/music")]
-    [InlineData("/music/albums/{id:int}")]
-    [InlineData("/music/songs/{AlbumId:int}")]
-    [InlineData("/login")]
-    [InlineData("/roles")]
-    [InlineData("/gallery")]
-    [InlineData("/events")]
-    [InlineData("/events/{id:int}")]
-    [InlineData("/member/events")]
-    [InlineData("/events/{eventId:int}/discussion")]
-    [InlineData("/events/{eventId:int}/contacts")]
-    [InlineData("/rehearsals")]
-    [InlineData("/member/gallery")]
-    [InlineData("/news")]
-    [InlineData("/members/map")]
-    [InlineData("/member/map")]
-    [InlineData("/member/profile")]
-    [InlineData("/hall-of-fame")]
-    [InlineData("/naipes")]
-    [InlineData("/naipes/config")]
-    [InlineData("/meetings")]
-    [InlineData("/users")]
-    [InlineData("/owner/tracing")]
-    [InlineData("/owner/db")]
-    [InlineData("/emails")]
-    [InlineData("/notifications")]
-    [InlineData("/forgot-password")]
-    [InlineData("/reset-password")]
-    [InlineData("/confirm-email")]
-    [InlineData("/Error")]
-    [InlineData("/share")]
-    [InlineData("/pending-actions")]
-    public void NoBlazorComponent_OwnsAReactRoute(string route)
-    {
-        var owners = typeof(RTUB.Program).Assembly.GetTypes()
-            .SelectMany(t => t.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), inherit: false)
-                .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
-                .Select(r => (Type: t, r.Template)))
-            .Where(r => r.Template.Equals(route, StringComparison.OrdinalIgnoreCase))
-            .Select(r => r.Type.FullName)
-            .ToList();
-
-        owners.Should().BeEmpty("React owns {0}; its Blazor page was retired", route);
-    }
 
     // ---------- Blazor member/admin bridges ----------
 
     /// <summary>
-    /// 012F: the members' Blazor /member/events is retired; Events is React-only. Its URL lands on the agenda
-    /// with its query, so Requests' "criar atuação" prefill (?openModal=true&amp;name=...) still opens the form.
-    /// </summary>
-    [Theory]
-    [InlineData("/member/events", "/events")]
-    [InlineData("/member/events?openModal=true&name=x", "/events?openModal=true&name=x")]
-    public async Task MemberEvents_IsRetired_AndRedirectsToTheReactAgenda(string path, string target)
-    {
-        var client = NoRedirectClient();
-        var response = await client.GetAsync(path);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Be(target);
-        (await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, path))).StatusCode.Should().Be(HttpStatusCode.Redirect);
-        (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
-    }
-
-    /// <summary>
     /// Events use "enrollment" (Inscrições); "attendance" (Presenças) belongs to rehearsals. A member
-    /// answers in a modal on the event page: the first 011 build's /events/{id}/enrollment page is
-    /// gone and its URL lands on the event with the modal open (?respond=1); the draft
-    /// /events/{id}/attendance never reached dev and is not served.
+    /// answers in a modal on the event page; /events/{id}/enrollment, /events/{id}/enrollments and
+    /// /events/{id}/attendance are not pages (404).
     /// </summary>
     [Fact]
     public async Task EventAnswers_AreAModalOnTheEventPage_NotAPageOfTheirOwn()
     {
         var client = NoRedirectClient();
 
-        var old = await client.GetAsync("/events/12/enrollment");
-        old.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        old.Headers.Location!.ToString().Should().Be("/events/12?respond=1");
-        (await client.PostAsync("/events/12/enrollment", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+        (await client.GetAsync("/events/12/enrollment")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.PostAsync("/events/12/enrollment", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
-        // 012E: everyone's answers are the event page's "Quem vai / Quem foi" (and its Admin/Owner manager).
-        var list = await client.GetAsync("/events/12/enrollments");
-        list.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        list.Headers.Location!.ToString().Should().Be("/events/12#who-title");
+        // Everyone's answers are the event page's "Quem vai / Quem foi" (and its Admin/Owner manager).
+        (await client.GetAsync("/events/12/enrollments")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await client.GetAsync("/events/my-enrollments")).StatusCode.Should().Be(HttpStatusCode.NotFound, "the page is gone: \"Onde estiveste\" is a modal on /events");
         (await client.GetAsync("/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await client.GetAsync("/api/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);

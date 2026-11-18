@@ -5,7 +5,7 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// Messaging v2 for the React /messages (task 041, docs/react-messages.md) over the preserved v1 tables. Thin: every
+/// Messaging v2 for the React /messages (docs/react-messages.md) over the preserved v1 tables. Thin: every
 /// rule lives in <see cref="IMessagingService"/>, decided from the session. Signed-in members only; a conversation the
 /// caller does not take part in is a 404. No-store throughout; every write needs the X-CSRF-TOKEN header. Text only:
 /// no endpoint takes a file.
@@ -20,7 +20,7 @@ public static class MessagingEndpoints
         conversations.MapGet("/", async (HttpContext http, IMessagingService service) =>
             ToResult(await service.GetConversationsAsync(http.User)));
 
-        // The header badge (task 044): one number, polled from every member page.
+        // The header badge: one number, polled from every member page.
         conversations.MapGet("/unread", async (HttpContext http, IMessagingService service) =>
             ToResult(await service.GetUnreadAsync(http.User)));
 

@@ -9,7 +9,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// Face ID / fingerprint sign-in (task 057, docs/react-identity.md → Passkeys): WebAuthn passkeys on ASP.NET Core
+/// Face ID / fingerprint sign-in (docs/react-identity.md → Passkeys): WebAuthn passkeys on ASP.NET Core
 /// Identity's own implementation (schema Version3, table AspNetUserPasskeys). A member turns it on in /profile while
 /// signed in; /login then signs in with the device's unlock, no password. The passkey is bound to the host it was made
 /// on, so DEV and PROD keep separate ones. Every POST needs the antiforgery token in the X-CSRF-TOKEN header; the

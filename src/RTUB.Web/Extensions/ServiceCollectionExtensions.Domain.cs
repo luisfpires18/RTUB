@@ -32,14 +32,14 @@ public static partial class ServiceCollectionExtensions
         services.AddScoped<IMeetingAtaConfirmationService, MeetingAtaConfirmationService>();
         services.AddScoped<IAtaPdfService, AtaPdfService>();
 
-        // The React /meetings (task 034): every rule of the old page, over the services above.
+        // The React /meetings, over the services above.
         services.AddScoped<IMeetingBoardService, MeetingBoardService>();
         services.AddScoped<IMeetingPollBoardService, MeetingPollBoardService>();
 
-        // The React Owner tools (task 035): what /emails, /notifications, /users, /owner/tracing and /owner/db did.
+        // The React Owner tools: what /emails, /notifications, /users, /owner/tracing and /owner/db did.
         services.AddScoped<IOwnerOperationsService, OwnerOperationsService>();
 
-        // The React /forgot-password, /reset-password and /confirm-email (task 036).
+        // The React /forgot-password, /reset-password and /confirm-email.
         services.AddScoped<AccountRecoveryService>();
 
         return services;
@@ -105,7 +105,7 @@ public static partial class ServiceCollectionExtensions
         services.AddScoped<IQuestionReplyRepository, QuestionReplyRepository>();
         services.AddScoped<IQuestionService, QuestionService>();
         services.AddScoped<IQuestionBoardService, QuestionBoardService>();
-        services.AddScoped<IMessagingService, MessagingService>(); // Messaging v2, React /messages (task 041)
+        services.AddScoped<IMessagingService, MessagingService>(); // Messaging v2, React /messages
         services.AddScoped<IMeetingAtaRepository, MeetingAtaRepository>();
 
         return services;
@@ -154,7 +154,7 @@ public static partial class ServiceCollectionExtensions
     {
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         // One pooled HttpClient for every push send: WebPushClient otherwise news up its own client (its own handler
-        // and connection pool) per request scope and nothing ever disposes it (task 054).
+        // and connection pool) per request scope and nothing ever disposes it.
         services.AddHttpClient(PushNotificationService.HttpClientName);
         services.AddScoped<NotificationInbox>();
         services.AddScoped<PushPreferenceService>();

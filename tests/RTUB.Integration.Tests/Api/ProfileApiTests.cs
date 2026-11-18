@@ -48,9 +48,6 @@ public partial class ProfileApiTests : IClassFixture<EventsApiFactory>
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         (await anonymous.GetStringAsync("/profile")).Should().Contain("id=\"root\"", "/profile is React and tells a visitor how to sign in");
-        var old = await anonymous.GetAsync("/member/profile");
-        old.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        old.Headers.Location!.ToString().Should().Be("/profile");
     }
 
     [Fact]

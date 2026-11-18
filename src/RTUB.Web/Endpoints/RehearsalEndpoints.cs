@@ -73,7 +73,7 @@ public static class RehearsalEndpoints
         writes.MapPost("/{id:int}/attendances/{attendanceId:int}/approve", async (int id, int attendanceId, HttpContext http, IRehearsalAdminService admin) =>
             ToResult(await admin.ApproveAsync(id, attendanceId, http.User), _ => Results.NoContent()));
 
-        // Task 075: approve / refuse also for the current Ensaiador and Magister (position, not role).
+        // Approve / refuse also for the current Ensaiador and Magister (position, not role).
         writes.MapPost("/{id:int}/attendances/{attendanceId:int}/refuse", async (int id, int attendanceId, HttpContext http, IRehearsalAdminService admin) =>
             ToResult(await admin.RefuseAsync(id, attendanceId, http.User), _ => Results.NoContent()));
 

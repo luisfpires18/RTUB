@@ -100,16 +100,14 @@ public class GalleryTests : IntegrationTestBase
         html.Should().Contain("id=\"root\"").And.NotContain("blazor.web.js").And.NotContain(PrivateUrl);
     }
 
-    /// <summary>015: management is React (upload, edit, delete, tags on /gallery); /member/gallery only redirects.</summary>
+    /// <summary>Management is React (upload, edit, delete, tags on /gallery); /member/gallery answers 404.</summary>
     [Fact]
-    public async Task MembersGallery_IsRetired_AndRedirectsToTheReactGallery()
+    public async Task MembersGallery_IsRetired_AndManagementIsOnTheReactGallery()
     {
         var client = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await client.GetAsync("/member/gallery");
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Be("/gallery");
-        (await client.PostAsync("/member/gallery", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+        (await client.GetAsync("/member/gallery")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.PostAsync("/member/gallery", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         typeof(RTUB.Program).Assembly.GetType("RTUB.Pages.Members.MemberGallery").Should().BeNull("the Blazor management page was retired");
         var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");

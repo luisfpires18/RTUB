@@ -115,7 +115,7 @@ public static partial class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers the per-client rate limiter for <c>POST /api/public/requests</c> (React track 003).
+    /// Registers the per-client rate limiter for <c>POST /api/public/requests</c>.
     /// Same partitioning as <see cref="AddLoginRateLimiting"/> - <c>RemoteIpAddress</c> only, never a
     /// caller-supplied header - with its own budget and its own rejection body (see OnRejected there).
     /// </summary>

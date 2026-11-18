@@ -32,14 +32,14 @@ public static class MemberEndpoints
         members.MapGet("/{id}", async (string id, HttpContext http, IMemberDirectoryService directory) =>
             ToResult(await directory.GetMemberAsync(id, http.User)));
 
-        // Admin and Owner from here on (018).
+        // Admin and Owner from here on.
         members.MapGet("/mentors", async (string? q, string? exclude, HttpContext http, IMemberAdminService admin) =>
             ToResult(await admin.SearchMentorsAsync(q, exclude, http.User)));
 
         members.MapGet("/{id}/edit", async (string id, HttpContext http, IMemberAdminService admin) =>
             ToResult(await admin.GetForEditAsync(id, http.User)));
 
-        // Task 076: the limited member-information edit - Mod, Admin, Owner (mentors and instruments are open to Mod too).
+        // The limited member-information edit - Mod, Admin, Owner (mentors and instruments are open to Mod too).
         members.MapGet("/{id}/info", async (string id, HttpContext http, IMemberAdminService admin) =>
             ToResult(await admin.GetInfoAsync(id, http.User)));
 

@@ -113,7 +113,7 @@ public partial class LeaderboardApiTests
     [Fact]
     public void LeaderboardService_NoLongerDependsOnTheLabelService()
     {
-        // ILabelService itself is gone since 042 (no caller left); RetiredImagesLabelsRoutesTests guards that.
+        // ILabelService has no caller and is gone; RetiredRoutesTests guards that.
         typeof(RTUB.Application.Services.LeaderboardService).GetConstructors()
             .SelectMany(c => c.GetParameters())
             .Select(p => p.ParameterType.Name)

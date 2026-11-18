@@ -73,7 +73,7 @@ public static partial class ServiceCollectionExtensions
 
                     // The database is asked only when the cookie claims Admin: the probe exists to catch a revoked
                     // Admin, and a cookie without the claim has nothing to revoke. Every other request skips its two
-                    // SELECTs (the role by name, the user-role row) - task 054.
+                    // SELECTs (the role by name, the user-role row).
                     var hasAdminClaim = context.Principal?.IsInRole("Admin") ?? false;
                     if (hasAdminClaim && !await userManager.IsInRoleAsync(validatedUser, "Admin"))
                     {
@@ -86,9 +86,9 @@ public static partial class ServiceCollectionExtensions
                     // Identity's own cookie validation, composed with the checks above rather than
                     // replaced by them. AddIdentity installs SecurityStampValidator.ValidatePrincipalAsync
                     // as OnValidatePrincipal; assigning this whole CookieAuthenticationEvents object
-                    // used to drop it, and with it the principal refresh Identity performs after a
-                    // successful stamp check — so role and profile claim changes never reached a live
-                    // session and the cookie was never renewed. This call runs the configured
+                    // drops it unless it is called here, and with it the principal refresh Identity performs after a
+                    // successful stamp check — so role and profile claim changes would never reach a live
+                    // session and the cookie would never be renewed. This call runs the configured
                     // ISecurityStampValidator, which rebuilds the principal from the database
                     // (SignInManager.CreateUserPrincipalAsync -> ReplacePrincipal + ShouldRenew) once
                     // SecurityStampValidatorOptions.ValidationInterval has elapsed — 30 minutes by
@@ -153,7 +153,7 @@ public static partial class ServiceCollectionExtensions
                         {
                             try
                             {
-                                // Task 050: also one LoginEvents "seen" row per member per hour (Owner dashboard:
+                                // Also one LoginEvents "seen" row per member per hour (Owner dashboard:
                                 // active members and busy hours). Portugal is a whole-hour offset from UTC, so a
                                 // UTC hour is a Portugal hour.
                                 var hour = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0, DateTimeKind.Utc);

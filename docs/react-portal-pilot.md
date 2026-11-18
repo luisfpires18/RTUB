@@ -67,13 +67,7 @@ Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD 
 | `/Error` | Static server page for any method, no script, no details. |
 | `/portal/assets/*` | Content-hashed Vite output, normal static caching. Any other `/portal/*` is 404. |
 
-Old URLs kept as `302` redirects (GET/HEAD only, `Extensions/LegacyRedirectExtensions.cs`): `/portal[/privacy\|/profile\|/request]` → same path without
-`/portal` (query kept); `/music/songs/{id}` → `/music/albums/{id}`; `/events/{id}/enrollment` → `/events/{id}?respond=1`;
-`/events/{id}/enrollments` → `/events/{id}#who-title`; `/member/events` → `/events`; `/member/gallery` → `/gallery`;
-`/member/roles` → `/roles`; `/member/profile` → `/profile`; `/member/map` → `/members/map`; `/hierarchy` →
-`/members/hierarchy`; `/members/manage` → `/members`; `/finance` → `/treasury`; `/finance/report/{id}` →
-`/treasury/reports/{id}`; `/calotes` → `/treasury/calotes` (keeps `fy`); `/mbway[/{id}]` → `/treasury/mbway`;
-`/nerba[/{id}]` → `/treasury/nerba`; `/nerba/event/{id}` → `/treasury/nerba/{id}`.
+There are no redirects for old addresses: any path not listed here answers `404` (`RetiredRoutesTests`).
 
 Shell-level APIs: `GET /api/account/me`, `GET /api/announcement`, `GET /api/public/antiforgery-token`,
 `POST /api/public/requests`, `GET /api/public/events/upcoming`, `GET /api/public/governance`.
