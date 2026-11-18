@@ -17,8 +17,8 @@ public partial class ShopApiTests
         var soldOut = await AddAsync($"{tag} Esgotado", "Pin", stock: 0);
         var memberOnly = await AddAsync($"{tag} Privado", "Roupa", isPublic: false);
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
-        var catalogue = await Json(anonymous, $"/api/shop?q={tag}");
+        await AreaHttp.WithTokenAsync(anonymous);
+        var catalogue = await AreaHttp.Json(anonymous, $"/api/shop?q={tag}");
         Names(catalogue).Should().Equal($"{tag} Esgotado", $"{tag} Visita");
         var products = catalogue.GetProperty("products").EnumerateArray().ToList();
         var card = products.Single(p => p.GetProperty("id").GetInt32() == id);
@@ -69,7 +69,7 @@ public partial class ShopApiTests
         await SetCreatedAsync(old, DateTime.UtcNow.AddYears(-2));
         var (member, _) = await SignInAsync("Member");
 
-        var shop = await Json(member, $"/api/shop?q={tag}");
+        var shop = await AreaHttp.Json(member, $"/api/shop?q={tag}");
         shop.GetProperty("fiscalYear").GetString().Should().Be(FiscalYearHelper.GetCurrentFiscalYearString(), "the old page opened on the current year");
         Names(shop).Should().Equal($"{tag} Beta", $"{tag} Zeta", $"{tag} Alfa");
         shop.GetProperty("canCreate").GetBoolean().Should().BeFalse();
@@ -83,10 +83,10 @@ public partial class ShopApiTests
         products[0].EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("id", "name", "type", "price", "stock", "isPublic", "imageUrl",
             "myReservation", "canReserve", "availableAllYears", "reservationCount");
 
-        Names(await Json(member, $"/api/shop?fiscalYear=&q={tag}")).Should().Contain($"{tag} Antigo", "Todos os anos");
-        Names(await Json(member, $"/api/shop?fiscalYear=&q={tag}&type=Roupa")).Should().Equal($"{tag} Alfa");
-        Names(await Json(member, $"/api/shop?q={tag.ToUpperInvariant()}%20b")).Should().Equal($"{tag} Beta");
-        (await Json(member, "/api/shop?fiscalYear=")).GetProperty("types").EnumerateArray().Select(t => t.GetString()).Should().Contain(new[] { "Album", "Roupa" });
+        Names(await AreaHttp.Json(member, $"/api/shop?fiscalYear=&q={tag}")).Should().Contain($"{tag} Antigo", "Todos os anos");
+        Names(await AreaHttp.Json(member, $"/api/shop?fiscalYear=&q={tag}&type=Roupa")).Should().Equal($"{tag} Alfa");
+        Names(await AreaHttp.Json(member, $"/api/shop?q={tag.ToUpperInvariant()}%20b")).Should().Equal($"{tag} Beta");
+        (await AreaHttp.Json(member, "/api/shop?fiscalYear=")).GetProperty("types").EnumerateArray().Select(t => t.GetString()).Should().Contain(new[] { "Album", "Roupa" });
         (await member.GetAsync("/api/shop?fiscalYear=1999-2000")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
@@ -102,7 +102,7 @@ public partial class ShopApiTests
         var previous = $"{current - 1}-{current}";
         await EnsureFiscalYearAsync(current - 1);
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         var yearly = await CreateAsync(admin, Input($"{tag} Sweat 2025", "Roupa"));
         var publicCd = await CreateAsync(admin, Input($"{tag} CD público", "Album") with { AvailableAllYears = true, IsPublic = true, Stock = 4 });
@@ -117,26 +117,26 @@ public partial class ShopApiTests
         (await ProductAsync(cd))!.AvailableAllYears.Should().BeTrue();
 
         var (member, _) = await SignInAsync("Member");
-        Names(await Json(member, $"/api/shop?q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} CD público");
-        Names(await Json(member, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} CD público", $"{tag} Sweat 2025");
-        Names(await Json(member, $"/api/shop?fiscalYear=&q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} CD público", $"{tag} Sweat 2025");
+        Names(await AreaHttp.Json(member, $"/api/shop?q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} CD público");
+        Names(await AreaHttp.Json(member, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} CD público", $"{tag} Sweat 2025");
+        Names(await AreaHttp.Json(member, $"/api/shop?fiscalYear=&q={tag}")).Should().Equal($"{tag} CD", $"{tag} CD antigo", $"{tag} CD público", $"{tag} Sweat 2025");
 
         var anonymous = Anonymous();
-        Names(await Json(anonymous, $"/api/shop?q={tag}")).Should().Equal($"{tag} CD público");
-        Names(await Json(anonymous, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().Equal($"{tag} CD público", $"{tag} Sweat 2025");
-        Names(await Json(anonymous, $"/api/shop?fiscalYear=&q={tag}")).Should().Equal($"{tag} CD público", $"{tag} Sweat 2025");
-        (await Json(anonymous, $"/api/shop?q={tag}")).GetProperty("products").EnumerateArray().Single()
+        Names(await AreaHttp.Json(anonymous, $"/api/shop?q={tag}")).Should().Equal($"{tag} CD público");
+        Names(await AreaHttp.Json(anonymous, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().Equal($"{tag} CD público", $"{tag} Sweat 2025");
+        Names(await AreaHttp.Json(anonymous, $"/api/shop?fiscalYear=&q={tag}")).Should().Equal($"{tag} CD público", $"{tag} Sweat 2025");
+        (await AreaHttp.Json(anonymous, $"/api/shop?q={tag}")).GetProperty("products").EnumerateArray().Single()
             .GetProperty("availableAllYears").GetBoolean().Should().BeTrue();
 
-        var cards = (await Json(member, $"/api/shop?q={tag}")).GetProperty("products").EnumerateArray().ToList();
+        var cards = (await AreaHttp.Json(member, $"/api/shop?q={tag}")).GetProperty("products").EnumerateArray().ToList();
         cards.Select(c => c.GetProperty("availableAllYears").GetBoolean()).Should().AllBeEquivalentTo(true);
         (cards[0].GetProperty("canReserve").GetBoolean(), cards[1].GetProperty("canReserve").GetBoolean())
             .Should().Be((true, false), "a sold-out product is still listed and not reservable, all years or not");
         (await ProductAsync(soldOut))!.IsAvailable.Should().BeFalse("availability still follows the stock");
 
-        var detail = await Json(member, $"/api/shop/products/{cd}");
+        var detail = await AreaHttp.Json(member, $"/api/shop/products/{cd}");
         (detail.GetProperty("availableAllYears").GetBoolean(), detail.GetProperty("fiscalYear").GetString()).Should().Be((true, previous));
-        (await Json(member, $"/api/shop/products/{yearly}")).GetProperty("availableAllYears").GetBoolean().Should().BeFalse();
+        (await AreaHttp.Json(member, $"/api/shop/products/{yearly}")).GetProperty("availableAllYears").GetBoolean().Should().BeFalse();
     }
 
     /// <summary>
@@ -151,9 +151,9 @@ public partial class ShopApiTests
         var previous = $"{current - 1}-{current}";
         await EnsureFiscalYearAsync(current - 1);
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var id = await CreateAsync(admin, Input($"{tag} CD", "Album"));
-        (await Json(admin, $"/api/shop/products/{id}")).GetProperty("fiscalYear").GetString()
+        (await AreaHttp.Json(admin, $"/api/shop/products/{id}")).GetProperty("fiscalYear").GetString()
             .Should().Be(FiscalYearHelper.GetCurrentFiscalYearString(), "a new product belongs to the year it is created in");
         await SetCreatedAsync(id, new DateTime(current - 1, 10, 1, 12, 0, 0, DateTimeKind.Utc));
 
@@ -161,15 +161,15 @@ public partial class ShopApiTests
         bool Listed(JsonElement shop) => Names(shop).Contains($"{tag} CD");
 
         (await PutAsync(Input($"{tag} CD", "Album") with { AvailableAllYears = true })).GetProperty("availableAllYears").GetBoolean().Should().BeTrue();
-        Listed(await Json(admin, $"/api/shop?q={tag}")).Should().BeTrue();
+        Listed(await AreaHttp.Json(admin, $"/api/shop?q={tag}")).Should().BeTrue();
 
         (await PutAsync(Input($"{tag} CD", "Album") with { Price = 12m })).GetProperty("availableAllYears").GetBoolean()
             .Should().BeTrue("an edit without the field keeps it");
 
         var off = await PutAsync(Input($"{tag} CD", "Album") with { AvailableAllYears = false, Price = 12m });
         (off.GetProperty("availableAllYears").GetBoolean(), off.GetProperty("fiscalYear").GetString()).Should().Be((false, previous));
-        Listed(await Json(admin, $"/api/shop?q={tag}")).Should().BeFalse("back to the year it was created in only");
-        Listed(await Json(admin, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().BeTrue();
+        Listed(await AreaHttp.Json(admin, $"/api/shop?q={tag}")).Should().BeFalse("back to the year it was created in only");
+        Listed(await AreaHttp.Json(admin, $"/api/shop?fiscalYear={previous}&q={tag}")).Should().BeTrue();
         (await ProductAsync(id))!.Price.Should().Be(12m);
     }
 
@@ -182,15 +182,15 @@ public partial class ShopApiTests
     {
         var tag = Tag();
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var cd = await CreateAsync(admin, Input($"{tag} CD", "Album") with { AvailableAllYears = true, IsPublic = false, Stock = 2 });
         var tee = await CreateAsync(admin, Input($"{tag} T-shirt", "Roupa") with { IsPublic = false, Stock = 2 });
         await SetCreatedAsync(cd, DateTime.UtcNow.AddYears(-2));
         var (member, me) = await SignInAsync("Member");
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         (await member.PostAsJsonAsync($"/api/shop/products/{cd}/reservations", new { hasSizes = true, size = "L" })).StatusCode.Should().Be(HttpStatusCode.OK);
-        var reservation = (await Json(admin, $"/api/shop/products/{cd}/reservations")).EnumerateArray().Single();
+        var reservation = (await AreaHttp.Json(admin, $"/api/shop/products/{cd}/reservations")).EnumerateArray().Single();
         (reservation.GetProperty("username").GetString(), reservation.GetProperty("size").GetString()).Should().Be((me.UserName, "L"));
         (await Json(await member.PostAsJsonAsync($"/api/shop/products/{tee}/reservations", new { hasSizes = false })))
             .GetProperty("username").GetString().Should().Be(me.UserName, "year-specific products reserve as before");
@@ -199,9 +199,9 @@ public partial class ShopApiTests
         {
             (await admin.PutAsJsonAsync($"/api/shop/products/{cd}", Input($"{tag} CD", "Album") with { AvailableAllYears = allYears, IsPublic = false, Stock = 2 }))
                 .StatusCode.Should().Be(HttpStatusCode.OK);
-            (await Json(admin, $"/api/shop/products/{cd}/reservations")).EnumerateArray().Single().GetRawText()
+            (await AreaHttp.Json(admin, $"/api/shop/products/{cd}/reservations")).EnumerateArray().Single().GetRawText()
                 .Should().Be(reservation.GetRawText(), "the reservation is the same whatever the option");
-            (await Json(member, $"/api/shop?fiscalYear=&q={tag}")).GetProperty("products").EnumerateArray()
+            (await AreaHttp.Json(member, $"/api/shop?fiscalYear=&q={tag}")).GetProperty("products").EnumerateArray()
                 .Single(p => p.GetProperty("id").GetInt32() == cd).GetProperty("myReservation").GetRawText().Should().Be(reservation.GetRawText());
         }
 

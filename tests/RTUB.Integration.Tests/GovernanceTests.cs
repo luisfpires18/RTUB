@@ -99,7 +99,7 @@ public class GovernanceTests : IntegrationTestBase
                 .Any(r => r.Template.StartsWith("/member/roles", StringComparison.OrdinalIgnoreCase) || r.Template.Equals("/roles", StringComparison.OrdinalIgnoreCase)))
             .Should().BeEmpty("no Blazor page owns Órgãos Sociais any more");
 
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "pages/Governance.tsx")).Should().Contain("<RgiDialog").And.Contain("<AssignDialog")
             .And.Contain("<RemoveDialog").And.Contain("<CreateYearDialog");
         File.ReadAllText(Path.Combine(src, "components/GovernanceManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
@@ -108,7 +108,7 @@ public class GovernanceTests : IntegrationTestBase
     [Fact]
     public void PortalLinks_PointAtTheReactRolesPage()
     {
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         var content = File.ReadAllText(Path.Combine(src, "data/content.ts"));
 
         content.Should().Contain("roles: '/roles'").And.NotContain("memberGovernance").And.NotContain("/member/roles",
@@ -150,16 +150,5 @@ public class GovernanceTests : IntegrationTestBase
         db.Users.Add(user);
         db.RoleAssignments.Add(RoleAssignment.Create(user.Id, position, startYear, startYear + 1, notes: PrivateNote));
         await db.SaveChangesAsync();
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

@@ -76,7 +76,7 @@ public partial class RehearsalsApiTests : IClassFixture<EventsApiFactory>
     {
         var id = await AddRehearsalAsync(NextDay(past: false));
         var (member, me) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var going = await member.PutAsJsonAsync($"/api/rehearsals/{id}/attendance", new { willAttend = true, instrument = (string?)null, notes = "Levo a viola" });
         going.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -101,7 +101,7 @@ public partial class RehearsalsApiTests : IClassFixture<EventsApiFactory>
         var past = await AddRehearsalAsync(NextDay(past: true));
         var cancelled = await AddRehearsalAsync(NextDay(past: false), cancelled: true);
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         (await member.PutAsJsonAsync($"/api/rehearsals/{upcoming}/attendance", new { willAttend = true, instrument = "Trombone", notes = "" }))
             .StatusCode.Should().Be(HttpStatusCode.BadRequest, "an instrument the page did not offer");
@@ -195,17 +195,5 @@ public partial class RehearsalsApiTests : IClassFixture<EventsApiFactory>
         return CookieTestSession.SignInAsync(_factory, $"reh{Guid.NewGuid():N}"[..20], $"10.75.{n / 250}.{n % 250 + 1}", role);
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.76.0.1");
-        return client;
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.76.0.1");
 }

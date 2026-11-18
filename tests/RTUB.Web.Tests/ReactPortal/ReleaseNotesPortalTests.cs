@@ -9,7 +9,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class ReleaseNotesPortalTests
 {
-    private static readonly string Src = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src");
+    private static readonly string Src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Src, file));
 
@@ -51,16 +51,5 @@ public class ReleaseNotesPortalTests
         dialog.Should().NotContain("dangerouslySetInnerHTML").And.NotContain("innerHTML");
         dialog.Should().Contain("const [first, ...older] = notes;").And.Contain("Desde a última vez que viste as novidades:")
             .And.Contain("Entendido").And.Contain("<Dialog");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

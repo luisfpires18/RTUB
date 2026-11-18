@@ -15,7 +15,7 @@ public partial class MemberAdminApiTests
     public async Task Edit_KeepsTheUsername_RefusesOwnPadrinho_AndReturnsOnlyTheFormFields()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var mentor = await AddAsync(MemberCategory.Tuno, yearTuno: 2001);
         var member = await AddAsync(MemberCategory.Caloiro);
 
@@ -36,7 +36,7 @@ public partial class MemberAdminApiTests
         (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("mentorName").GetString().Should().Contain(mentor.Nickname);
 
         var own = await admin.PutAsJsonAsync($"/api/members/{member.Id}", update with { MentorId = member.Id });
-        (await Errors(own))["mentorId"].Single().Should().Be("Um utilizador não pode ser o seu próprio padrinho.");
+        (await AreaHttp.Errors(own))["mentorId"].Single().Should().Be("Um utilizador não pode ser o seu próprio padrinho.");
         (await admin.PutAsJsonAsync("/api/members/no-such-member", update)).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -46,7 +46,7 @@ public partial class MemberAdminApiTests
         var member = await AddAsync(MemberCategory.Tuno, yearTuno: 2015);
         await SetDatesAsync(member.Id, leitao: (2013, 10), caloiro: (2014, null));
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var change = Valid("Tuno", member.Nickname, member.Email) with
         {
             YearLeitao = 2012, MonthLeitao = 1, YearCaloiro = 2014, MonthCaloiro = 4, YearTuno = 2016, MonthTuno = 2,
@@ -62,14 +62,14 @@ public partial class MemberAdminApiTests
         (afterAdmin.YearTuno, afterAdmin.MonthTuno).Should().Be((2015, 1));
 
         var (magister, magisterUser) = await SignInAsync("Admin");
-        await WithTokenAsync(magister);
+        await AreaHttp.WithTokenAsync(magister);
         await AddMagisterAsync(magisterUser.Id);
         (await magister.PutAsJsonAsync($"/api/members/{member.Id}", change)).StatusCode.Should().Be(HttpStatusCode.OK);
         var afterMagister = (await UserAsync(member.Id))!;
         (afterMagister.YearLeitao, afterMagister.YearTuno).Should().Be((2012, 2016), "the current Magister may correct dates");
 
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         (await owner.GetFromJsonAsync<JsonElement>($"/api/members/{member.Id}/edit")).GetProperty("lockedDates").GetProperty("leitao").GetBoolean().Should().BeFalse();
         (await owner.PutAsJsonAsync($"/api/members/{member.Id}", change with { YearLeitao = 2011 })).StatusCode.Should().Be(HttpStatusCode.OK);
         (await UserAsync(member.Id))!.YearLeitao.Should().Be(2011);
@@ -79,7 +79,7 @@ public partial class MemberAdminApiTests
     public async Task Instruments_FirstIsPrimary_NoDuplicates_RemovingThePrimaryPromotesTheNext()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var member = await AddAsync(MemberCategory.Tuno);
         var other = await AddAsync(MemberCategory.Tuno);
 
@@ -107,14 +107,14 @@ public partial class MemberAdminApiTests
     public async Task Nickname_IsForLeitoes_ChangesTheUsername_AndEmailsTheMember()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var leitao = await AddAsync(MemberCategory.Leitao);
         var tuno = await AddAsync(MemberCategory.Tuno);
         var nickname = "Bacorinho " + Unique();
 
         (await admin.PutAsJsonAsync($"/api/members/{tuno.Id}/nickname", new { nickname })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await admin.PutAsJsonAsync($"/api/members/{leitao.Id}/nickname", new { nickname = "" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await Errors(await admin.PutAsJsonAsync($"/api/members/{leitao.Id}/nickname", new { nickname = tuno.Nickname })))["nickname"]
+        (await AreaHttp.Errors(await admin.PutAsJsonAsync($"/api/members/{leitao.Id}/nickname", new { nickname = tuno.Nickname })))["nickname"]
             .Single().Should().StartWith("Já existe um utilizador com o username");
 
         (await admin.PutAsJsonAsync($"/api/members/{leitao.Id}/nickname", new { nickname })).StatusCode.Should().Be(HttpStatusCode.NoContent);

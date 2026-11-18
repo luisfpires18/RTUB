@@ -108,8 +108,8 @@ public partial class ReactLoginTests
     [Fact]
     public void LoginPage_IsMembersOnly_WithNoSignUpPath_AndKeepsPasswordRecovery()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src", "pages/Login.tsx"));
-        var content = File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src", "data/content.ts"));
+        var source = File.ReadAllText(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src", "pages/Login.tsx"));
+        var content = File.ReadAllText(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src", "data/content.ts"));
 
         source.Should().Contain("Não há registo público").And.Contain("criadas e geridas pela própria tuna")
             .And.Contain("O portal é aberto a todos");

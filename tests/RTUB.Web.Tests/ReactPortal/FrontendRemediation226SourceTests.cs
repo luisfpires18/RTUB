@@ -9,7 +9,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class FrontendRemediation226SourceTests
 {
-    private static readonly string Root = GetProjectRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Web = Path.Combine(Root, "src", "RTUB.Web");
     private static readonly string Src = Path.Combine(Web, "portal", "src");
     private static readonly string Assets = Path.Combine(Web, "wwwroot", "portal", "assets");
@@ -91,16 +91,5 @@ public class FrontendRemediation226SourceTests
         new FileInfo(Path.Combine(Web, "wwwroot", "icons", "rtub-logo-192.png")).Length.Should().BeLessThan(32 * 1024);
         File.ReadAllText(Path.Combine(Root, "src", "RTUB.Application", "Services", "MessagingService.cs"))
             .Should().Contain("public const string GroupAvatar = \"/icons/rtub-logo-352.webp\";");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

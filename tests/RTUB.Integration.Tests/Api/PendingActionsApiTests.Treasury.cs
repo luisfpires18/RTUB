@@ -21,9 +21,9 @@ public partial class PendingActionsApiTests
         var (first, _) = await SignInAsync([MemberCategory.Tuno], retired: false, role: "Admin", positions: [Position.PrimeiroTesoureiro]);
         var (second, _) = await SignInAsync([MemberCategory.Tuno], retired: false, role: "Admin", positions: [Position.SegundoTesoureiro]);
         var (admin, _) = await SignInAsync([MemberCategory.Tuno], retired: false, role: "Admin");
-        await WithTokenAsync(first);
-        await WithTokenAsync(second);
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(first);
+        await AreaHttp.WithTokenAsync(second);
+        await AreaHttp.WithTokenAsync(admin);
 
         var row = (await PanelAsync(first, "treasury", "open")).GetProperty("rows").EnumerateArray().Single();
         row.GetProperty("required").GetBoolean().Should().BeTrue();
@@ -55,8 +55,8 @@ public partial class PendingActionsApiTests
         var reportId = await EnsureCurrentReportAsync();
         var (first, firstUser) = await SignInAsync([MemberCategory.Tuno], retired: false, role: "Admin", positions: [Position.PrimeiroTesoureiro]);
         var (second, _) = await SignInAsync([MemberCategory.Tuno], retired: false, role: "Admin", positions: [Position.SegundoTesoureiro]);
-        await WithTokenAsync(first);
-        await WithTokenAsync(second);
+        await AreaHttp.WithTokenAsync(first);
+        await AreaHttp.WithTokenAsync(second);
         var begun = await AddEventAsync(-1);
         var another = await AddEventAsync(-1);
         var future = await AddEventAsync(NextDay());
@@ -102,7 +102,7 @@ public partial class PendingActionsApiTests
             "1 September: yesterday is in the previous fiscal year");
         await EnsureCurrentReportAsync();
         var (treasurer, _) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.PrimeiroTesoureiro]);
-        await WithTokenAsync(treasurer);
+        await AreaHttp.WithTokenAsync(treasurer);
         var e = await AddEventAsync(-1);
 
         (await AllKeysAsync(treasurer, "treasury", "open")).Should().Contain($"event:{e}", "the mandate shows the work");

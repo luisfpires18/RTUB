@@ -119,21 +119,10 @@ public class ProductionBucketGuardTests
     public void CommittedAppSettings_StillPairBucketWithProductionBucket()
     {
         var configuration = new ConfigurationBuilder()
-            .AddJsonFile(Path.Combine(RepositoryRoot(), "src", "RTUB.Web", "appsettings.json"))
+            .AddJsonFile(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "appsettings.json"))
             .Build();
 
         configuration["Cloudflare:R2:ProductionBucket"].Should().NotBeNullOrWhiteSpace();
         configuration["Cloudflare:R2:ProductionBucket"].Should().Be(configuration["Cloudflare:R2:Bucket"]);
-    }
-
-    private static string RepositoryRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

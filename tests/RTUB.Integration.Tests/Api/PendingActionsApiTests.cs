@@ -193,11 +193,4 @@ public partial class PendingActionsApiTests : IClassFixture<EventsApiFactory>
         client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, $"10.82.{n / 250}.{n % 250 + 1}");
         return client;
     }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
 }

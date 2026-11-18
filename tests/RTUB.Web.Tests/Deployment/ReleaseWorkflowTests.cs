@@ -15,7 +15,7 @@ namespace RTUB.Web.Tests.Deployment;
 /// </summary>
 public partial class ReleaseWorkflowTests
 {
-    private static readonly string Root = FindRepositoryRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Workflows = Path.Combine(Root, ".github", "workflows");
 
     private static string Ci => Read(".github/workflows/ci.yml");
@@ -256,16 +256,5 @@ public partial class ReleaseWorkflowTests
         var rest = jobs[(start.Index + start.Length)..];
         var next = Regex.Match(rest, @"(?m)^  [A-Za-z0-9_-]+:\n");
         return next.Success ? rest[..next.Index] : rest;
-    }
-
-    private static string FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, ".github")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

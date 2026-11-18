@@ -11,7 +11,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class MemberShellTests
 {
-    private static readonly string Root = GetProjectRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Src = Path.Combine(Root, "src", "RTUB.Web", "portal", "src");
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Src, file)).Replace("\r\n", "\n");
@@ -223,15 +223,4 @@ public class MemberShellTests
         Regex.Matches(Read("components/MemberShell.tsx"), @"\{ href: ((?:portal|blazor)\.\w+), label: '[^']+'.*?\}")
             .Select(m => (m.Groups[1].Value, m.Value))
             .ToList();
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
-    }
 }

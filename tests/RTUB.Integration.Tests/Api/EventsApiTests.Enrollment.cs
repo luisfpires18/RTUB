@@ -15,7 +15,7 @@ public partial class EventsApiTests
     {
         var seed = await SeedAsync();
         var visitor = Anonymous();
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
 
         (await visitor.GetAsync($"/api/events/{seed.Open}/enrollment")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await visitor.PutAsJsonAsync($"/api/events/{seed.Open}/enrollment", Answer(true))).StatusCode
@@ -44,7 +44,7 @@ public partial class EventsApiTests
     {
         var seed = await SeedAsync();
         var (member, user) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var going = await member.PutAsJsonAsync($"/api/events/{seed.Open}/enrollment", Answer(true, notes: "levo capa"));
         going.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -64,7 +64,7 @@ public partial class EventsApiTests
     {
         var seed = await SeedAsync();
         var (member, user) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var response = await member.PutAsJsonAsync($"/api/events/{seed.Open}/enrollment", Answer(true, instrument: "Violino"));
 
@@ -78,7 +78,7 @@ public partial class EventsApiTests
     {
         var seed = await SeedAsync();
         var (member, user) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         (await member.PutAsJsonAsync($"/api/events/{seed.Cancelled}/enrollment", Answer(true))).StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await member.PutAsJsonAsync($"/api/events/{seed.Past}/enrollment", Answer(true))).StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -91,7 +91,7 @@ public partial class EventsApiTests
         var seed = await SeedAsync();
         var (member, user) = await SignInAsync();
         await AddEnrollmentAsync(seed.Past, user.Id, willAttend: true);
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var response = await member.DeleteAsync($"/api/events/{seed.Past}/enrollment");
 
@@ -104,7 +104,7 @@ public partial class EventsApiTests
     {
         var seed = await SeedAsync();
         var visitor = Anonymous();
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
 
         (await visitor.PostAsync($"/api/events/videos/{seed.Video}/plays", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await visitor.PostAsync("/api/events/videos/987654/plays", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);

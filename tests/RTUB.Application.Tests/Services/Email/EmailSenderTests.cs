@@ -20,22 +20,6 @@ public class EmailSenderTests
     }
 
     [Fact]
-    public void Constructor_CanBeInstantiated()
-    {
-        // Arrange
-        var configValues = new Dictionary<string, string?>();
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(configValues)
-            .Build();
-
-        // Act
-        var emailSender = new EmailSender(_mockLogger.Object, config);
-
-        // Assert
-        emailSender.Should().NotBeNull();
-    }
-
-    [Fact]
     public async Task SendEmailAsync_WithoutSenderEmail_ReturnsWithoutSending()
     {
         // Arrange

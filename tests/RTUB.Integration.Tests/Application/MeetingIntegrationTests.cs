@@ -143,31 +143,6 @@ public partial class MeetingIntegrationTests : IDisposable
         return user.Id;
     }
 
-    private async Task<string> CreateTestUserWithPosition(string nickname, Position position)
-    {
-        var now = DateTime.Now;
-        var user = new ApplicationUser
-        {
-            Id = Guid.NewGuid().ToString(),
-            UserName = $"{nickname}@test.com",
-            Email = $"{nickname}@test.com",
-            FirstName = "Test",
-            LastName = "User",
-            Nickname = nickname,
-            PhoneNumber = "123456789",
-            EmailConfirmed = true,
-            Subscribed = true,
-            YearTuno = now.Year - 3,
-            MonthTuno = now.Month,
-            Categories = new List<MemberCategory> { MemberCategory.Tuno, MemberCategory.Veterano },
-            Positions = new List<Position> { position }
-        };
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        return user.Id;
-    }
-
     private async Task<List<ApplicationUser>> CreateTestUsersForEmailFiltering()
     {
         var users = new List<ApplicationUser>();

@@ -102,7 +102,7 @@ public partial class EventsApiTests
         var pastSurpriseId = await AddEventAsync("Surpresa antiga #227", DateTime.Today.AddDays(-5), isPublic: false);
         var surpriseVideo = await AddEventVideoAsync(pastSurpriseId, "Vídeo da surpresa", 1);
         var visitor = Anonymous();
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
 
         var agenda = await visitor.GetAsync("/api/events");
         var raw = await agenda.Content.ReadAsStringAsync();
@@ -131,7 +131,7 @@ public partial class EventsApiTests
         var surpriseId = await AddEventAsync("Serenata secreta #227", DateTime.Today.AddDays(3).AddHours(21), isPublic: false);
         var publicId = await AddEventAsync("Arraial aberto #227", DateTime.Today.AddDays(4).AddHours(21));
         var (member, user) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var agenda = await member.GetFromJsonAsync<JsonElement>("/api/events");
         var upcoming = agenda.GetProperty("upcoming").EnumerateArray().ToList();
@@ -150,7 +150,7 @@ public partial class EventsApiTests
     public async Task AnAdmin_CreatesAMembersOnlyEvent_AndCanMakeItPublicLater()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var visitor = Anonymous();
 
         var created = await admin.PostAsJsonAsync("/api/events", NewEvent("Surpresa do admin #227", membersOnly: true));
@@ -176,7 +176,7 @@ public partial class EventsApiTests
     public async Task ANewEvent_IsPublic_WhenPrivacyIsNotChosen()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         var created = await admin.PostAsJsonAsync("/api/events", NewEvent("Sem escolha de privacidade #227"));
 
@@ -192,7 +192,7 @@ public partial class EventsApiTests
     public async Task Visibility_OnCreateDefaultsToPublic_AndOnUpdateChangesOnlyWhenSentExplicitly()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var visitor = Anonymous();
 
         async Task<int> CreateAsync(object body)

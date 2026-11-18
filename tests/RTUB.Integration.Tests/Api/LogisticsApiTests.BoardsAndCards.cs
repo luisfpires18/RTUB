@@ -17,12 +17,12 @@ public partial class LogisticsApiTests
         var eventId = await AddEventAsync("Arraial de teste");
         var (owner, _) = await SignInAsync("Owner");
         (await owner.PostAsJsonAsync("/api/logistics/boards", new { name = "x" })).StatusCode.Should().Be(HttpStatusCode.BadRequest, "every write needs the antiforgery token");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
 
-        (await Errors(await owner.PostAsJsonAsync("/api/logistics/boards", new { name = " " }))).Keys.Should().Equal("name");
-        (await Errors(await owner.PostAsJsonAsync("/api/logistics/boards", new { name = new string('n', 201) }))).Keys.Should().Equal("name");
-        (await Errors(await owner.PostAsJsonAsync("/api/logistics/boards", new { name = "ok", description = new string('d', 2001) }))).Keys.Should().Equal("description");
-        (await Errors(await owner.PostAsJsonAsync("/api/logistics/boards", new { name = "ok", eventId = 999999 }))).Keys.Should().Equal("eventId");
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/logistics/boards", new { name = " " }))).Keys.Should().Equal("name");
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/logistics/boards", new { name = new string('n', 201) }))).Keys.Should().Equal("name");
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/logistics/boards", new { name = "ok", description = new string('d', 2001) }))).Keys.Should().Equal("description");
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/logistics/boards", new { name = "ok", eventId = 999999 }))).Keys.Should().Equal("eventId");
 
         var tag = Tag();
         var created = await owner.PostAsJsonAsync("/api/logistics/boards", new { name = $" {tag} Jantar ", description = "Mesa", eventId });
@@ -31,12 +31,12 @@ public partial class LogisticsApiTests
         var id = board.GetProperty("id").GetInt32();
         board.GetProperty("name").GetString().Should().Be($"{tag} Jantar");
         board.GetProperty("event").GetProperty("name").GetString().Should().Be("Arraial de teste");
-        (await Json(owner, $"/api/logistics/events?q=arraial%20de")).EnumerateArray().Select(e => e.GetProperty("id").GetInt32()).Should().Contain(eventId);
+        (await AreaHttp.Json(owner, $"/api/logistics/events?q=arraial%20de")).EnumerateArray().Select(e => e.GetProperty("id").GetInt32()).Should().Contain(eventId);
 
         (await Json(await owner.PutAsJsonAsync($"/api/logistics/boards/{id}", new { name = $"{tag} Jantar 2", description = "", eventId = (int?)null })))
             .GetProperty("event").ValueKind.Should().Be(JsonValueKind.Null);
         (await Json(await owner.PostAsJsonAsync($"/api/logistics/boards/{id}/state", new { completed = true }))).GetProperty("isCompleted").GetBoolean().Should().BeTrue();
-        var listed = await Json(owner, $"/api/logistics?q={tag}");
+        var listed = await AreaHttp.Json(owner, $"/api/logistics?q={tag}");
         listed.GetProperty("active").GetArrayLength().Should().Be(0);
         listed.GetProperty("completed").EnumerateArray().Single().GetProperty("completedAt").ValueKind.Should().NotBe(JsonValueKind.Null);
         (await Json(await owner.PostAsJsonAsync($"/api/logistics/boards/{id}/state", new { completed = false }))).GetProperty("completedAt").ValueKind.Should().Be(JsonValueKind.Null);
@@ -54,37 +54,37 @@ public partial class LogisticsApiTests
         var (boardId, _, _) = await SeedBoardAsync(cards: 0);
         var (_, other) = await SignInAsync();
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
-        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/boards/{boardId}/lists", new { name = new string('l', 101) }))).Keys.Should().Equal("name");
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync($"/api/logistics/boards/{boardId}/lists", new { name = new string('l', 101) }))).Keys.Should().Equal("name");
         var b = (await Json(await mod.PostAsJsonAsync($"/api/logistics/boards/{boardId}/lists", new { name = " B " }))).GetProperty("id").GetInt32();
         (await Json(await mod.PutAsJsonAsync($"/api/logistics/lists/{b}", new { name = "Compras" }))).GetProperty("name").GetString().Should().Be("Compras");
-        Names(await Json(mod, $"/api/logistics/boards/{boardId}")).Should().Equal(new[] { "Material", "Compras" }, "new lists go last");
+        Names(await AreaHttp.Json(mod, $"/api/logistics/boards/{boardId}")).Should().Equal(new[] { "Material", "Compras" }, "new lists go last");
         (await mod.PostAsJsonAsync($"/api/logistics/lists/{b}/move", new { position = 0 })).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        Names(await Json(mod, $"/api/logistics/boards/{boardId}")).Should().Equal("Compras", "Material");
+        Names(await AreaHttp.Json(mod, $"/api/logistics/boards/{boardId}")).Should().Equal("Compras", "Material");
 
-        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/lists/{b}/cards", new { title = "" }))).Keys.Should().Equal("title");
-        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/lists/{b}/cards", new { title = "x", assignedToUserId = "nobody" }))).Keys.Should().Equal("assignedToUserId");
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync($"/api/logistics/lists/{b}/cards", new { title = "" }))).Keys.Should().Equal("title");
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync($"/api/logistics/lists/{b}/cards", new { title = "x", assignedToUserId = "nobody" }))).Keys.Should().Equal("assignedToUserId");
         var created = await Json(await mod.PostAsJsonAsync($"/api/logistics/lists/{b}/cards", new { title = " Pratos ", description = "40", assignedToUserId = other.Id }));
         var id = created.GetProperty("card").GetProperty("id").GetInt32();
         created.GetProperty("card").GetProperty("status").GetString().Should().Be("Todo");
         created.GetProperty("assignedTo").GetProperty("userId").GetString().Should().Be(other.Id, "managers need the id to change it");
 
-        (await Errors(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}", new { title = "Pratos", startDate = "04/10/2026" }))).Keys.Should().Equal("startDate");
+        (await AreaHttp.Errors(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}", new { title = "Pratos", startDate = "04/10/2026" }))).Keys.Should().Equal("startDate");
         var updated = await Json(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}", new { title = "Pratos fundos", description = "50", startDate = "2026-10-04", dueDate = "2026-10-10", version = 0 }));
         updated.GetProperty("card").GetProperty("dueDate").GetString().Should().StartWith("2026-10-10");
         updated.GetProperty("assignedTo").ValueKind.Should().Be(JsonValueKind.Null, "an empty assignee clears it, as the old form");
 
-        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/status", new { status = "7" }))).Keys.Should().Equal("status");
-        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/status", new { status = "InProgress" }))).Keys.Should().Equal(new[] { "status" },
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/status", new { status = "7" }))).Keys.Should().Equal("status");
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/status", new { status = "InProgress" }))).Keys.Should().Equal(new[] { "status" },
             "067: no WIP column on this board, so the status cannot disagree with a column");
         var wip = (await Json(await mod.PostAsJsonAsync($"/api/logistics/boards/{boardId}/lists", new { name = "Em curso", state = "InProgress" }))).GetProperty("id").GetInt32();
         (await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/status", new { status = "InProgress" }))).GetProperty("card").GetProperty("status").GetString().Should().Be("InProgress");
         (await CardAsync(id))!.ListId.Should().Be(wip, "a status change is a move to the column with that state");
 
-        (await Errors(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}/labels", new { labels = new[] { new { text = "x", color = "red" } } }))).Keys.Should().Equal("labels");
+        (await AreaHttp.Errors(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}/labels", new { labels = new[] { new { text = "x", color = "red" } } }))).Keys.Should().Equal("labels");
         await Json(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}/labels", new { labels = new[] { new { text = " Urgente ", color = "#FF0000" } } }));
-        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/checklist", new { task = " " }))).Keys.Should().Equal("task");
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/checklist", new { task = " " }))).Keys.Should().Equal("task");
         await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/checklist", new { task = " Lavar " }));
         await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/checklist", new { task = "Contar" }));
         await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/checklist/0", new { task = "Lavar", done = true }));
@@ -92,24 +92,24 @@ public partial class LogisticsApiTests
         stored!.Labels.Should().Be("[{\"Id\":0,\"Text\":\"Urgente\",\"Color\":\"#ff0000\"}]", "the old page's JSON shape");
         stored.ChecklistJson.Should().Be("[{\"Id\":0,\"Task\":\"Lavar\",\"Done\":true},{\"Id\":0,\"Task\":\"Contar\",\"Done\":false}]");
 
-        var face = Card(await Json(mod, $"/api/logistics/boards/{boardId}"), id);
+        var face = Card(await AreaHttp.Json(mod, $"/api/logistics/boards/{boardId}"), id);
         (face.GetProperty("checklistDone").GetInt32(), face.GetProperty("checklistTotal").GetInt32()).Should().Be((1, 2));
-        (await Json(mod, $"/api/logistics/boards/{boardId}")).GetProperty("labels").EnumerateArray().Select(l => l.GetString()).Should().Equal("Urgente");
+        (await AreaHttp.Json(mod, $"/api/logistics/boards/{boardId}")).GetProperty("labels").EnumerateArray().Select(l => l.GetString()).Should().Equal("Urgente");
 
         var sibling = (await Json(await mod.PostAsJsonAsync($"/api/logistics/lists/{b}/cards", new { title = "Copos" }))).GetProperty("card").GetProperty("id").GetInt32();
         var (_, _, foreign) = await SeedBoardAsync();
-        (await Errors(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}/links", new { cardIds = new[] { foreign } }))).Keys.Should().Equal("cardIds");
-        (await Errors(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}/links", new { cardIds = new[] { id } }))).Keys.Should().Equal("cardIds");
+        (await AreaHttp.Errors(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}/links", new { cardIds = new[] { foreign } }))).Keys.Should().Equal("cardIds");
+        (await AreaHttp.Errors(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}/links", new { cardIds = new[] { id } }))).Keys.Should().Equal("cardIds");
         (await Json(await mod.PutAsJsonAsync($"/api/logistics/cards/{id}/links", new { cardIds = new[] { sibling } }))).GetProperty("links").EnumerateArray().Single()
             .GetProperty("name").GetString().Should().Be("Copos");
 
         (await Json(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/assignments", new { userId = other.Id }))).GetProperty("assignments").GetArrayLength().Should().Be(1);
-        (await Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/assignments", new { userId = other.Id })))["userId"].Single()
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync($"/api/logistics/cards/{id}/assignments", new { userId = other.Id })))["userId"].Single()
             .Should().Be("Utilizador já está atribuído a este cartão");
         (await Json(await mod.DeleteAsync($"/api/logistics/cards/{id}/assignments/{other.Id}"))).GetProperty("assignments").GetArrayLength().Should().Be(0);
 
         (await mod.DeleteAsync($"/api/logistics/cards/{sibling}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await Errors(await mod.DeleteAsync($"/api/logistics/lists/{wip}"))).Keys.Should().Equal(new[] { "moveTo" }, "067: a column never takes its cards with it");
+        (await AreaHttp.Errors(await mod.DeleteAsync($"/api/logistics/lists/{wip}"))).Keys.Should().Equal(new[] { "moveTo" }, "067: a column never takes its cards with it");
         (await mod.DeleteAsync($"/api/logistics/lists/{wip}?moveTo={b}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
         var moved = (await CardAsync(id))!;
         (moved.ListId, moved.Status).Should().Be((b, CardStatus.Todo), "the cards go to the chosen column and take its state");
@@ -128,7 +128,7 @@ public partial class LogisticsApiTests
         var (_, _, foreign) = await SeedBoardAsync();
         var foreignList = (await CardAsync(foreign))!.ListId;
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         (await admin.PostAsJsonAsync($"/api/logistics/cards/{first}/move", new { listId = to, position = 5 })).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await PositionsAsync(to)).Should().Equal((first, 0));
@@ -136,9 +136,9 @@ public partial class LogisticsApiTests
 
         (await admin.PostAsJsonAsync($"/api/logistics/cards/{cards[2]}/move", new { listId = to, position = 0 })).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await PositionsAsync(to)).Should().Equal((cards[2], 0), (first, 1));
-        Card(await Json(admin, $"/api/logistics/boards/{boardId}"), cards[2]).GetProperty("id").GetInt32().Should().Be(cards[2]);
+        Card(await AreaHttp.Json(admin, $"/api/logistics/boards/{boardId}"), cards[2]).GetProperty("id").GetInt32().Should().Be(cards[2]);
 
-        (await Errors(await admin.PostAsJsonAsync($"/api/logistics/cards/{first}/move", new { listId = foreignList, position = 0 }))).Keys.Should().Equal("listId");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync($"/api/logistics/cards/{first}/move", new { listId = foreignList, position = 0 }))).Keys.Should().Equal("listId");
         (await CardAsync(first))!.ListId.Should().Be(to);
     }
 
@@ -158,9 +158,9 @@ public partial class LogisticsApiTests
         _factory.Storage.Put($"docs/Test/{previous}/Logistics/{legacy}/antigo.pdf", 10);
         _factory.Storage.Put($"docs/Test/{current}/Logistics/{legacy}/recente.pdf", 20);
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
-        (await Errors(await mod.PostAsync($"/api/logistics/boards/{boardId}/files", File("x.exe", "application/x-msdownload")))).Keys.Should().Equal("file");
+        (await AreaHttp.Errors(await mod.PostAsync($"/api/logistics/boards/{boardId}/files", File("x.exe", "application/x-msdownload")))).Keys.Should().Equal("file");
         var uploaded = await Json(await mod.PostAsync($"/api/logistics/boards/{boardId}/files", File(@"..\..\orcamento.pdf")));
         uploaded.GetProperty("name").GetString().Should().Be("orcamento.pdf");
         var key = $"docs/Test/{current}/Logistics/{legacy}/orcamento.pdf";
@@ -170,18 +170,18 @@ public partial class LogisticsApiTests
         _factory.Storage.Objects[$"docs/Test/{current}/Logistics/{legacy}/recente.pdf"].Size.Should().Be(20);
 
         var (member, _) = await SignInAsync();
-        var files = (await Json(member, $"/api/logistics/boards/{boardId}/file-list")).EnumerateArray()
+        var files = (await AreaHttp.Json(member, $"/api/logistics/boards/{boardId}/file-list")).EnumerateArray()
             .Select(f => (f.GetProperty("id").GetString(), f.GetProperty("name").GetString(), f.GetProperty("year").GetString())).ToList();
         files.Should().Equal(("f:orcamento.pdf", "orcamento.pdf", null), ("f:recente (2).pdf", "recente (2).pdf", null),
             ("f:recente.pdf", "recente.pdf", null), ($"l:{previous}/antigo.pdf", "antigo.pdf", previous));
         (await member.GetStringAsync($"/api/logistics/boards/{boardId}?files=false")).Should().NotContain("docs/").And.NotContain("logistics/Test");
 
-        (await Json(member, $"/api/logistics/boards/{boardId}/files?file={Uri.EscapeDataString($"l:{previous}/antigo.pdf")}")).GetProperty("url").GetString()
+        (await AreaHttp.Json(member, $"/api/logistics/boards/{boardId}/files?file={Uri.EscapeDataString($"l:{previous}/antigo.pdf")}")).GetProperty("url").GetString()
             .Should().Be($"https://r2.test/docs/Test/{previous}/Logistics/{legacy}/antigo.pdf?download=True");
-        (await Json(member, $"/api/logistics/boards/{boardId}/files?name=orcamento.pdf")).GetProperty("url").GetString().Should().Contain(key, "?name= still works");
+        (await AreaHttp.Json(member, $"/api/logistics/boards/{boardId}/files?name=orcamento.pdf")).GetProperty("url").GetString().Should().Contain(key, "?name= still works");
         (await member.GetAsync($"/api/logistics/boards/{boardId}/files?file=l:{previous}/..%2F..%2Fsegredo.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await member.GetAsync($"/api/logistics/boards/{boardId}/files?file=f:nada.pdf")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         (await member.DeleteAsync($"/api/logistics/boards/{boardId}/files?file=f:orcamento.pdf")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         (await mod.DeleteAsync($"/api/logistics/boards/{boardId}/files?file=f:orcamento.pdf")).StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -200,9 +200,9 @@ public partial class LogisticsApiTests
             c.SetChecklist("not json");
         });
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
 
-        var face = Card(await Json(owner, $"/api/logistics/boards/{boardId}"), cardId);
+        var face = Card(await AreaHttp.Json(owner, $"/api/logistics/boards/{boardId}"), cardId);
         face.GetProperty("labels").EnumerateArray().Select(l => l.GetProperty("text").GetString()).Should().Equal("Compras", "Urgente");
         face.GetProperty("description").GetString().Should().Be("Visível");
         face.GetProperty("checklistTotal").GetInt32().Should().Be(0);

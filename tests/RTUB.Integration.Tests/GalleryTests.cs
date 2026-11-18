@@ -110,7 +110,7 @@ public class GalleryTests : IntegrationTestBase
         (await client.PostAsync("/member/gallery", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         typeof(RTUB.Program).Assembly.GetType("RTUB.Pages.Members.MemberGallery").Should().BeNull("the Blazor management page was retired");
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "pages/Gallery.tsx")).Should().Contain("<UploadDialog").And.Contain("<EditDialog").And.Contain("open.canEdit");
         File.ReadAllText(Path.Combine(src, "components/GalleryManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
     }
@@ -118,7 +118,7 @@ public class GalleryTests : IntegrationTestBase
     [Fact]
     public void PortalLinks_PointAtTheReactGallery()
     {
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
 
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("gallery: '/gallery'")
             .And.NotContain("memberGallery", "nothing links to the retired /member/gallery (015)");
@@ -197,16 +197,5 @@ public class GalleryTests : IntegrationTestBase
         }));
         login.StatusCode.Should().Be(HttpStatusCode.Redirect);
         return client;
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

@@ -14,7 +14,7 @@ public partial class NewsApiTests
     {
         var id = await AddAsync($"{Tag()} intocável", "Fica igual.", DateTime.UtcNow, null);
         var client = role is null ? Anonymous() : (await SignInAsync(role)).Client;
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
         var expected = role is null ? HttpStatusCode.Unauthorized : HttpStatusCode.Forbidden;
 
         (await client.PostAsJsonAsync("/api/news", Input("Novo", "Texto", publish: true))).StatusCode.Should().Be(expected);
@@ -28,7 +28,7 @@ public partial class NewsApiTests
         post.Title.Should().EndWith("intocável");
         post.PublishedAt.Should().NotBeNull();
 
-        var feed = await Json(client, "/api/news");
+        var feed = await AreaHttp.Json(client, "/api/news");
         feed.GetProperty("canManage").GetBoolean().Should().BeFalse();
         feed.GetProperty("drafts").GetArrayLength().Should().Be(0);
     }
@@ -38,7 +38,7 @@ public partial class NewsApiTests
     {
         var tag = Tag();
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var published = await AddAsync($"{tag} no ar", "Fica igual.", DateTime.UtcNow, null);
         var existingDraft = await AddAsync($"{tag} rascunho do admin", "Rascunho.", null, null);
 
@@ -46,7 +46,7 @@ public partial class NewsApiTests
         created.StatusCode.Should().Be(HttpStatusCode.Created);
         var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
 
-        var feed = await Json(mod, "/api/news");
+        var feed = await AreaHttp.Json(mod, "/api/news");
         (feed.GetProperty("canWrite").GetBoolean(), feed.GetProperty("canManage").GetBoolean()).Should().Be((true, false));
         Tagged(feed.GetProperty("drafts"), tag).Should().HaveCount(2, "a Mod sees every draft");
 
@@ -70,7 +70,7 @@ public partial class NewsApiTests
     {
         var tag = Tag();
         var (manager, me) = await SignInAsync(role);
-        await WithTokenAsync(manager);
+        await AreaHttp.WithTokenAsync(manager);
         var anonymous = Anonymous();
 
         // A draft: only managers see it, with the author's display name.
@@ -85,26 +85,26 @@ public partial class NewsApiTests
         draft.GetProperty("authorName").GetString().Should().Contain(me.FirstName);
         (await PostAsync(id))!.AuthorId.Should().Be(me.Id);
 
-        var mine = await Json(manager, "/api/news");
+        var mine = await AreaHttp.Json(manager, "/api/news");
         mine.GetProperty("canManage").GetBoolean().Should().BeTrue();
         Tagged(mine.GetProperty("drafts"), tag).Should().ContainSingle();
         Tagged(mine.GetProperty("posts"), tag).Should().BeEmpty();
-        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag).Should().BeEmpty();
+        Tagged((await AreaHttp.Json(anonymous, "/api/news")).GetProperty("posts"), tag).Should().BeEmpty();
 
         // Publish: on top of the public feed. Publishing again leaves the date alone.
         var first = await PublishAsync(manager, id);
-        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag).Should().ContainSingle();
-        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag)[0].GetProperty("id").GetInt32().Should().Be(id);
+        Tagged((await AreaHttp.Json(anonymous, "/api/news")).GetProperty("posts"), tag).Should().ContainSingle();
+        Tagged((await AreaHttp.Json(anonymous, "/api/news")).GetProperty("posts"), tag)[0].GetProperty("id").GetInt32().Should().Be(id);
         (await PublishAsync(manager, id)).Should().Be(first);
 
         // Another post goes above it; unpublishing takes it off the feed; re-publishing puts it back on top with a new date.
         await AddAsync($"{tag} outra", "Outra", DateTime.UtcNow, null);
         var unpublished = await Json(await manager.PostAsync($"/api/news/{id}/unpublish", null));
         unpublished.GetProperty("publishedAt").ValueKind.Should().Be(JsonValueKind.Null);
-        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag).Select(p => p.GetProperty("id").GetInt32()).Should().NotContain(id);
+        Tagged((await AreaHttp.Json(anonymous, "/api/news")).GetProperty("posts"), tag).Select(p => p.GetProperty("id").GetInt32()).Should().NotContain(id);
         var again = await PublishAsync(manager, id);
         again.Should().BeAfter(first);
-        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag)[0].GetProperty("id").GetInt32().Should().Be(id);
+        Tagged((await AreaHttp.Json(anonymous, "/api/news")).GetProperty("posts"), tag)[0].GetProperty("id").GetInt32().Should().Be(id);
 
         // Edit keeps the state; a blank title means none.
         var edited = await Json(await manager.PutAsJsonAsync($"/api/news/{id}", Input("   ", "Texto corrigido", publish: false)));
@@ -148,13 +148,13 @@ public partial class NewsApiTests
     public async Task Input_IsValidated_TextRequired_AndBothLengthsCapped()
     {
         var (admin, _) = await SignInAsync("Owner");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var before = await CountAsync();
 
-        (await Errors(await admin.PostAsJsonAsync("/api/news", Input("Título", "   ")))).Should().ContainKey("body");
-        (await Errors(await admin.PostAsJsonAsync("/api/news", new { title = "Só título" }))).Should().ContainKey("body");
-        (await Errors(await admin.PostAsJsonAsync("/api/news", Input("Título", new string('a', 5001))))).Should().ContainKey("body");
-        (await Errors(await admin.PostAsJsonAsync("/api/news", Input(new string('t', 151), "Texto")))).Should().ContainKey("title");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/news", Input("Título", "   ")))).Should().ContainKey("body");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/news", new { title = "Só título" }))).Should().ContainKey("body");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/news", Input("Título", new string('a', 5001))))).Should().ContainKey("body");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/news", Input(new string('t', 151), "Texto")))).Should().ContainKey("title");
         (await CountAsync()).Should().Be(before, "nothing invalid is stored");
 
         var longest = await admin.PostAsJsonAsync("/api/news", Input(new string('t', 150), new string('a', 5000)));

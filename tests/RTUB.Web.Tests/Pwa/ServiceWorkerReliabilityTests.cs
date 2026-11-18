@@ -52,8 +52,8 @@ public partial class ServiceWorkerReliabilityTests
 
         push.Should().MatchRegex(@"navigator\s*\.\s*serviceWorker\s*\.\s*ready");
         push.Should().NotMatchRegex(@"serviceWorker\s*\.\s*register\s*\(");
-        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "push-notifications.js")).Should().BeFalse();
-        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "pwa-helper.js")).Should().BeFalse();
+        File.Exists(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "wwwroot", "js", "push-notifications.js")).Should().BeFalse();
+        File.Exists(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "wwwroot", "js", "pwa-helper.js")).Should().BeFalse();
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public partial class ServiceWorkerReliabilityTests
 
     private static IEnumerable<string> EnumerateApplicationSource()
     {
-        var src = Path.Combine(GetProjectRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
 
         return new[] { "*.js", "*.razor", "*.cshtml", "*.html", "*.cs", "*.ts" }
             .SelectMany(ext => Directory.EnumerateFiles(src, ext, SearchOption.AllDirectories))
@@ -201,20 +201,8 @@ public partial class ServiceWorkerReliabilityTests
     }
 
     private static string Relative(string file) =>
-        Path.GetRelativePath(GetProjectRoot(), file).Replace('\\', '/');
+        Path.GetRelativePath(RepoPaths.Root(), file).Replace('\\', '/');
 
     private static string ReadRepoFile(params string[] segments) =>
-        File.ReadAllText(Path.Combine(new[] { GetProjectRoot() }.Concat(segments).ToArray()));
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName
-            ?? throw new InvalidOperationException("Could not find project root directory");
-    }
+        File.ReadAllText(Path.Combine(new[] { RepoPaths.Root() }.Concat(segments).ToArray()));
 }

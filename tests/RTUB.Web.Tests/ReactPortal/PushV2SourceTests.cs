@@ -11,7 +11,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class PushV2SourceTests
 {
-    private static readonly string Root = FindRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Portal = Path.Combine(Root, "src", "RTUB.Web", "portal", "src");
     private static string Read(params string[] parts) => File.ReadAllText(Path.Combine(parts));
     private static string Push => Read(Portal, "data/push.ts");
@@ -211,12 +211,5 @@ public class PushV2SourceTests
         a.Should().BeGreaterThan(-1, start);
         var b = content.IndexOf(end, a, StringComparison.Ordinal);
         return b < 0 ? content[a..] : content[a..b];
-    }
-
-    private static string FindRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "RTUB.sln"))) dir = dir.Parent;
-        return dir?.FullName ?? throw new InvalidOperationException("repository root not found");
     }
 }

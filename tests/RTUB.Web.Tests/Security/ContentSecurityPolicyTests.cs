@@ -173,7 +173,7 @@ public partial class ContentSecurityPolicyTests
     /// </summary>
     private static IEnumerable<string> EnumerateApplicationScripts()
     {
-        var src = Path.Combine(GetProjectRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
 
         return new[] { "*.js", "*.ts" }
             .SelectMany(ext => Directory.EnumerateFiles(src, ext, SearchOption.AllDirectories))
@@ -191,21 +191,5 @@ public partial class ContentSecurityPolicyTests
     }
 
     private static string ReadRepoFile(params string[] segments) =>
-        File.ReadAllText(Path.Combine(new[] { GetProjectRoot() }.Concat(segments).ToArray()));
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        if (directory == null)
-        {
-            throw new InvalidOperationException("Could not find project root directory");
-        }
-
-        return directory.FullName;
-    }
+        File.ReadAllText(Path.Combine(new[] { RepoPaths.Root() }.Concat(segments).ToArray()));
 }

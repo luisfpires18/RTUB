@@ -121,25 +121,10 @@ public partial class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
         await db.SaveChangesAsync();
     }
 
-    private static async Task<JsonElement> Json(HttpClient client, string path)
-    {
-        var response = await client.GetAsync(path);
-        response.StatusCode.Should().Be(HttpStatusCode.OK, path);
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
     private static async Task<JsonElement> Json(HttpResponseMessage response)
     {
         response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
         return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
-    private static async Task<Dictionary<string, string[]>> Errors(HttpResponseMessage response)
-    {
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, await response.Content.ReadAsStringAsync());
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return body.GetProperty("errors").EnumerateObject()
-            .ToDictionary(p => p.Name, p => p.Value.EnumerateArray().Select(v => v.GetString()!).ToArray());
     }
 
     private static int _ip;
@@ -148,12 +133,5 @@ public partial class LogisticsApiTests : IClassFixture<DocumentationApiFactory>
     {
         var n = Interlocked.Increment(ref _ip);
         return CookieTestSession.SignInAsync(_factory, $"lgx{Guid.NewGuid():N}"[..20], $"10.93.{n / 250}.{n % 250 + 1}", role);
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
     }
 }

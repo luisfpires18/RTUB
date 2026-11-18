@@ -18,7 +18,7 @@ public partial class GalleryManagementApiTests
         var (owner, _) = await SignInAsync("Owner");
         foreach (var c in new[] { uploader, other, mod, owner })
         {
-            await WithTokenAsync(c);
+            await AreaHttp.WithTokenAsync(c);
         }
 
         var id = await AddMediaAsync(uploaderUser.Id, isPrivate: true);
@@ -52,7 +52,7 @@ public partial class GalleryManagementApiTests
     {
         var (uploader, uploaderUser) = await SignInAsync();
         var (_, tagged) = await SignInAsync();
-        await WithTokenAsync(uploader);
+        await AreaHttp.WithTokenAsync(uploader);
         var id = await AddMediaAsync(uploaderUser.Id, isPrivate: true, tagged.Id);
         var url = (await MediaAsync(id))!.MediaUrl;
         _factory.GalleryStorage.Setup(s => s.DeleteMediaAsync(url)).ThrowsAsync(new IOException("R2 unavailable"));
@@ -72,7 +72,7 @@ public partial class GalleryManagementApiTests
         var (_, kept) = await SignInAsync();
         var (_, removed) = await SignInAsync();
         var (_, added) = await SignInAsync();
-        await WithTokenAsync(uploader);
+        await AreaHttp.WithTokenAsync(uploader);
         var id = await AddMediaAsync(uploaderUser.Id, isPrivate: true, kept.Id, removed.Id);
 
         var form = await uploader.GetFromJsonAsync<JsonElement>($"/api/gallery/items/{id}/edit");

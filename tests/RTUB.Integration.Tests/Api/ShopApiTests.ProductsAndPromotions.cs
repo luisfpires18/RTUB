@@ -19,9 +19,9 @@ public partial class ShopApiTests
     {
         var id = await AddAsync($"{Tag()} Papel", "Pin", stock: 1);
         var (client, _) = await SignInAsync(role);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
 
-        var shop = await Json(client, "/api/shop?q=zzz-none");
+        var shop = await AreaHttp.Json(client, "/api/shop?q=zzz-none");
         (shop.GetProperty("canCreate").GetBoolean(), shop.GetProperty("canManage").GetBoolean()).Should().Be((creates, manages));
         shop.GetProperty("canManageReservations").GetBoolean().Should().Be(creates, "reservations follow Mod and above");
         (await client.PostAsJsonAsync("/api/shop/products", Input($"{Tag()} Novo", "Pin"))).StatusCode
@@ -40,10 +40,10 @@ public partial class ShopApiTests
     {
         var cd = await AddAsync($"{Tag()} CD", "Álbum", stock: 5);
         var (client, _) = await SignInAsync(role);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
         var body = new { name = "3 CDs", price = 20m, items = new[] { new { productId = cd, quantity = 3 } } };
 
-        (await Json(client, "/api/shop/promotions")).GetProperty("canManage").GetBoolean().Should().Be(writes);
+        (await AreaHttp.Json(client, "/api/shop/promotions")).GetProperty("canManage").GetBoolean().Should().Be(writes);
         var created = await client.PostAsJsonAsync("/api/shop/promotions", body);
         created.StatusCode.Should().Be(writes ? HttpStatusCode.Created : HttpStatusCode.Forbidden, role);
         if (!writes)
@@ -66,7 +66,7 @@ public partial class ShopApiTests
         var pub = await AddAsync($"{Tag()} Pub", "Álbum", stock: 3);
         var members = await AddAsync($"{Tag()} Membros", "Álbum", stock: 1, isPublic: false);
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var items = new[] { new { productId = pub, quantity = 3 } };
 
         foreach (var bad in new object[]
@@ -90,9 +90,9 @@ public partial class ShopApiTests
             .StatusCode.Should().Be(HttpStatusCode.Created);
 
         string[] Names(JsonElement j) => j.GetProperty("promotions").EnumerateArray().Select(p => p.GetProperty("name").GetString()!).ToArray();
-        Names(await Json(Anonymous(), "/api/shop/promotions")).Should().Contain(publicName).And.NotContain(memberName);
-        Names(await Json(mod, "/api/shop/promotions")).Should().Contain(new[] { publicName, memberName });
-        (await Json(Anonymous(), "/api/shop/promotions")).GetProperty("canManage").GetBoolean().Should().BeFalse();
+        Names(await AreaHttp.Json(Anonymous(), "/api/shop/promotions")).Should().Contain(publicName).And.NotContain(memberName);
+        Names(await AreaHttp.Json(mod, "/api/shop/promotions")).Should().Contain(new[] { publicName, memberName });
+        (await AreaHttp.Json(Anonymous(), "/api/shop/promotions")).GetProperty("canManage").GetBoolean().Should().BeFalse();
         (await Anonymous().PostAsJsonAsync("/api/shop/promotions", new { name = "x", price = 1m, items })).StatusCode.Should().NotBe(HttpStatusCode.Created);
     }
 
@@ -101,16 +101,16 @@ public partial class ShopApiTests
     {
         var cd = await AddAsync($"{Tag()} CD", "Álbum", stock: 2);
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var name = $"{Tag()} Pack";
         (await admin.PostAsJsonAsync("/api/shop/promotions", new { name, price = 20m, items = new[] { new { productId = cd, quantity = 3 } } }))
             .StatusCode.Should().Be(HttpStatusCode.Created);
 
         JsonElement Mine(JsonElement j) => j.GetProperty("promotions").EnumerateArray().Single(p => p.GetProperty("name").GetString() == name);
-        Mine(await Json(admin, "/api/shop/promotions")).GetProperty("inStock").GetBoolean().Should().BeFalse("it needs 3 and only 2 are left");
+        Mine(await AreaHttp.Json(admin, "/api/shop/promotions")).GetProperty("inStock").GetBoolean().Should().BeFalse("it needs 3 and only 2 are left");
 
         (await admin.DeleteAsync($"/api/shop/products/{cd}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await Json(admin, "/api/shop/promotions")).GetProperty("promotions").EnumerateArray()
+        (await AreaHttp.Json(admin, "/api/shop/promotions")).GetProperty("promotions").EnumerateArray()
             .Should().NotContain(p => p.GetProperty("name").GetString() == name, "a bundle with no product left is not shown");
     }
 
@@ -119,11 +119,11 @@ public partial class ShopApiTests
     {
         _factory.Storage.Invocations.Clear();
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
-        (await Errors(await admin.PostAsJsonAsync("/api/shop/products", new { price = 0, stock = -1 }))).Keys
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/shop/products", new { price = 0, stock = -1 }))).Keys
             .Should().BeEquivalentTo("name", "type", "price", "stock");
-        (await Errors(await admin.PostAsJsonAsync("/api/shop/products", Input(new string('n', 201), new string('t', 51)) with { Description = new string('d', 1001) })))
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/shop/products", Input(new string('n', 201), new string('t', 51)) with { Description = new string('d', 1001) })))
             .Keys.Should().BeEquivalentTo("name", "type", "description");
 
         var created = await admin.PostAsJsonAsync("/api/shop/products", Input($"{Tag()} Sweat", "Roupa") with { Stock = 0, IsPublic = false, Price = 12.5m });
@@ -136,12 +136,12 @@ public partial class ShopApiTests
         (await ProductAsync(id))!.IsAvailable.Should().BeTrue();
 
         var image = (await Json(await admin.PostAsync($"/api/shop/products/{id}/image", Multipart(Webp, "image/webp")))).GetProperty("imageUrl").GetString()!;
-        (await Errors(await admin.PostAsync($"/api/shop/products/{id}/image", Multipart("GIF89a-not-allowed"u8.ToArray(), "image/gif")))).Keys.Should().Equal("image");
+        (await AreaHttp.Errors(await admin.PostAsync($"/api/shop/products/{id}/image", Multipart("GIF89a-not-allowed"u8.ToArray(), "image/gif")))).Keys.Should().Equal("image");
         var replaced = (await Json(await admin.PostAsync($"/api/shop/products/{id}/image", Multipart(Webp, "image/webp")))).GetProperty("imageUrl").GetString()!;
         _factory.Storage.Verify(s => s.DeleteImageAsync(image), Times.Once, "a new image deletes the previous one");
 
         var (member, _) = await SignInAsync("Member");
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         await member.PostAsJsonAsync($"/api/shop/products/{id}/reservations", new { hasSizes = false });
         (await admin.DeleteAsync($"/api/shop/products/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
         _factory.Storage.Verify(s => s.DeleteImageAsync(replaced), Times.Once);
@@ -155,7 +155,7 @@ public partial class ShopApiTests
     public async Task AMod_SetsAndReplacesProductImages()
     {
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var id = (await (await mod.PostAsJsonAsync("/api/shop/products", Input($"{Tag()} Pin Mod", "Pin"))).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
 
         (await mod.PostAsync($"/api/shop/products/{id}/image", Multipart(Webp, "image/webp"))).StatusCode.Should().Be(HttpStatusCode.OK);
@@ -180,7 +180,7 @@ public partial class ShopApiTests
     [Fact]
     public void ReactFiles_SayNothingAboutMigration_AndTheMemberMenuLinksTheShop()
     {
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "pages/Shop.tsx")).Should().NotContainAny("migra", "Migra");
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("shop: '/shop'");
         File.ReadAllText(Path.Combine(src, "components/MemberShell.tsx")).Should().Contain("href: portal.shop,", "the member menu links it (030)");
@@ -193,7 +193,7 @@ public partial class ShopApiTests
     [Fact]
     public void ReactProductForm_WiresTheAllYearsOption()
     {
-        var shop = File.ReadAllText(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src", "components/ShopProductForm.tsx"));
+        var shop = File.ReadAllText(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src", "components/ShopProductForm.tsx"));
         shop.Should().Contain("Disponível em todos os anos letivos")
             .And.Contain("availableAllYears: false })", "a new product is year-specific")
             .And.Contain("availableAllYears: d.availableAllYears,", "edit loads the saved value")

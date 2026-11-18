@@ -31,7 +31,7 @@ public partial class GovernanceManagementApiTests : IClassFixture<EventsApiFacto
     public async Task Visitors_GetNothing_AndMembersGetTheRgiOnly()
     {
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         foreach (var path in new[] { "/api/governance/manage", "/api/governance/members?q=a", "/api/governance/rgi" })
         {
             (await anonymous.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -40,7 +40,7 @@ public partial class GovernanceManagementApiTests : IClassFixture<EventsApiFacto
         (await anonymous.PostAsJsonAsync("/api/governance/years", new { startYear = 2001 })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         var (member, _) = await SignInAsync("Member");
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var rgi = await member.GetAsync("/api/governance/rgi");
         rgi.StatusCode.Should().Be(HttpStatusCode.OK);
         rgi.Headers.CacheControl!.NoStore.Should().BeTrue("a pre-signed link is never cached");
@@ -216,17 +216,5 @@ public partial class GovernanceManagementApiTests : IClassFixture<EventsApiFacto
         return CookieTestSession.SignInAsync(_factory, $"gov{Guid.NewGuid():N}"[..20], $"10.79.{n / 250}.{n % 250 + 1}", role);
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.80.0.1");
-        return client;
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.80.0.1");
 }

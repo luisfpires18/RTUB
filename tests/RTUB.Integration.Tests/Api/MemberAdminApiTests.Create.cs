@@ -16,7 +16,7 @@ public partial class MemberAdminApiTests
     public async Task Create_AsTheOldForm_UsernameRoleCategoriesInstruments_AndTheWelcomeEmail(string role)
     {
         var (admin, _) = await SignInAsync(role);
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var nickname = "Zé " + Unique();
         var email = Unique() + "@test.com";
         var input = Valid("Caloiro", nickname, email) with
@@ -45,7 +45,7 @@ public partial class MemberAdminApiTests
     public async Task Create_LeitaoWithoutNickname_TakesTheEmail_AndFundadorIsTunoSince1991WithoutPadrinho()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var local = "novo." + Unique();
         var leitao = Valid("Leitao", null, local + "@test.com") with { NoNickname = true };
 
@@ -74,7 +74,7 @@ public partial class MemberAdminApiTests
     public async Task Create_StartsActiveOnlyAsALeitao(string category, bool expectedRetired)
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var email = Unique() + "@test.com";
         (await admin.PostAsJsonAsync("/api/members", Valid(category, "Init " + Unique(), email))).StatusCode.Should().Be(HttpStatusCode.Created);
 
@@ -85,7 +85,7 @@ public partial class MemberAdminApiTests
     public async Task Create_ALeitaoWithoutDates_StartsTheSixMonthsInTheCreationMonth()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var email = Unique() + "@test.com";
         var before = DateTime.UtcNow;
 
@@ -101,7 +101,7 @@ public partial class MemberAdminApiTests
     public async Task ProfileAndListReads_NeverChangeTheStatus_OnlyTheAttendanceTriggerDoes()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         // Active with nothing since 2020: a reconciliation would reform them.
         var stale = await AddAsync(MemberCategory.Tuno, yearTuno: 2020);
         // Reformado with confirmed rehearsals three and two months ago, and a pending one last month.
@@ -135,31 +135,31 @@ public partial class MemberAdminApiTests
     public async Task Create_Validates_AsTheOldForm_AndSendsNothingWhenRefused()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var existing = await AddAsync(MemberCategory.Tuno);
         var leitao = await AddAsync(MemberCategory.Leitao);
 
         var empty = await admin.PostAsJsonAsync("/api/members", new { });
         empty.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await Errors(empty)).Keys.Should().Contain(new[] { "firstName", "lastName", "nickname", "phoneNumber", "email", "category" });
+        (await AreaHttp.Errors(empty)).Keys.Should().Contain(new[] { "firstName", "lastName", "nickname", "phoneNumber", "email", "category" });
 
         var tooLong = Valid("Tuno", new string('a', 81), Unique() + "@test.com");
-        (await Errors(await admin.PostAsJsonAsync("/api/members", tooLong)))["nickname"].Should().ContainMatch("*80*");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/members", tooLong)))["nickname"].Should().ContainMatch("*80*");
 
         var sameUsername = Valid("Tuno", existing.Nickname, Unique() + "@test.com");
-        (await Errors(await admin.PostAsJsonAsync("/api/members", sameUsername)))["nickname"].Single().Should().StartWith("Já existe um utilizador com o nome de tuna");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/members", sameUsername)))["nickname"].Single().Should().StartWith("Já existe um utilizador com o nome de tuna");
 
         var sameEmail = Valid("Tuno", "Outro " + Unique(), existing.Email);
-        (await Errors(await admin.PostAsJsonAsync("/api/members", sameEmail)))["email"].Single().Should().StartWith("Já existe um utilizador com o email");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/members", sameEmail)))["email"].Single().Should().StartWith("Já existe um utilizador com o email");
 
         var badInstrument = Valid("Tuno", "I " + Unique(), Unique() + "@test.com") with { Instruments = new[] { new MemberInstrumentInput("Kazoo", true) } };
-        (await Errors(await admin.PostAsJsonAsync("/api/members", badInstrument))).Keys.Should().Contain("instruments");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/members", badInstrument))).Keys.Should().Contain("instruments");
 
         var leitaoMentor = Valid("Caloiro", "M " + Unique(), Unique() + "@test.com") with { MentorId = leitao.Id };
-        (await Errors(await admin.PostAsJsonAsync("/api/members", leitaoMentor))).Keys.Should().Contain("mentorId", "only Tunos and above are padrinhos");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/members", leitaoMentor))).Keys.Should().Contain("mentorId", "only Tunos and above are padrinhos");
 
         var badDate = Valid("Tuno", "D " + Unique(), Unique() + "@test.com") with { YearTuno = DateTime.Now.Year + 1, MonthTuno = 13 };
-        (await Errors(await admin.PostAsJsonAsync("/api/members", badDate))).Keys.Should().Contain("tuno");
+        (await AreaHttp.Errors(await admin.PostAsJsonAsync("/api/members", badDate))).Keys.Should().Contain("tuno");
 
         _factory.Email.Verify(e => e.SendWelcomeEmailAsync(It.IsAny<string>(), It.Is<string>(m => m == existing.Email), It.IsAny<string>(),
             It.IsAny<string>(), It.IsAny<string>()), Times.Never);

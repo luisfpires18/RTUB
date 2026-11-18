@@ -20,7 +20,7 @@ public partial class RehearsalsApiTests
         var (client, _) = await SignInAsync(role);
         var (_, other) = await SignInAsync();
         var row = await AddAttendanceAsync(id, other.Id, willAttend: true, attended: false);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
 
         // Create and edit are Mod and above (see AMod_CreatesAndEditsRehearsals_ButCannotDoTheRest).
         if (role is null)
@@ -43,7 +43,7 @@ public partial class RehearsalsApiTests
     public async Task AdminOrOwner_CreatesEditsCancelsReactivatesAndDeletes(string role)
     {
         var (admin, _) = await SignInAsync(role);
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var date = DateText(NextDay(past: false));
 
         var created = await admin.PostAsJsonAsync("/api/rehearsals", new { date, location = "Centro Académico", theme = "Fados", description = "Repertório novo", notes = "Trazer pautas" });
@@ -81,7 +81,7 @@ public partial class RehearsalsApiTests
     public async Task AMod_CreatesAndEditsRehearsals_ButCannotDoTheRest()
     {
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
 
         var agenda = await mod.GetFromJsonAsync<JsonElement>("/api/rehearsals");
         (agenda.GetProperty("canEdit").GetBoolean(), agenda.GetProperty("canManage").GetBoolean()).Should().Be((true, false));
@@ -110,7 +110,7 @@ public partial class RehearsalsApiTests
     public async Task ARange_CreatesTuesdaysAndThursdays_SkipsTakenDates_AndIsLimited()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         var monday = DateTime.Today.AddDays(5000 + ((8 - (int)DateTime.Today.AddDays(5000).DayOfWeek) % 7));
         await AddRehearsalAtAsync(monday.AddDays(1)); // that Tuesday is taken
 
@@ -141,7 +141,7 @@ public partial class RehearsalsApiTests
         var row = await AddAttendanceAsync(past, pending.Id, willAttend: true, attended: false);
         var futureRow = await AddAttendanceAsync(future, pending.Id, willAttend: true, attended: false);
         var otherRow = await AddAttendanceAsync(past, other.Id, willAttend: false, attended: false);
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         (await admin.PostAsync($"/api/rehearsals/{future}/attendances/{futureRow}/approve", null)).StatusCode.Should().Be(HttpStatusCode.Conflict,
             "a future rehearsal cannot be approved yet");

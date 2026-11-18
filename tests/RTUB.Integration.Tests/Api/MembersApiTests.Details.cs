@@ -20,7 +20,7 @@ public partial class MembersApiTests
         await AddInstrumentAsync(afilhado.Id, InstrumentType.Guitarra);
         var (member, _) = await SignInAsync("Member");
 
-        var detail = await Json(member, $"/api/members/{afilhado.Id}");
+        var detail = await AreaHttp.Json(member, $"/api/members/{afilhado.Id}");
         detail.GetProperty("email").GetString().Should().Be(afilhado.Email, "the old modal showed contacts to any signed-in member");
         detail.GetProperty("phone").GetString().Should().Be("919191919");
         detail.GetProperty("city").GetString().Should().Be("Bragança-Cidade");
@@ -32,7 +32,7 @@ public partial class MembersApiTests
             .Should().Equal("LEITÃO", "CALOIRO", "TUNO", "VETERANO");
         detail.GetRawText().Should().NotContainAny("passwordHash", "securityStamp", "userName");
 
-        var honra = await Json(member, $"/api/members/{honorario.Id}");
+        var honra = await AreaHttp.Json(member, $"/api/members/{honorario.Id}");
         honra.GetProperty("showInstruments").GetBoolean().Should().BeFalse();
         honra.GetProperty("showMentor").GetBoolean().Should().BeFalse("no Padrinho for a Tuno Honorário");
         honra.GetProperty("state").ValueKind.Should().Be(JsonValueKind.Null);
@@ -53,7 +53,7 @@ public partial class MembersApiTests
         await AddAsync($"{tag} Sem Padrinho Tuno", MemberCategory.Caloiro, mentorId: caloiroMentor.Id);
         var (member, _) = await SignInAsync("Member");
 
-        var tree = await Json(member, "/api/members/hierarchy");
+        var tree = await AreaHttp.Json(member, "/api/members/hierarchy");
         var raiz = tree.EnumerateArray().Single(n => n.GetProperty("id").GetString() == root.Id);
         raiz.GetProperty("children").EnumerateArray().Select(c => c.GetProperty("displayName").GetString())
             .Should().Equal($"{tag} Primeiro", $"{tag} Segundo");
@@ -75,11 +75,11 @@ public partial class MembersApiTests
         await AddAsync($"{tag} Honra", MemberCategory.TunoHonorario);
         var (member, _) = await SignInAsync("Member");
 
-        var list = await Json(member, $"/api/members/active?q={Uri.EscapeDataString(tag)}");
+        var list = await AreaHttp.Json(member, $"/api/members/active?q={Uri.EscapeDataString(tag)}");
         list.EnumerateArray().Select(m => m.GetProperty("displayName").GetString()).Should().Equal(new[] { $"{tag} Ativo", $"{tag} Reformado" },
             "active first, never Leitões or Tunos Honorários");
         list.GetRawText().Should().NotContain("@test.com");
-        (await Json(member, $"/api/members/active?status=retired&q={Uri.EscapeDataString(tag)}")).EnumerateArray()
+        (await AreaHttp.Json(member, $"/api/members/active?status=retired&q={Uri.EscapeDataString(tag)}")).EnumerateArray()
             .Select(m => m.GetProperty("id").GetString()).Should().Equal(retired.Id);
         (await member.GetAsync("/api/members/active?status=sleeping")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -99,7 +99,7 @@ public partial class MembersApiTests
         }
 
         var (member, _) = await SignInAsync("Member");
-        var list = await Json(member, $"/api/members/birthdays?q={Uri.EscapeDataString(tag)}");
+        var list = await AreaHttp.Json(member, $"/api/members/birthdays?q={Uri.EscapeDataString(tag)}");
 
         var names = list.EnumerateArray().Select(b => b.GetProperty("displayName").GetString()).ToList();
         names.Should().NotContain($"{tag} Passou");
@@ -135,7 +135,7 @@ public partial class MembersApiTests
     [Fact]
     public void Links_PointAtTheReactMembersArea()
     {
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         File.ReadAllText(Path.Combine(src, "data/content.ts")).Should().Contain("members: '/members'").And.Contain("membersHierarchy: '/members/hierarchy'");
         File.ReadAllText(Path.Combine(src, "components/MemberShell.tsx")).Should().Contain("href: portal.members,").And.Contain("href: portal.membersHierarchy,");
         // MemberManage.tsx was split (113) into the Member*Dialog / MemberFormFields files and data/memberFormState.ts.

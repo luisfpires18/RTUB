@@ -28,7 +28,7 @@ public partial class PortalRouteTests
         (await client.GetAsync("/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await client.GetAsync("/api/events/1/attendance")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
-        var root = FindRepoRoot();
+        var root = RepoPaths.Root();
         var portal = Path.Combine(root, "src", "RTUB.Web", "portal", "src");
         Directory.GetFiles(portal, "EventEnrollment.tsx", SearchOption.AllDirectories).Should().BeEmpty("the standalone answer page was retired");
         File.ReadAllText(Path.Combine(portal, "main.tsx")).Should().NotContain("EventEnrollment").And.NotContain("/enrollment'");
@@ -48,7 +48,7 @@ public partial class PortalRouteTests
     [Fact]
     public void EventPages_UsePastWording_AndManageInReact()
     {
-        var src = Path.Combine(FindRepoRoot(), "src", "RTUB.Web", "portal", "src");
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
         // 113: the page, its dialogs and the manage code are split into parts; each variable is every part of that feature.
         var detail = PortalSource.Cat(src, "pages/EventDetail.tsx", "components/EventDetail*.tsx");
         var agenda = PortalSource.Cat(src, "pages/Events.tsx", "components/EventsCards.tsx", "components/EventsToolbar.tsx");
@@ -96,7 +96,7 @@ public partial class PortalRouteTests
     [Fact]
     public void MemberEvents_IsGone_WithItsBridgeOnlyParts()
     {
-        var root = FindRepoRoot();
+        var root = RepoPaths.Root();
         var src = Path.Combine(root, "src");
         foreach (var gone in new[]
                  {

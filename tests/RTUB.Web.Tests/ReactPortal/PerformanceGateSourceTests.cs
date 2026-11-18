@@ -11,7 +11,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class PerformanceGateSourceTests
 {
-    private static readonly string Root = GetProjectRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Portal = Path.Combine(Root, "src", "RTUB.Web", "portal");
 
     private static string Read(params string[] path) => File.ReadAllText(Path.Combine([Portal, .. path])).Replace("\r\n", "\n");
@@ -50,16 +50,5 @@ public class PerformanceGateSourceTests
         Regex.Matches(board, @"loadFiles\(\)").Count.Should().Be(2, "on open and on 'Tentar novamente'");
         // Task 113: the board's dialogs moved to components/LogisticsBoardDialogs.tsx.
         Read("src", "components/LogisticsBoardDialogs.tsx").Should().Contain("<FilesDialog board={data} onClose={() => setOpen(undefined)} onChanged={loadFiles} />");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

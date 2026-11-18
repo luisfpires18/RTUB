@@ -25,14 +25,14 @@ public partial class MessagingApiTests
         pushes[0].Notification.Url.Should().Be($"/messages?c={id}");
         (pushes[0].Notification.Title + pushes[0].Notification.Body).Should().NotContain(Secret).And.Contain(aUser.Nickname);
 
-        (await Json(await b.PostAsync($"/api/conversations/{id}/mute", null))).GetProperty("muted").GetBoolean().Should().BeTrue();
-        Row(await Json(b, "/api/conversations"), id).GetProperty("muted").GetBoolean().Should().BeTrue();
-        Row(await Json(a, "/api/conversations"), id).GetProperty("muted").GetBoolean().Should().BeFalse("muting is per member");
+        (await AreaHttp.Json(await b.PostAsync($"/api/conversations/{id}/mute", null))).GetProperty("muted").GetBoolean().Should().BeTrue();
+        Row(await AreaHttp.Json(b, "/api/conversations"), id).GetProperty("muted").GetBoolean().Should().BeTrue();
+        Row(await AreaHttp.Json(a, "/api/conversations"), id).GetProperty("muted").GetBoolean().Should().BeFalse("muting is per member");
         (await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "outra" })).EnsureSuccessStatusCode();
         Pushes(id).Should().HaveCount(1, "a muted member gets no push");
-        Row(await Json(b, "/api/conversations"), id).GetProperty("unreadCount").GetInt32().Should().Be(2, "muted, still unread");
+        Row(await AreaHttp.Json(b, "/api/conversations"), id).GetProperty("unreadCount").GetInt32().Should().Be(2, "muted, still unread");
 
-        (await Json(await b.PostAsync($"/api/conversations/{id}/unmute", null))).GetProperty("muted").GetBoolean().Should().BeFalse();
+        (await AreaHttp.Json(await b.PostAsync($"/api/conversations/{id}/unmute", null))).GetProperty("muted").GetBoolean().Should().BeFalse();
         (await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = "terceira" })).EnsureSuccessStatusCode();
         Pushes(id).Should().HaveCount(2);
     }
@@ -46,7 +46,7 @@ public partial class MessagingApiTests
 
         var system = await SeedAsync(new Conversation { Participants = aUser.Id, IsSystemConversation = true, Title = "Sistema RTUB" },
             new Message { Body = "Novo ensaio marcado", IsSystem = true, Link = "https://rtub.example/rehearsals/3" });
-        var detail = await Json(a, $"/api/conversations/{system}");
+        var detail = await AreaHttp.Json(a, $"/api/conversations/{system}");
         detail.GetProperty("conversation").GetProperty("canSend").GetBoolean().Should().BeFalse();
         detail.GetProperty("conversation").GetProperty("kind").GetString().Should().Be("system");
         Messages(detail).Single().GetProperty("link").GetString().Should().Be("/rehearsals/3", "only this site's path is kept");
@@ -59,13 +59,13 @@ public partial class MessagingApiTests
             Participants = $"{aUser.Id};{bUser.Id};{ownerUser.Id}", IsGroup = true, IsAnnouncementOnly = true, Title = "ANÚNCIOS",
             CreatedByUserId = "system",
         });
-        Row(await Json(b, "/api/conversations"), channel).GetProperty("canSend").GetBoolean().Should().BeFalse();
+        Row(await AreaHttp.Json(b, "/api/conversations"), channel).GetProperty("canSend").GetBoolean().Should().BeFalse();
         (await b.PostAsJsonAsync($"/api/conversations/{channel}/messages", new { body = "posso?" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await owner.PostAsJsonAsync($"/api/conversations/{channel}/messages", new { body = "Aviso do Owner" })).StatusCode.Should().Be(HttpStatusCode.OK);
 
         await GiveCurrentPositionAsync(bUser.Id, Position.Magister);
         (await b.PostAsJsonAsync($"/api/conversations/{channel}/messages", new { body = "Aviso do Magister" })).StatusCode.Should().Be(HttpStatusCode.OK);
-        var names = Messages(await Json(a, $"/api/conversations/{channel}")).Select(m => m.GetProperty("sender").GetProperty("id").GetString());
+        var names = Messages(await AreaHttp.Json(a, $"/api/conversations/{channel}")).Select(m => m.GetProperty("sender").GetProperty("id").GetString());
         names.Should().Equal(ownerUser.Id, bUser.Id);
     }
 
@@ -78,14 +78,14 @@ public partial class MessagingApiTests
 
         var group = await SeedAsync(new Conversation { Participants = $"{aUser.Id};{bUser.Id}", IsGroup = true, Title = "NAIPE" });
         (await b.PostAsJsonAsync($"/api/conversations/{group}/messages", new { body = "Olá naipe" })).EnsureSuccessStatusCode();
-        var detail = await Json(a, $"/api/conversations/{group}");
+        var detail = await AreaHttp.Json(a, $"/api/conversations/{group}");
         detail.GetProperty("conversation").GetProperty("title").GetString().Should().Be("NAIPE");
         detail.GetProperty("participants").EnumerateArray().Select(p => p.GetProperty("id").GetString()).Should().Equal(bUser.Id);
         Messages(detail).Single().GetProperty("sender").GetProperty("displayName").GetString().Should().Be(bUser.Nickname);
         (await outsider.GetAsync($"/api/conversations/{group}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         var archived = await SeedAsync(new Conversation { Participants = $"{aUser.Id};{bUser.Id}", IsGroup = true, Title = "VELHO", IsArchived = true });
-        Ids(await Json(a, "/api/conversations")).Should().NotContain(archived);
+        Ids(await AreaHttp.Json(a, "/api/conversations")).Should().NotContain(archived);
         (await a.GetAsync($"/api/conversations/{archived}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         var (_, goneUser) = await SignInAsync();
@@ -98,9 +98,9 @@ public partial class MessagingApiTests
             (await users.UpdateAsync(gone)).Succeeded.Should().BeTrue();
         }
 
-        Row(await Json(a, "/api/conversations"), withGone).GetProperty("canSend").GetBoolean().Should().BeFalse();
+        Row(await AreaHttp.Json(a, "/api/conversations"), withGone).GetProperty("canSend").GetBoolean().Should().BeFalse();
         (await a.PostAsJsonAsync($"/api/conversations/{withGone}/messages", new { body = "olá?" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await Json(a, "/api/conversations/recipients")).EnumerateArray().Select(p => p.GetProperty("id").GetString())
+        (await AreaHttp.Json(a, "/api/conversations/recipients")).EnumerateArray().Select(p => p.GetProperty("id").GetString())
             .Should().NotContain(goneUser.Id).And.NotContain(aUser.Id).And.Contain(bUser.Id);
     }
 
@@ -112,13 +112,13 @@ public partial class MessagingApiTests
         var conversation = new Conversation { Participants = $"{aUser.Id};{bUser.Id}" };
         var id = await SeedAsync(conversation, Enumerable.Range(1, 60).Select(i => new Message { SenderId = bUser.Id, Body = $"m{i}" }).ToArray());
 
-        var first = await Json(a, $"/api/conversations/{id}");
+        var first = await AreaHttp.Json(a, $"/api/conversations/{id}");
         first.GetProperty("hasMore").GetBoolean().Should().BeTrue();
         var page = Messages(first).Select(m => m.GetProperty("body").GetString()).ToList();
         page.Should().HaveCount(50).And.StartWith("m11").And.EndWith("m60");
 
         var before = Messages(first).First().GetProperty("id").GetInt32();
-        var older = await Json(a, $"/api/conversations/{id}?before={before}");
+        var older = await AreaHttp.Json(a, $"/api/conversations/{id}?before={before}");
         older.GetProperty("hasMore").GetBoolean().Should().BeFalse();
         Messages(older).Select(m => m.GetProperty("body").GetString()).Should().Equal(Enumerable.Range(1, 10).Select(i => $"m{i}"));
     }
@@ -129,10 +129,10 @@ public partial class MessagingApiTests
         var (a, _) = await SignInAsync();
         var (b, bUser) = await SignInAsync();
         var id = await StartAsync(a, bUser.Id);
-        var messageId = (await Json(await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = Secret }))).GetProperty("id").GetInt32();
-        await Json(await b.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = Secret + "-reply", replyToMessageId = messageId }));
-        await Json(await b.PostAsJsonAsync($"/api/messages/{messageId}/reactions", new { emoji = "😂" }));
-        await Json(await b.PostAsync($"/api/conversations/{id}/mute", null));
+        var messageId = (await AreaHttp.Json(await a.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = Secret }))).GetProperty("id").GetInt32();
+        await AreaHttp.Json(await b.PostAsJsonAsync($"/api/conversations/{id}/messages", new { body = Secret + "-reply", replyToMessageId = messageId }));
+        await AreaHttp.Json(await b.PostAsJsonAsync($"/api/messages/{messageId}/reactions", new { emoji = "😂" }));
+        await AreaHttp.Json(await b.PostAsync($"/api/conversations/{id}/mute", null));
         (await b.PostAsync($"/api/conversations/{id}/read", null)).EnsureSuccessStatusCode();
 
         using var scope = _factory.Services.CreateScope();

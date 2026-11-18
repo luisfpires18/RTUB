@@ -33,7 +33,7 @@ public partial class LogisticsApiTests
         var (viewer, _) = await SignInAsync();
         foreach (var c in new[] { mod, worker, other, viewer })
         {
-            await WithTokenAsync(c);
+            await AreaHttp.WithTokenAsync(c);
         }
 
         await UpdateCardAsync(cardId, c => c.AssignToUser(workerUser.Id));
@@ -43,7 +43,7 @@ public partial class LogisticsApiTests
         // A member who only reads the card schedules nothing; a worker never for somebody else.
         (await viewer.PostAsJsonAsync(url, Remind())).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await worker.PostAsJsonAsync(url, Remind("OneTime", null, otherUser.Id))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await Errors(await worker.PostAsJsonAsync(url, Remind("Hourly", DateTime.Today.AddDays(-1))))).Keys
+        (await AreaHttp.Errors(await worker.PostAsJsonAsync(url, Remind("Hourly", DateTime.Today.AddDays(-1))))).Keys
             .Should().BeEquivalentTo("frequency", "nextReminderDate");
 
         var mine = await Json(await worker.PostAsJsonAsync(url, Remind("Weekly")));
@@ -54,14 +54,14 @@ public partial class LogisticsApiTests
             r.TargetUserIds == workerUser.Id && r.Personal && r.CreatedByUserId == workerUser.Id && r.ActivatedAt != null);
 
         // Another worker neither sees nor changes it; a manager sees and may change every reminder.
-        var others = await Json(other, $"/api/logistics/cards/{cardId}");
+        var others = await AreaHttp.Json(other, $"/api/logistics/cards/{cardId}");
         others.GetProperty("reminders").GetArrayLength().Should().Be(0);
         others.GetProperty("canRemind").GetBoolean().Should().BeTrue();
         (await other.PutAsJsonAsync($"{url}/{reminderId}", Remind("Daily"))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await other.DeleteAsync($"{url}/{reminderId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await Json(mod, $"/api/logistics/cards/{cardId}")).GetProperty("reminders").GetArrayLength().Should().Be(1);
+        (await AreaHttp.Json(mod, $"/api/logistics/cards/{cardId}")).GetProperty("reminders").GetArrayLength().Should().Be(1);
         (await viewer.GetAsync($"/api/logistics/cards/{cardId}")).StatusCode.Should().Be(HttpStatusCode.OK);
-        (await Json(viewer, $"/api/logistics/cards/{cardId}")).GetProperty("canRemind").GetBoolean().Should().BeFalse();
+        (await AreaHttp.Json(viewer, $"/api/logistics/cards/{cardId}")).GetProperty("canRemind").GetBoolean().Should().BeFalse();
 
         // Its creator edits it; the edit keeps it theirs.
         var edited = await Json(await worker.PutAsJsonAsync($"{url}/{reminderId}", Remind("Daily", DateTime.Today.AddDays(3).AddHours(9), otherUser.Id)));
@@ -70,7 +70,7 @@ public partial class LogisticsApiTests
 
         // A manager targets board viewers only (a private board's outsider is refused).
         await UpdateBoardAsync(boardId, b => b.Visibility = BoardVisibility.Private);
-        (await Errors(await mod.PostAsJsonAsync(url, Remind("OneTime", null, otherUser.Id)))).Keys.Should().Equal("userIds");
+        (await AreaHttp.Errors(await mod.PostAsJsonAsync(url, Remind("OneTime", null, otherUser.Id)))).Keys.Should().Equal("userIds");
         await AddBoardMemberAsync(boardId, otherUser.Id);
         await AddBoardMemberAsync(boardId, workerUser.Id);
         var managed = await Json(await mod.PostAsJsonAsync(url, Remind("OneTime", null, otherUser.Id)));
@@ -103,17 +103,17 @@ public partial class LogisticsApiTests
         await UpdateBoardAsync(hidden, b => b.Visibility = BoardVisibility.Private);
         await UpdateCardAsync(privateCard, c => c.AssignToUser(me.Id));
 
-        var mine = await Json(leitao, "/api/logistics/my-tasks");
+        var mine = await AreaHttp.Json(leitao, "/api/logistics/my-tasks");
         mine.GetProperty("canManage").GetBoolean().Should().BeFalse();
         var listed = mine.GetProperty("tasks").EnumerateArray().ToDictionary(t => t.GetProperty("cardId").GetInt32(), t => t.GetProperty("role").GetString());
         listed.Should().Equal(new Dictionary<int, string?> { [owned] = "owner", [collaborating] = "collaborator" });
 
         await AddBoardMemberAsync(hidden, me.Id);
-        (await Json(leitao, "/api/logistics/my-tasks")).GetProperty("tasks").EnumerateArray().Select(t => t.GetProperty("cardId").GetInt32())
+        (await AreaHttp.Json(leitao, "/api/logistics/my-tasks")).GetProperty("tasks").EnumerateArray().Select(t => t.GetProperty("cardId").GetInt32())
             .Should().Contain(privateCard);
 
         // Managers also get the open cards nobody owns (here: the collaborating one); members never.
-        var managed = await Json(mod, "/api/logistics/my-tasks");
+        var managed = await AreaHttp.Json(mod, "/api/logistics/my-tasks");
         var unowned = managed.GetProperty("tasks").EnumerateArray().Where(t => t.GetProperty("role").ValueKind == JsonValueKind.Null)
             .Select(t => t.GetProperty("cardId").GetInt32()).ToList();
         unowned.Should().Contain(collaborating).And.NotContain(new[] { owned, archived, privateCard });
@@ -129,10 +129,10 @@ public partial class LogisticsApiTests
         var (helper, helperUser) = await SignInAsync();
         foreach (var c in new[] { mod, worker, helper })
         {
-            await WithTokenAsync(c);
+            await AreaHttp.WithTokenAsync(c);
         }
 
-        var detail = await Json(mod, $"/api/logistics/cards/{cardId}");
+        var detail = await AreaHttp.Json(mod, $"/api/logistics/cards/{cardId}");
         var save = new
         {
             title = "Comprar cordas", description = "Detalhe privado", priority = "Normal", startDate = (string?)null, dueDate = (string?)null,

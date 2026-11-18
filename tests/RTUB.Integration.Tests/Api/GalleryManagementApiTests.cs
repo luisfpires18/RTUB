@@ -31,7 +31,7 @@ public partial class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
     {
         var (member, me) = await SignInAsync();
         var (_, tagged) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var response = await member.PostAsync("/api/gallery", Upload("Serenata no castelo", "2024-05-17", membersOnly: true, tagged.Id));
 
@@ -52,7 +52,7 @@ public partial class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
     public async Task AnUpload_ForAnEvent_StoresTheLink_AndACancelledOrUnknownEventIsRefused()
     {
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (live, cancelled) = (await AddEventAsync(false), await AddEventAsync(true));
 
         var linked = await member.PostAsync("/api/gallery", WithEvent(Upload("Serenata", "2026-10-03", membersOnly: true), live.ToString()));
@@ -89,7 +89,7 @@ public partial class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
     public async Task TheDate_KeepsOnlyWhatIsKnown_AsTheOldForm(string date, int year, int? month, int? day)
     {
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var item = await (await member.PostAsync("/api/gallery", Upload("Ensaio", date, membersOnly: false))).Content.ReadFromJsonAsync<JsonElement>();
 
@@ -104,7 +104,7 @@ public partial class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
     public async Task InvalidUploads_AreFieldErrors_AndStoreNothing()
     {
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var before = await CountAsync();
 
         (await member.PostAsync("/api/gallery", Upload("Folha", "2024-01-02", false, contentType: "application/pdf")))
@@ -135,7 +135,7 @@ public partial class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
     {
         var (member, _) = await SignInAsync();
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         var before = await CountAsync();
 
         (await anonymous.PostAsync("/api/gallery", Upload("Visita", "2024-01-02", false))).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -219,17 +219,5 @@ public partial class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
         return CookieTestSession.SignInAsync(_factory, $"gal{Guid.NewGuid():N}"[..20], $"10.77.{n / 250}.{n % 250 + 1}", role);
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.78.0.1");
-        return client;
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.78.0.1");
 }

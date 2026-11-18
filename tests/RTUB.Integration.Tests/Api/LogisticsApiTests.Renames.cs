@@ -43,7 +43,7 @@ public partial class LogisticsApiTests
         var (boardId, _, cardId) = await SeedBoardAsync(name: name);
         var (mod, _) = await SignInAsync("Mod");
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var file = (await Json(await mod.PostAsync($"/api/logistics/cards/{cardId}/attachments", File("cartaz.png", "image/png"))))
             .GetProperty("attachments").EnumerateArray().Single().GetProperty("id").GetInt32();
         await Json(await mod.PostAsync($"/api/logistics/boards/{boardId}/files", File("plano.pdf")));
@@ -67,7 +67,7 @@ public partial class LogisticsApiTests
         (await BoardFolderAsync(boardId)).Should().Be(name, "a failed copy changes nothing");
         _factory.Storage.Objects.Keys.Should().NotContain(k => k.StartsWith($"docs/Test/{year}/Logistics/{renamed}/") && !k.EndsWith('/'),
             "the copies already made are removed again");
-        (await Json(mod, $"/api/logistics/cards/{cardId}/attachments/{file}")).GetProperty("url").GetString().Should().Contain(source);
+        (await AreaHttp.Json(mod, $"/api/logistics/cards/{cardId}/attachments/{file}")).GetProperty("url").GetString().Should().Contain(source);
 
         _factory.Storage.Fails = (op, key) => op == "delete" && key == source;
         try
@@ -81,12 +81,12 @@ public partial class LogisticsApiTests
         }
 
         (await BoardFolderAsync(boardId)).Should().Be(renamed);
-        (await Json(mod, $"/api/logistics/cards/{cardId}/attachments/{file}")).GetProperty("url").GetString()
+        (await AreaHttp.Json(mod, $"/api/logistics/cards/{cardId}/attachments/{file}")).GetProperty("url").GetString()
             .Should().Contain($"docs/Test/{year}/Logistics/{renamed}/cartaz.png");
         _factory.Storage.Objects.Keys.Should().Contain(source, "the refused delete leaves a duplicate behind");
-        var folders = (await Json(member, "/api/documentation")).GetProperty("folders").EnumerateArray().Select(f => f.GetProperty("name").GetString()).ToList();
+        var folders = (await AreaHttp.Json(member, "/api/documentation")).GetProperty("folders").EnumerateArray().Select(f => f.GetProperty("name").GetString()).ToList();
         folders.Should().Contain($"Logistics/{renamed}").And.NotContain($"Logistics/{name}", "no board owns the old folder now");
-        (await Json(mod, "/api/documentation")).GetProperty("folders").EnumerateArray().Select(f => f.GetProperty("name").GetString())
+        (await AreaHttp.Json(mod, "/api/documentation")).GetProperty("folders").EnumerateArray().Select(f => f.GetProperty("name").GetString())
             .Should().Contain($"Logistics/{name}");
     }
 
@@ -97,7 +97,7 @@ public partial class LogisticsApiTests
         var name = $"{Tag()} Arraial";
         var (boardId, _, cardId) = await SeedBoardAsync(name: name);
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var file = (await Json(await mod.PostAsync($"/api/logistics/cards/{cardId}/attachments", File("cartaz.png", "image/png"))))
             .GetProperty("attachments").EnumerateArray().Single().GetProperty("id").GetInt32();
         var year = FiscalYearHelper.GetCurrentFiscalYearString();
@@ -110,9 +110,9 @@ public partial class LogisticsApiTests
         (await BoardFolderAsync(boardId)).Should().Be(renamed);
         _factory.Storage.Objects.Keys.Should().Contain(new[] { $"docs/Test/{year}/Logistics/{renamed}/cartaz.png", $"docs/Test/{previous}/Logistics/{renamed}/antigo.pdf" })
             .And.NotContain(k => k.StartsWith($"docs/Test/{year}/Logistics/{name}/") || k.StartsWith($"docs/Test/{previous}/Logistics/{name}/"));
-        (await Json(mod, $"/api/logistics/cards/{cardId}/attachments/{file}")).GetProperty("url").GetString()
+        (await AreaHttp.Json(mod, $"/api/logistics/cards/{cardId}/attachments/{file}")).GetProperty("url").GetString()
             .Should().Contain($"docs/Test/{year}/Logistics/{renamed}/cartaz.png");
-        (await Json(mod, $"/api/logistics/boards/{boardId}/file-list")).EnumerateArray().Select(f => f.GetProperty("id").GetString())
+        (await AreaHttp.Json(mod, $"/api/logistics/boards/{boardId}/file-list")).EnumerateArray().Select(f => f.GetProperty("id").GetString())
             .Should().Equal($"l:{previous}/antigo.pdf");
     }
 

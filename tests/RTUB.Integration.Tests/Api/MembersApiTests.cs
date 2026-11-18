@@ -61,22 +61,22 @@ public partial class MembersApiTests : IClassFixture<EventsApiFactory>
 
         // Fix 064: the last 15 days, not the calendar month, so a Leitão is not flagged on the 1st.
         await AttendAsync(leitao.Id, DateTime.Today.AddDays(-20));
-        (await Json(member, $"/api/members?q={tag}"))
+        (await AreaHttp.Json(member, $"/api/members?q={tag}"))
             .GetProperty("leitoes")[0].GetProperty("inactive").GetBoolean().Should().BeTrue("20 days ago is outside the window");
         await AttendAsync(leitao.Id, DateTime.Today.AddDays(-10));
-        (await Json(member, $"/api/members?q={tag}"))
+        (await AreaHttp.Json(member, $"/api/members?q={tag}"))
             .GetProperty("leitoes")[0].GetProperty("inactive").GetBoolean().Should().BeFalse("10 days ago counts, whatever the month");
         body.GetProperty("canManage").GetBoolean().Should().BeFalse();
 
-        Names(await Json(member, $"/api/members?q={tag}&category=Caloiro"), "members").Should().Equal($"{tag} Alfa");
-        Names(await Json(member, $"/api/members?q={tag}&category=TunoHonorario"), "members").Should().Equal($"{tag} Honra");
-        Names(await Json(member, $"/api/members?q={tag}&category=Leitao"), "leitoes").Should().Equal($"{tag} Leitão");
-        Names(await Json(member, $"/api/members?q={tag}&instrument=Bandolim"), "members").Should().Equal($"{tag} Bravo");
-        Names(await Json(member, $"/api/members?q={tag}&category=Tuno&subCategory=Tuno"), "members").Should().Equal($"{tag} Bravo");
-        Names(await Json(member, $"/api/members?q={tuno.UserName}@test"), "members").Should().Equal(new[] { $"{tag} Bravo" },
+        Names(await AreaHttp.Json(member, $"/api/members?q={tag}&category=Caloiro"), "members").Should().Equal($"{tag} Alfa");
+        Names(await AreaHttp.Json(member, $"/api/members?q={tag}&category=TunoHonorario"), "members").Should().Equal($"{tag} Honra");
+        Names(await AreaHttp.Json(member, $"/api/members?q={tag}&category=Leitao"), "leitoes").Should().Equal($"{tag} Leitão");
+        Names(await AreaHttp.Json(member, $"/api/members?q={tag}&instrument=Bandolim"), "members").Should().Equal($"{tag} Bravo");
+        Names(await AreaHttp.Json(member, $"/api/members?q={tag}&category=Tuno&subCategory=Tuno"), "members").Should().Equal($"{tag} Bravo");
+        Names(await AreaHttp.Json(member, $"/api/members?q={tuno.UserName}@test"), "members").Should().Equal(new[] { $"{tag} Bravo" },
             "the search matches the email, as before, without returning it");
 
-        var all = await Json(member, "/api/members");
+        var all = await AreaHttp.Json(member, "/api/members");
         all.GetProperty("members").EnumerateArray().Should().NotContain(m => m.GetProperty("id").GetString() == honorario.Id,
             "with no filter or search, Tunos Honorários stay out of the general view");
 
@@ -98,7 +98,7 @@ public partial class MembersApiTests : IClassFixture<EventsApiFactory>
     {
         var (client, _) = await SignInAsync(role);
 
-        (await Json(client, "/api/members?q=zzz-none")).GetProperty("canManage").GetBoolean().Should().Be(canManage);
+        (await AreaHttp.Json(client, "/api/members?q=zzz-none")).GetProperty("canManage").GetBoolean().Should().Be(canManage);
     }
 
     // ---------- helpers ----------
@@ -107,13 +107,6 @@ public partial class MembersApiTests : IClassFixture<EventsApiFactory>
 
     private static IEnumerable<string?> Names(JsonElement body, string group) =>
         body.GetProperty(group).EnumerateArray().Select(m => m.GetProperty("displayName").GetString());
-
-    private static async Task<JsonElement> Json(HttpClient client, string path)
-    {
-        var response = await client.GetAsync(path);
-        response.StatusCode.Should().Be(HttpStatusCode.OK, path);
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
 
     private async Task<ApplicationUser> AddAsync(string nickname, MemberCategory category, int? yearTuno = null, string? mentorId = null,
         int? yearLeitao = null, int? yearCaloiro = null, bool retired = false, DateTime? birth = null)
@@ -160,23 +153,7 @@ public partial class MembersApiTests : IClassFixture<EventsApiFactory>
         return CookieTestSession.SignInAsync(_factory, $"mem{Guid.NewGuid():N}"[..20], $"10.81.{n / 250}.{n % 250 + 1}", role);
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.82.0.1");
-        return client;
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.82.0.1");
 
     private async Task AttendAsync(string userId, DateTime day)
     {

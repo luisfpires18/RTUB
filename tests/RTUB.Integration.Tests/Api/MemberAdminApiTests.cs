@@ -51,14 +51,6 @@ public partial class MemberAdminApiTests : IClassFixture<EventsApiFactory>
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
-    private static async Task<Dictionary<string, string[]>> Errors(HttpResponseMessage response)
-    {
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return body.GetProperty("errors").EnumerateObject()
-            .ToDictionary(p => p.Name, p => p.Value.EnumerateArray().Select(v => v.GetString()!).ToArray());
-    }
-
     private async Task<ApplicationUser> AddAsync(MemberCategory category, int? yearTuno = null, bool retired = false, string? nickname = null)
     {
         using var scope = _factory.Services.CreateScope();
@@ -175,28 +167,5 @@ public partial class MemberAdminApiTests : IClassFixture<EventsApiFactory>
         return CookieTestSession.SignInAsync(_factory, $"adm{Guid.NewGuid():N}"[..20], $"10.83.{n / 250}.{n % 250 + 1}", role);
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.84.0.1");
-        return client;
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.84.0.1");
 }

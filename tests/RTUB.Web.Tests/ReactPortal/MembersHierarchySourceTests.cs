@@ -10,7 +10,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class MembersHierarchySourceTests
 {
-    private static readonly string Root = GetProjectRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Web = Path.Combine(Root, "src", "RTUB.Web");
 
     private static string Read(params string[] path) => File.ReadAllText(Path.Combine([Web, .. path])).Replace("\r\n", "\n");
@@ -103,16 +103,5 @@ public class MembersHierarchySourceTests
         tree.Should().Contain("min-width: 44px;\n  min-height: 44px;", "phone touch targets");
         tree.Should().NotContain("!important").And.NotContain("100vw").And.NotContain("touch-action");
         css.Should().NotContain(".family__person").And.NotContain(".family__children");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

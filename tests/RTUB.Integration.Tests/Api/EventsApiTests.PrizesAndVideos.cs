@@ -19,11 +19,11 @@ public partial class EventsApiTests
         var id = await AddEventAsync("Festival protegido", DateTime.Today.AddDays(-200), type: EventType.Festival);
         var prize = await AddTrophyAsync(id, "Intocável");
         var visitor = Anonymous();
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var (adminWithoutToken, _) = await SignInAsync("Admin");
 
         foreach (var (client, expected) in new[] { (visitor, HttpStatusCode.Unauthorized), (member, HttpStatusCode.Forbidden), (mod, HttpStatusCode.Forbidden) })
@@ -51,7 +51,7 @@ public partial class EventsApiTests
     {
         var id = await AddEventAsync($"Festival com prémios ({role})", DateTime.Today.AddDays(-201), type: EventType.Festival);
         var (client, _) = await SignInAsync(role);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
         var visitor = Anonymous();
 
         (await client.GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("canManagePrizes").GetBoolean().Should().BeTrue();
@@ -84,7 +84,7 @@ public partial class EventsApiTests
     {
         var id = await AddEventAsync("Festival por vir", DateTime.Today.AddDays(304), type: EventType.Festival);
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
 
         (await owner.PostAsJsonAsync($"/api/events/{id}/prizes", new { name = "Cedo demais" })).StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await owner.GetFromJsonAsync<JsonElement>($"/api/events/{id}")).GetProperty("canManagePrizes").GetBoolean().Should().BeFalse();
@@ -98,11 +98,11 @@ public partial class EventsApiTests
         var id = await AddEventAsync("Arraial com vídeo protegido", DateTime.Today.AddDays(-210));
         var video = await AddEventVideoAsync(id, "Intocável", 0);
         var visitor = Anonymous();
-        await WithTokenAsync(visitor);
+        await AreaHttp.WithTokenAsync(visitor);
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var (adminWithoutToken, _) = await SignInAsync("Admin");
         _factory.VideoStorage.Invocations.Clear();
 
@@ -133,7 +133,7 @@ public partial class EventsApiTests
         var id = await AddEventAsync($"Arraial filmado ({role})", DateTime.Today.AddDays(-211));
         var first = await AddEventVideoAsync(id, "Primeiro", 0);
         var (client, _) = await SignInAsync(role);
-        await WithTokenAsync(client);
+        await AreaHttp.WithTokenAsync(client);
         var stored = $"https://pub-test.r2.dev/events/test/videos/{id}_new.mp4";
         _factory.VideoStorage.Setup(s => s.UploadVideoAsync(It.IsAny<Stream>(), "festa.mp4", "video/mp4", id)).ReturnsAsync(stored);
 
@@ -173,7 +173,7 @@ public partial class EventsApiTests
         var upcoming = await AddEventAsync("Arraial por filmar", DateTime.Today.AddDays(305));
         var past = await AddEventAsync("Arraial sem sorte", DateTime.Today.AddDays(-212));
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         _factory.VideoStorage.Setup(s => s.UploadVideoAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), past))
             .ThrowsAsync(new InvalidOperationException("R2 down"));
 

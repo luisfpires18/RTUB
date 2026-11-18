@@ -16,7 +16,7 @@ public partial class TreasuryApiTests
     {
         var (reportId, activityId, transactionId) = await SeedReportAsync();
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         foreach (var path in new[] { "/api/treasury", $"/api/treasury/reports/{reportId}", $"/api/treasury/reports/{reportId}/pdf",
                      $"/api/treasury/reports/{reportId}/history", "/api/treasury/calotes", "/api/treasury/mbway", "/api/treasury/nerba",
                      "/api/treasury/nerba/1", "/api/treasury/members?q=a" })
@@ -69,7 +69,7 @@ public partial class TreasuryApiTests
             var (client, me) = await SignInAsync(category);
             await AddDebtAsync(me.Id, fy, 12.5m, "Capa");
             await AddDebtAsync(me.Id, fy, 2.25m, null);
-            await WithTokenAsync(client);
+            await AreaHttp.WithTokenAsync(client);
             foreach (var path in new[] { "/api/treasury", $"/api/treasury/reports/{reportId}", $"/api/treasury/reports/{reportId}/pdf",
                          "/api/treasury/mbway", "/api/treasury/nerba", "/api/treasury/members?q=a" })
             {
@@ -102,12 +102,12 @@ public partial class TreasuryApiTests
         var transferId = await AddTransferAsync(debtor.Id, "Nota interna", "912345678");
         var (eventId, orderId) = await AddNerbaAsync();
         var (member, _) = await SignInAsync(MemberCategory.Tuno);
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
-        var reports = await Json(member, "/api/treasury");
+        var reports = await AreaHttp.Json(member, "/api/treasury");
         (reports.GetProperty("canCreate").GetBoolean(), reports.GetProperty("canPublish").GetBoolean()).Should().Be((false, false));
         reports.GetProperty("availableYears").GetArrayLength().Should().Be(0, "only managers get the create form's years");
-        var report = await Json(member, $"/api/treasury/reports/{reportId}");
+        var report = await AreaHttp.Json(member, $"/api/treasury/reports/{reportId}");
         (report.GetProperty("canManage").GetBoolean(), report.GetProperty("canSeeHistory").GetBoolean()).Should().Be((false, false));
         report.GetProperty("activities").EnumerateArray().SelectMany(a => a.GetProperty("transactions").EnumerateArray())
             .Single(t => t.GetProperty("id").GetInt32() == transactionId).GetProperty("receiptUrl").GetString().Should().StartWith("https://receipts.test/");
@@ -124,7 +124,7 @@ public partial class TreasuryApiTests
         var t = JsonDocument.Parse(transfers).RootElement;
         (t.GetProperty("canAdd").GetBoolean(), t.GetProperty("canEdit").GetBoolean()).Should().Be((false, false));
 
-        (await Json(member, $"/api/treasury/nerba/{eventId}")).GetProperty("canManage").GetBoolean().Should().BeFalse();
+        (await AreaHttp.Json(member, $"/api/treasury/nerba/{eventId}")).GetProperty("canManage").GetBoolean().Should().BeFalse();
         (await member.GetAsync("/api/treasury/members?q=a")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await member.GetAsync($"/api/treasury/reports/{reportId}/history")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
@@ -178,21 +178,21 @@ public partial class TreasuryApiTests
         (bool Manage, bool Publish, bool History) Rights(JsonElement r) =>
             (r.GetProperty("canManage").GetBoolean(), r.GetProperty("canPublish").GetBoolean(), r.GetProperty("canSeeHistory").GetBoolean());
 
-        Rights(await Json(mod, $"/api/treasury/reports/{reportId}")).Should().Be((false, false, false), "a Mod outside the treasury team only reads");
-        Rights(await Json(treasurerMod, $"/api/treasury/reports/{reportId}")).Should().Be((true, true, false));
-        Rights(await Json(treasurerMember, $"/api/treasury/reports/{reportId}")).Should().Be((false, true, false), "publishing was for the treasury team");
-        Rights(await Json(admin, $"/api/treasury/reports/{reportId}")).Should().Be((true, false, true), "Admin never published");
-        Rights(await Json(owner, $"/api/treasury/reports/{reportId}")).Should().Be((true, true, true), "Owner without Admin has every right");
+        Rights(await AreaHttp.Json(mod, $"/api/treasury/reports/{reportId}")).Should().Be((false, false, false), "a Mod outside the treasury team only reads");
+        Rights(await AreaHttp.Json(treasurerMod, $"/api/treasury/reports/{reportId}")).Should().Be((true, true, false));
+        Rights(await AreaHttp.Json(treasurerMember, $"/api/treasury/reports/{reportId}")).Should().Be((false, true, false), "publishing was for the treasury team");
+        Rights(await AreaHttp.Json(admin, $"/api/treasury/reports/{reportId}")).Should().Be((true, false, true), "Admin never published");
+        Rights(await AreaHttp.Json(owner, $"/api/treasury/reports/{reportId}")).Should().Be((true, true, true), "Owner without Admin has every right");
 
         (await owner.GetAsync($"/api/treasury/reports/{reportId}/history")).StatusCode.Should().Be(HttpStatusCode.OK);
         (await treasurerMod.GetAsync($"/api/treasury/reports/{reportId}/history")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         (await mod.PostAsJsonAsync($"/api/treasury/reports/{reportId}/activities", new { name = "x", startDate = "2026-01-01" }))
             .StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         (await admin.PostAsync($"/api/treasury/reports/{reportId}/publish", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        await WithTokenAsync(treasurerMember);
+        await AreaHttp.WithTokenAsync(treasurerMember);
         (await treasurerMember.PostAsync($"/api/treasury/reports/{reportId}/publish", null)).StatusCode.Should().Be(HttpStatusCode.OK);
         (await ReportAsync(reportId))!.IsPublished.Should().BeTrue();
     }
@@ -216,10 +216,5 @@ public partial class TreasuryApiTests
         return t.Id;
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.96.0.1");
-        return client;
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.96.0.1");
 }

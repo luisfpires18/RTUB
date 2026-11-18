@@ -20,7 +20,7 @@ public partial class PendingActionsApiTests
             "the first days of a fiscal year have no past meeting in it yet");
         var (mesa, _) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.PresidenteMesaAssembleia]);
         var (other, _) = await SignInAsync([MemberCategory.Tuno], retired: false);
-        await WithTokenAsync(mesa);
+        await AreaHttp.WithTokenAsync(mesa);
         var ag = await AddMeetingAsync(MeetingType.AssembleiaGeralOrdinaria, -3);
         var cv = await AddMeetingAsync(MeetingType.ConselhoVeteranos, -3);
         var upcoming = await AddMeetingAsync(MeetingType.AssembleiaGeralExtraordinaria, 5);
@@ -53,8 +53,8 @@ public partial class PendingActionsApiTests
         var (ensaiador, _) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.Ensaiador]);
         var (member, me) = await SignInAsync([MemberCategory.Tuno], retired: false);
         var (otherMember, other) = await SignInAsync([MemberCategory.Tuno], retired: false);
-        await WithTokenAsync(ensaiador);
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(ensaiador);
+        await AreaHttp.WithTokenAsync(member);
         var past = await AddRehearsalAsync(-10 - Interlocked.Increment(ref _approvalDay));
         var pastToo = await AddRehearsalAsync(-10 - Interlocked.Increment(ref _approvalDay));
         var future = await AddRehearsalAsync(NextDay());
@@ -97,7 +97,7 @@ public partial class PendingActionsApiTests
     public async Task TheEnsaiador_CannotDecideTheirOwnPresenca()
     {
         var (ensaiador, self) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.Ensaiador]);
-        await WithTokenAsync(ensaiador);
+        await AreaHttp.WithTokenAsync(ensaiador);
         var past = await AddRehearsalAsync(-40 - Interlocked.Increment(ref _approvalDay));
         var own = await AddPendingAsync(past, self.Id);
 
@@ -119,7 +119,7 @@ public partial class PendingActionsApiTests
         var (ensaiador, ensaiadorUser) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.Ensaiador]);
         var (magister, _) = await SignInAsync([MemberCategory.Tuno], retired: false, positions: [Position.Magister]);
         var (member, _) = await SignInAsync([MemberCategory.Tuno], retired: false);
-        await WithTokenAsync(ensaiador);
+        await AreaHttp.WithTokenAsync(ensaiador);
         var upcoming = await AddEventAsync(NextDay());
         var other = await AddEventAsync(NextDay());
         var past = await AddEventAsync(-2);

@@ -11,7 +11,7 @@ namespace RTUB.Web.Tests.Pwa;
 /// </summary>
 public class BrandAssetsTests
 {
-    private static readonly string Root = GetProjectRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string WebRoot = Path.Combine(Root, "src", "RTUB.Web", "wwwroot");
 
     private static string Asset(string url) => Path.Combine(WebRoot, url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
@@ -70,16 +70,5 @@ public class BrandAssetsTests
         shipped.Where(f => removed.IsMatch(File.ReadAllText(f))).Should().BeEmpty();
         File.ReadAllText(Path.Combine(WebRoot, "service-worker.js")).Should().NotContain("'rtub-v2.8.0'",
             "images are cache-first: a replaced logo under the same URL needs a new cache version");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

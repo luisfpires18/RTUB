@@ -34,7 +34,7 @@ public partial class LeaderboardApiTests
         await AttendAsync(expelled.Id, day, attended: true);
         var (member, _) = await SignInAsync("Member");
 
-        var body = await Json(member, "/api/leaderboard");
+        var body = await AreaHttp.Json(member, "/api/leaderboard");
 
         var entries = body.GetProperty("entries").EnumerateArray().ToList();
         entries.Should().HaveCount(body.GetProperty("total").GetInt32());
@@ -74,23 +74,23 @@ public partial class LeaderboardApiTests
         await EnrollAsync(before.Id, lastYear, EventType.Festival);
         var (member, memberUser) = await SignInAsync("Member");
 
-        var all = await Json(member, "/api/leaderboard");
+        var all = await AreaHttp.Json(member, "/api/leaderboard");
         var total = all.GetProperty("total").GetInt32();
         all.GetProperty("fiscalYears").EnumerateArray().Select(y => y.GetProperty("value").GetString()).Should().Contain(fiscalYear);
         all.GetProperty("fiscalYears").EnumerateArray().Single(y => y.GetProperty("value").GetString() == FiscalYearHelper.GetCurrentFiscalYearString())
             .GetProperty("label").GetString().Should().EndWith("(ATUAL)");
 
-        var searched = await Json(member, $"/api/leaderboard?q={Uri.EscapeDataString(tag.ToUpperInvariant() + " agora")}");
+        var searched = await AreaHttp.Json(member, $"/api/leaderboard?q={Uri.EscapeDataString(tag.ToUpperInvariant() + " agora")}");
         var hit = searched.GetProperty("entries").EnumerateArray().Single();
         hit.GetProperty("id").GetString().Should().Be(now.Id);
         hit.GetProperty("position").GetInt32().Should().Be(Position(all, now), "the search keeps the place in the full table");
         searched.GetProperty("total").GetInt32().Should().Be(total);
         searched.GetProperty("me").GetProperty("id").GetString().Should().Be(memberUser.Id, "'me' is the reader's own row whatever the search (#225)");
         searched.GetProperty("me").GetProperty("position").GetInt32().Should().Be(Position(all, memberUser));
-        (await Json(member, "/api/leaderboard?q=vai%20mais%20um")).GetProperty("entries").EnumerateArray()
+        (await AreaHttp.Json(member, "/api/leaderboard?q=vai%20mais%20um")).GetProperty("entries").EnumerateArray()
             .Should().OnlyContain(e => e.GetProperty("rankName").GetString() == "Vai mais um copo", "the rank name is searched too");
 
-        var year = await Json(member, $"/api/leaderboard?fiscalYear={fiscalYear}");
+        var year = await AreaHttp.Json(member, $"/api/leaderboard?fiscalYear={fiscalYear}");
         year.GetProperty("total").GetInt32().Should().Be(total, "a fiscal year changes the scores, never who is listed");
         Xp(year, now).Should().Be(50);
         Xp(year, before).Should().Be(0, "last year's Festival is outside this fiscal year");
@@ -112,7 +112,7 @@ public partial class LeaderboardApiTests
         await AttendAsync(target.Id, thisYear, attended: true);
         var (member, _) = await SignInAsync("Member");
 
-        var detail = await Json(member, $"/api/leaderboard/members/{target.Id}?fiscalYear={fiscalYear}");
+        var detail = await AreaHttp.Json(member, $"/api/leaderboard/members/{target.Id}?fiscalYear={fiscalYear}");
 
         detail.GetProperty("progress").GetProperty("xp").GetInt32().Should().Be(15, "the level follows the year the table shows");
         detail.GetProperty("progress").GetProperty("nextRankName").GetString().Should().Be("Vai mais um copo");

@@ -18,8 +18,8 @@ public partial class PendingActionsApiTests
     {
         var (mod, modUser) = await SignInAsync([MemberCategory.Tuno], retired: false, role: "Mod");
         var (plain, _) = await SignInAsync([MemberCategory.Tuno], retired: false);
-        await WithTokenAsync(mod);
-        await WithTokenAsync(plain);
+        await AreaHttp.WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(plain);
         var leitao = await AddMemberAsync([MemberCategory.Leitao], city: null, yearLeitao: null);
 
         (await AllKeysAsync(mod, "members", null)).Should().Contain(leitao);
@@ -76,7 +76,7 @@ public partial class PendingActionsApiTests
     public async Task AMod_FillsMissingDates_ButNotACompletePair_AndAStaleSaveIsRefused()
     {
         var (mod, _) = await SignInAsync([MemberCategory.Tuno], retired: false, role: "Mod");
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var tuno = await AddMemberAsync([MemberCategory.Tuno], city: "Porto", yearLeitao: 2015, monthLeitao: 10, yearTuno: null);
 
         var info = await mod.GetFromJsonAsync<JsonElement>($"/api/members/{tuno}/info");
@@ -100,7 +100,7 @@ public partial class PendingActionsApiTests
     {
         var (mod, modUser) = await SignInAsync([MemberCategory.Caloiro], retired: false, role: "Mod", positions: [Position.Magister]);
         await AddMagisterAssignmentAsync(modUser.Id);
-        await WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(mod);
         var tuno = await AddMemberAsync([MemberCategory.Tuno], city: "Porto", yearLeitao: 2015, monthLeitao: 10, yearTuno: 2018, monthTuno: 6);
 
         var info = await mod.GetFromJsonAsync<JsonElement>($"/api/members/{tuno}/info");

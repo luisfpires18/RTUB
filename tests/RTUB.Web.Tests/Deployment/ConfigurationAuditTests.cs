@@ -14,7 +14,7 @@ namespace RTUB.Web.Tests.Deployment;
 /// </summary>
 public partial class ConfigurationAuditTests
 {
-    private static readonly string Root = FindRepositoryRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string ManifestPath = Path.Combine(Root, "scripts", "config", "required-settings.json");
 
     // ---------- manifest ----------
@@ -192,15 +192,4 @@ public partial class ConfigurationAuditTests
         setting.TryGetProperty("expected", out var e) && e.TryGetProperty(env, out var v) ? v.GetString() : null;
 
     private static object Setting(string name, string value) => new { name, value, slotSetting = false };
-
-    private static string FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, ".github")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
-    }
 }

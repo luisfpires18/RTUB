@@ -10,7 +10,7 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class OwnerOperationsSourceTests
 {
-    private static readonly string Root = GetProjectRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Web = Path.Combine(Root, "src", "RTUB.Web");
     private static readonly string Portal = Path.Combine(Web, "portal", "src");
 
@@ -158,16 +158,5 @@ public class OwnerOperationsSourceTests
         css.Should().Contain("@media (max-width: 767px), (pointer: coarse) {\n  .owner-log__buttons {\n    gap: 10px;\n  }")
             .And.Contain("  .owner-log__buttons .btn::after,\n  .owner-log__buttons .icon-btn::after {\n    position: absolute;\n    inset: -3px;")
             .And.Contain("  .owner-log__buttons .icon-btn::after {\n    inset: -5px;");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

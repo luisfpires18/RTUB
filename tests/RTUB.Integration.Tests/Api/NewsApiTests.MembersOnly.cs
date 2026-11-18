@@ -13,21 +13,21 @@ public partial class NewsApiTests
     public async Task Feed_IsPaged_WithAClampedPageSize()
     {
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         for (var i = 0; i < 3; i++)
         {
             await AddAsync($"{Tag()} página", "Texto", DateTime.UtcNow.AddDays(-30 - i), null);
         }
 
         var total = await PublishedCountAsync();
-        var first = await Json(Anonymous(), "/api/news?page=1&pageSize=2");
+        var first = await AreaHttp.Json(Anonymous(), "/api/news?page=1&pageSize=2");
         first.GetProperty("posts").GetArrayLength().Should().Be(2);
         first.GetProperty("hasMore").GetBoolean().Should().Be(total > 2);
 
         var ids = new List<int>();
         for (var page = 1; ; page++)
         {
-            var feed = await Json(Anonymous(), $"/api/news?page={page}&pageSize=2");
+            var feed = await AreaHttp.Json(Anonymous(), $"/api/news?page={page}&pageSize=2");
             ids.AddRange(feed.GetProperty("posts").EnumerateArray().Select(p => p.GetProperty("id").GetInt32()));
             if (!feed.GetProperty("hasMore").GetBoolean())
             {
@@ -36,8 +36,8 @@ public partial class NewsApiTests
         }
 
         ids.Should().OnlyHaveUniqueItems().And.HaveCount(total, "the pages walk the whole feed once");
-        (await Json(Anonymous(), "/api/news?pageSize=500")).GetProperty("posts").GetArrayLength().Should().BeLessThanOrEqualTo(20);
-        (await Json(admin, "/api/news?page=2&pageSize=1")).GetProperty("drafts").GetArrayLength().Should().Be(0, "drafts come with the first page only");
+        (await AreaHttp.Json(Anonymous(), "/api/news?pageSize=500")).GetProperty("posts").GetArrayLength().Should().BeLessThanOrEqualTo(20);
+        (await AreaHttp.Json(admin, "/api/news?page=2&pageSize=1")).GetProperty("drafts").GetArrayLength().Should().Be(0, "drafts come with the first page only");
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public partial class NewsApiTests
         post!.AuthorId.Should().BeNull();
 
         var (owner, _) = await SignInAsync("Owner");
-        var feed = await Json(owner, "/api/news?pageSize=20");
+        var feed = await AreaHttp.Json(owner, "/api/news?pageSize=20");
         feed.GetProperty("posts").EnumerateArray().Single(p => p.GetProperty("id").GetInt32() == id)
             .GetProperty("authorName").ValueKind.Should().Be(JsonValueKind.Null);
     }
@@ -69,7 +69,7 @@ public partial class NewsApiTests
     {
         var tag = Tag();
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
 
         var plain = await (await admin.PostAsJsonAsync("/api/news", Input($"{tag} omitida", "Texto", publish: true))).Content.ReadFromJsonAsync<JsonElement>();
         plain.GetProperty("membersOnly").GetBoolean().Should().BeFalse();
@@ -130,16 +130,16 @@ public partial class NewsApiTests
             feed.GetProperty("posts").EnumerateArray().Should().OnlyContain(p => !p.GetProperty("membersOnly").GetBoolean());
         }
 
-        (await Json(anonymous, "/api/news?pageSize=20")).GetProperty("posts").EnumerateArray()
+        (await AreaHttp.Json(anonymous, "/api/news?pageSize=20")).GetProperty("posts").EnumerateArray()
             .Select(p => p.GetProperty("id").GetInt32()).Should().Contain(publicId, "public posts are unchanged");
 
         // A visitor asking for the private tab gets the public feed, so nothing reveals that hidden posts exist.
-        (await Json(anonymous, "/api/news?visibility=private&pageSize=20")).GetProperty("posts").EnumerateArray()
+        (await AreaHttp.Json(anonymous, "/api/news?visibility=private&pageSize=20")).GetProperty("posts").EnumerateArray()
             .Select(p => p.GetProperty("id").GetInt32()).Should().Contain(publicId);
 
         // A signed-in member sees both, with the private badge data; no management data.
         var (member, _) = await SignInAsync("Member");
-        var all = await Json(member, "/api/news?pageSize=20");
+        var all = await AreaHttp.Json(member, "/api/news?pageSize=20");
         all.GetProperty("signedIn").GetBoolean().Should().BeTrue();
         all.GetProperty("canManage").GetBoolean().Should().BeFalse();
         var mine = Tagged(all.GetProperty("posts"), tag);
@@ -150,16 +150,16 @@ public partial class NewsApiTests
         all.GetProperty("drafts").GetArrayLength().Should().Be(0, "members never see drafts, private or not");
 
         // The tabs: Públicas / Privadas narrow it on the server.
-        Tagged((await Json(member, "/api/news?visibility=public&pageSize=20")).GetProperty("posts"), tag)
+        Tagged((await AreaHttp.Json(member, "/api/news?visibility=public&pageSize=20")).GetProperty("posts"), tag)
             .Select(p => p.GetProperty("id").GetInt32()).Should().Equal(publicId);
-        Tagged((await Json(member, "/api/news?visibility=private&pageSize=20")).GetProperty("posts"), tag)
+        Tagged((await AreaHttp.Json(member, "/api/news?visibility=private&pageSize=20")).GetProperty("posts"), tag)
             .Select(p => p.GetProperty("id").GetInt32()).Should().Equal(privateId);
 
         // Admin: the private draft is a draft for managers only.
         var (admin, _) = await SignInAsync("Admin");
-        Tagged((await Json(admin, "/api/news?visibility=private")).GetProperty("drafts"), tag)
+        Tagged((await AreaHttp.Json(admin, "/api/news?visibility=private")).GetProperty("drafts"), tag)
             .Should().ContainSingle().Which.GetProperty("membersOnly").GetBoolean().Should().BeTrue();
-        Tagged((await Json(admin, "/api/news?visibility=public")).GetProperty("drafts"), tag).Should().BeEmpty();
+        Tagged((await AreaHttp.Json(admin, "/api/news?visibility=public")).GetProperty("drafts"), tag).Should().BeEmpty();
 
         _factory.Push.Invocations.Should().BeEmpty("news sends no push, so no private text can reach a notification");
         _factory.Email.Invocations.Should().BeEmpty();
@@ -177,7 +177,7 @@ public partial class NewsApiTests
         JsonDocument.Parse(visitor).RootElement.GetProperty("posts").EnumerateArray().First().GetProperty("id").GetInt32().Should().Be(publicId);
 
         var (member, _) = await SignInAsync("Member");
-        var posts = (await Json(member, "/api/news?pageSize=3")).GetProperty("posts").EnumerateArray().ToList();
+        var posts = (await AreaHttp.Json(member, "/api/news?pageSize=3")).GetProperty("posts").EnumerateArray().ToList();
         posts[0].GetProperty("id").GetInt32().Should().Be(privateId);
         posts[0].GetProperty("membersOnly").GetBoolean().Should().BeTrue("the preview card needs the flag for its badge");
         posts[1].GetProperty("membersOnly").GetBoolean().Should().BeFalse();

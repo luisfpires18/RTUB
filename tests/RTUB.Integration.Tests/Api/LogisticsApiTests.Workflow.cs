@@ -38,14 +38,14 @@ public partial class LogisticsApiTests
         }
 
         var (mod, _) = await SignInAsync("Mod");
-        var detail = await Json(mod, $"/api/logistics/cards/{cardId}");
+        var detail = await AreaHttp.Json(mod, $"/api/logistics/cards/{cardId}");
         detail.GetProperty("assignedTo").GetProperty("userId").GetString().Should().Be(owner.Id);
         detail.GetProperty("assignments").EnumerateArray().Select(a => a.GetProperty("userId").GetString()).Should().Equal(helper.Id);
         (detail.GetProperty("version").GetInt32(), detail.GetProperty("card").GetProperty("priority").GetString()).Should().Be((0, "Normal"));
         detail.GetProperty("card").GetProperty("description").GetString().Should().Be("Antigo");
         detail.GetProperty("checklist").GetArrayLength().Should().Be(1);
         detail.GetProperty("card").GetProperty("dueDate").GetString().Should().StartWith("2026-10-09");
-        Card(await Json(mod, $"/api/logistics/boards/{boardId}"), cardId).GetProperty("assignments").GetInt32().Should().Be(1);
+        Card(await AreaHttp.Json(mod, $"/api/logistics/boards/{boardId}"), cardId).GetProperty("assignments").GetInt32().Should().Be(1);
         (await AssignmentCountAsync(cardId)).Should().Be(2, "reading never rewrites the rows");
     }
 
@@ -60,7 +60,7 @@ public partial class LogisticsApiTests
         await UpdateUserAsync(me.Id, u => u.Categories = new List<MemberCategory> { MemberCategory.Leitao });
         await UpdateUserAsync(gone.Id, u => u.IsExpelled = true);
         await UpdateCardAsync(cardId, c => c.AssignToUser(me.Id));
-        await WithTokenAsync(leitao);
+        await AreaHttp.WithTokenAsync(leitao);
 
         var edit = new { title = "Credenciais", description = "Imprimir\nPlastificar", priority = "Urgent", startDate = "2026-11-10", dueDate = "2026-11-20", assignedToUserId = me.Id, version = 0 };
         var saved = await Json(await leitao.PutAsJsonAsync($"/api/logistics/cards/{cardId}", edit));
@@ -68,8 +68,8 @@ public partial class LogisticsApiTests
         (await leitao.PutAsJsonAsync($"/api/logistics/cards/{cardId}", edit with { title = "Outra" })).StatusCode.Should().Be(HttpStatusCode.Conflict,
             "the same version again is stale: another save happened");
         (await CardAsync(cardId))!.Title.Should().Be("Credenciais", "a stale save never lands");
-        (await Errors(await leitao.PutAsJsonAsync($"/api/logistics/cards/{cardId}", edit with { dueDate = "2026-11-01", version = 1 }))).Keys.Should().Equal("dueDate");
-        (await Errors(await leitao.PutAsJsonAsync($"/api/logistics/cards/{cardId}", edit with { priority = "9", version = 1 }))).Keys.Should().Equal("priority");
+        (await AreaHttp.Errors(await leitao.PutAsJsonAsync($"/api/logistics/cards/{cardId}", edit with { dueDate = "2026-11-01", version = 1 }))).Keys.Should().Equal("dueDate");
+        (await AreaHttp.Errors(await leitao.PutAsJsonAsync($"/api/logistics/cards/{cardId}", edit with { priority = "9", version = 1 }))).Keys.Should().Equal("priority");
         var kept = await Json(await leitao.PutAsJsonAsync($"/api/logistics/cards/{cardId}", new { edit.title, edit.description, edit.priority, edit.startDate, edit.dueDate, version = 1 }));
         kept.GetProperty("assignedTo").GetProperty("displayName").GetString().Should().NotBeNullOrEmpty("a non-manager sends no owner: it is kept, not cleared");
         (await CardAsync(cardId))!.AssignedToUserId.Should().Be(me.Id);
@@ -78,24 +78,24 @@ public partial class LogisticsApiTests
         await Json(await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist", new { task = "Plastificar" }));
         await Json(await leitao.PutAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/1", new { expected = "Plastificar", task = "Plastificar e furar" }));
         await Json(await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/0", new { task = "Imprimir", done = true }));
-        (await Errors(await leitao.PutAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/1", new { expected = "Plastificar", task = "x" }))).Keys
+        (await AreaHttp.Errors(await leitao.PutAsJsonAsync($"/api/logistics/cards/{cardId}/checklist/1", new { expected = "Plastificar", task = "x" }))).Keys
             .Should().Equal(new[] { "items" }, "the item changed meanwhile: refused, not applied to whatever is there now");
 
-        (await Errors(await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = "Feito", mentionUserIds = new[] { gone.Id } })))
+        (await AreaHttp.Errors(await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = "Feito", mentionUserIds = new[] { gone.Id } })))
             .Keys.Should().Equal("mentionUserIds");
-        (await Errors(await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = new string('x', 2001) }))).Keys.Should().Equal("body");
+        (await AreaHttp.Errors(await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = new string('x', 2001) }))).Keys.Should().Equal("body");
         await Json(await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = "<b>Feito</b> @colega", mentionUserIds = new[] { mate.Id } }));
 
-        (await Errors(await leitao.PostAsync($"/api/logistics/cards/{cardId}/attachments", File("x.exe", "application/x-msdownload")))).Keys.Should().Equal("file");
+        (await AreaHttp.Errors(await leitao.PostAsync($"/api/logistics/cards/{cardId}/attachments", File("x.exe", "application/x-msdownload")))).Keys.Should().Equal("file");
         await Json(await leitao.PostAsync($"/api/logistics/cards/{cardId}/attachments", File(@"..\..\orcamento.pdf")));
         foreach (var bad in new[] { "javascript:alert(1)", "ftp://exemplo.pt/x", "https://exem plo.pt", "/relativo", "" })
         {
-            (await Errors(await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/links", new { url = bad }))).Keys.Should().Equal(new[] { "url" }, bad);
+            (await AreaHttp.Errors(await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/links", new { url = bad }))).Keys.Should().Equal(new[] { "url" }, bad);
         }
 
         await Json(await leitao.PostAsJsonAsync($"/api/logistics/cards/{cardId}/links", new { url = "https://docs.exemplo.pt/folha?id=1", name = "" }));
 
-        var reloaded = await Json(leitao, $"/api/logistics/cards/{cardId}");
+        var reloaded = await AreaHttp.Json(leitao, $"/api/logistics/cards/{cardId}");
         reloaded.GetProperty("card").GetProperty("title").GetString().Should().Be("Credenciais");
         reloaded.GetProperty("card").GetProperty("description").GetString().Should().Be("Imprimir\nPlastificar");
         reloaded.GetProperty("checklist").EnumerateArray().Select(i => (i.GetProperty("task").GetString(), i.GetProperty("done").GetBoolean()))
@@ -110,8 +110,8 @@ public partial class LogisticsApiTests
         var key = _factory.Storage.Objects.Keys.Single(k => k.EndsWith("/orcamento.pdf") && k.Contains("/Logistics/"));
         key.Should().NotContain("..").And.Be($"docs/Test/{FiscalYearHelper.GetCurrentFiscalYearString()}/Logistics/{await BoardFolderAsync(boardId)}/orcamento.pdf",
             "card files are documents in the board's Documentação folder");
-        (await Json(leitao, $"/api/logistics/cards/{cardId}/attachments/{fileId}")).GetProperty("url").GetString().Should().Contain(key);
-        (await Json(leitao, $"/api/logistics/cards/{cardId}/attachments/{attachments[1].GetProperty("id").GetInt32()}")).GetProperty("url").GetString()
+        (await AreaHttp.Json(leitao, $"/api/logistics/cards/{cardId}/attachments/{fileId}")).GetProperty("url").GetString().Should().Contain(key);
+        (await AreaHttp.Json(leitao, $"/api/logistics/cards/{cardId}/attachments/{attachments[1].GetProperty("id").GetInt32()}")).GetProperty("url").GetString()
             .Should().Be("https://docs.exemplo.pt/folha?id=1");
 
         reloaded.GetProperty("activity").EnumerateArray().Select(a => a.GetProperty("detail").GetString()).Should().Contain(new[]
@@ -120,7 +120,7 @@ public partial class LogisticsApiTests
             "Tarefa editada: «Plastificar» → «Plastificar e furar»", "Ficheiro anexado: orcamento.pdf", "Ligação adicionada: docs.exemplo.pt",
         });
         reloaded.GetProperty("activity").EnumerateArray().First().GetProperty("actor").GetProperty("displayName").GetString().Should().NotBeNullOrEmpty();
-        var face = Card(await Json(leitao, $"/api/logistics/boards/{boardId}"), cardId);
+        var face = Card(await AreaHttp.Json(leitao, $"/api/logistics/boards/{boardId}"), cardId);
         (face.GetProperty("comments").GetInt32(), face.GetProperty("attachments").GetInt32()).Should().Be((1, 2));
     }
 
@@ -144,7 +144,7 @@ public partial class LogisticsApiTests
 
         foreach (var c in new[] { owner, helper, viewer, mod })
         {
-            await WithTokenAsync(c);
+            await AreaHttp.WithTokenAsync(c);
         }
 
         var ownerComment = (await Json(await owner.PostAsJsonAsync($"/api/logistics/cards/{cardId}/comments", new { body = "Do responsável" })))
@@ -156,7 +156,7 @@ public partial class LogisticsApiTests
         var folder = $"docs/Test/{FiscalYearHelper.GetCurrentFiscalYearString()}/Logistics/{await BoardFolderAsync(boardId)}/";
 
         // An unassigned viewer reads the discussion and downloads, but writes nothing.
-        var read = await Json(viewer, $"/api/logistics/cards/{cardId}");
+        var read = await AreaHttp.Json(viewer, $"/api/logistics/cards/{cardId}");
         read.GetProperty("comments").GetArrayLength().Should().Be(2);
         read.GetProperty("comments").EnumerateArray().Should().OnlyContain(c => !c.GetProperty("canEdit").GetBoolean() && !c.GetProperty("canDelete").GetBoolean());
         (await viewer.GetAsync($"/api/logistics/cards/{cardId}/attachments/{file}")).StatusCode.Should().Be(HttpStatusCode.OK);
@@ -190,7 +190,7 @@ public partial class LogisticsApiTests
         (await mod.DeleteAsync($"/api/logistics/cards/{cardId}/assignments/{helperUser.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
         (await helper.DeleteAsync($"/api/logistics/cards/{cardId}/attachments/{helperLink}")).StatusCode.Should().Be(HttpStatusCode.Forbidden,
             "a former collaborator cannot delete what they uploaded");
-        (await Json(helper, $"/api/logistics/cards/{cardId}")).GetProperty("attachments").EnumerateArray()
+        (await AreaHttp.Json(helper, $"/api/logistics/cards/{cardId}")).GetProperty("attachments").EnumerateArray()
             .Single(a => a.GetProperty("id").GetInt32() == helperLink).GetProperty("canDelete").GetBoolean().Should().BeFalse();
         (await mod.PostAsJsonAsync($"/api/logistics/cards/{cardId}/assignments", new { userId = helperUser.Id })).StatusCode.Should().Be(HttpStatusCode.OK);
 

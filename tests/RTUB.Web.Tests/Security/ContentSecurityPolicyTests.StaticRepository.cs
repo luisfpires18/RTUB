@@ -16,7 +16,7 @@ public partial class ContentSecurityPolicyTests
     [Fact]
     public void MembersMap_BuildsPopupsAsDomNodesWithoutInlineHandlers()
     {
-        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "memberMap.js"))
+        File.Exists(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "wwwroot", "js", "memberMap.js"))
             .Should().BeFalse("the Blazor map script was retired in 032");
 
         var content = ReadRepoFile("src", "RTUB.Web", "portal", "src", "pages/MembersMap.tsx");
@@ -44,9 +44,9 @@ public partial class ContentSecurityPolicyTests
         Directives(Policy())["img-src"].Should().Contain("https://tile.openstreetmap.org")
             .And.NotContain(s => s.Contains("cartocdn"));
 
-        var sources = Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src"), "*", SearchOption.AllDirectories)
-            .Concat(Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "portal", "assets"), "*.js"))
-            .Append(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "Security", "ContentSecurityPolicyBuilder.cs"));
+        var sources = Directory.GetFiles(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src"), "*", SearchOption.AllDirectories)
+            .Concat(Directory.GetFiles(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "wwwroot", "portal", "assets"), "*.js"))
+            .Append(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "Security", "ContentSecurityPolicyBuilder.cs"));
         sources.Where(f => File.ReadAllText(f).Contains("basemaps.cartocdn.com"))
             .Should().BeEmpty("no CARTO tile dependency is left");
     }
@@ -63,7 +63,7 @@ public partial class ContentSecurityPolicyTests
     public void ApplicationJavaScript_BuildsNoMarkupCarryingInlineEventHandlers()
     {
         var violations = new List<string>();
-        var root = GetProjectRoot();
+        var root = RepoPaths.Root();
 
         foreach (var file in EnumerateApplicationScripts())
         {
@@ -95,7 +95,7 @@ public partial class ContentSecurityPolicyTests
             .Should().NotContain("fonts.googleapis.com",
                 "the preconnect had no matching stylesheet; font-src is 'self'");
 
-        var cssRoot = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "css");
+        var cssRoot = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "wwwroot", "css");
 
         Directory.EnumerateFiles(cssRoot, "*.css", SearchOption.AllDirectories)
             .Where(f => File.ReadAllText(f).Contains("@font-face", StringComparison.OrdinalIgnoreCase))

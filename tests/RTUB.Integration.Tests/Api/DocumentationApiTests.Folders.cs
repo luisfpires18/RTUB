@@ -13,7 +13,7 @@ public partial class DocumentationApiTests
     {
         Seed();
         var (member, _) = await SignInAsync();
-        var docs = await Json(member, "/api/documentation");
+        var docs = await AreaHttp.Json(member, "/api/documentation");
         docs.GetProperty("fiscalYear").GetString().Should().Be(Year, "the old page opened on the current year");
         docs.GetProperty("canManage").GetBoolean().Should().BeFalse();
         docs.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("fiscalYears", "fiscalYear", "folders", "extensions", "maxFileBytes", "canManage");
@@ -30,22 +30,22 @@ public partial class DocumentationApiTests
 
         var (veterano, vet) = await SignInAsync();
         await UpdateAsync(vet.Id, u => { u.YearTuno = DateTime.Now.Year - 3; u.MonthTuno = 1; });
-        Folders(await Json(veterano, "/api/documentation")).Should().Contain($"Atas CV {Year}");
+        Folders(await AreaHttp.Json(veterano, "/api/documentation")).Should().Contain($"Atas CV {Year}");
 
         var (magister, mag) = await SignInAsync();
         await UpdateAsync(mag.Id, u => u.Positions = new List<Position> { Position.Magister });
-        Folders(await Json(magister, "/api/documentation")).Should().Contain($"Atas CV {Year}");
+        Folders(await AreaHttp.Json(magister, "/api/documentation")).Should().Contain($"Atas CV {Year}");
 
         foreach (var role in new[] { "Mod", "Admin" })
         {
             var (client, _) = await SignInAsync(role);
-            var seen = await Json(client, "/api/documentation");
+            var seen = await AreaHttp.Json(client, "/api/documentation");
             Folders(seen).Should().NotContain($"Atas CV {Year}", "{0} had no extra rights on the old page", role);
             seen.GetProperty("canManage").GetBoolean().Should().BeTrue(role);
         }
 
         var (owner, _) = await SignInAsync("Owner");
-        var all = await Json(owner, "/api/documentation");
+        var all = await AreaHttp.Json(owner, "/api/documentation");
         Folders(all).Should().Equal($"Atas AG {Year}", $"Atas CV {Year}", "Logistics/Arraial", "Logistics/Jantar", "Regulamentos", "Vazia");
         all.GetProperty("canManage").GetBoolean().Should().BeTrue();
     }
@@ -60,11 +60,11 @@ public partial class DocumentationApiTests
         Storage.Put(Key("Antigos", "velho.pdf", previousYear), 1);
         var (member, _) = await SignInAsync();
 
-        var shown = await Json(member, $"/api/documentation?fiscalYear={previousYear}");
+        var shown = await AreaHttp.Json(member, $"/api/documentation?fiscalYear={previousYear}");
         shown.GetProperty("fiscalYear").GetString().Should().Be(previousYear);
         Folders(shown).Should().Equal("Antigos");
         shown.GetProperty("fiscalYears").EnumerateArray().Select(y => y.GetProperty("value").GetString()).Should().Contain(previousYear);
-        (await Json(member, "/api/documentation?fiscalYear=")).GetProperty("fiscalYear").GetString().Should().Be(Year);
+        (await AreaHttp.Json(member, "/api/documentation?fiscalYear=")).GetProperty("fiscalYear").GetString().Should().Be(Year);
 
         foreach (var bad in new[] { "1999-2000", "../..", $"{Year}/Regulamentos" })
         {
@@ -78,9 +78,9 @@ public partial class DocumentationApiTests
         Seed();
         var (member, _) = await SignInAsync();
 
-        var link = await Json(member, "/api/documentation/file?folder=Regulamentos&name=Estatutos.pdf");
+        var link = await AreaHttp.Json(member, "/api/documentation/file?folder=Regulamentos&name=Estatutos.pdf");
         link.GetProperty("url").GetString().Should().Be($"https://r2.test/{Key("Regulamentos", "Estatutos.pdf")}?download=True");
-        (await Json(member, "/api/documentation/file?folder=Logistics%2FJantar&name=orcamento.xlsx")).GetProperty("url").GetString()
+        (await AreaHttp.Json(member, "/api/documentation/file?folder=Logistics%2FJantar&name=orcamento.xlsx")).GetProperty("url").GetString()
             .Should().Contain("Logistics/Jantar/orcamento.xlsx");
 
         foreach (var query in new[]
@@ -107,7 +107,7 @@ public partial class DocumentationApiTests
         var (member, _) = await SignInAsync();
         (await member.PostAsync("/api/documentation/documents", Upload("Regulamentos", "Novo.pdf"))).StatusCode
             .Should().Be(HttpStatusCode.BadRequest, "every write needs the antiforgery token");
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var created = await Json(await member.PostAsync("/api/documentation/documents", Upload("Regulamentos", "Novo.pdf")));
         created.GetProperty("name").GetString().Should().Be("Novo.pdf");
@@ -117,10 +117,10 @@ public partial class DocumentationApiTests
             .Should().Be("fora.pdf");
         Storage.Objects.Keys.Should().Contain(Key("Regulamentos", "fora.pdf")).And.OnlyContain(k => k.StartsWith("docs/Test/"));
 
-        (await Errors(await member.PostAsync("/api/documentation/documents", Upload("Regulamentos", "script.exe"))))["file"].Single()
+        (await AreaHttp.Errors(await member.PostAsync("/api/documentation/documents", Upload("Regulamentos", "script.exe"))))["file"].Single()
             .Should().StartWith("Tipo de ficheiro não permitido");
-        (await Errors(await member.PostAsync("/api/documentation/documents", Upload("Regulamentos", "vazio.pdf", Array.Empty<byte>())))).Keys.Should().Equal("file");
-        (await Errors(await member.PostAsync("/api/documentation/documents", Upload("Regulamentos", "Estatutos.pdf"))))["file"].Single()
+        (await AreaHttp.Errors(await member.PostAsync("/api/documentation/documents", Upload("Regulamentos", "vazio.pdf", Array.Empty<byte>())))).Keys.Should().Equal("file");
+        (await AreaHttp.Errors(await member.PostAsync("/api/documentation/documents", Upload("Regulamentos", "Estatutos.pdf"))))["file"].Single()
             .Should().Be("Já existe um documento com este nome nesta pasta.");
         Storage.Objects[Key("Regulamentos", "Estatutos.pdf")].Size.Should().Be(1234, "a member never replaces a document");
         (await member.PostAsync("/api/documentation/documents", Upload($"Atas CV {Year}", "x.pdf"))).StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -128,7 +128,7 @@ public partial class DocumentationApiTests
         (await member.PostAsync("/api/documentation/documents", Upload("Logistics/Jantar", "fatura.pdf"))).StatusCode.Should().Be(HttpStatusCode.OK);
 
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         (await owner.PostAsync("/api/documentation/documents", Upload("Regulamentos", "Estatutos.pdf"))).StatusCode.Should().Be(HttpStatusCode.OK);
         Storage.Objects[Key("Regulamentos", "Estatutos.pdf")].Size.Should().Be(3, "Owner replaces by uploading the same name");
     }
@@ -140,21 +140,21 @@ public partial class DocumentationApiTests
         foreach (var role in new[] { (string?)null })
         {
             var (client, _) = await SignInAsync(role);
-            await WithTokenAsync(client);
+            await AreaHttp.WithTokenAsync(client);
             (await client.PostAsJsonAsync("/api/documentation/folders", new { name = "Nova" })).StatusCode.Should().Be(HttpStatusCode.Forbidden, role);
             (await client.DeleteAsync("/api/documentation/documents?folder=Regulamentos&name=Estatutos.pdf")).StatusCode.Should().Be(HttpStatusCode.Forbidden, role);
             (await client.DeleteAsync("/api/documentation/folders?folder=Regulamentos")).StatusCode.Should().Be(HttpStatusCode.Forbidden, role);
         }
 
         var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
+        await AreaHttp.WithTokenAsync(admin);
         (await admin.PostAsJsonAsync("/api/documentation/folders", new { name = "Feita Por Admin" })).StatusCode.Should().Be(HttpStatusCode.OK);
 
         var (owner, _) = await SignInAsync("Owner");
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(owner);
         foreach (var bad in new[] { "", "  ", "Atas/../x", "Ação", new string('a', 51), "regulamentos" })
         {
-            (await Errors(await owner.PostAsJsonAsync("/api/documentation/folders", new { name = bad }))).Keys.Should().Equal(new[] { "name" }, bad);
+            (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/documentation/folders", new { name = bad }))).Keys.Should().Equal(new[] { "name" }, bad);
         }
 
         (await Json(await owner.PostAsJsonAsync("/api/documentation/folders", new { name = " Atas Direcao-2026 " }))).GetProperty("name").GetString()

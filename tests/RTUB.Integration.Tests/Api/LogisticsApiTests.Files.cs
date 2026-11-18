@@ -73,25 +73,25 @@ public partial class LogisticsApiTests
         var (mod, _) = await SignInAsync("Mod");
         var (owner, _) = await SignInAsync("Owner");
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(mod);
-        await WithTokenAsync(owner);
+        await AreaHttp.WithTokenAsync(mod);
+        await AreaHttp.WithTokenAsync(owner);
         var file = (await Json(await mod.PostAsync($"/api/logistics/cards/{cardId}/attachments", File("foto.png", "image/png"))))
             .GetProperty("attachments").EnumerateArray().Single().GetProperty("id").GetInt32();
         await Json(await mod.PostAsync($"/api/logistics/boards/{boardId}/files", File("plano.pdf")));
         (await BoardFolderAsync(boardId)).Should().Be(name, "the folder is the board's name");
 
         var year = FiscalYearHelper.GetCurrentFiscalYearString();
-        var docs = await Json(member, "/api/documentation");
+        var docs = await AreaHttp.Json(member, "/api/documentation");
         docs.GetProperty("folders").EnumerateArray().Single(f => f.GetProperty("name").GetString() == $"Logistics/{name}")
             .GetProperty("documents").EnumerateArray().Select(d => d.GetProperty("name").GetString()).Should().BeEquivalentTo("foto.png", "plano.pdf");
-        (await Json(member, $"/api/logistics/boards/{boardId}/file-list")).EnumerateArray().Select(f => f.GetProperty("name").GetString())
+        (await AreaHttp.Json(member, $"/api/logistics/boards/{boardId}/file-list")).EnumerateArray().Select(f => f.GetProperty("name").GetString())
             .Should().Equal(new[] { "plano.pdf" }, "a card's files show on their card, not in the board's own list");
-        (await Json(member, $"/api/logistics/cards/{cardId}/attachments/{file}")).GetProperty("url").GetString()
+        (await AreaHttp.Json(member, $"/api/logistics/cards/{cardId}/attachments/{file}")).GetProperty("url").GetString()
             .Should().Contain($"docs/Test/{year}/Logistics/{name}/foto.png");
 
         (await owner.DeleteAsync($"/api/documentation/documents?fiscalYear={year}&folder={Uri.EscapeDataString($"Logistics/{name}")}&name=foto.png"))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
-        var card = await Json(member, $"/api/logistics/cards/{cardId}");
+        var card = await AreaHttp.Json(member, $"/api/logistics/cards/{cardId}");
         card.GetProperty("attachments").GetArrayLength().Should().Be(0, "deleted in Documentação, gone from the card");
         card.GetProperty("activity").EnumerateArray().First().GetProperty("detail").GetString().Should().Be("Anexo removido em Documentação: foto.png");
         _factory.Storage.Objects.Keys.Should().NotContain($"docs/Test/{year}/Logistics/{name}/foto.png");
@@ -110,7 +110,7 @@ public partial class LogisticsApiTests
             _factory.Storage.Fails = null;
         }
 
-        (await Json(member, $"/api/logistics/cards/{cardId}")).GetProperty("attachments").GetArrayLength().Should().Be(0,
+        (await AreaHttp.Json(member, $"/api/logistics/cards/{cardId}")).GetProperty("attachments").GetArrayLength().Should().Be(0,
             "the card never points at a file the failed delete may have removed");
         _factory.Storage.Objects.Keys.Should().Contain(convite);
         (await owner.DeleteAsync($"/api/documentation/documents?fiscalYear={year}&folder={Uri.EscapeDataString($"Logistics/{name}")}&name=convite.png"))

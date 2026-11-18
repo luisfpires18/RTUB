@@ -187,17 +187,6 @@ public partial class ReactLoginTests : IntegrationTestBase
     private static IEnumerable<string> SetCookies(HttpResponseMessage response) =>
         response.Headers.TryGetValues("Set-Cookie", out var values) ? values : Array.Empty<string>();
 
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
-    }
-
     private sealed record SignedIn(string Redirect);
     private sealed record Failed(string Error);
     private sealed record Me(bool Authenticated);
