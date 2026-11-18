@@ -4,7 +4,7 @@ using RTUB.Web.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The running build's release notes for signed-in members (task 083, issue #264; docs/release-and-rollback.md →
+/// The running build's release notes for signed-in members (docs/release-and-rollback.md →
 /// Release notes). Members only (401 to visitors), no-store, the acknowledgement needs the antiforgery token. Always
 /// the caller's own account: no id in any request. Visitors never get the notes, so the dialog cannot show to them.
 /// </summary>

@@ -6,9 +6,9 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /gallery timeline (React track 009, docs/react-gallery.md). Read-only and
+/// The React /gallery timeline (docs/react-gallery.md). Read-only and
 /// viewer-aware: anonymous callers are allowed and get public items only; the service decides from
-/// the session, never from anything the browser sends. Since 015 it also takes the members' uploads, edits,
+/// the session, never from anything the browser sends. It also takes the members' uploads, edits,
 /// deletes and person tags (<see cref="IGalleryManagementService"/>); every write needs the antiforgery token in
 /// the X-CSRF-TOKEN header.
 /// </summary>
@@ -34,7 +34,7 @@ public static class GalleryEndpoints
                 return await timeline.GetItemAsync(id, user) is { } item ? Results.Json(item) : Results.NotFound();
             });
 
-        // Management (React track 015). Answers reuse the Events result mapping.
+        // Management. Answers reuse the Events result mapping.
         var manage = app.MapGroup("/api/gallery").AllowAnonymous().AddEndpointFilter(EventEndpoints.NoStore);
         var writes = manage.MapGroup(string.Empty).AddEndpointFilter(EventEndpoints.RequireAntiforgery);
 
@@ -44,7 +44,7 @@ public static class GalleryEndpoints
         manage.MapGet("/items/{id:int}/edit", async (int id, ClaimsPrincipal user, IGalleryManagementService gallery) =>
             ToResult(await gallery.GetForEditAsync(id, user)));
 
-        // Multipart: "file", "title", "date" (yyyy-MM-dd), "membersOnly" (true/false), "personIds" (repeated) and, task 077,
+        // Multipart: "file", "title", "date" (yyyy-MM-dd), "membersOnly" (true/false), "personIds" (repeated) and,
         // "eventId" (optional: the event it was taken at).
         var maxVideo = app.ServiceProvider.GetRequiredService<IConfiguration>().GetValue<long?>("GalleryMedia:MaxVideoSize") ?? 100 * 1024 * 1024;
         writes.MapPost("/", async (IFormCollection form, ClaimsPrincipal user, IGalleryManagementService gallery) =>

@@ -29,7 +29,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | --- | --- |
 | `src/RTUB.Web/Program.cs` | Host bootstrap; DI delegated to extensions. |
 | `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` | Service registrations. |
-| `src/RTUB.Web/Program.cs` (route section) | Page ownership: every page is the React shell (`wwwroot/portal/index.html`) or the static `/Error` (`wwwroot/error.html`); old URLs are in `Extensions/LegacyRedirectExtensions.cs` (302 or 404). |
+| `src/RTUB.Web/Program.cs` (route section) | Page ownership: every page is the React shell (`wwwroot/portal/index.html`) or the static `/Error` (`wwwroot/error.html`) (`Extensions/PortalShellExtensions.cs`); any other path is 404. |
 | `src/RTUB.Web/Endpoints/` | Minimal-API endpoint groups behind the React pages (`/api/*`). |
 | `src/RTUB.Web/Controllers/` | React session state (`AccountController`, which also carries the build version). `/images/*` is a plain static file. |
 | `src/RTUB.Web/Services/AnnouncementService.cs` | The Owner's system announcement (in memory, a few minutes); `GET /api/announcement`, polled by the React shell. |

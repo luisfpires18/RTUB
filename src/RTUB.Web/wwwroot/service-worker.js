@@ -7,23 +7,17 @@
 
 // Cache version - increment when updating service worker
 // Bumping this forces old caches to be deleted and new assets to be fetched
-// v2.7.0 bumped deliberately, not mechanically: up to v2.6.0 this worker persisted
-// *application HTML* (including authenticated pages) into DYNAMIC_CACHE and precached
-// '/'. Existing clients therefore hold private HTML on disk. The activate handler
-// deletes every `rtub-` cache outside the current set, so bumping the version is what
-// actually purges those entries from installed clients.
-// v2.9.0 (task 046): new RTUB logo under the same /icons/* URLs. Images are cache-first here and never revalidated,
-// so only a new IMAGE_CACHE / STATIC_CACHE name stops installed apps showing the old design.
-// v2.10.0 (#226 F09 / F15): the 192 / 512 icons were recompressed (same picture, ~85% smaller) and hashed portal assets
-// are now pruned per chunk (see pruneOlderBuilds), so the dynamic cache no longer grows with every release.
-// v2.11.0 (task 054): hashed portal assets are cache-first (never revalidated), navigations use navigation preload, and
-// /api, /auth, /hubs, /health and non-http requests are left to the browser (no respondWith), so the worker is out of
-// their path. New names, so installed clients drop the stale-while-revalidate copies.
+// The activate handler deletes every `rtub-` cache outside the current set, so a new version is what
+// purges stale entries from installed clients. Bump it when a file changes under the same URL (the
+// /icons/* images are cache-first and never revalidated) or when the caching rules change.
+// Hashed portal assets are cache-first (never revalidated) and pruned per chunk (see pruneOlderBuilds);
+// navigations use navigation preload; /api, /auth, /hubs, /health and non-http requests are left to the
+// browser (no respondWith), so the worker is out of their path. Application HTML is never cached.
 const CACHE_VERSION = 'rtub-v2.12.0';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
-// The page a tapped push must open (task 058), kept across worker versions: sw-register.js reads it on load.
+// The page a tapped push must open, kept across worker versions: sw-register.js reads it on load.
 const PUSH_NAV_CACHE = 'rtub-notification-target';
 const PUSH_NAV_KEY = '/__push-target';
 
@@ -33,12 +27,12 @@ const PUSH_NAV_KEY = '/__push-target';
 //   /auth/     - sign-in / sign-out / challenge round trips
 //   /hubs/     - SignalR hubs
 //   /health    - liveness probe, must always hit the origin
-// Before v2.7.0 these fell through to the document branch (`!pathname.includes('.')`
-// matches '/api/push/status', '/health', '/hubs/notifications', ...) and were cached.
+// Checked before the document branch: `!pathname.includes('.')` would match '/api/push/status',
+// '/health', '/hubs/notifications', ... and cache them.
 const NEVER_CACHE_PREFIXES = ['/api/', '/auth/', '/hubs/', '/health'];
 
 // The React build names its files /portal/assets/<Name>-<hash>.<ext> (Vite). A new release brings new hashes under
-// the same names; without pruning, the stale-while-revalidate cache kept every old copy until CACHE_VERSION changed.
+// the same names; pruning keeps only the newest copy of each name until CACHE_VERSION changes.
 const HASHED_PORTAL_ASSET = /^\/portal\/assets\/(.+)-[A-Za-z0-9_-]{8}\.(js|css)$/;
 
 // When a hashed asset is cached for the first time, drop the other builds of the same chunk (same name and type, any
@@ -120,7 +114,7 @@ self.addEventListener('activate', (event) => {
                 );
             })
             .then(() => {
-                // Navigation preload (task 054): the browser starts the navigation request while this worker boots,
+                // Navigation preload: the browser starts the navigation request while this worker boots,
                 // and the document branch of the fetch handler takes it (event.preloadResponse) instead of fetching again.
                 return self.registration.navigationPreload ? self.registration.navigationPreload.enable() : undefined;
             })
@@ -145,7 +139,7 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(request.url);
     
     // Skip non-HTTP(S) requests (e.g., chrome-extension://, moz-extension://)
-    // Cache API only supports http and https schemes; the browser handles them on its own (no respondWith, task 054)
+    // Cache API only supports http and https schemes; the browser handles them on its own (no respondWith)
     if (!url.protocol.startsWith('http')) {
         return;
     }
@@ -157,7 +151,7 @@ self.addEventListener('fetch', (event) => {
     //  - our own /api, /auth, /hubs and /health paths
     // The prefix test is scoped to same-origin so a third-party URL that happens to
     // carry an '/api/...' path is judged on its own merits further down.
-    // No respondWith (task 054): the browser fetches these as if no worker were installed, so the shell's polls and
+    // No respondWith: the browser fetches these as if no worker were installed, so the shell's polls and
     // every API call stop waiting for the worker to wake and relay them.
     if (request.method !== 'GET' || (isSameOrigin && isNeverCached(url.pathname))) {
         return;
@@ -205,7 +199,7 @@ self.addEventListener('fetch', (event) => {
                     return cache.match(request)
                         .then((cached) => {
                             // A hashed portal asset never changes under its name: the cached copy is the answer, with
-                            // no revalidation fetch and no cache write per page load (task 054).
+                            // no revalidation fetch and no cache write per page load.
                             if (cached && HASHED_PORTAL_ASSET.test(url.pathname)) {
                                 return cached;
                             }
@@ -237,9 +231,8 @@ self.addEventListener('fetch', (event) => {
     // Documents / navigations: Network Only, with offline.html as the failure fallback.
     //
     // The response is returned straight through and is NEVER written to a cache. Almost
-    // every page here is authenticated and user-specific; before v2.7.0 each 200 was
-    // persisted into DYNAMIC_CACHE, so a later offline visit - or the same device after
-    // logout - could be served another session's rendered HTML. The offline experience
+    // every page here is authenticated and user-specific; a cached 200 would let a later
+    // offline visit - or the same device after logout - be served another session's rendered HTML. The offline experience
     // only needs offline.html, so there is nothing to gain by keeping the documents.
     // Scoped to same-origin: a cross-origin extension-less URL is not one of our pages,
     // and answering it with our offline.html would be worse than letting it fail.
@@ -247,7 +240,7 @@ self.addEventListener('fetch', (event) => {
         (request.destination === 'document' || url.pathname === '/' ||
          !url.pathname.includes('.'))) {
         // Navigation preload (enabled on activate): the browser's own request for this navigation, already in flight
-        // while the worker was starting; a fresh fetch only where there is none (task 054).
+        // while the worker was starting; a fresh fetch only where there is none.
         const preloaded = event.preloadResponse ? event.preloadResponse.then((response) => response || fetch(request)) : fetch(request);
         event.respondWith(
             preloaded.catch(() => {
@@ -267,10 +260,10 @@ self.addEventListener('fetch', (event) => {
     }
     
     // Fallback for any other requests (fonts, the manifest, cross-origin scripts): the browser's own fetch, untouched.
-    // Nothing to add, so no respondWith (task 054).
+    // Nothing to add, so no respondWith.
 });
 
-// ---------- Web Push (task 038, docs/react-push-v2.md) ----------
+// ---------- Web Push (docs/react-push-v2.md) ----------
 // The member turns push on and off in the React /profile; this worker only shows what arrives, opens the
 // notification's page, and keeps a subscription alive when the browser rotates its endpoint.
 
@@ -361,7 +354,7 @@ function notificationTarget(data) {
     }
 }
 
-// Remembers the tapped notification's page for a minute (task 058). An installed app launched from the tap may
+// Remembers the tapped notification's page for a minute. An installed app launched from the tap may
 // still open its start_url (iOS Home Screen apps, the Play Store TWA), or lose the rtub:navigate message before the
 // page listens: sw-register.js reads this on load and on return to the app, and goes there.
 function rememberPushTarget(url) {

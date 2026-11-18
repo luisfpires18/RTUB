@@ -29,9 +29,8 @@ public static class StaticFilesPipelineExtensions
         // credential or token work is done.
         app.UseRateLimiter();
 
-        // Static files, /images/* included: ETag, Last-Modified and 304 come from the middleware itself. The
-        // ImagesController that re-implemented them for /images left in task 054, and with it the cookie validation
-        // (three SELECTs) every image request paid by running after UseAuthentication.
+        // Static files, /images/* included: ETag, Last-Modified and 304 come from the middleware itself, before
+        // UseAuthentication, so an image request never pays the cookie validation (three SELECTs).
         // Configure content type provider to serve .webmanifest and .well-known files with correct MIME types
         var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
         provider.Mappings[".webmanifest"] = "application/manifest+json";
@@ -63,14 +62,13 @@ public static class StaticFilesPipelineExtensions
                     // Cache for 1 hour with must-revalidate to ensure updates are picked up
                     ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600,must-revalidate");
                 }
-                // /images/* (brand assets, the default avatar): revalidated through the middleware's ETag, as the
-                // retired ImagesController answered (task 054). The service worker keeps its own cache-first copy.
+                // /images/* (brand assets, the default avatar): revalidated through the middleware's ETag. The service worker keeps its own cache-first copy.
                 else if (path.StartsWith("/images/"))
                 {
                     ctx.Context.Response.Headers.Append("Cache-Control", "no-cache");
                 }
                 // Cache other static files for 30 days in production. The React build's content-hashed
-                // /portal/assets/* never change under their names, so browsers may skip revalidating them (task 054).
+                // /portal/assets/* never change under their names, so browsers may skip revalidating them.
                 else if (!app.Environment.IsDevelopment())
                 {
                     ctx.Context.Response.Headers.Append("Cache-Control",

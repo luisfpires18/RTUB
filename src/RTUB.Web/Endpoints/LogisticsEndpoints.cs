@@ -64,7 +64,7 @@ public static class LogisticsEndpoints
             ToResult(await s.MoveCardAsync(id, input, http.User), _ => Results.NoContent())).WithMetadata(small);
         writes.MapPut("/cards/{id:int}/labels", async (int id, LogisticsLabelsInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.SetLabelsAsync(id, input, http.User))).WithMetadata(small);
-        // Task 066: the checklist one item at a time (add, rename, remove, tick); the text identifies the item.
+        // The checklist one item at a time (add, rename, remove, tick); the text identifies the item.
         writes.MapPost("/cards/{id:int}/checklist", async (int id, LogisticsChecklistItemInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.AddChecklistItemAsync(id, input, http.User))).WithMetadata(small);
         writes.MapPut("/cards/{id:int}/checklist/{index:int}", async (int id, int index, LogisticsChecklistItemInput input, HttpContext http, ILogisticsKanbanService s) =>
@@ -86,7 +86,7 @@ public static class LogisticsEndpoints
         writes.MapDelete("/cards/{id:int}", async (int id, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.DeleteCardAsync(id, http.User), _ => Results.NoContent()));
 
-        // Task 066: the card's discussion and its own files and links
+        // The card's discussion and its own files and links
         writes.MapPost("/cards/{id:int}/comments", async (int id, LogisticsCommentInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.AddCommentAsync(id, input, http.User))).WithMetadata(small);
         writes.MapPut("/comments/{id:int}", async (int id, LogisticsCommentInput input, HttpContext http, ILogisticsKanbanService s) =>
@@ -112,7 +112,7 @@ public static class LogisticsEndpoints
         writes.MapDelete("/cards/{id:int}/attachments/{attachmentId:int}", async (int id, int attachmentId, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.DeleteAttachmentAsync(id, attachmentId, http.User)));
 
-        // 069: a card's reminders (managers for board viewers; owner and collaborators for themselves) and "As minhas tarefas"
+        // A card's reminders (managers for board viewers; owner and collaborators for themselves) and "As minhas tarefas"
         writes.MapPost("/cards/{id:int}/reminders", async (int id, LogisticsReminderInput input, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.CreateReminderAsync(id, input, http.User))).WithMetadata(small);
         writes.MapPut("/cards/{id:int}/reminders/{reminderId:int}", async (int id, int reminderId, LogisticsReminderInput input, HttpContext http,
@@ -122,7 +122,7 @@ public static class LogisticsEndpoints
         api.MapGet("/my-tasks", async (HttpContext http, ILogisticsKanbanService s) => ToResult(await s.GetMyTasksAsync(http.User)));
 
         // Board files
-        // 067: files by id ("f:name" / "l:year/name"); ?name= still works for older pages.
+        // Files by id ("f:name" / "l:year/name"); ?name= still works for older pages.
         api.MapGet("/boards/{id:int}/files", async (int id, string? file, string? name, HttpContext http, ILogisticsKanbanService s) =>
             ToResult(await s.GetFileAsync(id, file ?? name, http.User)));
         writes.MapPost("/boards/{id:int}/files", async (int id, IFormCollection form, HttpContext http, ILogisticsKanbanService s) =>

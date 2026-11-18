@@ -7,12 +7,12 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React Events area's API (React track 011, docs/react-events.md). Thin by design: visibility
+/// The React Events area's API (docs/react-events.md). Thin by design: visibility
 /// and every rule live in <see cref="IEventAgendaService"/>, decided from the session. Reads are
 /// open to anonymous callers and give them the public agenda only. Every write needs the
 /// antiforgery token in the X-CSRF-TOKEN header (GET /api/public/antiforgery-token). Creating, editing
-/// and deleting events is Admin/Owner (011.5), as are the image, cancel / reactivate and notices (012A,
-/// <see cref="IEventAdminService"/>), prizes (012B), videos (012C), repertoire (012D) and other members' answers (012E). Members' statistics: GET /stats (012F).
+/// and deleting events is Admin/Owner, as are the image, cancel / reactivate and notices
+/// (<see cref="IEventAdminService"/>), prizes, videos, repertoire and other members' answers. Members' statistics: GET /stats.
 /// </summary>
 public static class EventEndpoints
 {
@@ -20,7 +20,7 @@ public static class EventEndpoints
 
     public static void MapEventEndpoints(this IEndpointRouteBuilder app)
     {
-        // The home preview (React track 010): the next three, visitors' fields only, whoever asks.
+        // The home preview: the next three, visitors' fields only, whoever asks.
         app.MapGet("/api/public/events/upcoming", async (HttpContext context, IEventAgendaService events) =>
             {
                 // An event added or cancelled must show on the next visit.
@@ -34,7 +34,7 @@ public static class EventEndpoints
         events.MapGet("/", async (HttpContext http, IEventAgendaService service) =>
             Results.Ok(await service.GetAgendaAsync(http.User)));
 
-        // Members' enrollment statistics (012F; was the /member/events modal). ?from=&to= as yyyy-MM-dd.
+        // Members' enrollment statistics (the agenda's "Estatísticas" modal). ?from=&to= as yyyy-MM-dd.
         events.MapGet("/stats", async (DateOnly? from, DateOnly? to, HttpContext http, IEventAgendaService service) =>
             ToResult(await service.GetStatsAsync(from, to, http.User)));
 
@@ -61,7 +61,7 @@ public static class EventEndpoints
         writes.MapDelete("/{id:int}", async (int id, HttpContext http, IEventAgendaService service) =>
             ToResult(await service.DeleteEventAsync(id, http.User), _ => Results.NoContent()));
 
-        // Admin/Owner (012A). The image is multipart ("image", already cropped in the browser).
+        // Admin/Owner. The image is multipart ("image", already cropped in the browser).
         writes.MapPost("/{id:int}/image", async (int id, IFormCollection form, HttpContext http, IEventAdminService admin) =>
                 form.Files.GetFile("image") is { } file
                     ? ToResult(await admin.SetImageAsync(id, new EventImageUpload(file.OpenReadStream(), file.FileName, file.ContentType ?? string.Empty, file.Length), http.User),
@@ -86,7 +86,7 @@ public static class EventEndpoints
                 ToResult(await admin.SendNoticeAsync(id, input, http.User, BaseUrl(http))))
             .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
 
-        // Prizes (Admin/Owner, 012B). Visitors already read prize names in every event summary.
+        // Prizes (Admin/Owner). Visitors already read prize names in every event summary.
         events.MapGet("/{id:int}/prizes", async (int id, HttpContext http, IEventAdminService admin) =>
             ToResult(await admin.GetPrizesAsync(id, http.User)));
 
@@ -101,7 +101,7 @@ public static class EventEndpoints
         writes.MapDelete("/{id:int}/prizes/{prizeId:int}", async (int id, int prizeId, HttpContext http, IEventAdminService admin) =>
             ToResult(await admin.DeletePrizeAsync(id, prizeId, http.User)));
 
-        // Videos (Admin/Owner, 012C). Everyone already reads an event's videos in GET /api/events/{id}.
+        // Videos (Admin/Owner). Everyone already reads an event's videos in GET /api/events/{id}.
         events.MapGet("/{id:int}/videos", async (int id, HttpContext http, IEventAdminService admin) =>
             ToResult(await admin.GetVideosAsync(id, http.User)));
 
@@ -131,7 +131,7 @@ public static class EventEndpoints
         writes.MapDelete("/{id:int}/videos/{videoId:int}", async (int id, int videoId, HttpContext http, IEventAdminService admin) =>
             ToResult(await admin.DeleteVideoAsync(id, videoId, http.User)));
 
-        // Repertoire (Admin/Owner, 012D). Members already read it in GET /api/events/{id}.
+        // Repertoire (Admin/Owner). Members already read it in GET /api/events/{id}.
         events.MapGet("/{id:int}/repertoire", async (int id, HttpContext http, IEventRepertoireAdminService repertoire) =>
             ToResult(await repertoire.GetAsync(id, http.User)));
 
@@ -152,7 +152,7 @@ public static class EventEndpoints
         writes.MapDelete("/{id:int}/repertoire/days/{date}", async (int id, string date, HttpContext http, IEventRepertoireAdminService repertoire) =>
             ToResult(await repertoire.RemoveDayAsync(id, date, http.User)));
 
-        // Other members' answers (Admin/Owner, 012E): the old /events/{id}/enrollments add / remove.
+        // Other members' answers (Admin/Owner): add / remove.
         // A member's own answer stays PUT/DELETE /{id}/enrollment below.
         events.MapGet("/{id:int}/enrollments", async (int id, HttpContext http, IEventParticipantsAdminService participants) =>
             ToResult(await participants.GetAsync(id, http.User)));
@@ -167,7 +167,7 @@ public static class EventEndpoints
         writes.MapDelete("/{id:int}/enrollments/{enrollmentId:int}", async (int id, int enrollmentId, HttpContext http, IEventParticipantsAdminService participants) =>
             ToResult(await participants.RemoveAsync(id, enrollmentId, http.User)));
 
-        // Discussion (members, 013): posts, comments and lift offers; every write answers the whole conversation.
+        // Discussion (members): posts, comments and lift offers; every write answers the whole conversation.
         events.MapGet("/{id:int}/discussion", async (int id, HttpContext http, IEventDiscussionBoardService board) =>
             ToResult(await board.GetAsync(id, http.User)));
 
@@ -215,7 +215,7 @@ public static class EventEndpoints
         writes.MapDelete("/{id:int}/discussion/posts/{postId:int}/passengers/{passengerId:int}", async (int id, int postId, int passengerId, HttpContext http, IEventDiscussionBoardService board) =>
             ToResult(await board.RemovePassengerAsync(id, postId, passengerId, http.User)));
 
-        // Contact tracking (Mod and above, 013): read and write.
+        // Contact tracking (Mod and above): read and write.
         events.MapGet("/{id:int}/contacts", async (int id, HttpContext http, IEventContactsAdminService contacts) =>
             ToResult(await contacts.GetAsync(id, http.User)));
 

@@ -8,7 +8,7 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React Music area's API (React track 006, docs/react-music.md). Thin by design: every rule -
+/// The React Music area's API (docs/react-music.md). Thin by design: every rule -
 /// visibility, roles, the play cooldown, validation - lives in <see cref="IMusicService"/>.
 /// Reads are open to anonymous callers and show them public albums only. Every write, plays
 /// included, needs the antiforgery token in the X-CSRF-TOKEN header (from
@@ -50,7 +50,7 @@ public static class MusicEndpoints
         music.MapGet("/songs/{id:int}/edit", async (int id, HttpContext http, IMusicService service) =>
             ToResult(await service.GetSongForEditAsync(id, http.User)));
 
-        // Aprender (094): members read; the chart is made offline (tools/playalong) and uploaded as JSON by the Owner.
+        // Aprender: members read; the chart is made offline (tools/playalong) and uploaded as JSON by the Owner.
         music.MapGet("/playalongs", async (HttpContext http, IMusicService service) =>
             ToResult(await service.GetPlayAlongSongsAsync(http.User)));
 

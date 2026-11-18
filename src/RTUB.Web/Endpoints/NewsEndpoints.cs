@@ -6,7 +6,7 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The public "Novidades" feed on /news (React track 025, docs/react-news.md). Thin: every rule lives in
+/// The public "Novidades" feed on /news (docs/react-news.md). Thin: every rule lives in
 /// <see cref="INewsService"/>, decided from the session. Reading is open to visitors; every write is Admin/Owner and needs
 /// the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
@@ -21,7 +21,7 @@ public static class NewsEndpoints
         var writes = news.MapGroup(string.Empty).AddEndpointFilter(EventEndpoints.RequireAntiforgery);
 
         // ?page=1&pageSize=10 (the home preview asks for 3).
-        // &visibility=public|private narrows a signed-in caller's feed (the tabs); visitors always get public posts only (#222).
+        // &visibility=public|private narrows a signed-in caller's feed (the tabs); visitors always get public posts only.
         news.MapGet("/", async (int? page, int? pageSize, string? visibility, HttpContext http, INewsService service) =>
             ToResult(await service.GetFeedAsync(page ?? 1, pageSize ?? NewsService.DefaultPageSize, http.User, visibility)));
 

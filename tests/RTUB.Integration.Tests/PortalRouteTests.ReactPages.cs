@@ -1,4 +1,4 @@
-// PortalRouteTests: RetiredPages tests.
+// PortalRouteTests: the React event discussion, rehearsals and the agenda and Music links.
 using System.Net;
 using System.Text.RegularExpressions;
 using FluentAssertions;
@@ -115,30 +115,7 @@ public partial class PortalRouteTests
             + "RequestsApiTests pins the /events?openModal=true link)");
     }
 
-    /// <summary>032: the Blazor profile and map are retired; their old URLs land on the React pages, for everyone.</summary>
-    [Theory]
-    [InlineData("/member/profile", "/profile")]
-    [InlineData("/member/map", "/members/map")]
-    public async Task RetiredMemberProfileAndMap_RedirectToTheReactPages(string path, string target)
-    {
-        var response = await NoRedirectClient().GetAsync(path);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect, "temporary (302) while DEV is hybrid");
-        response.Headers.Location!.ToString().Should().Be(target);
-    }
-
     // ---------- retired Blazor Music (React track 006) ----------
-
-    [Theory]
-    [InlineData("/music/songs/12", "/music/albums/12")]
-    [InlineData("/music/songs/3?from=share", "/music/albums/3?from=share")]
-    public async Task RetiredBlazorAlbumPage_RedirectsToTheReactAlbum(string path, string target)
-    {
-        var response = await NoRedirectClient().GetAsync(path);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Be(target);
-    }
 
     [Fact]
     public void HomeMusicLink_GoesToTheReactMusicPage()
@@ -154,14 +131,4 @@ public partial class PortalRouteTests
     }
 
     // ---------- retired Blazor /request (React track 003) ----------
-
-    [Fact]
-    public async Task RetiredBlazorRequest_HasNoSubmissionPathLeft()
-    {
-        var response = await NoRedirectClient().PostAsync("/request",
-            new FormUrlEncodedContent(new Dictionary<string, string> { ["Name"] = "x" }));
-
-        response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
-            "only the React shell (GET/HEAD) exists at /request; submissions go to POST /api/public/requests");
-    }
 }

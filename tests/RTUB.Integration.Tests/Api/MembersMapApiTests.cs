@@ -30,9 +30,6 @@ public class MembersMapApiTests : IClassFixture<EventsApiFactory>
         var page = await anonymous.GetAsync("/members/map");
         page.StatusCode.Should().Be(HttpStatusCode.Redirect);
         page.Headers.Location!.ToString().Should().Be("/login?returnUrl=" + Uri.EscapeDataString("/members/map"));
-        var old = await anonymous.GetAsync("/member/map");
-        old.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        old.Headers.Location!.ToString().Should().Be("/members/map");
 
         var (member, _) = await SignInAsync();
         (await member.GetStringAsync("/members/map")).Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");

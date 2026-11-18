@@ -9,9 +9,9 @@
 //
 // ORIGIN REACHABILITY, NOT DEVICE CONNECTIVITY
 // -------------------------------------------
-// This page used to redirect to '/' whenever navigator.onLine was true. That flag only
+// This page does not redirect to '/' when navigator.onLine is true. That flag only
 // reports whether the device has *a* network interface up - it says nothing about whether
-// RTUB is reachable. The real failure it caused: the origin is stopped, the service worker
+// RTUB is reachable. The failure it would cause: the origin is stopped, the service worker
 // correctly serves offline.html, navigator.onLine stays true, and the page bounces to '/'
 // one second later - which fails, lands back here, and bounces again.
 //

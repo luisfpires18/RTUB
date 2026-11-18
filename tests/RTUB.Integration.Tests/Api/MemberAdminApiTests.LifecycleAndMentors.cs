@@ -96,9 +96,7 @@ public partial class MemberAdminApiTests
         var (admin, _) = await SignInAsync("Admin");
         foreach (var client in new[] { admin, Anonymous() })
         {
-            var response = await client.GetAsync("/members/manage");
-            response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-            response.Headers.Location!.ToString().Should().Be("/members");
+            (await client.GetAsync("/members/manage")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
 
         var web = typeof(RTUB.Program).Assembly;

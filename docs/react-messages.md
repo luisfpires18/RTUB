@@ -23,7 +23,7 @@ would not start without `Conversations` (N-1 rule, [release-and-rollback](releas
 | `Conversations` | - | `IX_Conversation_Participants`, `IX_Conversation_LastMessageAt_IsArchived` |
 
 No `AspNetUsers` column belongs to messaging and no other table has a foreign key into these four. Outside the endpoints
-above nothing touches them; `RetiredMessagesRoutesTests` holds a rollback-safety test (with the four tables dropped, a
+above nothing touches them; `MessagesRollbackSafetyTests` holds a rollback-safety test (with the four tables dropped, a
 signed-in page, every push fan-out and a member deletion run without SQL naming them). Pinned by
 `MigrationChainTests.MigratedDatabase_KeepsTheMessagingTables_ThatMessagingV2Uses` and
 `Model_HasNoChangesThatAMigrationWouldHaveToCapture`.
@@ -120,7 +120,7 @@ Header unread badge:
 - No push channel: "real time" is the poll, a message shows up within about 10 s.
 
 Tests: `MessagingApiTests`, `MessagingV2SourceTests` (route, no attachment path, no text in logs or push),
-`AuditLogAppenderTests` (redaction), `MessagingSafeLinkTests`, `RetiredMessagesRoutesTests` (`/messages/{id}` and the hub
+`AuditLogAppenderTests` (redaction), `MessagingSafeLinkTests`, `RetiredRoutesTests` (`/messages/{id}` and the hub
 stay 404).
 
 ## Follow-ups

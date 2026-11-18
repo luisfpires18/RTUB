@@ -6,9 +6,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 namespace RTUB.Integration.Tests;
 
 /// <summary>
-/// Route ownership of the React public shell (React track 001-004, docs/react-portal-pilot.md).
-/// React owns exactly /, /privacy, /profile, /request, /music, /login, /roles, /gallery, /events (011) and /news (025), served from the committed build in
-/// wwwroot/portal; the pilot's /portal... URLs redirect there; every other page stays Blazor.
+/// Route ownership of the React shell (docs/react-portal-pilot.md): the pages are served from the committed build in
+/// wwwroot/portal, GET/HEAD only. Addresses that no longer exist are in RetiredRoutesTests.
 /// </summary>
 public partial class PortalRouteTests : IntegrationTestBase
 {
@@ -140,35 +139,13 @@ public partial class PortalRouteTests : IntegrationTestBase
         }
     }
 
-    [Theory]
-    [InlineData("/portal", "/")]
-    [InlineData("/portal/", "/")]
-    [InlineData("/portal/privacy", "/privacy")]
-    [InlineData("/portal/profile", "/profile")]
-    [InlineData("/portal/request", "/request")]
-    [InlineData("/portal/request?utm_source=cartaz", "/request?utm_source=cartaz")]
-    public async Task PilotPortalUrls_RedirectTemporarilyToTheCleanRoute(string path, string target)
-    {
-        var response = await NoRedirectClient().GetAsync(path);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect, "temporary (302) while DEV is hybrid");
-        response.Headers.Location!.ToString().Should().Be(target);
-    }
-
     [Fact]
-    public async Task PathsOutsideTheReactRoutes_AreNotServedTheShell()
+    public async Task ShellRoutes_AreGetAndHeadOnly()
     {
         var client = NoRedirectClient();
 
-        (await client.GetAsync("/portal/unknown")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-
-        // The Portuguese routes of the first drafts were renamed to English before any release.
-        foreach (var old in new[] { "/portal/privacidade", "/portal/perfil", "/portal/pedidos" })
-        {
-            (await client.GetAsync(old)).StatusCode.Should().Be(HttpStatusCode.NotFound, "{0} was renamed", old);
-        }
-
-        foreach (var path in new[] { "/", "/privacy", "/profile", "/portal", "/portal/request", "/music", "/music/albums/1", "/events", "/events/1" })
+        // A form post to /request is refused too: requests go to POST /api/public/requests. Unknown paths: RetiredRoutesTests.
+        foreach (var path in new[] { "/", "/privacy", "/profile", "/request", "/music", "/music/albums/1", "/events", "/events/1" })
         {
             (await client.PostAsync(path, null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
                 "{0} is GET/HEAD only", path);

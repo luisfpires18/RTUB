@@ -134,8 +134,7 @@ public class Program
 
     /// <summary>
     /// Where a signed-in member goes: a local return URL (a deep link, a PWA target) always wins; otherwise the (React)
-    /// events page. Task 085 (owner request): the 071 landing on "As minhas ações pendentes" for active members is gone;
-    /// the page is reached from the menu and the daily reminder push.
+    /// events page. "As minhas ações pendentes" is reached from the menu and the daily reminder push, never as the landing.
     /// </summary>
     internal static string MemberLanding(string? returnUrl) =>
         RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl) ? returnUrl! : "/events";
@@ -188,7 +187,7 @@ public class Program
                     user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
             }
 
-            // Task 050: the sign-in history behind the Owner dashboard (LastLoginDate keeps only the latest).
+            // The sign-in history behind the Owner dashboard (LastLoginDate keeps only the latest).
             await db.Database.ExecuteSqlInterpolatedAsync(
                 $"INSERT INTO LoginEvents (UserId, At, IsSignIn) VALUES ({user.Id}, {user.LastLoginDate}, 1);");
 

@@ -90,7 +90,7 @@ public static partial class ServiceCollectionExtensions
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             options.Lockout.MaxFailedAccessAttempts = 5;
             options.Lockout.AllowedForNewUsers = true;
-            // Version3 adds AspNetUserPasskeys: Face ID / fingerprint sign-in (task 057).
+            // Version3 adds AspNetUserPasskeys: Face ID / fingerprint sign-in.
             options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
         })
         .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -172,7 +172,7 @@ public static partial class ServiceCollectionExtensions
         services.AddHostedService<MemberStatusUpdateBackgroundService>();
         services.AddHostedService<PendingRequestReminderService>();
         services.AddHostedService<PendingActionsReminderService>();
-        // Page views (task 089): counted in memory on /api/account/me, stored once a minute.
+        // Page views: counted in memory on /api/account/me, stored once a minute.
         services.AddSingleton<PageViewCounter>();
         services.AddHostedService<PageViewFlushService>();
         services.AddHostedService<RehearsalApprovalReminderBackgroundService>();
@@ -191,7 +191,7 @@ public static partial class ServiceCollectionExtensions
     public static IServiceCollection AddWebServices(this IServiceCollection services, IHostEnvironment environment)
     {
         services.AddSingleton<AnnouncementService>();
-        // Release notes (task 083): scoped for the context factory; the bundled releases/*.json are cached per process.
+        // Release notes: scoped for the context factory; the bundled releases/*.json are cached per process.
         services.AddOptions<RTUB.Web.Services.ReleaseNotesOptions>().BindConfiguration("ReleaseNotes");
         services.AddScoped<RTUB.Web.Services.ReleaseNotesService>();
         services.AddAuthorization(o =>
@@ -211,7 +211,7 @@ public static partial class ServiceCollectionExtensions
 
             // Fastest (the providers' default) left ~30 KB per cold load on the table: the portal's critical path is
             // 161 KB at gzip-1 and 131 KB at gzip-9. Optimal is brotli quality 4 / zlib level 6, a few ms of CPU on a
-            // cold load and nothing on a warm one (task 054). Build-time precompression is the next step if this
+            // cold load and nothing on a warm one. Build-time precompression is the next step if this
             // ever shows on the B1's CPU.
             services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(o =>
                 o.Level = System.IO.Compression.CompressionLevel.Optimal);

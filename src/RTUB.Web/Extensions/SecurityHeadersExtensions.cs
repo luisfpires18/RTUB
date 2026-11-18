@@ -21,11 +21,9 @@ public static class SecurityHeadersExtensions
         // Strict-Transport-Security is NOT set here: UseHsts above already emits it in every
         // non-Development environment, and production returns max-age=2592000 today.
         //
-        // Content-Security-Policy is ENFORCED (unit 025), with no 'unsafe-inline' and no
-        // 'unsafe-eval': unit 022 removed all 15 JSRuntime.InvokeAsync("eval", ...) calls,
-        // unit 023 removed every inline <script> block and inline on* handler attribute, and
-        // unit 024 removed every inline <style> block and style="..." attribute from
-        // browser-served markup. Every source in the policy is evidence-based - see
+        // Content-Security-Policy is ENFORCED, with no 'unsafe-inline' and no
+        // 'unsafe-eval': browser-served markup has no eval, no inline <script> block, no inline
+        // on* handler attribute, no inline <style> block and no style="..." attribute. Every source in the policy is evidence-based - see
         // ContentSecurityPolicyBuilder and .ai/STATE.md for the per-directive justification.
         //
         // It is emitted on HTML DOCUMENT responses only, deliberately. A CSP header served with
