@@ -64,7 +64,27 @@ public sealed partial class MeetingPollBoardService
             vote.VotedAt = PortugalTime.Now(time);
         }
 
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException) when (vote is null)
+        {
+            // The member's other request saved its vote first (one vote per poll and member in the database): this one
+            // becomes the change of vote it would have been a moment later. Any other write failure is still an error.
+            await using var retry = await contexts.CreateDbContextAsync();
+            var saved = await retry.MeetingPollVotes
+                .FirstOrDefaultAsync(item => item.MeetingPollId == pollId && item.UserId == userId);
+            if (saved is null)
+            {
+                throw;
+            }
+
+            saved.MeetingPollOptionId = input.OptionId;
+            saved.VotedAt = PortugalTime.Now(time);
+            await retry.SaveChangesAsync();
+        }
+
         return EventResult<bool>.Ok(true);
     }
 

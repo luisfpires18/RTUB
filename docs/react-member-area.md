@@ -57,7 +57,7 @@ only a Leitão cannot change the nickname. Writes need `X-CSRF-TOKEN` (400 witho
   primary promotes the next), primary; another member's instrument id is 404.
 - Photo (`POST /api/me/photo`): WebP, JPEG or PNG, checked by declared type and magic bytes, at most 10 MB; the React
   cropper (1:1, WebP) falls back to JPEG/PNG where the browser cannot encode WebP. Stored by `UserProfileService` under
-  the member's `profile` folder by username; the old image is deleted.
+  the member's `profile` folder by username; the old image is deleted after the new one is stored and saved.
 - Email notifications: `Subscribed` via `PUT /api/me/subscription`.
 - Password: current required, new 8-100 and confirmed; clears `RequirePasswordChange`; then
   `SignInManager.RefreshSignInAsync` keeps the member signed in (RTUB checks the security stamp on every request).

@@ -151,4 +151,9 @@ export const matches = (query: string, ...texts: (string | null | undefined)[]) 
 };
 
 export const problem = (o: Outcome<unknown>, what: string) =>
-  outcomeText(o, what, { forbidden: 'Não tens permissão para esta ação.', closed: 'O relatório já foi publicado ou a atividade está bloqueada. Recarrega a página.', notfound: 'Isto já não existe. Recarrega a página.' });
+  outcomeText(o, what, {
+    forbidden: 'Não tens permissão para esta ação.',
+    closed: 'O relatório já foi publicado ou a atividade está bloqueada. Recarrega a página.',
+    notfound: 'Isto já não existe. Recarrega a página.',
+    inuse: 'Este relatório tem encomendas NERBA associadas e não pode ser eliminado.',
+  });

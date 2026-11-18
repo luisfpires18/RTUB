@@ -150,6 +150,21 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
     }
 
     [Fact]
+    public async Task UpdateProfilePictureAsync_WhenTheUploadFails_KeepsTheOldPicture()
+    {
+        var user = new ApplicationUser { Id = "user-123", UserName = "testuser", Nickname = "TestUser", ImageUrl = "old-image-url.jpg" };
+        _mockUserManager.Setup(x => x.FindByIdAsync(user.Id)).ReturnsAsync(user);
+        _mockImageStorageService.Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "profile", "testuser"))
+            .ThrowsAsync(new IOException("storage is down"));
+
+        var act = async () => await _service.UpdateProfilePictureAsync(user.Id, new MemoryStream(new byte[] { 1 }), "profile.jpg", "image/jpeg");
+
+        await act.Should().ThrowAsync<IOException>();
+        _mockImageStorageService.Verify(x => x.DeleteImageAsync(It.IsAny<string>()), Times.Never);
+        user.ImageUrl.Should().Be("old-image-url.jpg");
+    }
+
+    [Fact]
     public async Task UpdateProfilePictureAsync_WhenUpdateFails_ThrowsException()
     {
         // Arrange

@@ -94,16 +94,9 @@ public partial class UserProfileService
             // ===================================================================
 
             // LeaderboardCommentLikes by UserId (likes on other users' comments)
-            var commentsWithUserLikes = await _leaderboardCommentRepository.QueryAsync(q => q
-                .Include(c => c.Likes)
-                .Where(c => c.Likes.Any(l => l.UserId == userId))
-                .ToListAsync());
-            foreach (var comment in commentsWithUserLikes)
-            {
-                var likeToRemove = comment.Likes.FirstOrDefault(l => l.UserId == userId);
-                if (likeToRemove != null)
-                    comment.Likes.Remove(likeToRemove);
-            }
+            await ctx.LeaderboardCommentLikes
+                .Where(l => l.UserId == userId)
+                .ExecuteDeleteAsync();
 
             // LeaderboardComments where AuthorId or TargetUserId = userId
             var leaderboardComments = await _leaderboardCommentRepository.QueryAsync(q => q

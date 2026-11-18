@@ -116,6 +116,8 @@ public static class TreasuryEndpoints
         EndpointResults.ToResult(result, ok, special: status => status switch
         {
             EventResultStatus.Closed => Results.Problem(title: "O relatório já foi publicado ou a atividade está bloqueada.", statusCode: StatusCodes.Status409Conflict),
+            EventResultStatus.InUse => Results.Problem(title: "Este relatório tem encomendas NERBA associadas e não pode ser eliminado.",
+                statusCode: StatusCodes.Status409Conflict, type: "treasury:in-use"),
             _ => null,
         });
 }

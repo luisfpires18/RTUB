@@ -38,22 +38,20 @@ public sealed partial class InstrumentInventoryService
             }
         }
 
-        // The previous image and thumbnail are deleted, then both new ones are stored.
+        // Both new files are stored and saved first, then the previous ones are deleted: a failed upload must leave
+        // the instrument with the image it had.
         var key2 = S3KeyNormalizer.NormalizeForS3Key(instrument.Name);
-        if (!string.IsNullOrEmpty(instrument.ImageUrl))
-        {
-            await _storage.DeleteImageAsync(instrument.ImageUrl);
-        }
-
+        var previous = new[] { instrument.ImageUrl, instrument.ThumbnailUrl };
         instrument.ImageUrl = await _storage.UploadImageAsync(image.Content, image.FileName, image.ContentType, "instruments", key2);
-        if (!string.IsNullOrEmpty(instrument.ThumbnailUrl))
-        {
-            await _storage.DeleteImageAsync(instrument.ThumbnailUrl);
-        }
-
         instrument.ThumbnailUrl = await _storage.UploadImageAsync(thumbnail.Content, "instrument-thumbnail.webp", thumbnail.ContentType,
             "instruments/thumbnails", key2);
         await _instruments.UpdateAsync(instrument);
+
+        // The object name carries the time to the second: two uploads in one second share it, and it must stay.
+        foreach (var old in previous.Where(url => !string.IsNullOrEmpty(url) && url != instrument.ImageUrl && url != instrument.ThumbnailUrl))
+        {
+            await _storage.DeleteImageAsync(old!);
+        }
         return EventResult<InstrumentDetailDto>.Ok(Detail((await _instruments.GetByIdAsync(id))!));
     }
 

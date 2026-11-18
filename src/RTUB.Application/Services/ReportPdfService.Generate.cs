@@ -5,6 +5,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using RTUB.Core.Constants;
 using Activity = RTUB.Core.Entities.Activity;
+using BaseEntity = RTUB.Core.Entities.BaseEntity;
 using Report = RTUB.Core.Entities.Report;
 using Transaction = RTUB.Core.Entities.Transaction;
 
@@ -14,9 +15,11 @@ public partial class ReportPdfService
 {
     public byte[] GenerateReportPdf(Report report, List<Activity> activities, List<(Activity activity, List<Transaction> transactions)> allTransactions, decimal calotesTotal = 0)
     {
-        // Generate cache key based on report content (use current time if UpdatedAt is null)
-        var timestamp = report.UpdatedAt?.ToString("yyyyMMddHHmmss") ?? DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-        var cacheKey = $"report-pdf-{report.Id}-{timestamp}";
+        // The key follows everything the PDF shows. Saving a transaction or an activity stamps that row, not the
+        // report, so the newest stamp of all of them changes on an edit or an addition, and the counts on a deletion.
+        var rows = allTransactions.SelectMany(a => a.transactions).ToList();
+        var newest = rows.Cast<BaseEntity>().Concat(activities).Append(report).Max(e => e.UpdatedAt ?? e.CreatedAt);
+        var cacheKey = $"report-pdf-{report.Id}-{newest.Ticks}-{activities.Count}-{rows.Count}-{calotesTotal}";
 
         if (_cache.TryGetValue<byte[]>(cacheKey, out var cachedPdf) && cachedPdf != null)
         {

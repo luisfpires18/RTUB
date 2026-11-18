@@ -1,5 +1,6 @@
 // Shop: reservations and the shared shop helpers.
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Core.Entities;
@@ -46,7 +47,7 @@ public sealed partial class ProductShopService
 
         if (await _reservations.HasReservationAsync(productId, me))
         {
-            return EventResult<ShopReservationDto>.Invalid("product", "Já existe uma reserva para este produto");
+            return EventResult<ShopReservationDto>.Invalid("product", AlreadyReserved);
         }
 
         try
@@ -59,7 +60,20 @@ public sealed partial class ProductShopService
         {
             return EventResult<ShopReservationDto>.Invalid("product", ex.Message);
         }
+        catch (DbUpdateException)
+        {
+            // The member's other request saved first (one reservation per product and member in the database): this
+            // one gets the answer of a second click. Any other write failure is still an error.
+            if (!await _reservations.HasReservationAsync(productId, me))
+            {
+                throw;
+            }
+
+            return EventResult<ShopReservationDto>.Invalid("product", AlreadyReserved);
+        }
     }
+
+    private const string AlreadyReserved = "Já existe uma reserva para este produto";
 
     public async Task<EventResult<bool>> CancelReservationAsync(int reservationId, ClaimsPrincipal user)
     {

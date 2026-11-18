@@ -69,6 +69,25 @@ public partial class InventoryApiTests
     }
 
     [Fact]
+    public async Task Image_WhenTheUploadFails_KeepsThePreviousImageAndThumbnail()
+    {
+        var id = await AddAsync($"{Tag()} Falha", InstrumentType.Guitarra);
+        var (admin, _) = await SignInAsync("Admin");
+        await AreaHttp.WithTokenAsync(admin);
+        var first = await Json(await admin.PostAsync($"/api/inventory/{id}/image", Multipart(("image", Png, "image/png"), ("thumbnail", Webp, "image/webp"))));
+        var image = first.GetProperty("imageUrl").GetString()!;
+        _factory.Storage.Invocations.Clear();
+        _factory.Storage.Setup(s => s.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "instruments/thumbnails", It.IsAny<string>()))
+            .ThrowsAsync(new IOException("storage is down"));
+
+        (await admin.PostAsync($"/api/inventory/{id}/image", Multipart(("image", Png, "image/png"), ("thumbnail", Webp, "image/webp")))).IsSuccessStatusCode
+            .Should().BeFalse();
+
+        _factory.Storage.Verify(s => s.DeleteImageAsync(It.IsAny<string>()), Times.Never, "the previous files stay until the new ones are stored");
+        (await InstrumentAsync(id))!.ImageUrl.Should().Be(image);
+    }
+
+    [Fact]
     public async Task Writes_NeedTheAntiforgeryHeader()
     {
         var id = await AddAsync($"{Tag()} Token", InstrumentType.Guitarra);

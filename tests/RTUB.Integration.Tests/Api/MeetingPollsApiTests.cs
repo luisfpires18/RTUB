@@ -110,6 +110,25 @@ public sealed class MeetingPollsApiTests : IClassFixture<MeetingsApiFactory>
         (await tuno.Client.GetStringAsync("/meetings/polls")).Should().Contain("id=\"root\"");
     }
 
+    [Fact]
+    public async Task VotingTwiceAtOnce_CountsOneVote_AndNeverAnswersAnError()
+    {
+        var president = await _kit.MemberAsync(Who.Veterano, Who.Holding(Position.PresidenteConselhoVeteranos));
+        var veteran = await _kit.MemberAsync(Who.Veterano);
+        var poll = new { audience = "ConselhoVeteranos", question = "Dois cliques?", options = new[] { "Sim", "Não" }, closesAt = (string?)null };
+        var id = await (await president.Client.PostAsJsonAsync("/api/meetings/polls", poll)).Content.ReadFromJsonAsync<int>();
+        var option = SinglePoll(await AreaHttp.Json(veteran.Client, "/api/meetings/polls"), id).GetProperty("options")[0].GetProperty("id").GetInt32();
+
+        var answers = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ =>
+            veteran.Client.PutAsJsonAsync($"/api/meetings/polls/{id}/vote", new { optionId = option })));
+
+        var votes = SinglePoll(await AreaHttp.Json(veteran.Client, "/api/meetings/polls"), id).GetProperty("totalVotes").GetInt32();
+        // The class shares one database and another test counts the Conselho de Veteranos polls: leave none behind.
+        (await president.Client.DeleteAsync($"/api/meetings/polls/{id}")).IsSuccessStatusCode.Should().BeTrue();
+        answers.Select(a => a.StatusCode).Should().OnlyContain(status => status == HttpStatusCode.OK, "the unique index is not the member's problem");
+        votes.Should().Be(1);
+    }
+
     private static JsonElement SinglePoll(JsonElement board, int id) =>
         board.GetProperty("polls").EnumerateArray()
             .Single(poll => poll.GetProperty("id").GetInt32() == id);

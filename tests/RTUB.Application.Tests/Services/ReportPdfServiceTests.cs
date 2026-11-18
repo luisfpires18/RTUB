@@ -152,6 +152,28 @@ public class ReportPdfServiceTests : IDisposable
     }
 
     [Fact]
+    public void GenerateReportPdf_AfterATransactionIsEditedOrDeleted_IsNotServedFromCache()
+    {
+        var report = Report.Create("Cached Report", 2024);
+        report.UpdatedAt = TestDate;
+        var activities = new List<Activity> { Activity.Create(report.Id, "Activity 1", TestDate) };
+        var transaction = Transaction.Create(TestDate, "Cordas", "Material", 10m, TransactionTypes.Expense, activities[0].Id);
+        var rows = new List<(Activity activity, List<Transaction> transactions)> { (activities[0], new List<Transaction> { transaction }) };
+
+        var first = _service.GenerateReportPdf(report, activities, rows);
+        _service.GenerateReportPdf(report, activities, rows).Should().BeSameAs(first, "nothing changed");
+
+        // What saving an edit does: the transaction is stamped, the report is not.
+        transaction.Amount = 999m;
+        transaction.UpdatedAt = DateTime.UtcNow.AddMinutes(1);
+        var edited = _service.GenerateReportPdf(report, activities, rows);
+        edited.Should().NotBeSameAs(first, "the PDF shows the new amount");
+
+        rows[0].transactions.Clear();
+        _service.GenerateReportPdf(report, activities, rows).Should().NotBeSameAs(edited, "a deleted transaction leaves the PDF");
+    }
+
+    [Fact]
     public void GenerateReportPdf_WithDraftReport_GeneratesPdfWithDraftStatus()
     {
         // Arrange
