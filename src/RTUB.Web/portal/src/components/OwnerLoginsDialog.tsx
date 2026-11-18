@@ -4,6 +4,9 @@ import { Dialog } from './Dialog';
 import { dateTime, ownerApi, ownerProblem, type Logins } from '../data/ownerApi';
 import { matches, SearchBox } from './OwnerUi';
 import { Pager } from './ui/Pager';
+import { Avatar } from './ui/Avatar';
+import { Banner } from './ui/Banner';
+import { FormField } from './ui/FormField';
 
 export const today = () => new Date().toLocaleDateString('sv-SE');
 /** The Portugal day (yyyy-MM-dd) of a UTC stamp, as the server buckets LoginEvents. */
@@ -48,14 +51,12 @@ export function LoginsDialog({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="owner-filters__grid">
-        <div className="form__field">
-          <label htmlFor={`${id}-from`}>Data de início</label>
+        <FormField id={`${id}-from`} label="Data de início">
           <input id={`${id}-from`} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </div>
-        <div className="form__field">
-          <label htmlFor={`${id}-to`}>Data de fim</label>
+        </FormField>
+        <FormField id={`${id}-to`} label="Data de fim">
           <input id={`${id}-to`} type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
+        </FormField>
       </div>
       <div className="owner-actions">
         <button type="button" className="btn btn--primary btn--sm" onClick={load}>
@@ -74,9 +75,7 @@ export function LoginsDialog({ onClose }: { onClose: () => void }) {
           A carregar…
         </p>
       ) : typeof records === 'string' ? (
-        <p className="form__banner" role="alert">
-          {records}
-        </p>
+        <Banner text={records} />
       ) : records.length === 0 ? (
         <p className="note">Sem logins no período escolhido.</p>
       ) : (
@@ -93,7 +92,7 @@ export function LoginsDialog({ onClose }: { onClose: () => void }) {
           <ul className="owner-people__list owner-logins">
             {filtered.slice((page - 1) * pageSize, page * pageSize).map((r) => (
               <li key={r.userId} className="owner-person">
-                <img className="owner-person__avatar" src={r.avatarUrl} alt="" width="32" height="32" loading="lazy" />
+                <Avatar className="owner-person__avatar" src={r.avatarUrl} size={32} />
                 <span className="owner-person__name">
                   <strong>{r.nickname}</strong>
                   <span className="note">{r.fullName}</span>

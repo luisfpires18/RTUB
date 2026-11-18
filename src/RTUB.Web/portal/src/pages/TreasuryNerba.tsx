@@ -7,6 +7,8 @@ import { Refusal, TreasuryTabs } from '../components/TreasuryUi';
 import { day, euros } from '../data/format';
 import { Loading } from '../components/ui/Loading';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
+import { PageHead } from '../components/ui/PageHead';
+import { BackLink } from '../components/ui/BackLink';
 /**
  * /treasury/nerba - Encomendas Nerba. Treasury members:
  * the Nerba events, upcoming (nearest first) then past (latest first), with item count and total. Mod, Admin and Owner
@@ -64,19 +66,8 @@ export default function TreasuryNerba() {
 
   return (
     <section className="page wrap events-page tr-page" aria-labelledby="tr-title">
-      <a className="back-link" href={portal.treasury}>
-        <Icon name="arrow" />
-        Tesouraria
-      </a>
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="tr-title" className="page__title">
-            Encomendas Nerba
-          </h1>
-          <p className="page__lead">O material encomendado para cada evento Nerba.</p>
-        </div>
-      </header>
+      <BackLink href={portal.treasury}>Tesouraria</BackLink>
+      <PageHead eyebrow="Área de membros" title="Encomendas Nerba" titleId="tr-title" lead="O material encomendado para cada evento Nerba." />
 
       {typeof data === 'string' ? (
         <Refusal state={data} path={portal.treasuryNerba} onRetry={load} />

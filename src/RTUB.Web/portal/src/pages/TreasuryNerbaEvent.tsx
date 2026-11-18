@@ -10,6 +10,10 @@ import { Loading } from '../components/ui/Loading';
 import { FormField } from '../components/ui/FormField';
 import { DialogFooter } from '../components/ui/DialogFooter';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
+import { PageHead } from '../components/ui/PageHead';
+import { BackLink } from '../components/ui/BackLink';
+import { Segmented } from '../components/ui/Segmented';
+import { Banner } from '../components/ui/Banner';
 type Sort = 'item' | 'type' | 'stock' | 'pricePerUnit' | 'total';
 const COLUMNS: { key: Sort; label: string; numeric?: boolean }[] = [
   { key: 'item', label: 'Item' },
@@ -52,10 +56,7 @@ export default function TreasuryNerbaEvent({ eventId }: { eventId: number }) {
   if (typeof data === 'string' || !n) {
     return (
       <section className="page wrap">
-        <a className="back-link" href={portal.treasuryNerba}>
-          <Icon name="arrow" />
-          Encomendas Nerba
-        </a>
+        <BackLink href={portal.treasuryNerba}>Encomendas Nerba</BackLink>
         {typeof data === 'string' ? <Refusal state={data} path={portal.treasuryNerbaEvent(eventId)} onRetry={load} /> : <Loading label="A carregar as encomendas…" />}
       </section>
     );
@@ -74,22 +75,19 @@ export default function TreasuryNerbaEvent({ eventId }: { eventId: number }) {
 
   return (
     <section className="page wrap events-page tr-page" aria-labelledby="tr-title">
-      <a className="back-link" href={portal.treasuryNerba}>
-        <Icon name="arrow" />
-        Encomendas Nerba
-      </a>
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Encomendas Nerba</p>
-          <h1 id="tr-title" className="page__title">
-            {n.event.name}
-          </h1>
-          <p className="page__lead">
+      <BackLink href={portal.treasuryNerba}>Encomendas Nerba</BackLink>
+      <PageHead
+        eyebrow="Encomendas Nerba"
+        title={n.event.name}
+        titleId="tr-title"
+        lead={
+          <>
             {day(n.event.date)}
             {n.event.endDate && ` — ${day(n.event.endDate)}`}
             {n.event.location && ` · ${n.event.location}`}
-          </p>
-        </div>
+          </>
+        }
+      >
         {n.canManage && (
           <div className="events-page__actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setForm({})}>
@@ -98,10 +96,10 @@ export default function TreasuryNerbaEvent({ eventId }: { eventId: number }) {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {n.days.length > 0 && (
-        <div className="segmented segmented--wrap" role="radiogroup" aria-label="Dia">
+        <Segmented label="Dia" role="radiogroup" wrap>
           {['', ...n.days].map((d) => {
             const list = d ? ofDay(d) : n.orders;
             return (
@@ -114,7 +112,7 @@ export default function TreasuryNerbaEvent({ eventId }: { eventId: number }) {
               </label>
             );
           })}
-        </div>
+        </Segmented>
       )}
 
       <dl className="tr-tiles tr-tiles--one">
@@ -257,11 +255,7 @@ function OrderDialog({
       footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!item.trim() || !stock || !price} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        {errors.form && (
-          <p className="form__banner" role="alert">
-            {errors.form}
-          </p>
-        )}
+        <Banner text={errors.form} />
         {data.days.length > 0 && (
           <FormField alert id={`${fid}-day`} label="Dia" error={errors.orderDate}>
             <span className="control control--select">

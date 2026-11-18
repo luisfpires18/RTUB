@@ -11,6 +11,10 @@ import { PersonChip } from '../components/ui/PersonChip';
 import { FormField } from '../components/ui/FormField';
 import { DialogFooter } from '../components/ui/DialogFooter';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
+import { PageHead } from '../components/ui/PageHead';
+import { BackLink } from '../components/ui/BackLink';
+import { Banner } from '../components/ui/Banner';
+import { FieldError } from '../components/ui/FieldError';
 const PAGE = 12;
 
 /**
@@ -42,18 +46,13 @@ export default function TreasuryMbway() {
 
   return (
     <section className="page wrap events-page tr-page" aria-labelledby="tr-title">
-      <a className="back-link" href={portal.treasury}>
-        <Icon name="arrow" />
-        Tesouraria
-      </a>
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Área de membros</p>
-          <h1 id="tr-title" className="page__title">
-            MBWAY
-          </h1>
-          <p className="page__lead">Registo das transferências MBWAY. Não entram nos totais dos relatórios.</p>
-        </div>
+      <BackLink href={portal.treasury}>Tesouraria</BackLink>
+      <PageHead
+        eyebrow="Área de membros"
+        title="MBWAY"
+        titleId="tr-title"
+        lead="Registo das transferências MBWAY. Não entram nos totais dos relatórios."
+      >
         {t?.canAdd && (
           <div className="events-page__actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setForm({})}>
@@ -62,7 +61,7 @@ export default function TreasuryMbway() {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {typeof data === 'string' ? (
         <Refusal state={data} path={portal.treasuryMbway} onRetry={load} />
@@ -231,11 +230,7 @@ function TransferDialog({ transfer, onClose, onSaved }: { transfer?: Transfer; o
       footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!member || !amount || !date} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        {errors.form && (
-          <p className="form__banner" role="alert">
-            {errors.form}
-          </p>
-        )}
+        <Banner text={errors.form} />
         <div className="form__row">
           <FormField alert id={`${fid}-date`} label="Data" error={errors.date}>
             <input id={`${fid}-date`} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -254,11 +249,7 @@ function TransferDialog({ transfer, onClose, onSaved }: { transfer?: Transfer; o
               <MemberPicker forDebts={false} label="Procurar membro" onPick={setMember} />
             </>
           )}
-          {errors.memberUserId && (
-            <p className="form__error" role="alert">
-              {errors.memberUserId}
-            </p>
-          )}
+          <FieldError text={errors.memberUserId} />
         </div>
         <div className="form__row">
           <FormField alert id={`${fid}-from`} label="Transferido por (opcional)" error={errors.transferFrom}>

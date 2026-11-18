@@ -6,6 +6,7 @@ import { Flash, OwnerPage, useOwnerLoad } from '../components/OwnerUi';
 import { MemberBadge } from '../components/MemberBadge';
 import { Pager } from '../components/ui/Pager';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { Spinner } from '../components/ui/Spinner';
 
 type Message = { text: string; error?: boolean };
 type View = { kind: 'table'; table: string; grid: DbGrid } | { kind: 'query'; grid: DbGrid; page: number; pageSize: number };
@@ -139,7 +140,7 @@ export default function OwnerDatabase() {
                   />
                   <div className="owner-actions">
                     <button type="button" className="btn btn--primary btn--sm" onClick={runSelect} disabled={busy || !select.trim()}>
-                      {busy ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="play" />}
+                      {busy ? <Spinner small /> : <Icon name="play" />}
                       Executar
                     </button>
                     <button

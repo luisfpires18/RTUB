@@ -5,6 +5,7 @@ import { isoDay, problem, treasuryApi, type Activity, type ReportEvent, type Rep
 import { day, today } from '../data/format';
 import { FormField } from './ui/FormField';
 import { DialogFooter } from './ui/DialogFooter';
+import { Banner } from './ui/Banner';
 
 /** "Editar Dinheiro no Banco / em Caixa": one value, any sign; 0 clears it. */
 export function BalanceDialog({ report, kind, onClose, onSaved }: { report: Report; kind: 'bank' | 'cash'; onClose: () => void; onSaved: (r: Report) => void }) {
@@ -88,11 +89,7 @@ export function ActivityDialog({
       footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!name.trim() || !start} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        {errors.form && (
-          <p className="form__banner" role="alert">
-            {errors.form}
-          </p>
-        )}
+        <Banner text={errors.form} />
         <FormField alert id={`${fid}-name`} label="Nome" error={errors.name}>
           <input id={`${fid}-name`} type="text" maxLength={200} value={name} onChange={(e) => setName(e.target.value)} />
         </FormField>

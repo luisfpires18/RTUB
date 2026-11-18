@@ -5,6 +5,7 @@ import { ownerApi, ownerProblem, type EmailRecipients, type OwnerPerson } from '
 import { Flash, matches, SearchBox } from './OwnerUi';
 import { type Message } from '../data/ownerEmailsView';
 import { Pager } from './ui/Pager';
+import { Avatar } from './ui/Avatar';
 
 export function Recipients({ data, onChanged }: { data: EmailRecipients; onChanged: (next: EmailRecipients) => void }) {
   const id = useId();
@@ -133,7 +134,7 @@ function PeopleList({
                   onChange={(e) => toggle([p.id], e.target.checked)}
                   aria-label={`Selecionar ${p.nickname}`}
                 />
-                <img className="owner-person__avatar" src={p.avatarUrl} alt="" width="32" height="32" loading="lazy" />
+                <Avatar className="owner-person__avatar" src={p.avatarUrl} size={32} />
                 <span className="owner-person__name">
                   <strong>{p.nickname}</strong>
                   <span className="note">{p.fullName}</span>

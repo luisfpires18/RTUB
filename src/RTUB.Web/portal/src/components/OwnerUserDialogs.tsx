@@ -5,6 +5,8 @@ import { Icon } from './icons';
 import { dateTime, ownerApi, ownerProblem, type OwnerUserCard, type OwnerUserDetail } from '../data/ownerApi';
 import { ROLES } from '../data/ownerUsersView';
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import { Spinner } from './ui/Spinner';
+import { Banner } from './ui/Banner';
 
 export function DetailsDialog({ id, onClose, onUnlocked }: { id: string; onClose: () => void; onUnlocked: (u: OwnerUserDetail) => void }) {
   const [user, setUser] = useState<OwnerUserDetail | string>();
@@ -41,9 +43,7 @@ export function DetailsDialog({ id, onClose, onUnlocked }: { id: string; onClose
           A carregar…
         </p>
       ) : typeof user === 'string' ? (
-        <p className="form__banner" role="alert">
-          {user}
-        </p>
+        <Banner text={user} />
       ) : (
         <div className="owner-detail">
           <div className="owner-detail__who">
@@ -83,14 +83,10 @@ export function DetailsDialog({ id, onClose, onUnlocked }: { id: string; onClose
                 Conta bloqueada até {dateTime(user.lockoutEnd)}. Desbloquear também reinicia o contador de tentativas falhadas.
               </p>
               <button type="button" className="btn btn--danger btn--sm" onClick={unlock} disabled={busy}>
-                {busy ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="unlock" />}
+                {busy ? <Spinner small /> : <Icon name="unlock" />}
                 Desbloquear
               </button>
-              {error && (
-                <p className="form__banner" role="alert">
-                  {error}
-                </p>
-              )}
+              <Banner text={error} />
             </div>
           )}
         </div>

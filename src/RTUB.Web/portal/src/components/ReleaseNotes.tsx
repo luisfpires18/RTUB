@@ -1,6 +1,7 @@
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import type { ReleaseNote } from '../data/releaseNotesApi';
+import { FieldError } from './ui/FieldError';
 
 /**
  * "Nova atualização <version>": the notes as plain text, one section per release, newest first.
@@ -53,11 +54,7 @@ export function ReleaseNotesDialog({
           ))}
         </section>
       )}
-      {error && (
-        <p className="form__error" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError text={error} />
     </Dialog>
   );
 }

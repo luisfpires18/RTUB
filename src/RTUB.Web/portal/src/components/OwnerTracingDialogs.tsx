@@ -6,6 +6,8 @@ import { entityLabel, ownerApi, ownerProblem, type AuditEntry, type AuditFilters
 import { CONFIRMATION, primaryName, stamp, actionTone, pretty } from '../data/ownerTracingHelpers';
 import { Select } from './OwnerTracingParts';
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import { Spinner } from './ui/Spinner';
+import { Banner } from './ui/Banner';
 
 export function DetailsDialog({ entry, onClose }: { entry: AuditEntry; onClose: () => void }) {
   return (
@@ -127,7 +129,7 @@ export function TruncateDialog({
             Cancelar
           </button>
           <button type="button" className="btn btn--danger" onClick={truncate} disabled={busy || typed !== CONFIRMATION}>
-            {busy ? <span className="spinner spinner--small" aria-hidden="true" /> : <Icon name="trash" />}
+            {busy ? <Spinner small /> : <Icon name="trash" />}
             {user ? 'Apagar os registos dele' : 'Apagar tudo'}
           </button>
         </>
@@ -148,11 +150,7 @@ export function TruncateDialog({
           </label>
           <input id={`${id}-confirm`} value={typed} autoComplete="off" placeholder={CONFIRMATION} onChange={(e) => setTyped(e.target.value)} />
         </div>
-        {error && (
-          <p className="form__banner" role="alert">
-            {error}
-          </p>
-        )}
+        <Banner text={error} />
       </div>
     </Dialog>
   );

@@ -9,6 +9,8 @@ import { BalanceDialog, ActivityDialog } from '../components/TreasuryReportDialo
 import { TransactionDialog, HistoryDialog } from '../components/TreasuryTransactionDialogs';
 import { Loading } from '../components/ui/Loading';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
+import { Banner } from '../components/ui/Banner';
+import { BackLink } from '../components/ui/BackLink';
 
 /**
  * /treasury/reports/{id} - one annual report. Treasury members:
@@ -63,10 +65,7 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
   if (typeof report === 'string') {
     return (
       <section className="page wrap">
-        <a className="back-link" href={portal.treasury}>
-          <Icon name="arrow" />
-          Tesouraria
-        </a>
+        <BackLink href={portal.treasury}>Tesouraria</BackLink>
         <Refusal state={report} path={portal.treasuryReport(reportId)} onRetry={load} />
       </section>
     );
@@ -96,10 +95,7 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
 
   return (
     <section className="page wrap events-page tr-page" aria-labelledby="tr-title">
-      <a className="back-link" href={portal.treasury}>
-        <Icon name="arrow" />
-        Tesouraria
-      </a>
+      <BackLink href={portal.treasury}>Tesouraria</BackLink>
       <header className="page__head events-page__head">
         <div>
           <p className="eyebrow">Ano letivo {fy}</p>
@@ -132,11 +128,7 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
           Relatório publicado: só de leitura.
         </p>
       )}
-      {message && (
-        <p className="form__banner" role="alert">
-          {message}
-        </p>
-      )}
+      <Banner text={message} />
 
       <dl className="tr-tiles">
         {tile('Dinheiro total', r.totals.totalMoney, 'sign')}

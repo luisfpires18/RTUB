@@ -6,6 +6,8 @@ import { ownerApi, ownerProblem, type OwnerPerson } from '../data/ownerApi';
 import { Flash, matches, OwnerPage, SearchBox, useOwnerLoad } from '../components/OwnerUi';
 import { Pager } from '../components/ui/Pager';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { FormField } from '../components/ui/FormField';
+import { Avatar } from '../components/ui/Avatar';
 
 const TITLE_MAX = 100;
 const BODY_MAX = 500;
@@ -103,8 +105,7 @@ function Composer({ people }: { people: OwnerPerson[] }) {
         </h2>
         <Flash message={message} onDismiss={() => setMessage(undefined)} />
         <form id={`${id}-form`} className="form" onSubmit={ask} noValidate>
-          <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
-            <label htmlFor={`${id}-title`}>Título</label>
+          <FormField id={`${id}-title`} label="Título" error={errors.title} hint={`${title.length}/${TITLE_MAX}`}>
             <input
               id={`${id}-title`}
               value={title}
@@ -113,13 +114,13 @@ function Composer({ people }: { people: OwnerPerson[] }) {
               onChange={(e) => setTitle(e.target.value)}
               aria-invalid={errors.title ? true : undefined}
             />
-            <p className="form__hint">
-              {title.length}/{TITLE_MAX}
-            </p>
-            {errors.title && <p className="form__error">{errors.title}</p>}
-          </div>
-          <div className={errors.body ? 'form__field form__field--error' : 'form__field'}>
-            <label htmlFor={`${id}-body`}>Mensagem</label>
+          </FormField>
+          <FormField
+            id={`${id}-body`}
+            label="Mensagem"
+            error={errors.body}
+            hint={`Vai para os utilizadores selecionados abaixo. ${body.length}/${BODY_MAX}`}
+          >
             <textarea
               id={`${id}-body`}
               rows={5}
@@ -129,11 +130,7 @@ function Composer({ people }: { people: OwnerPerson[] }) {
               onChange={(e) => setBody(e.target.value)}
               aria-invalid={errors.body ? true : undefined}
             />
-            <p className="form__hint">
-              Vai para os utilizadores selecionados abaixo. {body.length}/{BODY_MAX}
-            </p>
-            {errors.body && <p className="form__error">{errors.body}</p>}
-          </div>
+          </FormField>
           <div className="owner-actions">
             <button type="button" className="btn btn--ghost" onClick={() => setOpen('preview')} disabled={busy || !ready}>
               <Icon name="eye" />
@@ -183,7 +180,7 @@ function Composer({ people }: { people: OwnerPerson[] }) {
                 <li key={p.id}>
                   <label className="owner-person">
                     <input type="checkbox" checked={selected.has(p.id)} onChange={(e) => toggle([p.id], e.target.checked)} />
-                    <img className="owner-person__avatar" src={p.avatarUrl} alt="" width="32" height="32" loading="lazy" />
+                    <Avatar className="owner-person__avatar" src={p.avatarUrl} size={32} />
                     <span className="owner-person__name">
                       <strong>{p.nickname}</strong>
                       <span className="note">{p.fullName}</span>

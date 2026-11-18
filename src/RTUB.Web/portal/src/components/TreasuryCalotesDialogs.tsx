@@ -9,6 +9,9 @@ import { type Debt } from '../data/treasuryCalotesView';
 import { PersonChip } from './ui/PersonChip';
 import { FormField } from './ui/FormField';
 import { DialogFooter } from './ui/DialogFooter';
+import { Spinner } from './ui/Spinner';
+import { Banner } from './ui/Banner';
+import { FieldError } from './ui/FieldError';
 
 /** One member's debts of the year, with the commitment date (managers change it) and, for managers, edit / remove. */
 export function DebtsDialog({
@@ -60,7 +63,7 @@ export function DebtsDialog({
                 <input id={`${fid}-until`} type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
               </FormField>
               <button type="submit" className="btn btn--primary btn--sm" disabled={busy}>
-                {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+                {busy && <Spinner small />}
                 Guardar
               </button>
               <p className="form__hint">Enquanto esta data estiver no futuro, não são enviados lembretes de calote a este membro neste ano letivo.</p>
@@ -151,11 +154,7 @@ export function DebtDialog({
       footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!member || !amount} onClose={onClose} label={debt ? 'Guardar' : 'Adicionar'} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        {errors.form && (
-          <p className="form__banner" role="alert">
-            {errors.form}
-          </p>
-        )}
+        <Banner text={errors.form} />
         <div className={errors.userId ? 'form__field form__field--error' : 'form__field'}>
           <span className="form__label">Membro</span>
           {member ? (
@@ -163,11 +162,7 @@ export function DebtDialog({
           ) : (
             <MemberPicker forDebts label="Procurar membro" onPick={setMember} />
           )}
-          {errors.userId && (
-            <p className="form__error" role="alert">
-              {errors.userId}
-            </p>
-          )}
+          <FieldError text={errors.userId} />
         </div>
         <FormField alert id={`${fid}-amount`} label="Montante (€)" error={errors.amount}>
           <input id={`${fid}-amount`} type="number" inputMode="decimal" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />

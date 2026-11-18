@@ -10,6 +10,7 @@ import { type Product, type Catalogue, api, PAGE } from '../data/shopApi';
 import { DetailDialog, ReserveDialog, MineDialog, ReservationsDialog } from '../components/ShopDialogs';
 import { Confirm, ProductForm } from '../components/ShopProductForm';
 import { Loading } from '../components/ui/Loading';
+import { PageHead } from '../components/ui/PageHead';
 
 type Open =
   | { kind: 'detail' | 'reserve' | 'mine' | 'reservations' | 'delete'; product: Product }
@@ -53,14 +54,12 @@ export default function ShopPage() {
 
   return (
     <section className="page wrap events-page shop-page" aria-labelledby="shop-title">
-      <header className="page__head events-page__head">
-        <div>
-          {memberShop && <p className="eyebrow">Área de membros</p>}
-          <h1 id="shop-title" className="page__title">
-            Loja RTUB
-          </h1>
-          <p className="page__lead">Os produtos da tuna, com o preço e o que ainda há em stock.</p>
-        </div>
+      <PageHead
+        eyebrow={memberShop && 'Área de membros'}
+        title="Loja RTUB"
+        titleId="shop-title"
+        lead="Os produtos da tuna, com o preço e o que ainda há em stock."
+      >
         {memberShop?.canCreate && (
           <div className="events-page__actions">
             <button type="button" className="btn btn--primary btn--sm" onClick={() => setOpen({ kind: 'form' })}>
@@ -69,7 +68,7 @@ export default function ShopPage() {
             </button>
           </div>
         )}
-      </header>
+      </PageHead>
 
       {shop === 'signin' ? (
         <SignInNotice path={portal.shop}>A loja é da área de membros.</SignInNotice>

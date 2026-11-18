@@ -5,6 +5,7 @@ import { pushApi, readPush, turnOn, type PushState } from '../data/push';
 import { ReleaseNotesDialog } from './ReleaseNotes';
 import { releaseNotesApi, type ReleaseNote } from '../data/releaseNotesApi';
 import { reminderDue, reminderFits } from '../data/startupRules';
+import { FieldError } from './ui/FieldError';
 
 // docs/react-push-v2.md → Startup reminder. The startup queue: one dialog at a time, in order, once
 // per app opening, for signed-in members only. The release notes go first in STEPS; the notification
@@ -246,11 +247,7 @@ function PushReminder({ hidden, onDone }: { hidden: boolean; onDone: () => void 
       <p>A app RTUB é agora a principal fonte de informação da tuna.</p>
       <p>Recebe os avisos de atuações, ensaios e ações pendentes.</p>
       {body}
-      {error && (
-        <p className="form__error" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError text={error} />
     </Dialog>
   );
 }

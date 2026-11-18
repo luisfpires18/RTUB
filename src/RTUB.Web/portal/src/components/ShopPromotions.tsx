@@ -5,6 +5,11 @@ import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
 import { euros } from '../data/format';
 import { outcomeText } from '../data/api';
+import { Banner } from './ui/Banner';
+import { DialogFooter } from './ui/DialogFooter';
+import { FormField } from './ui/FormField';
+import { FieldError } from './ui/FieldError';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 // /api/shop/promotions: bundle offers ("3 CDs por 20 € em vez de 30 €"). Visitors see offers made of public products,
 // members all of them; Mod, Admin and Owner create, edit and delete. The server decides and validates everything.
@@ -105,42 +110,22 @@ export function PromotionsSection() {
 }
 
 function DeletePromotion({ promo, onClose, onDone }: { promo: Promo; onClose: () => void; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-  const go = async () => {
-    setBusy(true);
-    const o = await api.remove(promo.id);
-    setBusy(false);
-    if (o.kind === 'ok' || o.kind === 'notfound') {
-      onDone();
-      onClose();
-    } else setError(problem(o));
-  };
   return (
-    <Dialog
+    <AsyncConfirmDialog
+      danger
       title="Eliminar promoção"
+      confirmLabel="Eliminar"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={go} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Eliminar
-          </button>
-        </>
-      }
+      onConfirm={async () => {
+        const o = await api.remove(promo.id);
+        if (o.kind !== 'ok' && o.kind !== 'notfound') return problem(o);
+        onDone();
+      }}
     >
       <p>
         Eliminar a promoção <strong>{promo.name}</strong>? Os produtos continuam na loja.
       </p>
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </AsyncConfirmDialog>
   );
 }
 
@@ -187,44 +172,20 @@ function PromotionForm({ promo, onClose, onSaved }: { promo?: Promo; onClose: ()
     setBanner(problem(saved));
   };
 
-  const field = (key: string) => (errors[key] ? 'form__field form__field--error' : 'form__field');
-  const error = (key: string) =>
-    errors[key] && (
-      <p className="form__error" role="alert">
-        {errors[key]}
-      </p>
-    );
-
   return (
     <Dialog
       title={promo ? 'Editar promoção' : 'Nova promoção'}
       size="lg"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${fid}-form`} className="btn btn--primary" disabled={busy || !Array.isArray(products)}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Guardar
-          </button>
-        </>
-      }
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!Array.isArray(products)} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        {(banner || products === 'failed') && (
-          <p className="form__banner" role="alert">
-            {banner ?? 'Não foi possível carregar os produtos.'}
-          </p>
-        )}
-        <div className={field('name')}>
-          <label htmlFor={`${fid}-name`}>Nome</label>
+        <Banner text={banner || (products === 'failed' ? 'Não foi possível carregar os produtos.' : undefined)} />
+        <FormField alert id={`${fid}-name`} label="Nome" error={errors.name}>
           <input id={`${fid}-name`} type="text" maxLength={100} placeholder="3 CDs" value={name} onChange={(e) => setName(e.target.value)} />
-          {error('name')}
-        </div>
+        </FormField>
 
-        <div className={field('items')} role="group" aria-labelledby={`${fid}-items`}>
+        <div className={errors.items ? 'form__field form__field--error' : 'form__field'} role="group" aria-labelledby={`${fid}-items`}>
           <span id={`${fid}-items`} className="promo-label">
             Produtos do pacote
           </span>
@@ -281,18 +242,18 @@ function PromotionForm({ promo, onClose, onSaved }: { promo?: Promo; onClose: ()
             <Icon name="plus" />
             Adicionar produto
           </button>
-          {error('items')}
+          <FieldError text={errors.items} />
         </div>
 
-        <div className={field('price')}>
-          <label htmlFor={`${fid}-price`}>Preço da promoção (€)</label>
+        <FormField
+          alert
+          id={`${fid}-price`}
+          label="Preço da promoção (€)"
+          error={errors.price}
+          hint={`Preço normal: ${euros(normal)}. ${saving > 0 ? `Poupa ${euros(saving)} (${Math.round((saving / normal) * 100)} %).` : 'A promoção tem de ser mais barata.'}`}
+        >
           <input id={`${fid}-price`} type="text" inputMode="decimal" value={priceText} onChange={(e) => setPriceText(e.target.value)} />
-          <p className="form__hint">
-            Preço normal: {euros(normal)}.{' '}
-            {saving > 0 ? `Poupa ${euros(saving)} (${Math.round((saving / normal) * 100)} %).` : 'A promoção tem de ser mais barata.'}
-          </p>
-          {error('price')}
-        </div>
+        </FormField>
       </form>
     </Dialog>
   );

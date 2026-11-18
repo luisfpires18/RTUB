@@ -3,6 +3,7 @@ import { accountApi, takeLinkQuery, type RecoveryResult } from '../data/accountA
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { Loading } from '../components/ui/Loading';
+import { AccountDone } from '../components/ui/AccountDone';
 
 // The emailed link: /confirm-email?userId=…&code=…. Read once, then gone from the address bar.
 const link = takeLinkQuery('userId', 'code');
@@ -37,16 +38,19 @@ export default function ConfirmEmail() {
         {!result ? (
           <Loading label="A processar a confirmação…" />
         ) : (
-          <div className={result.succeeded ? 'account-done' : 'account-done account-done--error'} role={result.succeeded ? 'status' : 'alert'}>
-            <Icon name={result.succeeded ? 'checkCircle' : 'warning'} />
-            <p>{result.message}</p>
+          <AccountDone
+            error={!result.succeeded}
+            role={result.succeeded ? 'status' : 'alert'}
+            icon={result.succeeded ? 'checkCircle' : 'warning'}
+            message={result.message}
+          >
             {result.succeeded && (
               <a className="btn btn--primary" href={portal.login}>
                 <Icon name="login" />
                 Entrar
               </a>
             )}
-          </div>
+          </AccountDone>
         )}
       </div>
     </section>

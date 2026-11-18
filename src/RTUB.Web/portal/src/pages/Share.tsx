@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
+import { AccountDone } from '../components/ui/AccountDone';
+import { FormField } from '../components/ui/FormField';
 
 // What another app shared with the installed RTUB: the manifest's share_target sends a GET to /share?title&text&url.
 // The query stays in the address bar on purpose, so a reload keeps the shared content. Nothing is stored or sent on.
@@ -42,29 +44,24 @@ export default function Share() {
 
       <div className="request__form-card account-card">
         {empty ? (
-          <div className="account-done" role="status">
-            <Icon name="inbox" />
-            <p>Nenhum conteúdo para partilhar.</p>
+          <AccountDone icon="inbox" message="Nenhum conteúdo para partilhar.">
             <a className="btn btn--primary" href={portal.home}>
               <Icon name="arrowLeft" />
               Voltar ao início
             </a>
-          </div>
+          </AccountDone>
         ) : (
           <div className="form">
-            <div className="form__field">
-              <label htmlFor="share-field-title">Título</label>
+            <FormField id="share-field-title" label="Título">
               <input id="share-field-title" type="text" value={shared.title} readOnly />
-            </div>
-            <div className="form__field">
-              <label htmlFor="share-field-text">Texto</label>
+            </FormField>
+            <FormField id="share-field-text" label="Texto">
               <textarea id="share-field-text" rows={3} value={shared.text} readOnly />
-            </div>
+            </FormField>
             {shared.url && (
-              <div className="form__field">
-                <label htmlFor="share-field-url">URL</label>
+              <FormField id="share-field-url" label="URL">
                 <input id="share-field-url" type="url" value={shared.url} readOnly />
-              </div>
+              </FormField>
             )}
             <div className="share__actions">
               <button type="button" className="btn btn--primary" onClick={copy}>

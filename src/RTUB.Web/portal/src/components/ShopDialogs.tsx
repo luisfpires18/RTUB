@@ -6,6 +6,9 @@ import { euros } from '../data/format';
 import { type Reservation, type Product, type Detail, SIZE_LABELS, api, when, problem } from '../data/shopApi';
 import { Confirm } from './ShopProductForm';
 import { Loading } from './ui/Loading';
+import { DialogFooter } from './ui/DialogFooter';
+import { Banner } from './ui/Banner';
+import { FormField } from './ui/FormField';
 
 export function DetailDialog({ id, onClose }: { id: number; onClose: () => void }) {
   const [detail, setDetail] = useState<Detail | 'missing' | null>();
@@ -73,17 +76,7 @@ export function ReserveDialog({ product, sizes, onClose, onDone }: { product: Pr
     <Dialog
       title="Reservar produto"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Reservar
-          </button>
-        </>
-      }
+      footer={<DialogFooter form={`${id}-form`} busy={busy} label="Reservar" onClose={onClose} />}
     >
       <form id={`${id}-form`} className="form" onSubmit={submit} noValidate>
         <p className="answer-event">
@@ -92,24 +85,16 @@ export function ReserveDialog({ product, sizes, onClose, onDone }: { product: Pr
             {product.type} · {euros(product.price)} · {product.stock} disponíveis
           </span>
         </p>
-        {(errors.product || errors.hasSizes) && (
-          <p className="form__banner" role="alert">
-            {errors.product ?? errors.hasSizes}
-          </p>
-        )}
-        <div className={errors.displayName ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${id}-name`}>Nome para apresentação (opcional)</label>
+        <Banner text={errors.product || errors.hasSizes} />
+        <FormField id={`${id}-name`} label="Nome para apresentação (opcional)" error={errors.displayName} hint="Em branco, fica o teu nome de membro.">
           <input id={`${id}-name`} type="text" maxLength={200} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          <p className="form__hint">Em branco, fica o teu nome de membro.</p>
-          {errors.displayName && <p className="form__error">{errors.displayName}</p>}
-        </div>
+        </FormField>
         <label className="form__check" htmlFor={`${id}-sizes`}>
           <input id={`${id}-sizes`} type="checkbox" checked={hasSizes} onChange={(e) => setHasSizes(e.target.checked)} />
           Este produto tem tamanhos
         </label>
         {hasSizes && (
-          <div className={errors.size ? 'form__field form__field--error' : 'form__field'}>
-            <label htmlFor={`${id}-size`}>Tamanho</label>
+          <FormField id={`${id}-size`} label="Tamanho" error={errors.size}>
             <span className="control control--select">
               <select id={`${id}-size`} value={size} onChange={(e) => setSize(e.target.value)}>
                 <option value="">Escolher o tamanho</option>
@@ -120,12 +105,7 @@ export function ReserveDialog({ product, sizes, onClose, onDone }: { product: Pr
                 ))}
               </select>
             </span>
-            {errors.size && (
-              <p className="form__error" role="alert">
-                {errors.size}
-              </p>
-            )}
-          </div>
+          </FormField>
         )}
       </form>
     </Dialog>
