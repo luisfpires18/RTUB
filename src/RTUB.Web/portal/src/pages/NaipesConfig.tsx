@@ -10,6 +10,7 @@ import { outcomeText } from '../data/api';
 import { Notice, SignInNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
 import { BackLink } from '../components/ui/BackLink';
+import { CheckField } from '../components/ui/CheckField';
 import { Banner } from '../components/ui/Banner';
 import { DialogFooter } from '../components/ui/DialogFooter';
 import { FieldError } from '../components/ui/FieldError';
@@ -182,10 +183,9 @@ function SettingDialog({ setting, onClose, onChanged }: { setting: NaipeSetting;
         <FormField id={`${id}-order`} label="Ordem" hint="De 0 a 999; os números mais baixos aparecem primeiro." error={errors.sortOrder} alert>
           <input id={`${id}-order`} type="number" inputMode="numeric" step="1" min="0" max="999" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
         </FormField>
-        <label className="form__check">
-          <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} disabled={busy} />
+        <CheckField checked={visible} onChange={setVisible} disabled={busy}>
           {visible ? 'Aparece na página dos naipes' : 'Escondido da página dos naipes'}
-        </label>
+        </CheckField>
       </form>
     </Dialog>
   );

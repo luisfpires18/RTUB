@@ -12,6 +12,8 @@ import { DeleteBoardDialog, DuplicateBoardDialog } from '../components/Logistics
 import { Loading } from '../components/ui/Loading';
 import { PageHead } from '../components/ui/PageHead';
 import { Banner } from '../components/ui/Banner';
+import { EmptyBlock } from '../components/ui/EmptyNote';
+import { SearchField } from '../components/ui/SearchTools';
 
 type Tab = 'active' | 'completed' | 'archived';
 const TABS: { key: Tab; label: string }[] = [
@@ -104,11 +106,7 @@ export default function Logistics() {
       ) : (
         <>
           <div className="lx-boards-tools" role="search">
-            <label className="control" htmlFor={id}>
-              <span className="sr-only">Procurar quadro</span>
-              <Icon name="search" />
-              <input id={id} type="search" placeholder="Procurar por nome ou descrição" value={text} onChange={(e) => setText(e.target.value)} />
-            </label>
+            <SearchField id={id} label="Procurar quadro" placeholder="Procurar por nome ou descrição" value={text} onChange={setText} />
             <div className="lx-tabs" role="tablist" aria-label="Estado dos quadros">
               {TABS.map((t) => (
                 <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}>
@@ -139,7 +137,7 @@ export default function Logistics() {
               ))}
             </ul>
           ) : (
-            <div className="lx-empty" role="tabpanel">
+            <EmptyBlock className="lx-empty" role="tabpanel">
               <p>
                 {search || onlyMine
                   ? 'Nenhum quadro corresponde aos filtros.'
@@ -159,7 +157,7 @@ export default function Logistics() {
                   </button>
                 </div>
               )}
-            </div>
+            </EmptyBlock>
           )}
 
           {open?.kind === 'form' && <BoardDialog board={open.board} onClose={() => setOpen(undefined)} onSaved={load} />}

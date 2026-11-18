@@ -115,15 +115,14 @@ export function CreateCardDialog({ boardId, list, onClose, onCreated }: { boardI
         <FormField id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description} alert>
           <textarea id={`${fid}-desc`} rows={3} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
         </FormField>
-        <div className="form__field">
-          <span className="form__label">Atribuir a (opcional)</span>
+        <FormField id={`${fid}-assignee`} label="Atribuir a (opcional)" heading>
           {assignee ? (
             <PersonChip name={assignee.displayName} avatar={assignee.avatarUrl} onRemove={() => setAssignee(null)} removeLabel="Remover" />
           ) : (
             <MemberPicker label="Atribuir a" boardId={boardId} onPick={setAssignee} />
           )}
           <FieldError text={errors.assignedToUserId} />
-        </div>
+        </FormField>
       </form>
     </Dialog>
   );

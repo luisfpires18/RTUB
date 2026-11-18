@@ -2,7 +2,8 @@
 import { useEffect, useId, useState } from 'react';
 import { Icon } from './icons';
 import { logisticsApi, type MemberOption } from '../data/logisticsApi';
-import { DEFAULT_AVATAR } from '../data/membersApi';
+import { Avatar } from './ui/Avatar';
+import { EmptyNote } from './ui/EmptyNote';
 
 /**
  * Search members by nickname or name (the server returns at most 20) and pick one. With `boardId`: only
@@ -43,7 +44,7 @@ export function MemberPicker({
         <Icon name="search" />
         <input id={id} type="search" placeholder="Procurar por alcunha ou nome" value={query} onChange={(e) => setQuery(e.target.value)} />
       </span>
-      {shown && shown.length === 0 && <p className="note">Ninguém encontrado.</p>}
+      {shown && shown.length === 0 && <EmptyNote>Ninguém encontrado.</EmptyNote>}
       {shown && shown.length > 0 && (
         <ul className="talk__picks">
           {shown.map((m) => (
@@ -55,7 +56,7 @@ export function MemberPicker({
                   setQuery('');
                 }}
               >
-                <img src={m.avatarUrl ?? DEFAULT_AVATAR} alt="" width="28" height="28" loading="lazy" />
+                <Avatar src={m.avatarUrl} size={28} />
                 <span>
                   {m.displayName}
                   {m.fullName && <small>{m.fullName}</small>}

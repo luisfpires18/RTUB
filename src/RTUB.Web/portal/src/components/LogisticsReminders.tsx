@@ -9,6 +9,8 @@ import { FieldError } from './ui/FieldError';
 import { PersonChip } from './ui/PersonChip';
 import { FormField } from './ui/FormField';
 import { Spinner } from './ui/Spinner';
+import { EmptyNote } from './ui/EmptyNote';
+import { IconAction } from './ui/IconAction';
 
 /** Tomorrow at 10:00, Portugal time, as a datetime-local value. */
 const tomorrowAtTen = () => {
@@ -90,26 +92,20 @@ export function Reminders({
               </span>
               {r.canEdit && draft?.id !== r.id && (
                 <span className="lx-inline">
-                  <button type="button" className="icon-btn icon-btn--sm" onClick={() => edit(r)} disabled={!!busy}>
-                    <Icon name="pencil" />
-                    <span className="sr-only">Editar o lembrete de {when(r.next)}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-btn icon-btn--sm"
+                  <IconAction icon="pencil" label={`Editar o lembrete de ${when(r.next)}`} onClick={() => edit(r)} disabled={!!busy} />
+                  <IconAction
+                    icon="trash"
+                    label={`Apagar o lembrete de ${when(r.next)}`}
                     onClick={() => apply(logisticsApi.removeReminder(cardId, r.id), 'reminder', 'apagar o lembrete')}
                     disabled={!!busy}
-                  >
-                    <Icon name="trash" />
-                    <span className="sr-only">Apagar o lembrete de {when(r.next)}</span>
-                  </button>
+                  />
                 </span>
               )}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="note">Sem lembretes.</p>
+        <EmptyNote>Sem lembretes.</EmptyNote>
       )}
 
       {draft ? (

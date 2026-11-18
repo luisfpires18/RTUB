@@ -129,7 +129,7 @@ export function TemplateDialog({ onClose }: { onClose: () => void }) {
       {templates === undefined ? (
         <Loading label="A carregar os modelos…" />
       ) : templates === null ? (
-        <p className="form__banner">Não foi possível carregar os modelos.</p>
+        <Banner role="none" text="Não foi possível carregar os modelos." />
       ) : (
         <div className="form lx-template">
           <Banner text={errors.form} />

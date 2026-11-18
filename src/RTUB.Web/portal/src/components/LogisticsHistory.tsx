@@ -1,13 +1,14 @@
 // Card activity history panel.
 import type { CardActivity } from '../data/logisticsApi';
 import { at } from '../data/logisticsDates';
+import { EmptyNote } from './ui/EmptyNote';
 
 export function History({ activity }: { activity: CardActivity[] }) {
   return (
     <details className="lx-history">
       <summary>Histórico ({activity.length})</summary>
       {activity.length === 0 ? (
-        <p className="note">Sem alterações registadas.</p>
+        <EmptyNote>Sem alterações registadas.</EmptyNote>
       ) : (
         <ol className="lx-history__list">
           {activity.map((a, i) => (

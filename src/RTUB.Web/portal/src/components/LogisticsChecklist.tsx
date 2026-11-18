@@ -4,6 +4,8 @@ import { Icon } from './icons';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, type CardDetail } from '../data/logisticsApi';
 import { FieldError } from './ui/FieldError';
+import { EmptyNote } from './ui/EmptyNote';
+import { IconAction } from './ui/IconAction';
 
 /** One item at a time: tick, rename (Enter saves, Esc cancels), remove, add. The item's text identifies it on the server. */
 export function Checklist({ detail, busy, errors, apply }: { detail: CardDetail; busy?: string; errors: Record<string, string>; apply: Apply }) {
@@ -27,7 +29,7 @@ export function Checklist({ detail, busy, errors, apply }: { detail: CardDetail;
   return (
     <Section id={`${id}-check`} title="Checklist" extra={items.length > 0 && <small>{done}/{items.length}</small>}>
       {items.length === 0 ? (
-        <p className="note">{detail.canWork ? 'Sem tarefas. Divida o trabalho em passos abaixo.' : 'Sem tarefas.'}</p>
+        <EmptyNote>{detail.canWork ? 'Sem tarefas. Divida o trabalho em passos abaixo.' : 'Sem tarefas.'}</EmptyNote>
       ) : (
         <>
           <span className="lx-progress__bar lx-progress__bar--wide">
@@ -58,10 +60,7 @@ export function Checklist({ detail, busy, errors, apply }: { detail: CardDetail;
                       if (e.key === 'Escape') (e.preventDefault(), e.stopPropagation(), setEditing(undefined));
                     }}
                   />
-                  <button type="button" className="icon-btn icon-btn--sm" onClick={rename} disabled={!!busy}>
-                    <Icon name="check" />
-                    <span className="sr-only">Guardar a tarefa</span>
-                  </button>
+                  <IconAction icon="check" label="Guardar a tarefa" onClick={rename} disabled={!!busy} />
                 </li>
               ) : (
                 <li key={i}>
@@ -74,19 +73,13 @@ export function Checklist({ detail, busy, errors, apply }: { detail: CardDetail;
                     />
                     <span className={item.done ? 'lx-checklist__done' : undefined}>{item.task}</span>
                   </label>
-                  <button type="button" className="icon-btn icon-btn--sm" onClick={() => setEditing({ index: i, text: item.task })}>
-                    <Icon name="pencil" />
-                    <span className="sr-only">Editar {item.task}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-btn icon-btn--sm"
+                  <IconAction icon="pencil" label={`Editar ${item.task}`} onClick={() => setEditing({ index: i, text: item.task })} />
+                  <IconAction
+                    icon="trash"
+                    label={`Remover ${item.task}`}
                     disabled={!!busy}
                     onClick={() => apply(logisticsApi.removeItem(cardId, i, item.task), 'items', 'remover a tarefa')}
-                  >
-                    <Icon name="trash" />
-                    <span className="sr-only">Remover {item.task}</span>
-                  </button>
+                  />
                 </li>
               ),
             )}

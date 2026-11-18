@@ -7,6 +7,7 @@ import { Notice, RetryNotice, SignInNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
 import { BackLink } from '../components/ui/BackLink';
 import { PageHead } from '../components/ui/PageHead';
+import { EmptyBlock } from '../components/ui/EmptyNote';
 
 type Filter = 'open' | 'late' | 'soon' | 'blocked' | 'unowned' | 'done';
 
@@ -82,14 +83,14 @@ export default function LogisticsTasks() {
               ))}
             </ul>
           ) : (
-            <div className="lx-empty">
+            <EmptyBlock className="lx-empty">
               <p>{EMPTY[filter]}</p>
               {filter === 'open' && (
                 <a className="btn btn--ghost btn--sm" href="/logistics">
                   Ver os quadros
                 </a>
               )}
-            </div>
+            </EmptyBlock>
           )}
         </>
       )}

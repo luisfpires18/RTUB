@@ -5,7 +5,7 @@ import { Icon } from './icons';
 import { logisticsApi, problem, STATUS, type Board, type Card, type List } from '../data/logisticsApi';
 import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
-import { Spinner } from './ui/Spinner';
+import { DialogFooter } from './ui/DialogFooter';
 
 /** Delete a column: its cards never go with it - they move to the chosen column and take its state. */
 export function DeleteListDialog({ board, list, onClose, onDone }: { board: Board; list: List; onClose: () => void; onDone: () => void }) {
@@ -27,15 +27,7 @@ export function DeleteListDialog({ board, list, onClose, onDone }: { board: Boar
       title="Eliminar coluna"
       onClose={onClose}
       footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={remove} disabled={busy || (count > 0 && !target)}>
-            {busy && <Spinner small />}
-            Eliminar coluna
-          </button>
-        </>
+        <DialogFooter busy={busy} onClose={onClose} onSubmit={remove} label="Eliminar coluna" danger disabled={count > 0 && !target} />
       }
     >
       <p>
@@ -93,14 +85,7 @@ export function MoveCardDialog({
       title="Mover cartão"
       onClose={onClose}
       footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--primary" onClick={() => onMove(target, position)}>
-            Mover
-          </button>
-        </>
+        <DialogFooter busy={false} onClose={onClose} onSubmit={() => onMove(target, position)} label="Mover" />
       }
     >
       <p className="note">{card.title}</p>

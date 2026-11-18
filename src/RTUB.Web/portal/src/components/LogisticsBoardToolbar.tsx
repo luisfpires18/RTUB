@@ -3,6 +3,7 @@ import { Icon } from './icons';
 import { PRIORITIES_URGENT_FIRST, PRIORITY, STATUS, STATUSES, type Board, type Priority, type Status } from '../data/logisticsApi';
 import type { Due, View } from '../data/logisticsBoardTypes';
 import type { Sort } from '../data/logisticsRows';
+import { SearchField } from './ui/SearchTools';
 
 /** The board page search, status buttons, filters, order and list jump bar. */
 export function LogisticsBoardToolbar({
@@ -16,11 +17,7 @@ export function LogisticsBoardToolbar({
 }) {
   return (
     <div className="lx-toolbar" role="search">
-      <label className="control control--sm" htmlFor={ids.q}>
-        <span className="sr-only">Procurar cartão</span>
-        <Icon name="search" />
-        <input id={ids.q} type="search" placeholder="Procurar cartão" value={text} onChange={(e) => setText(e.target.value)} />
-      </label>
+      <SearchField id={ids.q} label="Procurar cartão" placeholder="Procurar cartão" value={text} onChange={setText} small />
       <div className="lx-status-filter" role="group" aria-label="Estado">
         <button type="button" aria-pressed={status === ''} onClick={() => setStatus('')}>
           Todos

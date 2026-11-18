@@ -6,6 +6,8 @@ import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, problem, uploadAttachment, type Board, type CardAttachment, type CardDetail } from '../data/logisticsApi';
 import { FILE_TYPES, MAX_FILE } from '../data/logisticsFiles';
 import { FieldError } from './ui/FieldError';
+import { EmptyNote } from './ui/EmptyNote';
+import { IconAction } from './ui/IconAction';
 
 type Upload = { name: string; share: number; file: File; error?: string };
 
@@ -69,7 +71,7 @@ export function Attachments({
 
   return (
     <Section id={`${id}-att`} title="Anexos" extra={detail.attachments.length > 0 && <small>{detail.attachments.length}</small>}>
-      {detail.attachments.length === 0 && uploads.length === 0 && <p className="note">Sem anexos neste cartão.</p>}
+      {detail.attachments.length === 0 && uploads.length === 0 && <EmptyNote>Sem anexos neste cartão.</EmptyNote>}
       {(detail.attachments.length > 0 || uploads.length > 0) && (
         <ul className="lx-files">
           {detail.attachments.map((a) => (
@@ -82,10 +84,7 @@ export function Attachments({
                   {a.addedBy && ` · ${a.addedBy.displayName}`}
                 </small>
               </button>
-              <button type="button" className="icon-btn icon-btn--sm" onClick={() => open(a)}>
-                <Icon name={a.kind === 'Link' ? 'external' : 'download'} />
-                <span className="sr-only">{a.kind === 'Link' ? `Abrir ${a.name}` : `Descarregar ${a.name}`}</span>
-              </button>
+              <IconAction icon={a.kind === 'Link' ? 'external' : 'download'} label={a.kind === 'Link' ? `Abrir ${a.name}` : `Descarregar ${a.name}`} onClick={() => open(a)} />
               {a.canDelete &&
                 (confirm === a.id ? (
                   <button
@@ -96,10 +95,7 @@ export function Attachments({
                     Remover?
                   </button>
                 ) : (
-                  <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={() => setConfirm(a.id)}>
-                    <Icon name="trash" />
-                    <span className="sr-only">Remover {a.name}</span>
-                  </button>
+                  <IconAction icon="trash" label={`Remover ${a.name}`} onClick={() => setConfirm(a.id)} danger />
                 ))}
             </li>
           ))}
@@ -122,10 +118,7 @@ export function Attachments({
                 </button>
               )}
               {u.error && (
-                <button type="button" className="icon-btn icon-btn--sm" onClick={() => setUploads((x) => x.filter((y) => y.name !== u.name))}>
-                  <Icon name="close" />
-                  <span className="sr-only">Dispensar</span>
-                </button>
+                <IconAction icon="close" label="Dispensar" onClick={() => setUploads((x) => x.filter((y) => y.name !== u.name))} />
               )}
             </li>
           ))}
@@ -204,10 +197,7 @@ export function Attachments({
                     {f.extension.replace('.', '').toUpperCase()} · {size(f.sizeBytes)}
                   </small>
                 </span>
-                <button type="button" className="icon-btn icon-btn--sm" onClick={() => boardFile(f.name)}>
-                  <Icon name="download" />
-                  <span className="sr-only">Descarregar {f.name}</span>
-                </button>
+                <IconAction icon="download" label={`Descarregar ${f.name}`} onClick={() => boardFile(f.name)} />
               </li>
             ))}
           </ul>

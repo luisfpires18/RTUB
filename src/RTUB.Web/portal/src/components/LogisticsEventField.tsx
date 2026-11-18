@@ -4,6 +4,7 @@ import { Icon } from './icons';
 import { logisticsApi, type LogisticsEvent } from '../data/logisticsApi';
 import { day } from '../data/format';
 import { FormField } from './ui/FormField';
+import { EmptyNote } from './ui/EmptyNote';
 
 /** The optional event (by name search), shared with the template dialog. */
 export function EventField({ event, setEvent, error, label = 'Atuação associada (opcional)' }: { event: LogisticsEvent | null; setEvent: (e: LogisticsEvent | null) => void; error?: string; label?: string }) {
@@ -38,7 +39,7 @@ export function EventField({ event, setEvent, error, label = 'Atuação associad
             <Icon name="search" />
             <input id={`${fid}-event`} type="search" placeholder="Procurar atuação pelo nome" value={query} onChange={(e) => setQuery(e.target.value)} />
           </span>
-          {found && found.length === 0 && <p className="note">Nenhuma atuação encontrada.</p>}
+          {found && found.length === 0 && <EmptyNote>Nenhuma atuação encontrada.</EmptyNote>}
           {found && found.length > 0 && (
             <ul className="talk__picks">
               {found.map((ev) => (
