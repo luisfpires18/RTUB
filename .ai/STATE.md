@@ -11,7 +11,7 @@ _Last updated: 2026-11-17_
 
 ## Current
 Task 110 (`chore/110/codebase-cleanup`): phase 1 of the readability cleanup. Blazor-era history comments rewritten as
-present-tense rules, old-URL redirects moved out of `Program.cs` into `Extensions/LegacyRedirectExtensions.cs`, service
+present-tense rules, old-URL redirects moved out of `Program.cs` (deleted in 118), service
 methods with no production caller removed (with their tests). No behaviour change.
 Task 111 (`chore/111/portal-folders`, on top of 110): phase 2, `portal/src` split into `pages/`, `components/`, `data/`
 (moves and import paths only; layout rule in `docs/frontend-practices.md` → *Layout*).
@@ -32,6 +32,10 @@ Task 116 (`chore/116/remove-unused-code`, on top of 115): unused code deleted: 3
 CSS rules.
 Task 117 (`chore/117/geocoding-single-request`, on top of 116): a members-map lookup sends one Nominatim search
 (was three identical ones whenever nothing was found); only a failed request is retried once.
+Task 118 (`chore/118/remove-leftovers`, on top of 117): Copilot instructions and agent profiles removed; history
+comments (task / track / issue numbers, "as before") rewritten as present-tense rules; old-URL redirects deleted (any
+unmapped path is 404); retired-route checks merged into `RetiredRoutesTests`; 64 portal exports trimmed;
+`musicApi.ts` uses the shared request helper; TWA script, `.deployment` and stale doc references gone.
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not
