@@ -13,6 +13,7 @@ import { DetailDialog, ReserveDialog, MineDialog, ReservationsDialog } from '../
 import { Confirm, ProductForm } from '../components/ShopProductForm';
 import { Loading } from '../components/ui/Loading';
 import { PageHead } from '../components/ui/PageHead';
+import { EmptyNote } from '../components/ui/EmptyNote';
 
 type Open =
   | { kind: 'detail' | 'reserve' | 'mine' | 'reservations' | 'delete'; product: Product }
@@ -105,7 +106,7 @@ export default function ShopPage() {
           </ToolsBar>
 
           {data.products.length === 0 ? (
-            <p className="note">{type ? 'Neste momento não há produtos deste tipo.' : 'Neste momento não há produtos na loja.'}</p>
+            <EmptyNote>{type ? 'Neste momento não há produtos deste tipo.' : 'Neste momento não há produtos na loja.'}</EmptyNote>
           ) : (
             <>
               <ul className="shop-grid">

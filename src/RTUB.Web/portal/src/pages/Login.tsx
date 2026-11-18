@@ -6,6 +6,8 @@ import { passkeysSupported, signInWithPasskey } from '../data/passkey';
 import { Spinner } from '../components/ui/Spinner';
 import { Banner } from '../components/ui/Banner';
 import { FormField, fieldProps } from '../components/ui/FormField';
+import { PageHead } from '../components/ui/PageHead';
+import { CheckField } from '../components/ui/CheckField';
 
 type Banner = SignInFailure;
 type Errors = { username?: string; password?: string };
@@ -100,13 +102,7 @@ export default function Login() {
 
   return (
     <section className="page wrap" aria-labelledby="login-title">
-      <header className="page__head">
-        <p className="eyebrow">Área de membros</p>
-        <h1 id="login-title" className="page__title">
-          Entrar
-        </h1>
-        <p className="page__lead">Acesso reservado aos membros da RTUB, com a conta que a tuna te atribuiu.</p>
-      </header>
+      <PageHead plain eyebrow="Área de membros" title="Entrar" titleId="login-title" lead="Acesso reservado aos membros da RTUB, com a conta que a tuna te atribuiu." />
 
       <div className="request">
         <div className="request__form-card">
@@ -141,10 +137,9 @@ export default function Login() {
               />
             </FormField>
 
-            <label className="form__check">
-              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+            <CheckField checked={rememberMe} onChange={(on) => setRememberMe(on)}>
               Manter a sessão iniciada neste dispositivo
-            </label>
+            </CheckField>
 
             <button type="submit" className="btn btn--primary btn--lg form__submit" disabled={submitting} aria-busy={submitting}>
               {submitting ? (

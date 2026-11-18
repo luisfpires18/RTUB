@@ -6,6 +6,7 @@ import { FormField, fieldProps } from '../components/ui/FormField';
 import { Banner } from '../components/ui/Banner';
 import { Spinner } from '../components/ui/Spinner';
 import { AccountDone } from '../components/ui/AccountDone';
+import { PageHead } from '../components/ui/PageHead';
 
 /**
  * /forgot-password. Anyone asks for a reset link by email. The answer is the same whether
@@ -49,13 +50,7 @@ export default function ForgotPassword() {
 
   return (
     <section className="page wrap" aria-labelledby="forgot-title">
-      <header className="page__head">
-        <p className="eyebrow">Área de membros</p>
-        <h1 id="forgot-title" className="page__title">
-          Esqueceste a palavra-passe?
-        </h1>
-        <p className="page__lead">Indica o email da tua conta e enviamos-te um link para escolheres uma nova.</p>
-      </header>
+      <PageHead plain eyebrow="Área de membros" title="Esqueceste a palavra-passe?" titleId="forgot-title" lead="Indica o email da tua conta e enviamos-te um link para escolheres uma nova." />
 
       <div className="request__form-card account-card">
         {sent ? (

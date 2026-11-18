@@ -1,1 +1,0 @@
-import{j as r}from"./vendor-react-DI41Mul8.js";import{I as e}from"./index-DABITTat.js";function a({className:o="note",children:t}){return r.jsx("p",{className:o,children:t})}function i({className:o,icon:t,role:n,children:s}){return r.jsxs("div",{className:o,role:n,children:[t&&r.jsx(e,{name:t}),s]})}export{a as E,i as a};

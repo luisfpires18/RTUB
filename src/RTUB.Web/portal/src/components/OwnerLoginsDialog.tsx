@@ -7,6 +7,7 @@ import { Pager } from './ui/Pager';
 import { Avatar } from './ui/Avatar';
 import { Banner } from './ui/Banner';
 import { FormField } from './ui/FormField';
+import { CloseFooter } from './ui/DialogFooter';
 
 export const today = () => new Date().toLocaleDateString('sv-SE');
 /** The Portugal day (yyyy-MM-dd) of a UTC stamp, as the server buckets LoginEvents. */
@@ -44,11 +45,7 @@ export function LoginsDialog({ onClose }: { onClose: () => void }) {
       title="Registos de login"
       size="lg"
       onClose={onClose}
-      footer={
-        <button type="button" className="btn btn--ghost" onClick={onClose}>
-          Fechar
-        </button>
-      }
+      footer={<CloseFooter onClose={onClose} />}
     >
       <div className="owner-filters__grid">
         <FormField id={`${id}-from`} label="Data de início">

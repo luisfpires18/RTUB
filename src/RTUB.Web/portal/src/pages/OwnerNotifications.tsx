@@ -8,6 +8,7 @@ import { Pager } from '../components/ui/Pager';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { FormField } from '../components/ui/FormField';
 import { Avatar } from '../components/ui/Avatar';
+import { CheckField } from '../components/ui/CheckField';
 
 const TITLE_MAX = 100;
 const BODY_MAX = 500;
@@ -170,10 +171,9 @@ function Composer({ people }: { people: OwnerPerson[] }) {
               <span className="note">
                 {selected.size}/{people.length} selecionados
               </span>
-              <label className="form__check" htmlFor={`${id}-all`}>
-                <input id={`${id}-all`} type="checkbox" checked={allShown} onChange={(e) => toggle(filtered.map((p) => p.id), e.target.checked)} />
+              <CheckField id={`${id}-all`} checked={allShown} onChange={(on) => toggle(filtered.map((p) => p.id), on)}>
                 Selecionar todos
-              </label>
+              </CheckField>
             </div>
             <ul className="owner-people__list">
               {shown.map((p) => (

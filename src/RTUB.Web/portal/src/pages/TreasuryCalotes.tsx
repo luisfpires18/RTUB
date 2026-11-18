@@ -4,13 +4,15 @@ import { Icon } from '../components/icons';
 import { matches, problem, treasuryApi, type Calotes, type Person } from '../data/treasuryApi';
 import { Refusal, TreasuryTabs } from '../components/TreasuryUi';
 import { day, euros } from '../data/format';
-import { DEFAULT_AVATAR } from '../data/membersApi';
 import { type Debt, key } from '../data/treasuryCalotesView';
 import { DebtsDialog, DebtDialog } from '../components/TreasuryCalotesDialogs';
 import { Loading } from '../components/ui/Loading';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 import { PageHead } from '../components/ui/PageHead';
 import { BackLink } from '../components/ui/BackLink';
+import { SearchField, ToolsBar } from '../components/ui/SearchTools';
+import { EmptyNote } from '../components/ui/EmptyNote';
+import { Avatar } from '../components/ui/Avatar';
 
 /**
  * /treasury/calotes - Calotes. Treasury members see
@@ -78,17 +80,11 @@ export default function TreasuryCalotes() {
         <>
           {!own && <TreasuryTabs current="calotes" fiscalYear={c.fiscalYear ?? undefined} />}
           {c.fiscalYears.length === 0 ? (
-            <p className="note">Ainda não há anos letivos.</p>
+            <EmptyNote>Ainda não há anos letivos.</EmptyNote>
           ) : (
             <>
-              <div className="events-tools" role="search">
-                {!own && (
-                  <label className="control" htmlFor={ids.search}>
-                    <span className="sr-only">Procurar membro</span>
-                    <Icon name="search" />
-                    <input id={ids.search} type="search" placeholder="Procurar membro" value={search} onChange={(e) => setSearch(e.target.value)} />
-                  </label>
-                )}
+              <ToolsBar>
+                {!own && <SearchField id={ids.search} label="Procurar membro" placeholder="Procurar membro" value={search} onChange={setSearch} />}
                 <label className="control control--select" htmlFor={ids.year}>
                   <span className="sr-only">Ano letivo</span>
                   <Icon name="calendar" />
@@ -100,7 +96,7 @@ export default function TreasuryCalotes() {
                     ))}
                   </select>
                 </label>
-              </div>
+              </ToolsBar>
 
               <dl className="tr-tiles tr-tiles--one">
                 <div className="tr-tile">
@@ -110,14 +106,14 @@ export default function TreasuryCalotes() {
               </dl>
 
               {c.groups.length === 0 ? (
-                <p className="note">{own ? 'Não tens calotes neste ano letivo.' : 'Não há dívidas registadas neste ano letivo.'}</p>
+                <EmptyNote>{own ? 'Não tens calotes neste ano letivo.' : 'Não há dívidas registadas neste ano letivo.'}</EmptyNote>
               ) : groups.length === 0 ? (
-                <p className="note">Nenhum membro corresponde à pesquisa.</p>
+                <EmptyNote>Nenhum membro corresponde à pesquisa.</EmptyNote>
               ) : (
                 <ul className="tr-debtors">
                   {groups.map((g) => (
                     <li key={key(g, c.groups.indexOf(g))} className="tr-debtor">
-                      <img src={g.member.avatarUrl ?? DEFAULT_AVATAR} alt="" width="64" height="64" loading="lazy" />
+                      <Avatar src={g.member.avatarUrl} size={64} />
                       <strong>{g.member.displayName}</strong>
                       {g.member.fullName && g.member.fullName !== g.member.displayName && <span className="tr-muted">{g.member.fullName}</span>}
                       <span className="pill pill--no">{euros(g.total)}</span>

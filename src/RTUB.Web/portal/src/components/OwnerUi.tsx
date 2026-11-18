@@ -6,6 +6,7 @@ import { Notice, SignInNotice } from './Notice';
 import { Loading } from './ui/Loading';
 import { EmptyState } from './ui/EmptyState';
 import { PageHead } from './ui/PageHead';
+import { IconAction } from './ui/IconAction';
 
 /** What an Owner page shows: the data, a sign-in prompt, the refusal, or a failure (null). */
 type Loaded<T> = T | 'signin' | 'forbidden' | null | undefined;
@@ -117,10 +118,7 @@ export function Flash({ message, onDismiss }: { message?: { text: string; error?
     <div className={message.error ? 'owner-flash owner-flash--error' : 'owner-flash'} role={message.error ? 'alert' : 'status'}>
       <Icon name={message.error ? 'warning' : 'checkCircle'} />
       <p>{message.text}</p>
-      <button type="button" className="icon-btn icon-btn--sm" onClick={onDismiss}>
-        <Icon name="close" />
-        <span className="sr-only">Fechar a mensagem</span>
-      </button>
+      <IconAction icon="close" label="Fechar a mensagem" onClick={onDismiss} />
     </div>
   );
 }

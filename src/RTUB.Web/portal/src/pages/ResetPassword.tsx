@@ -5,6 +5,8 @@ import { Icon } from '../components/icons';
 import { Spinner } from '../components/ui/Spinner';
 import { FormField } from '../components/ui/FormField';
 import { AccountDone } from '../components/ui/AccountDone';
+import { PageHead } from '../components/ui/PageHead';
+import { Banner } from '../components/ui/Banner';
 
 const MIN = 8;
 const MAX = 100;
@@ -68,12 +70,7 @@ export default function ResetPassword() {
 
   return (
     <section className="page wrap" aria-labelledby="reset-title">
-      <header className="page__head">
-        <p className="eyebrow">Área de membros</p>
-        <h1 id="reset-title" className="page__title">
-          Redefinir a palavra-passe
-        </h1>
-      </header>
+      <PageHead plain eyebrow="Área de membros" title="Redefinir a palavra-passe" titleId="reset-title" />
 
       <div className="request__form-card account-card">
         {!valid ? (
@@ -91,11 +88,7 @@ export default function ResetPassword() {
           </AccountDone>
         ) : (
           <form className="form" noValidate onSubmit={onSubmit}>
-            {banner && (
-              <div className="form__banner" role="alert">
-                {banner}
-              </div>
-            )}
+            <Banner text={banner} block />
             <FormField id="reset-email" label="Email">
               <input id="reset-email" type="email" autoComplete="username" value={email} readOnly />
             </FormField>

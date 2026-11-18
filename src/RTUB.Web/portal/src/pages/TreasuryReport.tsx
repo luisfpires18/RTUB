@@ -11,6 +11,8 @@ import { Loading } from '../components/ui/Loading';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 import { Banner } from '../components/ui/Banner';
 import { BackLink } from '../components/ui/BackLink';
+import { EmptyNote } from '../components/ui/EmptyNote';
+import { PageHead } from '../components/ui/PageHead';
 
 /**
  * /treasury/reports/{id} - one annual report. Treasury members:
@@ -96,17 +98,17 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
   return (
     <section className="page wrap events-page tr-page" aria-labelledby="tr-title">
       <BackLink href={portal.treasury}>Tesouraria</BackLink>
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Ano letivo {fy}</p>
-          <h1 id="tr-title" className="page__title">
-            {r.title}
-          </h1>
+      <PageHead
+        eyebrow={`Ano letivo ${fy}`}
+        title={r.title}
+        titleId="tr-title"
+        meta={
           <p className="tr-badges">
             <span className={r.isPublished ? 'pill pill--yes' : 'pill pill--wait'}>{r.isPublished ? 'Publicado' : 'Rascunho'}</span>
           </p>
-          {r.summary && <p className="page__lead">{r.summary}</p>}
-        </div>
+        }
+        lead={r.summary}
+      >
         <div className="events-page__actions">
           <a className="btn btn--ghost btn--sm" href={`/api/treasury/reports/${r.id}/pdf`} download>
             <Icon name="download" />
@@ -119,7 +121,7 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
             </button>
           )}
         </div>
-      </header>
+      </PageHead>
 
       <TreasuryTabs current="reports" fiscalYear={fy} />
 
@@ -153,7 +155,7 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
           )}
         </div>
         {r.activities.length === 0 ? (
-          <p className="note">Nenhuma atividade criada ainda.</p>
+          <EmptyNote>Nenhuma atividade criada ainda.</EmptyNote>
         ) : (
           <div className="tr-activities">
             {r.activities.map((a) => (
