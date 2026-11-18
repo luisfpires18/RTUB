@@ -16,7 +16,7 @@
   color: var(--purple-ink);
 }
 
-/* Members-only event (#227); visitors never get one. */
+/* Members-only event; visitors never get one. */
 .tag--private {
   border-style: dashed;
 }

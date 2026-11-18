@@ -7,7 +7,7 @@ import { musicApi, type AlbumSummary, type MusicPermissions } from '../data/musi
 import { StatisticsDialog } from '../components/MusicStatistics';
 
 /**
- * /music - the discography (React track 006). One grid for every album the caller may see:
+ * /music - the discography. One grid for every album the caller may see:
  * visitors get the public ones, members also the private ones and the exclusive albums they are
  * listed on. Managers get the album form and delete; any member gets the statistics.
  */

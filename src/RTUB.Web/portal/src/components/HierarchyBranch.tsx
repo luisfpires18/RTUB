@@ -15,7 +15,7 @@ export type BranchContext = {
 };
 
 /**
- * One member (treeitem). The card links to the member, as before; the separate round button opens or folds the
+ * One member (treeitem). The card links to the member; the separate round button opens or folds the
  * afilhados. Neither is a tab stop: the tree is one, and arrows move inside it.
  */
 export function Branch({ node, level, pos, size, ctx }: { node: TreeNode; level: number; pos: number; size: number; ctx: BranchContext }) {

@@ -1,6 +1,6 @@
-/* ---------- member shell (task 030) ----------
+/* ---------- member shell ----------
    Signed-in members: no public header nav or call to action, no sidebar; the header ends with [inbox] [category badge]
-   [profile] [menu] and the menu is a drawer from the right at every width (MemberShell.tsx, task 044). */
+   [profile] [menu] and the menu is a drawer from the right at every width (MemberShell.tsx). */
 
 /* One content width for every signed-in page and the header above it: wider than the public site's 1200px but framed
    (the outer gutter stays visible on a laptop and the content never touches the edges). */
@@ -82,7 +82,7 @@
     display: none;
   }
 
-  /* #229: the actions may shrink, and a long category ("TUNO HONORÁRIO") truncates instead of pushing the menu
+  /* The actions may shrink, and a long category ("TUNO HONORÁRIO") truncates instead of pushing the menu
      button past the edge. */
   .shell--member .header__inner {
     gap: 12px;
@@ -103,7 +103,7 @@
   }
 }
 
-/* #229: below 360px the four controls take the whole bar (they overflowed by 40px at 320px): the logo alone is the
+/* Below 360px the four controls take the whole bar (otherwise they overflow by 40px at 320px): the logo alone is the
    home link there (the link keeps its aria-label). */
 @media (max-width: 359px) {
   .shell--member .brand__text {

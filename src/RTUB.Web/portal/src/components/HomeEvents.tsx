@@ -65,7 +65,7 @@ export function Events() {
 // ---------- latest news ----------
 
 /**
- * The three newest published posts of /news (React track 025), right after the agenda. Renders nothing while loading,
+ * The three newest published posts of /news, right after the agenda. Renders nothing while loading,
  * when there are no posts or when the call fails: the feed is one tap away in the top bar.
  */
 export function LatestNews() {

@@ -7,7 +7,7 @@ import { RetryNotice } from '../components/Notice';
 import { api, problem, type Tab } from '../data/newsApi';
 import { FormDialog, DeleteDialog } from '../components/NewsDialogs';
 
-// /api/news (Endpoints/NewsEndpoints.cs, React track 025). Everyone, visitors included, reads published posts; Admin and
+// /api/news (Endpoints/NewsEndpoints.cs). Everyone, visitors included, reads published posts; Admin and
 // Owner also see drafts and write. The server decides every rule (NewsService); hiding a button here is only a convenience.
 
 const TABS: [Tab, string][] = [
@@ -17,7 +17,7 @@ const TABS: [Tab, string][] = [
 ];
 
 /**
- * /news - Novidades (React track 025): the RTUB's public wall of text posts, newest first, signed "RTUB". Admin and
+ * /news - Novidades: the RTUB's public wall of text posts, newest first, signed "RTUB". Admin and
  * Owner write posts (as a draft or published straight away), edit, publish / unpublish and delete them; a Mod does the same
  * except delete. Drafts sit above the feed, seen by Mod and above. A shared /news#post-12 link scrolls to that post.
  */
@@ -46,7 +46,7 @@ export default function News() {
     load();
   }, []);
 
-  // Task 077: /news?new=1 (from /pending-actions → Novidades → Criar novidade) opens the composer for whoever may write.
+  // /news?new=1 (from /pending-actions → Novidades → Criar novidade) opens the composer for whoever may write.
   const askedNew = useRef(false);
   useEffect(() => {
     if (!feed || askedNew.current) return;

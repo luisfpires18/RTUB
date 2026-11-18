@@ -163,7 +163,7 @@
   cursor: progress;
 }
 
-/* Informação da Tuna: flat rows and ruled blocks (the old profile's density); the timeline is the focus. */
+/* Informação da Tuna: flat rows and ruled blocks (dense); the timeline is the focus. */
 .tuna-info {
   display: grid;
   min-width: 0;

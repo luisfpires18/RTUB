@@ -17,7 +17,7 @@ const ROUND = {
   note: 'A foto aparece num círculo: deixa a cara ao centro do quadrado.',
 };
 
-/** The avatar of the header with its change-photo button (same pick, square crop and upload as the old Foto section). */
+/** The avatar of the header with its change-photo button (pick, square crop and upload). */
 export function ProfilePhoto({ profile, onChange }: { profile: MyProfile; onChange: (avatarUrl: string) => void }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);

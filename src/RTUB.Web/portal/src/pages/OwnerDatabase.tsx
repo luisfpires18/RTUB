@@ -11,7 +11,7 @@ type View = { kind: 'table'; table: string; grid: DbGrid } | { kind: 'query'; gr
 
 /**
  * /owner/db: browse any table page by page, run a read-only SELECT, or run an INSERT /
- * UPDATE / DELETE after a warning and a confirmation. The server applies the same SQL rules as before (only SELECT on the
+ * UPDATE / DELETE after a warning and a confirmation. The server applies the SQL rules (only SELECT on the
  * first tab; only INSERT / UPDATE / DELETE, no DDL, on the second), refuses a change sent without the confirmation, and
  * refuses anyone but the Owner.
  */

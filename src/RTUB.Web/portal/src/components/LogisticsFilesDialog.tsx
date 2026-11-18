@@ -5,7 +5,7 @@ import { Icon } from './icons';
 import { logisticsApi, problem, type Board } from '../data/logisticsApi';
 import { FILE_TYPES, MAX_FILE, size } from '../data/logisticsFiles';
 
-/** The board's files, shared by all its cards (as before). Every member downloads; managers upload and delete. */
+/** The board's files, shared by all its cards. Every member downloads; managers upload and delete. */
 export function FilesDialog({ board, onClose, onChanged }: { board: Board; onClose: () => void; onChanged: () => void }) {
   const [files, setFiles] = useState(board.files);
   const [error, setError] = useState<string>();

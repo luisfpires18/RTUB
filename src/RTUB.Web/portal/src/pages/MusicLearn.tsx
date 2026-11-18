@@ -16,8 +16,8 @@ type Open =
   | { kind: 'notify'; song: LearnSong };
 
 /**
- * /music/learn - Aprender Músicas (task 095), members only: every song that has an Aprender chart, one
- * /music grid per album. A card opens the song's Aprender page and nothing else. The Owner (097) adds a
+ * /music/learn - Aprender Músicas, members only: every song that has an Aprender chart, one
+ * /music grid per album. A card opens the song's Aprender page and nothing else. The Owner adds a
  * song's chart here, edits or removes it, and tells the members about a new one (the bell).
  */
 export default function MusicLearn() {
@@ -36,7 +36,7 @@ export default function MusicLearn() {
 
   const { songs, canManage } = state;
 
-  // Starred songs (098) come first, as their own group; the rest are albums. The list comes sorted by
+  // Starred songs come first, as their own group; the rest are albums. The list comes sorted by
   // album (newest first), so the albums are runs of it.
   const groups: { id: number; title: string; year: number | null; songs: LearnSong[] }[] = [];
   const starred = (songs ?? []).filter((s) => s.starred);

@@ -48,7 +48,7 @@ export const numericDateTime = (value: string) => {
   return p ? `${pad(p.d)}/${pad(p.m)}/${p.y} ${p.hh}:${p.mm}` : value;
 };
 
-/** "segunda-feira, 06 de outubro de 2026 • 20:00", as the old email and notice dialogs showed. */
+/** "segunda-feira, 06 de outubro de 2026 • 20:00", as emails and notice dialogs show it. */
 export const longDateTime = (value: string) => {
   const p = parts(value);
   return p ? `${WEEKDAYS_LONG[weekdayIndex(p)]}, ${pad(p.d)} de ${MONTHS_LONG[p.m - 1]} de ${p.y} • ${p.hh}:${p.mm}` : value;

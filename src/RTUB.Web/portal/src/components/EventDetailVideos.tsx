@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { eventsApi, type EventVideo } from '../data/eventsApi';
 import { Icon } from './icons';
 
-/** A list of videos and one player; each first play is recorded, as the old page did. */
+/** A list of videos and one player; each first play is recorded. */
 export function Videos({ videos, onManage }: { videos: EventVideo[]; onManage?: () => void }) {
   const [picked, setCurrent] = useState<number>();
   const played = useRef(new Set<number>());

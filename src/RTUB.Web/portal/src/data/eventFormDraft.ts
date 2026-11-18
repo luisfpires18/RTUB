@@ -3,7 +3,7 @@
 import type { EventEdit, EventInput } from './eventsApi';
 import { today } from './format';
 
-/** The old event cropper's limit on the picked file; the cropped image the server takes is ≤5 MB. */
+/** The limit on the picked file; the cropped image the server takes is ≤5 MB. */
 export const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
 
 export const EVENT_IMAGE = {

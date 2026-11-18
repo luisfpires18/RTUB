@@ -18,7 +18,7 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 /**
- * /logistics - Logística (React track 023; reshaped in task 067). Every signed-in member sees the members-visible boards and
+ * /logistics - Logística. Every signed-in member sees the members-visible boards and
  * the private boards they were given access to (Leitões too); Mod, Admin and Owner see all. Boards are Ativos, Concluídos
  * or Arquivados (read-only), each with its responsible member, visibility and progress: done / total, overdue, without
  * owner, and the caller's own open tasks. Managers create (blank or from a template), edit (incl. access), duplicate,

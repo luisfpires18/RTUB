@@ -15,7 +15,7 @@ import { Body } from '../components/EventDetailBody';
  */
 const wantsToRespond = () => new URLSearchParams(location.search).get('respond') === '1';
 
-/** Task 075: ?repertoire=1 (from "As minhas ações pendentes") opens the repertoire editor once, if the member may use it. */
+/** ?repertoire=1 (from "As minhas ações pendentes") opens the repertoire editor once, if the member may use it. */
 const wantsRepertoire = () => new URLSearchParams(location.search).get('repertoire') === '1';
 
 function dropRespondFlag() {
@@ -63,7 +63,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
   }, [detail]);
 
   const loaded = detail && detail !== 'missing' ? detail : null;
-  // Admin/Owner, upcoming only (as the old page); the server refuses everyone else.
+  // Admin/Owner, upcoming only; the server refuses everyone else.
   const manage = loaded?.canManage && !loaded.event.past ? loaded.event : null;
 
   return (
@@ -118,11 +118,11 @@ export default function EventDetail({ eventId }: { eventId: number }) {
         <Body
           detail={detail}
           onAnswer={() => setAnswering(true)}
-          // Admin/Owner (012C): uploads go to past events, as before; existing videos stay manageable anywhere.
+          // Admin/Owner: uploads go to past events; existing videos stay manageable anywhere.
           onManageVideos={detail.canManage && (detail.event.past || detail.videos.length > 0) ? () => setManagingVideos(true) : undefined}
-          // Admin/Owner (012D): the repertoire of any event, as the old modal allowed.
+          // Admin/Owner: the repertoire of any event.
           onManageRepertoire={detail.canManageRepertoire ? () => setManagingRepertoire(true) : undefined}
-          // Admin/Owner (012E): add a member who has not answered, remove any answer.
+          // Admin/Owner: add a member who has not answered, remove any answer.
           onManageParticipants={detail.canManage ? () => setManagingParticipants(true) : undefined}
         />
       )}
@@ -130,7 +130,7 @@ export default function EventDetail({ eventId }: { eventId: number }) {
       {prizes && loaded && (
         <PrizesDialog
           current={loaded.event}
-          // Admin/Owner manage the prizes here (012B): a past festival takes new ones; existing ones stay editable anywhere.
+          // Admin/Owner manage the prizes here: a past festival takes new ones; existing ones stay editable anywhere.
           manage={loaded.canManage ? { canAdd: loaded.canManagePrizes, onChanged: () => load(true) } : undefined}
           onClose={() => setPrizes(false)}
         />

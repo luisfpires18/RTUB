@@ -6,7 +6,7 @@ import type { EventSummary } from '../data/eventsApi';
 import { Icon } from './icons';
 import type { RehearsalSummary } from '../data/rehearsalsApi';
 
-// Task 079 (#260): the optional "Adicionar ao Google Calendar" offer after a saved "vou", and the same action later on an
+// The optional "Adicionar ao Google Calendar" offer after a saved "vou", and the same action later on an
 // upcoming detail page. Opening Google happens only on the member's click (no popup after an async save). Nothing here
 // changes the RTUB answer: closing, skipping or a failed open leaves it exactly as saved.
 

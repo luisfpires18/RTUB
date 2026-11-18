@@ -1,7 +1,7 @@
-// Typed client for /api/music (React track 006, Endpoints/MusicEndpoints.cs). The server decides
+// Typed client for /api/music (Endpoints/MusicEndpoints.cs). The server decides
 // what the caller may see and do; `permissions` only spares people buttons that would be refused.
 
-import { antiforgeryToken } from './api';
+import { call } from './apiCall';
 
 export type MusicPermissions = {
   isMember: boolean;
@@ -36,7 +36,7 @@ export type Song = {
   playCount: number;
   links: MusicLink[];
   videoCount: number | null;
-  /** Members only: the song has a play-along chart (task 094). */
+  /** Members only: the song has a play-along chart. */
   hasPlayAlong: boolean;
 };
 
@@ -52,7 +52,7 @@ export type AlbumEdit = {
   coverUrl: string | null;
   accessMembers: Member[];
 };
-export type SongEdit = {
+type SongEdit = {
   id: number;
   title: string;
   trackNumber: number | null;
@@ -67,7 +67,7 @@ export type SongEdit = {
 };
 
 /** The play-along chart, version 1 (server: PlayAlongChart.cs). Times are seconds into the recording. */
-export type PlayAlongChord = { label: string; name: string; time: number; word: number | null; char: number | null };
+type PlayAlongChord = { label: string; name: string; time: number; word: number | null; char: number | null };
 export type PlayAlongLine = {
   text: string;
   start: number;
@@ -116,57 +116,6 @@ export type AlbumInput = {
 };
 
 export type FieldErrors = Record<string, string>;
-
-/** Every answer maps onto one of these; nothing throws. */
-export type Outcome<T> =
-  | { kind: 'ok'; data: T }
-  | { kind: 'invalid'; errors: FieldErrors; title?: string }
-  | { kind: 'signin' }
-  | { kind: 'forbidden' }
-  | { kind: 'notfound'; unavailable: boolean }
-  | { kind: 'failed'; title?: string };
-
-async function call<T>(method: string, url: string, body?: unknown, retried = false): Promise<Outcome<T>> {
-  try {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    let payload: BodyInit | undefined;
-    if (method !== 'GET') {
-      headers['X-CSRF-TOKEN'] = await antiforgeryToken();
-      if (body instanceof FormData) {
-        payload = body;
-      } else if (body !== undefined) {
-        headers['Content-Type'] = 'application/json';
-        payload = JSON.stringify(body);
-      }
-    }
-
-    const r = await fetch(url, { method, headers, body: payload, credentials: 'same-origin' });
-    if (r.status === 204) return { kind: 'ok', data: undefined as T };
-    if (r.ok) return { kind: 'ok', data: (await r.json()) as T };
-
-    const problem = (await r.json().catch(() => ({}))) as {
-      title?: string;
-      type?: string;
-      errors?: Record<string, string[]>;
-    };
-    if (r.status === 400 && problem.errors) {
-      const errors: FieldErrors = {};
-      for (const [k, v] of Object.entries(problem.errors)) errors[k.charAt(0).toLowerCase() + k.slice(1)] = v[0];
-      return { kind: 'invalid', errors, title: problem.title };
-    }
-    // A refused antiforgery token (expired page, new session): fetch a fresh one and try once more.
-    if (r.status === 400 && method !== 'GET' && !retried) {
-      await antiforgeryToken(true);
-      return call<T>(method, url, body, true);
-    }
-    if (r.status === 401) return { kind: 'signin' };
-    if (r.status === 403) return { kind: 'forbidden' };
-    if (r.status === 404) return { kind: 'notfound', unavailable: problem.type === 'music:audio-unavailable' };
-    return { kind: 'failed', title: problem.title };
-  } catch {
-    return { kind: 'failed' };
-  }
-}
 
 export const musicApi = {
   albums: () => call<{ albums: AlbumSummary[]; permissions: MusicPermissions }>('GET', '/api/music/albums'),

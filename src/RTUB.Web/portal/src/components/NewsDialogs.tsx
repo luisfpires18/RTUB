@@ -9,7 +9,7 @@ import { api, problem, TITLE_MAX, BODY_MAX } from '../data/newsApi';
 export function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClose: () => void; onSaved: () => void }) {
   const [title, setTitle] = useState(post?.title ?? '');
   const [body, setBody] = useState(post?.body ?? '');
-  // Task 077: a new post has no audience until the writer picks Público or Apenas RTUB; an edit keeps its own.
+  // A new post has no audience until the writer picks Público or Apenas RTUB; an edit keeps its own.
   const [membersOnly, setMembersOnly] = useState<boolean | undefined>(post?.membersOnly);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<string>();

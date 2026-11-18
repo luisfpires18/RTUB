@@ -8,7 +8,7 @@ export { VideoManagerDialog } from './EventManageVideos';
 export { PrizeManager } from './EventManagePrizes';
 export { NoticeDialog } from './EventManageNotice';
 
-// Admin/Owner event management on the React agenda: create, edit, delete (011.5); the image,
-// cancel / reactivate and email / push notices (012A). The server enforces who may do it; these
-// modals only appear for people it would accept. Prizes (012B), videos (012C), repertoire (012D) and
-// other members' answers (012E) are managed from the event page.
+// Admin/Owner event management on the React agenda: create, edit, delete; the image,
+// cancel / reactivate and email / push notices. The server enforces who may do it; these
+// modals only appear for people it would accept. Prizes, videos, repertoire and
+// other members' answers are managed from the event page.

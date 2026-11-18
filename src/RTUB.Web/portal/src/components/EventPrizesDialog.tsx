@@ -22,7 +22,7 @@ export function PrizesDialog({
 }: {
   history?: EventSummary[];
   current?: EventSummary;
-  /** Admin/Owner on the event page (012B): the current event's prizes become editable. */
+  /** Admin/Owner on the event page: the current event's prizes become editable. */
   manage?: { canAdd: boolean; onChanged: () => void };
   onClose: () => void;
 }) {

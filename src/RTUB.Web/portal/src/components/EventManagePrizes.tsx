@@ -7,7 +7,7 @@ import { Icon } from './icons';
 import { failure } from './EventManageShared';
 
 /**
- * The event's prizes for Admin/Owner, inside the Prémios modal (012B): rename or delete each one in
+ * The event's prizes for Admin/Owner, inside the Prémios modal: rename or delete each one in
  * place, add a new one when the event takes prizes (a past festival). Every write answers the full
  * list; `onChanged` refreshes the page behind so its Prémios button and history follow.
  */

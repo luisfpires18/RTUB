@@ -3,7 +3,7 @@ import { Icon } from './icons';
 import type { ReleaseNote } from '../data/releaseNotesApi';
 
 /**
- * "Nova atualização <version>" (task 083, #264): the notes as plain text, one section per release, newest first.
+ * "Nova atualização <version>": the notes as plain text, one section per release, newest first.
  * One dialog whatever was skipped: the first section is the running release, the others the unread ones below it.
  * The strings come from releases/<version>.json inside the build and are rendered as text, never as HTML.
  */

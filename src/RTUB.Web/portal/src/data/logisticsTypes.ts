@@ -1,8 +1,8 @@
-// Shapes the /api/logistics endpoints send and receive (React track 023).
+// Shapes the /api/logistics endpoints send and receive.
 
 export type LogisticsEvent = { id: number; name: string; date: string };
 export type Visibility = 'Members' | 'Private';
-/** A board in the list (task 067): responsible member, visibility, archive, and its active cards' counts. */
+/** A board in the list: responsible member, visibility, archive, and its active cards' counts. */
 export type BoardSummary = {
   id: number;
   name: string;
@@ -38,15 +38,15 @@ export type Card = {
   checklistDone: number;
   checklistTotal: number;
   links: number;
-  /** The caller is the owner or a collaborator (task 065). */
+  /** The caller is the owner or a collaborator. */
   mine: boolean;
   priority: Priority;
   comments: number;
   attachments: number;
 };
-/** A column; `state` (task 067) is the status of every card in it. */
+/** A column; `state` is the status of every card in it. */
 export type List = { id: number; name: string; cards: Card[]; state: Status };
-/** `id` addresses the file ("f:…" the board's own folder, "l:year/…" its pre-067 folder of that fiscal `year`). */
+/** `id` addresses the file ("f:…" the board's own folder, "l:year/…" its legacy per-fiscal-year folder for `year`). */
 export type BoardFile = { name: string; extension: string; sizeBytes: number; id: string; year: string | null };
 export type Board = {
   id: number;
@@ -66,7 +66,7 @@ export type Board = {
 };
 /** `userId` only for managers (they change assignments); null for everyone else. */
 export type Assignee = { userId: string | null; displayName: string; fullName: string | null; avatarUrl: string | null };
-export type ChecklistItem = { task: string; done: boolean };
+type ChecklistItem = { task: string; done: boolean };
 export type CardDetail = {
   card: Card;
   listId: number;
@@ -76,7 +76,7 @@ export type CardDetail = {
   assignments: Assignee[];
   /** May change everything (Mod, Admin, Owner): owner, collaborators, labels, card links, delete. */
   canManage: boolean;
-  /** Owner, collaborator or manager (task 066): edits the card's fields and checklist, status, comments, attaches. */
+  /** Owner, collaborator or manager: edits the card's fields and checklist, status, comments, attaches. */
   canWork: boolean;
   /** Sent back with a field edit; a stale one answers 409 ('conflict'). */
   version: number;
@@ -86,7 +86,7 @@ export type CardDetail = {
   archivedAt: string | null;
   /** The card or its board is archived: read-only until a manager restores it. */
   readOnly: boolean;
-  /** Task 069: the reminders the caller sees (managers all; anyone else their own). */
+  /** The reminders the caller sees (managers all; anyone else their own). */
   reminders: Reminder[];
   /** May add a reminder: owner, collaborator (for themselves) or manager (for board members). */
   canRemind: boolean;
@@ -103,7 +103,7 @@ export type Reminder = {
   lastSentAt: string | null;
 };
 export type ReminderInput = { frequency: Frequency; nextReminderDate: string; userIds: string[] };
-/** "As minhas tarefas" (task 069); `role` null = an open card without a responsible member (managers only). */
+/** "As minhas tarefas"; `role` null = an open card without a responsible member (managers only). */
 export type MyTask = {
   cardId: number;
   boardId: number;
@@ -159,7 +159,7 @@ export type BoardInput = {
   visibility: Visibility;
   memberIds: string[];
 };
-export type TemplateCard = { title: string; description: string; priority: Priority; offsetDays: number | null; checklist: string[] };
+type TemplateCard = { title: string; description: string; priority: Priority; offsetDays: number | null; checklist: string[] };
 export type Template = { key: string; name: string; description: string; lists: { name: string; state: Status; cards: TemplateCard[] }[] };
-export type ComposeCard = { title: string; description: string; priority: Priority; dueDate: string | null; checklist: string[] };
+type ComposeCard = { title: string; description: string; priority: Priority; dueDate: string | null; checklist: string[] };
 export type ComposeInput = { board: BoardInput; lists: { name: string; state: Status; cards: ComposeCard[] }[] };

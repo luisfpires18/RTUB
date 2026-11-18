@@ -91,8 +91,8 @@ public class MembersHierarchySourceTests
     public void TheCss_IsIndentedOnPhones_LeftToRightOnWideScreens_WithoutPageOverflow()
     {
         var css = Css();
-        var start = css.IndexOf("/* ---------- /members/hierarchy (#223)", StringComparison.Ordinal);
-        var end = css.IndexOf("/* ---------- member admin (React track 018)", StringComparison.Ordinal);
+        var start = css.IndexOf("/* ---------- /members/hierarchy: a CSS-only", StringComparison.Ordinal);
+        var end = css.IndexOf("/* ---------- member admin ----------", StringComparison.Ordinal);
         start.Should().BeGreaterThan(0);
         var tree = css[start..end];
 

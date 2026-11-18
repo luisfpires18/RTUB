@@ -1,4 +1,4 @@
-/* ---------- Mensagens (Messaging v2, task 041) ----------
+/* ---------- Mensagens (Messaging v2) ----------
    One pane at a time on phones (list, or the open chat), side by side from 900px. */
 .chat-page {
   gap: clamp(16px, 3vw, 28px);

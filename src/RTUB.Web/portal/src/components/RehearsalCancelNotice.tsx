@@ -7,7 +7,7 @@ import { Icon } from './icons';
 import { rehearsalsApi, type RehearsalSummary, type NoticeAudience } from '../data/rehearsalsApi';
 import { problem, RehearsalLine } from './RehearsalShared';
 
-/** Cancel (reason required): every presença is removed, as before; no email goes out. */
+/** Cancel (reason required): every presença is removed; no email goes out. */
 export function CancelDialog({ rehearsal, onClose, onDone }: { rehearsal: RehearsalSummary; onClose: () => void; onDone: () => void }) {
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string>();

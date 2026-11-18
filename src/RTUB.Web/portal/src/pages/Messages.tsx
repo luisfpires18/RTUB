@@ -10,7 +10,7 @@ import { DraftThread, StartDialog } from '../components/MessageStart';
 import { Thread } from '../components/MessageThread';
 
 /**
- * /messages - Mensagens (Messaging v2, task 041). The conversation list and one chat; on phones one at a time (the
+ * /messages - Mensagens (Messaging v2). The conversation list and one chat; on phones one at a time (the
  * chat is ?c=<id>, so the back button returns to the list), side by side on wide screens. Replies, emoji reactions,
  * mute, unread / read. Text only: no attachments.
  */

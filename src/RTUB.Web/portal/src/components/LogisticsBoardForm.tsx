@@ -6,7 +6,7 @@ import { logisticsApi, problem, type BoardInput, type BoardSummary, type Logisti
 import { AccessFields, person, type Person } from './LogisticsAccessFields';
 import { EventField } from './LogisticsEventField';
 
-/** "Criar quadro" / "Editar quadro": name, description, event and (task 067) responsible member, visibility and access list. */
+/** "Criar quadro" / "Editar quadro": name, description, event and responsible member, visibility and access list. */
 export function BoardDialog({ board, onClose, onSaved }: { board?: BoardSummary; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(board?.name ?? '');
   const [description, setDescription] = useState(board?.description ?? '');

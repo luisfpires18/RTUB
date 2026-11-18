@@ -14,7 +14,7 @@ export const INSTRUMENTS: [Instrument, string][] = [
 
 // Frets from the lowest string to the highest; -1 is a string that is not played.
 // A chord that is not here still shows its name, never a guessed fingering.
-export const SHAPES: Record<Exclude<Instrument, 'bass'>, Record<string, number[]>> = {
+const SHAPES: Record<Exclude<Instrument, 'bass'>, Record<string, number[]>> = {
   guitar: {
     A: [-1, 0, 2, 2, 2, 0], A7: [-1, 0, 2, 0, 2, 0], 'A#7': [-1, 1, 3, 1, 3, 1], Asus4: [-1, 0, 2, 2, 3, 0],
     B7: [-1, 2, 1, 2, 0, 2], Bb: [-1, 1, 3, 3, 3, 1], C: [-1, 3, 2, 0, 1, 0], C7: [-1, 3, 2, 3, 1, 0],
@@ -49,7 +49,7 @@ export const shapeOf = (name: string, instrument: Instrument) =>
   instrument === 'bass' ? bassNote(name) : (SHAPES[instrument][name] ?? SHAPES[instrument][name.split('/')[0]]);
 
 /** The bass (E A D G) plays one note: the chord's root, or the note after the slash, at its lowest place. */
-export function bassNote(name: string) {
+function bassNote(name: string) {
   const [, letter, accidental] = /^([A-G])([#b]?)/.exec(name.split('/').pop()!) ?? [];
   if (!letter) return undefined;
   const pitch = ('C D EF G A B'.indexOf(letter) + (accidental === '#' ? 1 : accidental === 'b' ? 11 : 0)) % 12;

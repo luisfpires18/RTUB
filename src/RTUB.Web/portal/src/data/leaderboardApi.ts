@@ -2,7 +2,7 @@
 import { call, type Outcome } from './eventsApi';
 import { queryString, outcomeText } from './api';
 
-// /api/leaderboard (Endpoints/LeaderboardEndpoints.cs, React track 019). Signed-in members only; the server decides
+// /api/leaderboard (Endpoints/LeaderboardEndpoints.cs). Signed-in members only; the server decides
 // every rule (LeaderboardService). Hiding a button here is only a convenience.
 
 type Option = { value: string; label: string };
@@ -43,7 +43,7 @@ export type Comment = {
   likedBy: string[];
 };
 
-export const member = (id: string) => `/api/leaderboard/members/${encodeURIComponent(id)}`;
+const member = (id: string) => `/api/leaderboard/members/${encodeURIComponent(id)}`;
 
 export const api = {
   table: (fiscalYear: string, q: string) => call<Table>('GET', `/api/leaderboard${queryString({ fiscalYear, q })}`),
@@ -61,7 +61,7 @@ export const medal = (position: number) => ['🥇', '🥈', '🥉'][position - 1
 export const problem = (o: Outcome<unknown>, what: string) =>
   outcomeText(o, what, { forbidden: 'Não tem permissão para esta ação.', notfound: 'Já não existe.' });
 
-/** As the old comments: "agora", minutes, hours, days, then the date. The server's times are UTC. */
+/** "agora", minutes, hours, days, then the date. The server's times are UTC. */
 export function ago(iso: string, now = Date.now()) {
   const date = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : `${iso}Z`);
   const minutes = (now - date.getTime()) / 60000;

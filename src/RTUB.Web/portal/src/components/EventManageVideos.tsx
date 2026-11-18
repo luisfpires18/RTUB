@@ -8,7 +8,7 @@ import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
 
 /**
- * The event's videos for Admin/Owner (012C): upload (past events, as the old page; file ≤100 MB and a
+ * The event's videos for Admin/Owner: upload (past events; file ≤100 MB and a
  * required title), rename, move up / down, delete. Every write answers the list in order; `onChanged`
  * refreshes the event page so its player follows.
  */

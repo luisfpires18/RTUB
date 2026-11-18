@@ -4,7 +4,7 @@ import { Icon } from './icons';
 import { type Entry, type Level, type Story } from '../data/leaderboardApi';
 
 /**
- * "Níveis de Alcoolismo" (#225): the explanation and the 12 levels as one section, open by default (it still folds
+ * "Níveis de Alcoolismo": the explanation and the 12 levels as one section, open by default (it still folds
  * away, the table is below it). Each level shows its number, name and XP threshold; the reader's own level for the
  * year shown (`me`, from the server) is marked and the ones below it read as reached. Names and thresholds are the
  * server's configuration, untouched here.

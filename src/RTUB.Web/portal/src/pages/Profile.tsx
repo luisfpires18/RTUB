@@ -19,7 +19,7 @@ import { TunaSection } from '../components/ProfileTuna';
  *
  * Signed in, it is the member's own profile: who they are, their rank, and
  * the sections they edit - the header (photo included), Pessoal, Informação da Tuna, Instrumentos, Notificações por
- * email, Notificações push (038) and Segurança. The server decides
+ * email, Notificações push and Segurança. The server decides
  * every rule (MyProfileService); a disabled field here is only a convenience. The members' menu is the member shell.
  */
 export default function Profile() {

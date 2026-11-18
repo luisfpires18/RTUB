@@ -74,7 +74,7 @@ export default function Governance() {
   const canManage = !!manage;
   const showYears = !!shown && years.length > (canManage ? 0 : 1);
   // The server's own list of start years still missing (the rule POST /api/governance/years enforces): nothing left
-  // to create, no button (#224). The dialog keeps its "all registered" message and the server its validation.
+  // to create, no button. The dialog keeps its "all registered" message and the server its validation.
   const canAddYear = !!manage && manage.availableStartYears.length > 0;
 
   return (

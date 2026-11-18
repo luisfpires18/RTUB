@@ -1,18 +1,18 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { call } from './api';
 
-// The header's unread badge (task 044). One authoritative number: GET /api/conversations/unread, the sum of the
+// The header's unread badge. One authoritative number: GET /api/conversations/unread, the sum of the
 // list's per-conversation unreadCount (unread MESSAGES, not conversations). Messaging v2 has no push channel to the
-// page (no hub since 037), so the shell polls while the tab is visible and again on coming back; /messages
+// page (no hub), so the shell polls while the tab is visible and again on coming back; /messages
 // publishes the sum it already loaded, so the badge follows the list without a second request. A page load starts
 // from the server's number, so a reload or a reconnect always reconciles.
-// 30 s since task 054 (was 10): every poll also pays the cookie validation's database check on the server.
+// 30 s: every poll also pays the cookie validation's database check on the server.
 const POLL_MS = 30_000;
 
 let count = 0;
 const listeners = new Set<() => void>();
 
-// Pages that already load the conversation list (/messages) and publish its sum (#226 F12): while one is mounted the
+// Pages that already load the conversation list (/messages) and publish its sum: while one is mounted the
 // shell's 10 s poll stands down - the list's own poll keeps the badge right. Coming back to the tab or online still asks.
 let providers = 0;
 
@@ -27,7 +27,7 @@ export const publishUnread = (conversations: { unreadCount: number }[]) =>
   publish(conversations.reduce((sum, c) => sum + c.unreadCount, 0));
 
 /** Ask the server again now. A failed or signed-out check keeps the last number. */
-export async function refreshUnread() {
+async function refreshUnread() {
   const o = await call<{ unreadCount: number }>('GET', '/api/conversations/unread');
   if (o.kind === 'ok') publish(o.data.unreadCount);
 }

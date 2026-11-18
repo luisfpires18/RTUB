@@ -1,10 +1,10 @@
 // Shapes of the /api/meetings payloads and inputs (see meetingsApi.ts).
 
 export type MeetingOption = { value: string; label: string };
-/** A person to pick: id + what the old select showed. */
+/** A person to pick: id + what the select shows. */
 export type MeetingPersonOption = { id: string; label: string };
 
-export type MeetingBoardAccess = {
+type MeetingBoardAccess = {
   canCreate: boolean;
   meetingTypes: MeetingOption[];
   canProposeCv: boolean;
@@ -15,7 +15,7 @@ export type MeetingBoardAccess = {
 };
 
 /** The card's buttons, decided by the server. */
-export type MeetingCan = {
+type MeetingCan = {
   manage: boolean;
   notify: boolean;
   uncancel: boolean;
@@ -26,7 +26,7 @@ export type MeetingCan = {
   viewAta: boolean;
 };
 
-export type MeetingMyParticipation = { id: number; willAttend: boolean; notes: string | null };
+type MeetingMyParticipation = { id: number; willAttend: boolean; notes: string | null };
 
 export type MeetingCard = {
   id: number;
@@ -119,7 +119,7 @@ export type MeetingAgendaPoint = {
   result: string | null;
 };
 
-export type MeetingAtaKind = 'cv' | 'ag' | 'direcao';
+type MeetingAtaKind = 'cv' | 'ag' | 'direcao';
 
 /** The ata editor. `id` null = not saved yet. */
 export type MeetingAtaEditor = {
@@ -145,7 +145,7 @@ export type MeetingAtaEditor = {
   generatedAt: string | null;
 };
 
-export type MeetingAgendaPointInput = Omit<MeetingAgendaPoint, 'number'>;
+type MeetingAgendaPointInput = Omit<MeetingAgendaPoint, 'number'>;
 
 export type MeetingAtaInput = {
   ataNumber: string | null;
@@ -178,7 +178,7 @@ export type MeetingAtaView = {
   closingText: string | null;
 };
 
-export type MeetingRequestStatus = 'Pending' | 'Confirmed' | 'Rejected' | 'Analysing';
+type MeetingRequestStatus = 'Pending' | 'Confirmed' | 'Rejected' | 'Analysing';
 
 export type MeetingRequest = {
   id: number;
@@ -204,7 +204,7 @@ export type MeetingRequestInput = { type: string; title: string; proposedDate: s
 export type MeetingDraft = { type: string; title: string; date: string; location: string | null; statement: string };
 
 export type MeetingPollAudienceOption = { value: string; label: string };
-export type MeetingPollOption = { id: number; text: string; votes: number };
+type MeetingPollOption = { id: number; text: string; votes: number };
 export type MeetingPoll = {
   id: number;
   audience: string;

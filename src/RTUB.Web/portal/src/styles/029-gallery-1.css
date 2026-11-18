@@ -1,6 +1,6 @@
 /* ---------- /gallery ---------- */
 
-/* The head is the shared events-page__head (#224 / #229): its 1fr auto grid inside .page__head's 44rem cap floated
+/* The head is the shared events-page__head: its 1fr auto grid inside .page__head's 44rem cap floated
    the upload button mid-page. */
 
 .gallery-tools {

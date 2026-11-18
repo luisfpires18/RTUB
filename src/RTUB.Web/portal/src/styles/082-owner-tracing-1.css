@@ -198,7 +198,7 @@
   font-size: 1.75rem;
 }
 
-/* Task 050: /owner/dashboard. One series at a time in --purple-ink (no categorical palette needed); the heatmap and
+/* /owner/dashboard. One series at a time in --purple-ink (no categorical palette needed); the heatmap and
    the rank bars are the same hue at varying strength. */
 .owner-dash {
   display: grid;

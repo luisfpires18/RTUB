@@ -5,8 +5,8 @@ import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
 import { DEFAULT_AVATAR, membersApi, shortDate, type MemberDetail, type MemberState, type TimelineItem } from '../data/membersApi';
 
-// The old /members modals (React track 017). The server decides who sees what (MemberDirectoryService); Admin/Owner
-// tools (018) come in through `actions` / `rowActions` from Members.tsx.
+// The /members dialogs. The server decides who sees what (MemberDirectoryService); Admin/Owner
+// tools come in through `actions` / `rowActions` from Members.tsx.
 
 /**
  * The server's progress sentence (MemberStatusService): "N meses até reforma" for an active member (shown only with no
@@ -41,7 +41,7 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-/** "Detalhes do Membro": the same sections and fields the old modal showed any signed-in member. */
+/** "Detalhes do Membro": the sections and fields any signed-in member may see. */
 export function MemberDialog({ memberId, onClose, actions }: { memberId: string; onClose: () => void; actions?: (m: MemberDetail) => ReactNode }) {
   const [member, setMember] = useState<MemberDetail | 'missing' | null>();
 
@@ -146,7 +146,7 @@ export function TunaPath({ items }: { items: TimelineItem[] }) {
 }
 
 /** "Estado na tuna": active or retired, the way back, and the last rehearsal and event. */
-export function StateSection({ state }: { state: MemberState }) {
+function StateSection({ state }: { state: MemberState }) {
   return (
     <section className="member-section" aria-label="Estado na tuna">
       <h3 className="member-section__title">Estado na tuna</h3>

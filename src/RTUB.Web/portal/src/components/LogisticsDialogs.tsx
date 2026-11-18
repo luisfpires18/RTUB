@@ -63,7 +63,7 @@ export function ConfirmDialog({
 }
 
 /**
- * A column: name and (task 067) state - every card in the column has it. Changing a column's state changes its cards'
+ * A column: name and state - every card in the column has it. Changing a column's state changes its cards'
  * status at once (the dialog says how many).
  */
 export function ListDialog({ boardId, list, onClose, onSaved }: { boardId: number; list?: List; onClose: () => void; onSaved: () => void }) {
@@ -110,7 +110,7 @@ export function ListDialog({ boardId, list, onClose, onSaved }: { boardId: numbe
   );
 }
 
-/** "Criar cartão": title, description and the optional "Atribuir a" member, as before. Opens the details after. */
+/** "Criar cartão": title, description and the optional "Atribuir a" member. Opens the details after. */
 export function CreateCardDialog({ boardId, list, onClose, onCreated }: { boardId: number; list: List; onClose: () => void; onCreated: (id: number) => void }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

@@ -13,7 +13,7 @@ import { LyricsDialog, LinksDialog, VideosDialog } from '../components/MusicAlbu
 type Load = { kind: 'loading' } | { kind: 'ok'; data: AlbumDetail } | { kind: 'signin' } | { kind: 'notfound' } | { kind: 'failed' };
 
 /**
- * /music/albums/{id} - one album (React track 006): its songs, the player with a server-side play
+ * /music/albums/{id} - one album: its songs, the player with a server-side play
  * cooldown, lyrics (songbook PDF first, stored text otherwise), links, members-only videos, and the
  * song management the caller's role allows.
  */

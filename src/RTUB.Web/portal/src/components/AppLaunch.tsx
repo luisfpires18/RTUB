@@ -9,7 +9,7 @@ import { useCurrentUser } from './AppShared';
  * signed in (wasSignedIn), so a member's page opens in the member shell instead of jumping into it; a visitor never
  * waits. A failed session check falls back to the visitor header (with Login).
  */
-export type Session = { kind: 'visitor' } | { kind: 'pending' } | { kind: 'member'; user: Member };
+type Session = { kind: 'visitor' } | { kind: 'pending' } | { kind: 'member'; user: Member };
 
 export function useSession(): Session {
   const { user, failed } = useCurrentUser();

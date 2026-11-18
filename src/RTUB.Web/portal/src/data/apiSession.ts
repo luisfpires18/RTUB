@@ -9,7 +9,7 @@ export type MemberMenu = { management: boolean; logistics: boolean; treasury: bo
 
 /**
  * GET /api/account/me (AccountController). Only the caller's own, non-sensitive fields. `version` is the build, as
- * /api/version reports it: the footer reads it from here, so a page load makes one request fewer (task 054).
+ * /api/version reports it: the footer reads it from here, so a page load makes one request fewer.
  */
 export type CurrentUser =
   | { authenticated: false; version: string }
@@ -21,9 +21,9 @@ export type CurrentUser =
       avatarUrl: string;
       categories: string[];
       menu: MemberMenu;
-      /** Reformado (task 087): no "As minhas ações pendentes" entry or page. */
+      /** Reformado: no "As minhas ações pendentes" entry or page. */
       retired: boolean;
-      /** Calendar:PublicOrigin (task 079), the trusted origin for links that leave RTUB; null when not configured. */
+      /** Calendar:PublicOrigin, the trusted origin for links that leave RTUB; null when not configured. */
       publicOrigin: string | null;
     };
 
@@ -69,7 +69,7 @@ export function rememberMemberShell(signedIn: boolean) {
   }
 }
 
-/** GET /api/announcement (task 037): the Owner's system announcement while it is fresh, or null (204). */
+/** GET /api/announcement: the Owner's system announcement while it is fresh, or null. */
 export type Announcement = { id: number; message: string };
 
 export function getAnnouncement(): Promise<Announcement | null> {

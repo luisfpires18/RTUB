@@ -12,8 +12,8 @@ import { Empty, MeetingSection } from '../components/MeetingSection';
 const UPCOMING_EMPTY =
   'Não existem reuniões agendadas no momento. As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos.';
 
-/** The proposals the page offers (the old "Propor ..." buttons): CV, Direção and, as "Assembleia Geral", an AGE. */
-export const PROPOSAL_TYPES = {
+/** The proposals the page offers ("Propor ..." buttons): CV, Direção and, as "Assembleia Geral", an AGE. */
+const PROPOSAL_TYPES = {
   cv: 'ConselhoVeteranos',
   direcao: 'ReuniaoDirecao',
   ag: 'AssembleiaGeralExtraordinaria',
@@ -79,13 +79,13 @@ export default function Meetings() {
     return () => clearTimeout(timer);
   }, [flash]);
 
-  // ?meeting={id} (a push, task 058): open that meeting's details once the board has it, then drop the parameter.
+  // ?meeting={id} (a push): open that meeting's details once the board has it, then drop the parameter.
   // A meeting the member cannot see, or not on this board, just leaves the list.
   useEffect(() => {
     if (!board || typeof board !== 'object') return;
     const url = new URL(location.href);
     const id = Number(url.searchParams.get('meeting'));
-    // Task 075 (from "As minhas ações pendentes"): &ata=1 opens the ata editor when the member may write it, and
+    // From "As minhas ações pendentes": &ata=1 opens the ata editor when the member may write it, and
     // ?new={type} the "Nova reunião" form with that type when the member may create it. The server decides again on save.
     const wantsAta = url.searchParams.get('ata') === '1';
     const newType = url.searchParams.get('new');

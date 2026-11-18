@@ -7,7 +7,7 @@ import { PlayAlongField } from './MusicPlayAlongField';
 
 // ---------- song ----------
 
-/** Create or edit a song: the same fields the retired page had (duration is kept as stored). */
+/** Create or edit a song: the song's fields (duration is kept as stored). */
 export function SongForm({
   albumId,
   songId,

@@ -1,12 +1,12 @@
 import { call, type Outcome } from './eventsApi';
 
-// Web Push for the React /profile (task 038, docs/react-push-v2.md): /api/push (Endpoints/PushEndpoints.cs) plus the
+// Web Push for the React /profile (docs/react-push-v2.md): /api/push (Endpoints/PushEndpoints.cs) plus the
 // browser's own state. Capability detection only, no user-agent checks. Nothing is stored in the browser: the server
 // and the browser's PushSubscription are the two sources, compared on every read. Permission is asked, and a
 // subscription made, only from a click.
 
 /** The server's side (GET /api/push/status). reason: 'disabled' | 'not-configured' | null. */
-export type PushStatus = {
+type PushStatus = {
   enabled: boolean;
   configured: boolean;
   reason: string | null;
@@ -26,11 +26,11 @@ export const pushApi = {
       replaces,
     }),
   unsubscribe: (endpoint: string | null, all: boolean) => call<PushStatus>('POST', '/api/push/unsubscribe', { endpoint, all }),
-  /** Task 080: the startup reminder's account side (Reformado flag + once-per-account acknowledgement). */
+  /** The startup reminder's account side (Reformado flag + once-per-account acknowledgement). */
   reminder: () => call<{ reformed: boolean; acknowledged: boolean }>('GET', '/api/push/reminder'),
   acknowledgeReminder: () => call<void>('POST', '/api/push/reminder/ack'),
   test: (endpoint: string) => call<{ outcome: string; status: number | null }>('POST', '/api/push/test', { endpoint }),
-  /** Task 082 (#263): the member's account-wide preferences; the catalogue (keys, labels, the locked key) is the server's. */
+  /** The member's account-wide preferences; the catalogue (keys, labels, the locked key) is the server's. */
   preferences: () => call<{ items: PushPreference[] }>('GET', '/api/push/preferences'),
   savePreferences: (disabled: string[]) => call<{ items: PushPreference[] }>('PUT', '/api/push/preferences', { disabled }),
 };
@@ -65,12 +65,12 @@ export type PushState =
   | { kind: 'on' | 'unregistered' | 'stale'; status: PushStatus; others: number }
   | { kind: 'error' };
 
-export function pushSupported(): boolean {
+function pushSupported(): boolean {
   return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 
 /** Running as an installed app (some browsers, e.g. on iPhone and iPad, offer push only there). */
-export function runningInstalled(): boolean {
+function runningInstalled(): boolean {
   return window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
 }
 
@@ -80,7 +80,7 @@ async function registration(timeoutMs = 8000): Promise<ServiceWorkerRegistration
   return Promise.race([navigator.serviceWorker.ready, timeout]);
 }
 
-export function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
+function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
   const base64 = (value + '='.repeat((4 - (value.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
   const raw = atob(base64);
   const bytes = new Uint8Array(raw.length);
@@ -124,7 +124,7 @@ export async function readPush(): Promise<PushState> {
     const others = Math.max(0, status.subscriptions - (registered ? 1 : 0));
 
     if (Notification.permission === 'denied') return { kind: 'denied', status, registered, others };
-    // #230: a subscription without granted permission cannot show anything, so it is not "on" (turnOn asks again).
+    // A subscription without granted permission cannot show anything, so it is not "on" (turnOn asks again).
     if (!subscription || Notification.permission !== 'granted') return { kind: 'off', status, others };
     if (!sameKey(subscription, status.vapidPublicKey) || expired(subscription)) return { kind: 'stale', status, others };
     return { kind: registered ? 'on' : 'unregistered', status, others };
@@ -172,7 +172,7 @@ export async function turnOn(vapidPublicKey: string): Promise<PushResult> {
   }
 }
 
-/** What the server can know about a test push: the push service took it, not that the device showed it (#230). */
+/** What the server can know about a test push: the push service took it, not that the device showed it. */
 const testMessages: Record<string, string> = {
   sent: 'Notificação enviada ao serviço push. Deve aparecer neste dispositivo dentro de segundos, mesmo com a RTUB fechada. Se não aparecer, vê as definições de notificações do sistema para a RTUB.',
   gone: 'O serviço push diz que esta subscrição já não existe, por isso foi removida. Ativa as notificações outra vez.',
@@ -181,7 +181,7 @@ const testMessages: Record<string, string> = {
   'rate-limited': 'O serviço push está a limitar os envios. Tenta outra vez daqui a pouco.',
 };
 
-/** Sends the fixed test push to this browser's own subscription (#230). message: the push service took it. */
+/** Sends the fixed test push to this browser's own subscription. message: the push service took it. */
 export async function sendTest(): Promise<PushResult & { message?: string }> {
   try {
     const reg = await navigator.serviceWorker.getRegistration();

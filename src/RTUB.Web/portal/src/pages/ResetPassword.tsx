@@ -14,7 +14,7 @@ type Errors = { password?: string; confirmPassword?: string };
 
 /**
  * /reset-password. The emailed link opens it; the member chooses a new password. The server
- * checks the token and the account as before and signs nobody in.
+ * checks the token and the account and signs nobody in.
  */
 export default function ResetPassword() {
   const [valid] = useState(() => Boolean(link.code && link.email));

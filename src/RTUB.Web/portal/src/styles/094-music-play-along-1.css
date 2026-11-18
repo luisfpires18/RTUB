@@ -1,4 +1,4 @@
-/* ---------- Tocar junto (task 094): /music/play/{id} ---------- */
+/* ---------- Tocar junto: /music/play/{id} ---------- */
 
 .playalong {
   gap: clamp(16px, 2.5vw, 28px);

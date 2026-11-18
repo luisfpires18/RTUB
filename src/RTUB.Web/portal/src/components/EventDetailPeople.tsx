@@ -5,7 +5,7 @@ import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 
 /** "Quem vai" before and during an event, "Quem foi" once it is over. */
-export const whoLabel = (past: boolean) => (past ? 'Quem foi' : 'Quem vai');
+const whoLabel = (past: boolean) => (past ? 'Quem foi' : 'Quem vai');
 
 /** Who answered, on this page: members going, Leitões going, and (folded) who is not going. */
 export function WhoIsGoing({

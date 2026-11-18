@@ -1,4 +1,4 @@
-// Task 079: self-check of the Google Calendar link builder (portal/src/data/calendar.ts). Run: npm run check:calendar
+// Self-check of the Google Calendar link builder (portal/src/data/calendar.ts). Run: npm run check:calendar
 // The builder only uses Date.UTC / getUTC*, so the device's time zone never matters; Google applies ctz=Europe/Lisbon.
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';

@@ -21,7 +21,7 @@ export const EMPTY_PANEL: Record<string, string> = {
   members: 'Nenhum membro com informação em falta.',
 };
 
-/** What a saved command says (072 answers: the default). */
+/** What a saved command says (answers use the default). */
 export const DONE: Record<string, string> = {
   done: 'Cartão concluído.',
   close: 'Questão fechada.',

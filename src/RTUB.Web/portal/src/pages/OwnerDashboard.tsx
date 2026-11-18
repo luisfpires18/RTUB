@@ -7,10 +7,10 @@ import { RANGES, PAGE_LABELS, addDays, shortDay, number } from '../data/ownerDas
 import { Tile, LineChart, Heatmap, Ranking } from '../components/OwnerDashboardCharts';
 
 /**
- * /owner/dashboard (task 050): sign-ins, active members, movements, uploads, plays and enrollments per day for the
- * chosen range, each against the period before; the busiest hours; and the top members and areas (088 dropped the song,
- * naipe and action-type rankings).
- * Owner only (the server refuses everyone else). Sign-in history only exists since 050.
+ * /owner/dashboard: sign-ins, active members, movements, uploads, plays and enrollments per day for the
+ * chosen range, each against the period before; the busiest hours; and the top members and areas (no song,
+ * naipe or action-type rankings).
+ * Owner only (the server refuses everyone else). Sign-in history has no rows from before LoginEvents was deployed.
  */
 export default function OwnerDashboard() {
   const [days, setDays] = useState<number>(30);

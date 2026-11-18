@@ -8,7 +8,7 @@ import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
 
 /**
- * The event's repertoire for Admin/Owner (012D), as the old modal: one tab per day (the event's days
+ * The event's repertoire for Admin/Owner: one tab per day (the event's days
  * and any other day that already has songs), songs appended after the day's last, Subir / Descer,
  * remove one song or clear the day. A song goes once per event; the picker only offers songs Music
  * shows the caller that are not in the event yet. `onChanged` refreshes the page behind.

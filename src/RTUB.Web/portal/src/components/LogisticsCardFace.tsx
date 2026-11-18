@@ -22,7 +22,7 @@ export function CardFace({
 }: {
   card: Card;
   canManage: boolean;
-  /** Task 067: managers, and a card's owner / collaborators, move it (drag or "Mover…"). */
+  /** Managers, and a card's owner / collaborators, move it (drag or "Mover…"). */
   canMove: boolean;
   dragging: boolean;
   onOpen: () => void;
@@ -91,7 +91,7 @@ export function CardFace({
           </small>
         </div>
       )}
-      {/* Always shown: the owner, or "Sem responsável" (task 066). */}
+      {/* Always shown: the owner, or "Sem responsável". */}
       <div className="lx-card__meta">
         {card.eventName && (
           <span>

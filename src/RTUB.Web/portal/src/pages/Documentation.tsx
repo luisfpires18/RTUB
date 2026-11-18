@@ -55,7 +55,7 @@ export default function Documentation() {
   const download = async (folder: Folder, document: Doc) => {
     setMessage(undefined);
     const o = await api.file(data!.fiscalYear, folder.name, document.name);
-    // Same tab, as the old page: no popup to block on phones.
+    // Same tab: no popup to block on phones.
     if (o.kind === 'ok') location.assign(o.data.url);
     else setMessage(problem(o, 'abrir o documento'));
   };

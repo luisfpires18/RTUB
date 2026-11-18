@@ -1,8 +1,8 @@
-// Types of the /api/events client (React track 011), split out of eventsApi.ts.
+// Types of the /api/events client, split out of eventsApi.ts.
 // what the caller may see and do; `isMember` and `member` only spare people buttons that would be
 // refused. Dates are local "yyyy-MM-dd" / "HH:mm" text, never parsed as UTC.
 
-export type EventMemberSummary = {
+type EventMemberSummary = {
   description: string;
   myStatus: 'going' | 'notGoing' | null;
   goingCount: number;
@@ -25,7 +25,7 @@ export type EventSummary = {
   videoCount: number;
   trophies: string[];
   member: EventMemberSummary | null;
-  /** "Só membros" (#227). Only ever true for a member: the server never sends such an event to a visitor. */
+  /** "Só membros". Only ever true for a member: the server never sends such an event to a visitor. */
   membersOnly: boolean;
 };
 
@@ -41,11 +41,11 @@ export type EventAgenda = {
   types: EventTypeOption[] | null;
 };
 
-// ---------- discussion (members) and contacts (Mod and above), React track 013 ----------
+// ---------- discussion (members) and contacts (Mod and above) ----------
 
 export type EventAuthor = { name: string; fullName: string | null; avatarUrl: string; badge: string | null };
 
-export type EventComment = {
+type EventComment = {
   id: number;
   body: string;
   author: EventAuthor;
@@ -55,9 +55,9 @@ export type EventComment = {
   canDelete: boolean;
 };
 
-export type EventPassenger = { id: number; member: EventAuthor; mine: boolean; canRemove: boolean };
+type EventPassenger = { id: number; member: EventAuthor; mine: boolean; canRemove: boolean };
 
-export type EventTransport = { vehicle: string; totalSeats: number; notes: string | null; canManage: boolean; passengers: EventPassenger[] };
+type EventTransport = { vehicle: string; totalSeats: number; notes: string | null; canManage: boolean; passengers: EventPassenger[] };
 
 export type EventPost = {
   id: number;
@@ -93,8 +93,8 @@ export type EventContactRow = {
 
 export type EventContacts = { contacted: EventContactRow[]; notContacted: EventContactRow[] };
 
-/** GET /api/events/stats (members, 012F): "vou" answers per member for events dated from..to. */
-export type EventMemberStats = {
+/** GET /api/events/stats (members): "vou" answers per member for events dated from..to. */
+type EventMemberStats = {
   name: string;
   fullName: string | null;
   avatarUrl: string;
@@ -151,19 +151,19 @@ export type NoticeInput =
 /** What a notice (or the cancellation email) did; `warning` when part of it did not go out. */
 export type NoticeResult = { sent: number; failed: number; warning: string | null };
 
-/** One prize with its id, for the Admin/Owner management modal (012B). */
+/** One prize with its id, for the Admin/Owner management modal. */
 export type EventPrize = { id: number; name: string };
 
-/** One video for the Admin/Owner management modal (012C): `title` null when none was given. */
+/** One video for the Admin/Owner management modal: `title` null when none was given. */
 export type ManagedVideo = { id: number; title: string | null };
 
-/** The repertoire for the Admin/Owner modal (012D): every day it can hold songs, each in running order. */
+/** The repertoire for the Admin/Owner modal: every day it can hold songs, each in running order. */
 export type RepertoireManage = { days: { date: string; items: { id: number; title: string }[] }[] };
 
 /** A song Admin/Owner may add: only what Music shows them, not already in the event. */
 export type RepertoireSong = { id: number; title: string; album: string | null };
 
-/** Every answer for the Admin/Owner manager (012E), grouped as "Quem vai"; `id` is the answer's row. */
+/** Every answer for the Admin/Owner manager, grouped as "Quem vai"; `id` is the answer's row. */
 export type EnrollmentList = {
   canAdd: boolean;
   going: { id: number; participant: EventParticipant }[];
@@ -174,7 +174,7 @@ export type EnrollmentList = {
 /** A member the manager may add (not answered yet, not expelled). */
 export type MemberOption = { id: string; name: string; fullName: string | null; avatarUrl: string };
 
-/** The old page's limit, also enforced by the server. */
+/** The limit, also enforced by the server. */
 export const MAX_EVENT_VIDEO_BYTES = 100 * 1024 * 1024;
 
 export type EventVideo = { id: number; title: string; url: string; mimeType: string };
@@ -182,11 +182,11 @@ export type EventVideo = { id: number; title: string; url: string; mimeType: str
 export type EventDetail = {
   isMember: boolean;
   canManage: boolean;
-  /** Admin/Owner on a past festival: prizes can be added here (012B). */
+  /** Admin/Owner on a past festival: prizes can be added here. */
   canManagePrizes: boolean;
   /** Mod and above: can open the contact tracking page. */
   canTrackContacts: boolean;
-  /** Task 075: Admin / Owner, or the current Ensaiador / Magister for an upcoming, not cancelled event. */
+  /** Admin / Owner, or the current Ensaiador / Magister for an upcoming, not cancelled event. */
   canManageRepertoire: boolean;
   event: EventSummary;
   videos: EventVideo[];

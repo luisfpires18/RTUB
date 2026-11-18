@@ -49,7 +49,7 @@ export const fromEditor = (e: MeetingAtaEditor): Values => ({
   points: e.agendaPoints.map(toPoint),
 });
 
-export const votes = (value: string) => {
+const votes = (value: string) => {
   if (!value.trim()) return null;
   const n = Number(value);
   return Number.isFinite(n) ? Math.trunc(n) : null;

@@ -9,7 +9,7 @@
   touch-action: pan-x pan-y pinch-zoom;
 }
 
-/* OpenStreetMap's light tiles, darkened to the site's palette; only the tiles, never markers or popups (040). */
+/* OpenStreetMap's light tiles, darkened to the site's palette; only the tiles, never markers or popups. */
 .map-canvas .leaflet-tile-pane {
   filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6);
 }

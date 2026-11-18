@@ -22,8 +22,8 @@ function Answer({ value }: { value: boolean | null }) {
 }
 
 /**
- * /events/{id}/contacts - contact tracking. Mod and above (and any Leitão, 049) call members
- * about an event and note what they said; an answer also records the member's inscrição (as before), and
+ * /events/{id}/contacts - contact tracking. Mod and above (and any Leitão) call members
+ * about an event and note what they said; an answer also records the member's inscrição, and
  * "Repor" undoes both. The list carries phone numbers, so the server only gives it to Mod and above and Leitões.
  */
 export default function EventContacts({ eventId }: { eventId: number }) {

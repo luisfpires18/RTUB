@@ -6,7 +6,7 @@ import { loginTo } from '../data/content';
 import { Player } from '../components/PlayAlongPlayer';
 
 /**
- * Aprender (task 094, named Tocar junto until 095, docs/react-music.md): play a song's chords along with its recording. The
+ * Aprender (docs/react-music.md): play a song's chords along with its recording. The
  * strings run across the screen and each chord arrives at the line as a block of fret numbers, with
  * the lyric line underneath. Everything is driven by the audio clock: the chart (made offline,
  * tools/playalong) only says when each chord and word happens.

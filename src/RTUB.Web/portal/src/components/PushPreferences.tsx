@@ -6,7 +6,7 @@ import { Icon } from './icons';
 import { pushApi, type PushPreference } from '../data/push';
 
 /**
- * "O que receber" (task 082, issue #263): the member's account-wide push preferences, from /profile → Notificações
+ * "O que receber": the member's account-wide push preferences, from /profile → Notificações
  * push. Separate from this device's ON / OFF above it: a key off here mutes that push on every device, the copy in
  * Mensagens → Notificações RTUB is still kept. The list, labels and the locked key come from the server
  * (/api/push/preferences); saving sends the full set of keys that are off and never touches the device subscription.

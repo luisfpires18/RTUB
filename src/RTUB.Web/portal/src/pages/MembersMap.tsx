@@ -12,7 +12,7 @@ import { Notice, SignInNotice } from '../components/Notice';
 // Leaflet ships in this page's own chunk (vendor-leaflet), so no other page loads it.
 const PORTUGAL: L.LatLngTuple = [39.5, -8.0];
 const POPUP_LIMIT = 10;
-// OpenStreetMap's standard tiles: no API key (task 040; CARTO's dark tiles began answering "API KEY REQUIRED").
+// OpenStreetMap's standard tiles: no API key (CARTO's dark tiles began answering "API KEY REQUIRED").
 // The tile server needs a Referer: the site's strict-origin-when-cross-origin sends the origin. Darkened by CSS
 // (.map-canvas .leaflet-tile-pane), so the markers and popups keep their colours. One host, also in the CSP img-src.
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';

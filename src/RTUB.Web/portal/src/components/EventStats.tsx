@@ -9,16 +9,16 @@ import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { fold } from '../data/format';
 
-// ---------- statistics (members, 012F) ----------
+// ---------- statistics (members) ----------
 
 /**
- * "Estatísticas de inscrições" (was the /member/events modal): for the dates chosen (the current season
+ * "Estatísticas de inscrições": for the dates chosen (the current season
  * by default), how many events each member said "vou" to - already past, and still to come - and the
  * share of that range's past, not cancelled events. Read-only; the server refuses visitors.
  */
 const RECENT = 10;
 
-/** "Onde estiveste" (was the page "As minhas inscrições"): the last 10 (or all) past, not cancelled events and the share the member went to. */
+/** "Onde estiveste": the last 10 (or all) past, not cancelled events and the share the member went to. */
 export function WhereYouWereDialog({ past, onClose }: { past: EventSummary[]; onClose: () => void }) {
   const [all, setAll] = useState(false);
   const id = useId();

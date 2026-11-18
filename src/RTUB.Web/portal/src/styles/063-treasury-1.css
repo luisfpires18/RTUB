@@ -1,4 +1,4 @@
-/* ---------- Tesouraria (React track 024) ---------- */
+/* ---------- Tesouraria ---------- */
 
 .tr-page {
   --tr-in: #7ddc9f;
@@ -76,7 +76,7 @@
   color: var(--ink);
 }
 
-/* #229: on phones the four tabs (Relatórios, Calotes, MBWay, Nerba) did not fit and the last one sat past the edge
+/* On phones the four tabs (Relatórios, Calotes, MBWay, Nerba) do not fit, and the last one would sit past the edge
    of a scroller with no visible scrollbar: they reflow into a grid instead, every tab in view. */
 @media (max-width: 479px) {
   .tr-tabs {

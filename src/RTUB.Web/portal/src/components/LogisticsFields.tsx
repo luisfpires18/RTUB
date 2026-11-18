@@ -25,7 +25,7 @@ export const FieldError = ({ text }: { text?: string }) =>
   ) : null;
 
 /**
- * Search members by nickname or name (the server returns at most 20) and pick one. With `boardId` (task 067): only
+ * Search members by nickname or name (the server returns at most 20) and pick one. With `boardId`: only
  * members who may see that board (a private board's access list, Mod, Admin, Owner).
  */
 export function MemberPicker({

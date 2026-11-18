@@ -39,8 +39,8 @@ function filtersFromUrl(): DirectoryFilters {
 
 /**
  * /members - Membros. Signed-in members only. Everyone in the tuna with
- * the old filters (search, category, Tuno sub-category, instrument, só ativos), members by nickname and Leitões by
- * activity; a card opens the member's details (?member=id). "Ativos" and "Aniversários" are the old lists.
+ * filters (search, category, Tuno sub-category, instrument, só ativos), members by nickname and Leitões by
+ * activity; a card opens the member's details (?member=id). "Ativos" and "Aniversários" are separate lists.
  * Admin and Owner also add, edit, expel / reactivate Leitões, set a Leitão's nickname, send the
  * push reminder and delete. Owner deletes any member, Admin Leitões.
  */
@@ -49,7 +49,7 @@ export default function Members() {
   const [filters, setFilters] = useState(filtersFromUrl);
   const [query, setQuery] = useState(filters.q);
   const [open, setOpen] = useState<string | null>(new URLSearchParams(location.search).get('member'));
-  // Task 076: ?info={id} (from "As minhas ações pendentes" → Membros) opens "Completar informação" once.
+  // ?info={id} (from "As minhas ações pendentes" → Membros) opens "Completar informação" once.
   const [info, setInfo] = useState<string | null>(new URLSearchParams(location.search).get('info'));
   const [dialog, setDialog] = useState<'active' | 'birthdays'>();
   const [shown, setShown] = useState(PAGE);

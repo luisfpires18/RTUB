@@ -69,7 +69,7 @@ export function RequestsSection({
       setBusy(undefined);
       reload();
       if (o.kind !== 'ok') return setError(problem(o, 'aceitar o pedido'));
-      onAccepted(o.data); // the create form opens prefilled with the request, as before
+      onAccepted(o.data); // the create form opens prefilled with the request
     } else {
       const o = await meetingsApi.reject(request.id);
       setBusy(undefined);

@@ -34,12 +34,12 @@
   min-width: 0;
 }
 
-/* #229: a field never widens its row (grid items default to min-width: auto). */
+/* A field never widens its row (grid items default to min-width: auto). */
 .form__row > * {
   min-width: 0;
 }
 
-/* #229: native date / time controls (iOS Safari above all) have an intrinsic width that can ignore width: 100% and
+/* Native date / time controls (iOS Safari above all) have an intrinsic width that can ignore width: 100% and
    push a dialog or a row past the screen; they shrink like any other input, value aligned left. */
 input[type='date'],
 input[type='time'],
@@ -106,7 +106,7 @@ input::-webkit-date-and-time-value {
 }
 
 /* A bare <select> in a dialog form (instrument, group, calendar duration) draws like the inputs beside it, with the
-   same CSS chevron as .control--select instead of the browser's own control (task 085). */
+   same CSS chevron as .control--select instead of the browser's own control. */
 .form__field select {
   appearance: none;
   padding-right: 40px;

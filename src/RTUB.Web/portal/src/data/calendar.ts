@@ -1,5 +1,5 @@
 import { pad } from './format';
-// "Adicionar ao Google Calendar" (task 079, issue #260; docs/react-events.md → Calendário). One deterministic link
+// "Adicionar ao Google Calendar" (issue #260; docs/react-events.md → Calendário). One deterministic link
 // builder for events and rehearsals: Google's documented prefilled template
 // (https://calendar.google.com/calendar/render?action=TEMPLATE), with RTUB's own wall-clock times and ctz=Europe/Lisbon,
 // so Google applies Portugal's offset (summer and winter) whatever the viewer's device zone is. Nothing here reads the

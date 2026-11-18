@@ -2,7 +2,7 @@
 import { call, type Outcome } from './eventsApi';
 import { outcomeText } from './api';
 
-// /api/documentation (Endpoints/DocumentationEndpoints.cs, React track 022). Signed-in members only, Leitões refused;
+// /api/documentation (Endpoints/DocumentationEndpoints.cs). Signed-in members only, Leitões refused;
 // Owner manages. The server decides every rule (DocumentationService); hiding a button here is only a convenience.
 
 type Option = { value: string; label: string };

@@ -27,9 +27,9 @@
   margin: 0;
 }
 
-/* 072: the row title opens the activity's own page; the answers are the buttons. */
+/* The row title opens the activity's own page; the answers are the buttons. */
 .pa-row__title a {
-  /* 073: a 44 px tall hit area (padding cancelled by the margin, so the row's layout is unchanged). */
+  /* A 44 px tall hit area (padding cancelled by the margin, so the row's layout is unchanged). */
   display: inline-block;
   padding-block: 9px;
   margin-block: -9px;
@@ -43,7 +43,7 @@
   text-underline-offset: 3px;
 }
 
-/* Task 079: "Adicionar ao Google Calendar" offer (CalendarOffer.tsx). */
+/* "Adicionar ao Google Calendar" offer (CalendarOffer.tsx). */
 .calendar-offer {
   display: grid;
   gap: 14px;
@@ -90,7 +90,7 @@
   font-size: 0.9rem;
 }
 
-/* Push preferences (task 082): the "O que receber" dialog from /profile → Notificações push */
+/* Push preferences: the "O que receber" dialog from /profile → Notificações push */
 .push-prefs__open {
   display: grid;
   gap: 8px;
@@ -171,7 +171,7 @@
   background: var(--bg-raise);
 }
 
-/* Release notes (task 083): "Nova atualização" from the startup queue and the footer's "Ver novidades da versão" */
+/* Release notes: "Nova atualização" from the startup queue and the footer's "Ver novidades da versão" */
 .release-notes__list {
   margin: 0;
   padding-left: 20px;

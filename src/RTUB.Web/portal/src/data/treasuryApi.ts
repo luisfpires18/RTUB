@@ -1,7 +1,7 @@
 import { call, type Outcome } from './eventsApi';
 import { outcomeText } from './api';
 
-// /api/treasury (Endpoints/TreasuryEndpoints.cs, React track 024). Signed-in members; the server decides every rule
+// /api/treasury (Endpoints/TreasuryEndpoints.cs). Signed-in members; the server decides every rule
 // (TreasuryAuthorization): treasury members read, Caloiros and Leitões see only their own calotes.
 
 export type Person = { id: string | null; displayName: string; fullName: string | null; avatarUrl: string | null };
@@ -31,13 +31,13 @@ export type Activity = {
   expenses: number;
   balance: number;
   transactions: Transaction[];
-  /** Task 074: the event this activity accounts for, if any. */
+  /** The event this activity accounts for, if any. */
   eventId: number | null;
   eventName: string | null;
 };
-/** Task 074: an event of the report's fiscal year an activity may account for (managers only). */
+/** An event of the report's fiscal year an activity may account for (managers only). */
 export type ReportEvent = { id: number; name: string; date: string; endDate: string | null };
-export type Totals = { totalMoney: number; bank: number; cash: number; calotes: number; income: number; expenses: number; balance: number };
+type Totals = { totalMoney: number; bank: number; cash: number; calotes: number; income: number; expenses: number; balance: number };
 export type Report = {
   id: number;
   title: string;
@@ -51,8 +51,8 @@ export type Report = {
   canSeeHistory: boolean;
   events: ReportEvent[] | null;
 };
-export type ActivityInput = { name: string; startDate: string; endDate: string | null; description: string; eventId: number | null };
-export type TransactionInput = { date: string; description: string; category: string; amount: string; type: string; removeReceipt: boolean; receipt: File | null };
+type ActivityInput = { name: string; startDate: string; endDate: string | null; description: string; eventId: number | null };
+type TransactionInput = { date: string; description: string; category: string; amount: string; type: string; removeReceipt: boolean; receipt: File | null };
 export type History = {
   entries: { timestamp: string; activityName: string; description: string; userName: string; action: string }[];
   total: number;
@@ -77,14 +77,14 @@ export type Transfer = {
   member: Person | null;
 };
 export type Transfers = { transfers: Transfer[]; totals: { name: string; amount: number }[]; canAdd: boolean; canEdit: boolean };
-export type TransferInput = { date: string; amount: number | null; memberUserId: string | null; transferFrom: string; phone: string; description: string };
+type TransferInput = { date: string; amount: number | null; memberUserId: string | null; transferFrom: string; phone: string; description: string };
 
-export type NerbaEvent = { id: number; name: string; date: string; endDate: string | null; location: string | null };
+type NerbaEvent = { id: number; name: string; date: string; endDate: string | null; location: string | null };
 export type NerbaSummary = { event: NerbaEvent; count: number; total: number };
 export type Nerba = { upcoming: NerbaSummary[]; past: NerbaSummary[]; canManage: boolean };
 export type NerbaOrder = { id: number; item: string; type: string | null; stock: number; pricePerUnit: number; total: number; orderDate: string | null };
 export type NerbaOrders = { event: NerbaEvent; days: string[]; orders: NerbaOrder[]; canManage: boolean };
-export type NerbaOrderInput = { item: string; type: string; stock: number | null; pricePerUnit: number | null; orderDate: string | null };
+type NerbaOrderInput = { item: string; type: string; stock: number | null; pricePerUnit: number | null; orderDate: string | null };
 
 const transactionForm = (input: TransactionInput) => {
   const form = new FormData();
@@ -144,7 +144,7 @@ export const treasuryApi = {
 export const isoDay = (iso: string | null) => (iso ? iso.slice(0, 10) : '');
 
 
-/** Words of a query all found in one of the texts (accents and case ignored), as the old multi-word search. */
+/** Words of a query all found in one of the texts (accents and case ignored). */
 export const matches = (query: string, ...texts: (string | null | undefined)[]) => {
   const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
   const hay = fold(texts.filter(Boolean).join(' '));

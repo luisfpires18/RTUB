@@ -73,7 +73,7 @@ function PresenceForm({ data, onClose, onSaved }: { data: MyAttendance; onClose:
     setBusy(false);
     if (o.kind !== 'ok') return setError(problem(o, 'guardar'));
     onSaved();
-    // Task 079: a new "vou" to an upcoming rehearsal offers the calendar (the presença stays pending until approved).
+    // A new "vou" to an upcoming rehearsal offers the calendar (the presença stays pending until approved).
     if (willAttend && !going && data.state === 'open' && !data.rehearsal.past && !data.rehearsal.cancelled) setOffer(true);
     else onClose();
   };

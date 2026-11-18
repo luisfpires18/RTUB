@@ -6,9 +6,9 @@ import { treasuryApi, type Person } from '../data/treasuryApi';
 import { DEFAULT_AVATAR } from '../data/membersApi';
 import { Notice, RetryNotice, SignInNotice } from './Notice';
 
-// Shared pieces of the React /treasury pages (React track 024).
+// Shared pieces of the React /treasury pages.
 
-/** The four Tesouraria areas, as the old report page's buttons ("Ver Calotes", "Ver MBWAY", "Nerba"). */
+/** The four Tesouraria areas ("Ver Calotes", "Ver MBWAY", "Nerba"). */
 export function TreasuryTabs({ current, fiscalYear }: { current: 'reports' | 'calotes' | 'mbway' | 'nerba'; fiscalYear?: string }) {
   const tabs = [
     { key: 'reports', label: 'Relatórios', href: portal.treasury },

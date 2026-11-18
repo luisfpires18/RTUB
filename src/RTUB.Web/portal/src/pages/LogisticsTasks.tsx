@@ -30,7 +30,7 @@ const EMPTY: Record<Filter, string> = {
 };
 
 /**
- * /logistics/tasks - "As minhas tarefas" (task 069): every card the member works on (owner or collaborator), across the
+ * /logistics/tasks - "As minhas tarefas": every card the member works on (owner or collaborator), across the
  * boards they see, archived work left out; managers also see the open cards without a responsible member. Filters and
  * counts are over that list; each task opens its card on its board.
  */

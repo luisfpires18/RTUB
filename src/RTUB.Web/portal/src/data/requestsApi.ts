@@ -2,7 +2,7 @@
 import { call, type Outcome } from './eventsApi';
 import { outcomeText } from './api';
 
-// /api/requests (task 031, Endpoints/RequestAdminEndpoints.cs). Dates are yyyy-MM-dd; createdAt is UTC.
+// /api/requests (Endpoints/RequestAdminEndpoints.cs). Dates are yyyy-MM-dd; createdAt is UTC.
 type Status = 'pending' | 'analysing' | 'confirmed' | 'rejected';
 
 type Option = { value: string; label: string };

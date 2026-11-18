@@ -12,8 +12,8 @@ export function dateLabel(item: Pick<GalleryItem, 'year' | 'month' | 'day'>) {
   return item.day ? `${item.day} de ${month}` : month;
 }
 
-export type MonthGroup = { key: string; label: string; items: GalleryItem[] };
-export type YearGroup = { year: number; months: MonthGroup[] };
+type MonthGroup = { key: string; label: string; items: GalleryItem[] };
+type YearGroup = { year: number; months: MonthGroup[] };
 
 /** The server already sends newest first; this only cuts the list into years and months. */
 export function groupTimeline(items: GalleryItem[]): YearGroup[] {

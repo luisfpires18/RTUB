@@ -1,4 +1,4 @@
-/* ---- Task 066: the card workspace ---- */
+/* ---- The card workspace ---- */
 .modal--xl {
   width: min(1120px, calc(100% - 24px));
 }

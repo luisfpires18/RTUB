@@ -93,7 +93,7 @@ export function RequestDialog({
   );
 }
 
-/** The old "Criar Evento" step: the agenda's create form, filled in from the request. */
+/** The "Criar Evento" step: the agenda's create form, filled in from the request. */
 export function CreateEventOffer({ approved, onClose }: { approved: { request: RequestItem; createEventUrl: string }; onClose: () => void }) {
   return (
     <Dialog

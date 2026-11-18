@@ -1,4 +1,4 @@
-/* ---------- /members (React track 017) ---------- */
+/* ---------- /members ---------- */
 
 .members-tools .check {
   align-self: center;
@@ -67,7 +67,7 @@
   white-space: nowrap;
 }
 
-/* The colours of the old badges (badges.css): black Tuno, pink Honorário, white Caloiro, grey Leitão... */
+/* Badge colours: black Tuno, pink Honorário, white Caloiro, grey Leitão... */
 .member-badge--tuno,
 .member-badge--retired {
   background: #000;

@@ -189,7 +189,7 @@ export default function TreasuryMbway() {
   );
 }
 
-/** "Adicionar transferência" / "Editar": date, amount, the member who received it (required, as the old service), sender, phone, notes. */
+/** "Adicionar transferência" / "Editar": date, amount, the member who received it (required), sender, phone, notes. */
 function TransferDialog({ transfer, onClose, onSaved }: { transfer?: Transfer; onClose: () => void; onSaved: (t: Transfers) => void }) {
   const [date, setDate] = useState(isoDay(transfer?.date ?? null) || today());
   const [amount, setAmount] = useState(transfer ? String(transfer.amount) : '');

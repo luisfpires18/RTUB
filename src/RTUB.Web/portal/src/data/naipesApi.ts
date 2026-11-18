@@ -1,10 +1,10 @@
 import { call } from './eventsApi';
 import type { Option } from './membersApi';
 
-// /api/naipes (Endpoints/NaipeEndpoints.cs, task 033). Signed-in members only; the settings are Admin / Owner. The
+// /api/naipes (Endpoints/NaipeEndpoints.cs). Signed-in members only; the settings are Admin / Owner. The
 // server decides every rule (NaipeBoardService); hiding a button here is only a convenience.
 
-export type NaipeInstrument = { value: string; label: string; pictureUrl: string | null };
+type NaipeInstrument = { value: string; label: string; pictureUrl: string | null };
 export type NaipeItem = {
   id: number;
   instrument: string;
@@ -32,7 +32,7 @@ export type NaipeBoard = {
 };
 export type NaipeComment = { id: number; authorName: string; authorAvatarUrl: string; text: string; createdAt: string; canDelete: boolean };
 export type NaipeSetting = { id: number; instrument: string; label: string; pictureUrl: string | null; isVisible: boolean; sortOrder: number };
-export type NaipeUploadForm = { file: File; instrument: string; isVideo: boolean; title: string; description: string; sortOrder: string };
+type NaipeUploadForm = { file: File; instrument: string; isVideo: boolean; title: string; description: string; sortOrder: string };
 
 const query = (instrument: string, q: string) => {
   const p = new URLSearchParams();

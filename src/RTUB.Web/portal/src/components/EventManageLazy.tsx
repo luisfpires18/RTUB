@@ -3,8 +3,8 @@ import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 
 /**
- * The Admin / Owner event management UI (`EventManage`, about half of the old Events chunk) loads only when one of its
- * dialogs is opened (#226 F13): visitors and members never download it. Same components, same props; while the chunk
+ * The Admin / Owner event management UI (`EventManage`) loads only when one of its
+ * dialogs is opened: visitors and members never download it. Same components, same props; while the chunk
  * arrives the dialog opens with a spinner. The server still decides every permission; this only defers the code.
  */
 type Module = typeof import('./EventManage');

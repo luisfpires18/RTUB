@@ -9,7 +9,7 @@ const link = takeLinkQuery('userId', 'code');
 let confirming: ReturnType<typeof accountApi.confirmEmail> | undefined;
 
 /**
- * /confirm-email. Confirms the address once, as the old page did on opening the link. It
+ * /confirm-email. Confirms the address once, on opening the link. It
  * does not sign anyone in.
  */
 export default function ConfirmEmail() {

@@ -18,7 +18,7 @@ const blank = (): Input => ({
   maintenanceNotes: '',
 });
 
-/** "Novo instrumento" / "Editar instrumento": the old fields; the type is chosen once, when the instrument is added. */
+/** "Novo instrumento" / "Editar instrumento": the instrument's fields; the type is chosen once, when the instrument is added. */
 export function FormDialog({
   id,
   categories,

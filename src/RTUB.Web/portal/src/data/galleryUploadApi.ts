@@ -8,7 +8,7 @@ export const MAX_VIDEO = 100 * 1024 * 1024;
 export type Taggable = { id: string; name: string; fullName: string | null; avatarUrl: string };
 export type EditData = { id: number; title: string; type: 'image' | 'video'; url: string | null; date: string; membersOnly: boolean; people: GalleryPerson[] };
 export type Form = { title: string; date: string; membersOnly: boolean; people: GalleryPerson[]; eventId?: number };
-/** Task 077: the event an upload is for (from /pending-actions → Galeria → Adicionar). */
+/** The event an upload is for (from /pending-actions → Galeria → Adicionar). */
 export type UploadEvent = { id: number; title: string; date: string };
 
 export const galleryApi = {
@@ -28,7 +28,7 @@ export const problem = (o: Outcome<unknown>, what: string) =>
         ? 'A sessão terminou. Entra outra vez.'
         : `Não foi possível ${what}. Tenta outra vez daqui a pouco.`;
 
-export type UploadOutcome = { kind: 'ok' } | { kind: 'invalid'; errors: Record<string, string> } | { kind: 'failed'; message: string };
+type UploadOutcome = { kind: 'ok' } | { kind: 'invalid'; errors: Record<string, string> } | { kind: 'failed'; message: string };
 
 /** POST /api/gallery as multipart, through XHR so the upload can report its progress. */
 export async function upload(file: File, form: Form, onProgress: (share: number) => void, retried = false): Promise<UploadOutcome> {

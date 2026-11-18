@@ -10,7 +10,7 @@ import { useCurrentUser, ExternalLink } from './AppShared';
 
 // ---------- chrome ----------
 
-export function Brand() {
+function Brand() {
   return (
     <a className="brand" href={portal.home} aria-label="RTUB, início do portal">
       <img className="brand__logo" src="/icons/rtub-logo-352.webp" alt="" width="40" height="40" />
@@ -170,11 +170,11 @@ export function Footer() {
 }
 
 /**
- * The build the footer shows. It rides on /api/account/me (task 054), so a page load asks nothing extra for it. A
- * signed-in member can reopen the running release's notes from here (task 083, #264): read on click only, and
+ * The build the footer shows. It rides on /api/account/me, so a page load asks nothing extra for it. A
+ * signed-in member can reopen the running release's notes from here: read on click only, and
  * reading never touches the acknowledgement.
  */
-export function VersionTag() {
+function VersionTag() {
   const { user, failed } = useCurrentUser();
   const [notes, setNotes] = useState<ReleaseNote[] | 'none' | 'failed'>();
 

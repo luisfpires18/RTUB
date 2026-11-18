@@ -5,7 +5,7 @@ import { Icon } from './icons';
 import { logisticsApi, problem, STATUS, type Board, type Card, type List, type MemberOption } from '../data/logisticsApi';
 import { FieldError, Footer, MemberPicker, PersonChip } from './LogisticsFields';
 
-/** Delete a column: its cards never go with it - they move to the chosen column and take its state (task 067). */
+/** Delete a column: its cards never go with it - they move to the chosen column and take its state. */
 export function DeleteListDialog({ board, list, onClose, onDone }: { board: Board; list: List; onClose: () => void; onDone: () => void }) {
   const others = board.lists.filter((l) => l.id !== list.id);
   const [target, setTarget] = useState<number | undefined>(others[0]?.id);
@@ -67,7 +67,7 @@ export function DeleteListDialog({ board, list, onClose, onDone }: { board: Boar
   );
 }
 
-/** "Criar cartão": title, description and the optional "Atribuir a" member, as before. Opens the details after. */
+/** "Criar cartão": title, description and the optional "Atribuir a" member. Opens the details after. */
 export function CreateCardDialog({ boardId, list, onClose, onCreated }: { boardId: number; list: List; onClose: () => void; onCreated: (id: number) => void }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

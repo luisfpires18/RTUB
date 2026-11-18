@@ -26,7 +26,7 @@ export function when(iso: string, now = new Date()) {
   return `${day}, ${time}`;
 }
 
-/** @mentions stand out, as on the old page; the text itself is never HTML. */
+/** @mentions stand out; the text itself is never HTML. */
 export function Text({ children }: { children: string }) {
   return (
     <p className="talk__text">
