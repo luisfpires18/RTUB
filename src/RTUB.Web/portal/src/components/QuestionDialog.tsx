@@ -1,11 +1,11 @@
 // One question with its replies and answer form.
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { MemberBadge } from './MemberBadge';
 import { type Detail, MAX_CONTENT, type Question, api, problem, stamp, statusLabel, statusPill } from '../data/questionsApi';
+import { Loading } from './ui/Loading';
+import { Avatar } from './ui/Avatar';
 
 export function QuestionDialog({
   id,
@@ -75,7 +75,7 @@ export function QuestionDialog({
         <div className="qs-detail">
           <div className="qs-card__people">
             <span className="qs-person">
-              <MemberFace avatarUrl={x.author.avatarUrl} size={36} />
+              <Avatar className="who__avatar" src={x.author.avatarUrl} size={36} />
               <span>
                 <strong>{x.author.displayName}</strong>
                 <small className="note">{stamp(x.createdAt)}</small>
@@ -99,7 +99,7 @@ export function QuestionDialog({
               {d.replies.map((r) => (
                 <li key={r.id} className={r.fromRecipient ? 'qs-reply qs-reply--recipient' : 'qs-reply'}>
                   <span className="qs-person">
-                    <MemberFace avatarUrl={r.author.avatarUrl} size={32} />
+                    <Avatar className="who__avatar" src={r.author.avatarUrl} size={32} />
                     <span>
                       <strong>{r.author.displayName}</strong>
                       {r.fromRecipient && <MemberBadge kind="position">{x.recipient.role}</MemberBadge>}

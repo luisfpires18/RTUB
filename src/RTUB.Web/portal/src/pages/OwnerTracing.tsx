@@ -2,11 +2,12 @@ import { useEffect, useId, useState } from 'react';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { auditQuery, ENTITY_LABELS, entityLabel, ownerApi, type AuditEntry, type AuditFilter } from '../data/ownerApi';
-import { Flash, OwnerPage, OwnerPager, SearchBox, useOwnerLoad } from '../components/OwnerUi';
+import { Flash, OwnerPage, SearchBox, useOwnerLoad } from '../components/OwnerUi';
 import { primaryName, stamp, actionTone } from '../data/ownerTracingHelpers';
 import { UserField, Select, Announcement } from '../components/OwnerTracingParts';
 import { DetailsDialog, DeleteDialog, TruncateDialog } from '../components/OwnerTracingDialogs';
 import { LoginsDialog } from '../components/OwnerLoginsDialog';
+import { Pager } from '../components/ui/Pager';
 
 const EMPTY: AuditFilter = { user: '', excludeUser: '', entityType: '', action: '', critical: false, hideSystem: false, q: '', page: 1, pageSize: 20 };
 const NO_TEXT = { q: '', user: '', excludeUser: '' };
@@ -224,7 +225,7 @@ export default function OwnerTracing() {
               ))}
             </ul>
           )}
-          <OwnerPager
+          <Pager
             total={page.total}
             itemLabel="registos"
             page={page.page}

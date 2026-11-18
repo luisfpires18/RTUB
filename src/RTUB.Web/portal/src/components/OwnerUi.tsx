@@ -1,9 +1,11 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { Loading } from './AppShared';
 import type { Outcome } from '../data/eventsApi';
 import { Icon, type IconName } from './icons';
 import { portal } from '../data/content';
 import { Notice, SignInNotice } from './Notice';
+import { Loading } from './ui/Loading';
+import { EmptyState } from './ui/EmptyState';
+import { PageHead } from './ui/PageHead';
 
 /** What an Owner page shows: the data, a sign-in prompt, the refusal, or a failure (null). */
 type Loaded<T> = T | 'signin' | 'forbidden' | null | undefined;
@@ -59,35 +61,41 @@ export function OwnerPage<T>({
   if (state === 'forbidden') {
     return (
       <section className="page wrap owner-page" aria-labelledby={titleId}>
-        <div className="state mtg-refusal" role="status">
-          <Icon name="lock" className="state__icon" />
-          <h1 id={titleId} className="state__title">
-            Acesso Restrito
-          </h1>
-          <p>Esta página é reservada ao Owner.</p>
-          <div className="state__actions">
+        <EmptyState
+          icon="lock"
+          title="Acesso Restrito"
+          titleId={titleId}
+          heading
+          className="mtg-refusal"
+          role="status"
+          actions={
             <a className="btn btn--ghost btn--sm" href={portal.profile}>
               Voltar ao perfil
             </a>
-          </div>
-        </div>
+          }
+        >
+          <p>Esta página é reservada ao Owner.</p>
+        </EmptyState>
       </section>
     );
   }
 
   return (
     <section className="page wrap events-page owner-page" aria-labelledby={titleId}>
-      <header className="page__head events-page__head">
-        <div>
-          <p className="eyebrow">Owner</p>
-          <h1 id={titleId} className="page__title owner-page__title">
+      <PageHead
+        eyebrow="Owner"
+        titleId={titleId}
+        titleClassName="owner-page__title"
+        title={
+          <>
             <Icon name={icon} />
             {title}
-          </h1>
-          <p className="page__lead">{lead}</p>
-        </div>
+          </>
+        }
+        lead={lead}
+      >
         {actions && state && typeof state === 'object' && <div className="owner-page__actions">{actions}</div>}
-      </header>
+      </PageHead>
 
       {state === undefined ? (
         <Loading label={loadingLabel} />
@@ -114,60 +122,6 @@ export function Flash({ message, onDismiss }: { message?: { text: string; error?
         <span className="sr-only">Fechar a mensagem</span>
       </button>
     </div>
-  );
-}
-
-/** Pages of a list, with fixed page sizes. */
-export function OwnerPager({
-  total,
-  itemLabel,
-  page,
-  pageSize,
-  sizes,
-  onPage,
-  onPageSize,
-}: {
-  total: number;
-  itemLabel: string;
-  page: number;
-  pageSize: number;
-  sizes: number[];
-  onPage: (page: number) => void;
-  onPageSize: (size: number) => void;
-}) {
-  const id = useId();
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  return (
-    <nav className="mtg-pager" aria-label={`Páginas de ${itemLabel}`}>
-      <span className="note">
-        {total} {itemLabel}
-      </span>
-      <span className="mtg-pager__nav">
-        <button type="button" className="icon-btn icon-btn--sm" onClick={() => onPage(page - 1)} disabled={page <= 1}>
-          <Icon name="chevronLeft" />
-          <span className="sr-only">Página anterior</span>
-        </button>
-        <span>
-          {page} / {pages}
-        </span>
-        <button type="button" className="icon-btn icon-btn--sm" onClick={() => onPage(page + 1)} disabled={page >= pages}>
-          <Icon name="chevronRight" />
-          <span className="sr-only">Página seguinte</span>
-        </button>
-      </span>
-      <label htmlFor={id} className="mtg-pager__size">
-        Por página
-        <span className="control control--select control--sm">
-          <select id={id} value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))}>
-            {sizes.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </span>
-      </label>
-    </nav>
   );
 }
 

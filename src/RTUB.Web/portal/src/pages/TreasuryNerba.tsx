@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { problem, treasuryApi, type Nerba, type NerbaSummary } from '../data/treasuryApi';
-import { Confirm, Refusal, TreasuryTabs } from '../components/TreasuryUi';
+import { Refusal, TreasuryTabs } from '../components/TreasuryUi';
 
 import { day, euros } from '../data/format';
+import { Loading } from '../components/ui/Loading';
+import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 /**
  * /treasury/nerba - Encomendas Nerba. Treasury members:
  * the Nerba events, upcoming (nearest first) then past (latest first), with item count and total. Mod, Admin and Owner
@@ -107,9 +108,9 @@ export default function TreasuryNerba() {
             </>
           )}
           {deleting && (
-            <Confirm
+            <AsyncConfirmDialog danger
               title="Eliminar encomendas"
-              action="Eliminar"
+              confirmLabel="Eliminar"
               onClose={() => setDeleting(undefined)}
               onConfirm={async () => {
                 const o = await treasuryApi.removeNerbaOrders(deleting.event.id);
@@ -124,7 +125,7 @@ export default function TreasuryNerba() {
                 <Icon name="warning" />
                 Não dá para desfazer.
               </p>
-            </Confirm>
+            </AsyncConfirmDialog>
           )}
         </>
       )}

@@ -1,12 +1,12 @@
 // The RTUB's prize history dialog.
 
 import { useEffect, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { PrizeManager } from './EventManageLazy';
 import { portal } from '../data/content';
 import { eventsApi, yearOf, type EventSummary } from '../data/eventsApi';
 import { Icon } from './icons';
+import { Loading } from './ui/Loading';
 
 // ---------- prizes ----------
 

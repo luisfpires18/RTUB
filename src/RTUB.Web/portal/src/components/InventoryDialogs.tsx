@@ -1,10 +1,11 @@
 // Inventory thumbnail, detail and delete dialogs.
 import { useEffect, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
 import { type Card, type Detail, api, problem, conditionClass } from '../data/inventoryApi';
+import { Loading } from './ui/Loading';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 export function Thumb({ url, size }: { url: string | null; size: number }) {
   return url ? (
@@ -77,35 +78,15 @@ export function DetailDialog({ id, onClose }: { id: number; onClose: () => void 
 }
 
 export function DeleteDialog({ instrument, onClose, onDone }: { instrument: Card; onClose: () => void; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
 
   const remove = async () => {
-    setBusy(true);
     const o = await api.remove(instrument.id);
-    setBusy(false);
-    if (o.kind === 'ok' || o.kind === 'notfound') {
-      onDone();
-      onClose();
-    } else setError(problem(o, 'eliminar'));
+    if (o.kind !== 'ok' && o.kind !== 'notfound') return problem(o, 'eliminar');
+    onDone();
   };
 
   return (
-    <Dialog
-      title="Eliminar instrumento"
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={remove} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Eliminar
-          </button>
-        </>
-      }
-    >
+    <AsyncConfirmDialog title="Eliminar instrumento" confirmLabel="Eliminar" danger onConfirm={remove} onClose={onClose}>
       <p>
         Eliminar <strong>{instrument.name}</strong> do inventário?
       </p>
@@ -113,11 +94,6 @@ export function DeleteDialog({ instrument, onClose, onDone }: { instrument: Card
         <Icon name="warning" />
         Apaga também a imagem. Não dá para desfazer.
       </p>
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </AsyncConfirmDialog>
   );
 }

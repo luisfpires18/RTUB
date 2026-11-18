@@ -2,9 +2,9 @@
 import { useEffect, useId, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { ConfirmDialog } from './MusicUi';
 import { dateTime, ownerApi, ownerProblem, type OwnerUserCard, type OwnerUserDetail } from '../data/ownerApi';
 import { ROLES } from '../data/ownerUsersView';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 export function DetailsDialog({ id, onClose, onUnlocked }: { id: string; onClose: () => void; onUnlocked: (u: OwnerUserDetail) => void }) {
   const [user, setUser] = useState<OwnerUserDetail | string>();

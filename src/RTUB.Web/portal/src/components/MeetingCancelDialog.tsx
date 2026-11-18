@@ -1,11 +1,14 @@
 // The cancel-meeting dialog of /meetings.
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingCancelDraft, MeetingCard, MeetingNoticeResult } from '../data/meetingsTypes';
-import { MAX_REASON, problem, type Errors, fieldClass, FieldError, Banner, Spinner, MeetingSummary, PeopleList } from './MeetingUi';
+import { MAX_REASON, problem, type Errors, fieldClass, MeetingSummary, PeopleList } from './MeetingUi';
+import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
+import { FieldError } from './ui/FieldError';
+import { Spinner } from './ui/Spinner';
 
 export function CancelDialog({
   card,
@@ -57,7 +60,7 @@ export function CancelDialog({
             Não Cancelar
           </button>
           <button type="button" className="btn btn--danger" onClick={confirm} disabled={busy || draft === null}>
-            <Spinner on={busy} />
+            {busy && <Spinner small />}
             {busy && notify ? 'A enviar emails de cancelamento…' : 'Cancelar Reunião'}
           </button>
         </>
@@ -96,7 +99,7 @@ export function CancelDialog({
             onChange={(e) => setReason(e.target.value)}
           />
           <p className="form__hint">Máximo {MAX_REASON} caracteres</p>
-          <FieldError errors={errors} name="reason" />
+          <FieldError text={errors.reason} />
         </div>
       </div>
     </Dialog>

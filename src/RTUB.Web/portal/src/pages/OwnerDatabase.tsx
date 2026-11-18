@@ -1,10 +1,11 @@
 import { useId, useState } from 'react';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
-import { ConfirmDialog } from '../components/MusicUi';
 import { ownerApi, ownerProblem, type DbGrid } from '../data/ownerApi';
-import { Flash, OwnerPage, OwnerPager, useOwnerLoad } from '../components/OwnerUi';
+import { Flash, OwnerPage, useOwnerLoad } from '../components/OwnerUi';
 import { MemberBadge } from '../components/MemberBadge';
+import { Pager } from '../components/ui/Pager';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 type Message = { text: string; error?: boolean };
 type View = { kind: 'table'; table: string; grid: DbGrid } | { kind: 'query'; grid: DbGrid; page: number; pageSize: number };
@@ -277,7 +278,7 @@ function Grid({
               </tbody>
             </table>
           </div>
-          <OwnerPager
+          <Pager
             total={view.grid.total}
             itemLabel="registos"
             page={view.kind === 'table' ? view.grid.page : view.page}

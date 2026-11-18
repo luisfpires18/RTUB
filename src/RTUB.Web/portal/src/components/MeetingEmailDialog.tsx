@@ -1,11 +1,14 @@
 // The email-the-members dialog of /meetings (draft, sandboxed preview, send).
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingCard, MeetingEmailDraft, MeetingNoticeResult } from '../data/meetingsTypes';
-import { MAX_SUBJECT, MAX_EMAIL_BODY, problem, type Errors, fieldClass, FieldError, Banner, Spinner, MeetingSummary, PeopleList } from './MeetingUi';
+import { MAX_SUBJECT, MAX_EMAIL_BODY, problem, type Errors, fieldClass, MeetingSummary, PeopleList } from './MeetingUi';
+import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
+import { FieldError } from './ui/FieldError';
+import { Spinner } from './ui/Spinner';
 
 /**
  * The preview document for the sandboxed frame (sandbox="", srcdoc: no script runs and nothing reaches this page). The
@@ -117,7 +120,7 @@ export function EmailDialog({ card, onClose, onSent }: { card: MeetingCard; onCl
             Cancelar
           </button>
           <button type="button" className="btn btn--primary" onClick={send} disabled={busy || !canSend}>
-            <Spinner on={busy} />
+            {busy && <Spinner small />}
             {busy ? 'A enviar emails…' : 'Enviar Notificação'}
           </button>
         </>
@@ -134,7 +137,7 @@ export function EmailDialog({ card, onClose, onSent }: { card: MeetingCard; onCl
               Assunto <span className="mtg-required">*</span>
             </label>
             <input id={`${id}-subject`} type="text" maxLength={MAX_SUBJECT} value={subject} onChange={(e) => setSubject(e.target.value)} />
-            <FieldError errors={errors} name="subject" />
+            <FieldError text={errors.subject} />
           </div>
           <div className={fieldClass(errors, 'body')}>
             <label htmlFor={`${id}-body`}>
@@ -142,7 +145,7 @@ export function EmailDialog({ card, onClose, onSent }: { card: MeetingCard; onCl
             </label>
             <textarea id={`${id}-body`} rows={12} maxLength={MAX_EMAIL_BODY} value={body} onChange={(e) => setBody(e.target.value)} />
             <p className="form__hint">Escreva a mensagem da reunião em texto simples. Será formatada automaticamente no email.</p>
-            <FieldError errors={errors} name="body" />
+            <FieldError text={errors.body} />
           </div>
           <div className="mtg-preview">
             <button type="button" className="btn btn--ghost btn--sm" aria-expanded={showPreview} onClick={() => setShowPreview((s) => !s)}>
@@ -176,7 +179,7 @@ export function EmailDialog({ card, onClose, onSent }: { card: MeetingCard; onCl
                 </select>
               </span>
               <p className="form__hint">Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV.</p>
-              <FieldError errors={errors} name="tunoId" />
+              <FieldError text={errors.tunoId} />
             </div>
           )}
           <p className="mtg-info">

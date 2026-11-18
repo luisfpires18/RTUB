@@ -2,8 +2,9 @@
 import { useId, useState } from 'react';
 import { Icon } from './icons';
 import { ownerApi, ownerProblem, type EmailRecipients, type OwnerPerson } from '../data/ownerApi';
-import { Flash, matches, OwnerPager, SearchBox } from './OwnerUi';
+import { Flash, matches, SearchBox } from './OwnerUi';
 import { type Message } from '../data/ownerEmailsView';
+import { Pager } from './ui/Pager';
 
 export function Recipients({ data, onChanged }: { data: EmailRecipients; onChanged: (next: EmailRecipients) => void }) {
   const id = useId();
@@ -148,7 +149,7 @@ function PeopleList({
           </ul>
           {filtered.length === 0 && <p className="note">Ninguém corresponde à pesquisa.</p>}
           {filtered.length > 10 && (
-            <OwnerPager
+            <Pager
               total={filtered.length}
               itemLabel="utilizadores"
               page={page}

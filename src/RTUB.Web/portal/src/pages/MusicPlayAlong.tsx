@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { Icon } from '../components/icons';
 import { musicApi, type PlayAlong } from '../data/musicApi';
 import { loginTo } from '../data/content';
 import { Player } from '../components/PlayAlongPlayer';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * Aprender (docs/react-music.md): play a song's chords along with its recording. The

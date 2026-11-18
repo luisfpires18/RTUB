@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ComponentProps, type ComponentType, type ReactNode } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
+import { Loading } from './ui/Loading';
 
 /**
  * The Admin / Owner event management UI (`EventManage`) loads only when one of its

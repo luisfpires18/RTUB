@@ -1,11 +1,12 @@
 // One poll card on /meetings/polls (vote, close, remove).
 import { useEffect, useState } from 'react';
 import { portal } from '../data/content';
-import { ConfirmDialog, problem, typeClass } from './MeetingUi';
+import { problem, typeClass } from './MeetingUi';
 import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingPoll } from '../data/meetingsTypes';
 import { longDateTime } from '../data/meetingsDates';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 export const pollProblem = (outcome: Parameters<typeof problem>[0], what: string) =>
   outcome.kind === 'closed'
@@ -120,7 +121,7 @@ export function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: ()
         )}
       </div>
       {confirmDelete && (
-        <ConfirmDialog
+        <AsyncConfirmDialog
           title="Eliminar votação"
           confirmLabel="Eliminar"
           confirmIcon="trash"
@@ -128,15 +129,17 @@ export function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: ()
           onClose={() => setConfirmDelete(false)}
           onConfirm={remove}
         >
-          <p>
-            A votação "{poll.question}" é eliminada com as suas opções
-            {poll.totalVotes > 0 ? ` e ${poll.totalVotes === 1 ? 'o voto já registado' : `os ${poll.totalVotes} votos já registados`}` : ''}. Não
-            é possível recuperá-la.
-          </p>
-        </ConfirmDialog>
+          <div className="mtg-confirm">
+            <p>
+              A votação "{poll.question}" é eliminada com as suas opções
+              {poll.totalVotes > 0 ? ` e ${poll.totalVotes === 1 ? 'o voto já registado' : `os ${poll.totalVotes} votos já registados`}` : ''}. Não
+              é possível recuperá-la.
+            </p>
+          </div>
+        </AsyncConfirmDialog>
       )}
       {confirmClose && (
-        <ConfirmDialog
+        <AsyncConfirmDialog
           title="Encerrar votação"
           confirmLabel="Encerrar"
           confirmIcon="lock"
@@ -144,8 +147,10 @@ export function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: ()
           onClose={() => setConfirmClose(false)}
           onConfirm={close}
         >
-          <p>Depois de encerrada, esta votação deixa de aceitar alterações ou novos votos.</p>
-        </ConfirmDialog>
+          <div className="mtg-confirm">
+            <p>Depois de encerrada, esta votação deixa de aceitar alterações ou novos votos.</p>
+          </div>
+        </AsyncConfirmDialog>
       )}
     </article>
   );

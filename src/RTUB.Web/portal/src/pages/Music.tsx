@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { Icon } from '../components/icons';
 import { AlbumForm } from '../components/MusicAlbumForm';
-import { Badge, ConfirmDialog, IconButton } from '../components/MusicUi';
+import { Badge, IconButton } from '../components/MusicUi';
 import { musicApi, type AlbumSummary, type MusicPermissions } from '../data/musicApi';
 import { StatisticsDialog } from '../components/MusicStatistics';
+import { Loading } from '../components/ui/Loading';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 /**
  * /music - the discography. One grid for every album the caller may see:

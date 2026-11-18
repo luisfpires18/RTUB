@@ -1,13 +1,14 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading, useLatest } from '../components/AppShared';
+import { useLatest } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
-import { MemberFace } from '../components/MemberDialogs';
 import { MemberBadge } from '../components/MemberBadge';
 import { RetryNotice, SignInNotice } from '../components/Notice';
 import { type Table, api, PAGE, medal } from '../data/leaderboardApi';
 import { Levels } from '../components/LeaderboardLevels';
 import { MemberDialog } from '../components/LeaderboardMemberDialog';
+import { Loading } from '../components/ui/Loading';
+import { Avatar } from '../components/ui/Avatar';
 
 /**
  * /leaderboard - Tabela de Classificação. Signed-in members only. Everyone's XP
@@ -99,7 +100,7 @@ export default function Leaderboard() {
                       <span className="leaderboard-row__pos" aria-label={`${e.position}.º lugar`}>
                         {medal(e.position)}
                       </span>
-                      <MemberFace avatarUrl={e.avatarUrl} size={48} />
+                      <Avatar className="who__avatar" src={e.avatarUrl} size={48} />
                       <span className="leaderboard-row__who">
                         <strong>{e.displayName}</strong>
                         {e.fullName && <small>{e.fullName}</small>}

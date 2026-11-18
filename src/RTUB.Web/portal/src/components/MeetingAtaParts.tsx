@@ -1,7 +1,8 @@
 // Layout pieces shared by the ata editor and the ata view: titled Block and SecretarySelect.
 import { useId, type ReactNode } from 'react';
 import { Icon, type IconName } from './icons';
-import { FieldError, fieldClass, type Errors } from './MeetingUi';
+import { fieldClass, type Errors } from './MeetingUi';
+import { FieldError } from './ui/FieldError';
 import type { MeetingPersonOption } from '../data/meetingsTypes';
 
 export function Block({ icon, title, children }: { icon: IconName; title: string; children: ReactNode }) {
@@ -52,7 +53,7 @@ export function SecretarySelect({
         </select>
       </span>
       <p className="form__hint">{hint}</p>
-      <FieldError errors={errors} name={name} />
+      <FieldError text={errors[name]} />
     </div>
   );
 }

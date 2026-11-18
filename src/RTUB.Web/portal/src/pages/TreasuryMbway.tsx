@@ -1,12 +1,16 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
 import { isoDay, matches, problem, treasuryApi, type Person, type Transfer, type Transfers } from '../data/treasuryApi';
-import { Confirm, Field, MemberPicker, PersonChip, Refusal, SaveFooter, TreasuryTabs } from '../components/TreasuryUi';
+import { MemberPicker, Refusal, TreasuryTabs } from '../components/TreasuryUi';
 
 import { day, euros, today } from '../data/format';
+import { Loading } from '../components/ui/Loading';
+import { PersonChip } from '../components/ui/PersonChip';
+import { FormField } from '../components/ui/FormField';
+import { DialogFooter } from '../components/ui/DialogFooter';
+import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 const PAGE = 12;
 
 /**
@@ -164,9 +168,9 @@ export default function TreasuryMbway() {
 
           {form && <TransferDialog transfer={form.transfer} onClose={() => setForm(undefined)} onSaved={setData} />}
           {deleting && (
-            <Confirm
+            <AsyncConfirmDialog danger
               title="Eliminar transferência"
-              action="Eliminar"
+              confirmLabel="Eliminar"
               onClose={() => setDeleting(undefined)}
               onConfirm={async () => {
                 const o = await treasuryApi.removeTransfer(deleting.id);
@@ -181,7 +185,7 @@ export default function TreasuryMbway() {
                 <Icon name="warning" />
                 Não dá para desfazer.
               </p>
-            </Confirm>
+            </AsyncConfirmDialog>
           )}
         </>
       )}
@@ -224,7 +228,7 @@ function TransferDialog({ transfer, onClose, onSaved }: { transfer?: Transfer; o
     <Dialog
       title={transfer ? 'Editar transferência MBWAY' : 'Adicionar transferência MBWAY'}
       onClose={onClose}
-      footer={<SaveFooter formId={`${fid}-form`} busy={busy} disabled={!member || !amount || !date} onClose={onClose} />}
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!member || !amount || !date} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         {errors.form && (
@@ -233,17 +237,17 @@ function TransferDialog({ transfer, onClose, onSaved }: { transfer?: Transfer; o
           </p>
         )}
         <div className="form__row">
-          <Field id={`${fid}-date`} label="Data" error={errors.date}>
+          <FormField alert id={`${fid}-date`} label="Data" error={errors.date}>
             <input id={`${fid}-date`} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </Field>
-          <Field id={`${fid}-amount`} label="Montante (€)" error={errors.amount}>
+          </FormField>
+          <FormField alert id={`${fid}-amount`} label="Montante (€)" error={errors.amount}>
             <input id={`${fid}-amount`} type="number" inputMode="decimal" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
-          </Field>
+          </FormField>
         </div>
         <div className={errors.memberUserId ? 'form__field form__field--error' : 'form__field'}>
           <span className="form__label">Transferido para (membro da tuna)</span>
           {member ? (
-            <PersonChip person={member} onRemove={() => setMember(null)} />
+            <PersonChip name={member.displayName} avatar={member.avatarUrl} onRemove={() => setMember(null)} />
           ) : (
             <>
               {transfer && <p className="note">Atual: {transfer.transferTo}</p>}
@@ -257,16 +261,16 @@ function TransferDialog({ transfer, onClose, onSaved }: { transfer?: Transfer; o
           )}
         </div>
         <div className="form__row">
-          <Field id={`${fid}-from`} label="Transferido por (opcional)" error={errors.transferFrom}>
+          <FormField alert id={`${fid}-from`} label="Transferido por (opcional)" error={errors.transferFrom}>
             <input id={`${fid}-from`} type="text" maxLength={200} value={from} onChange={(e) => setFrom(e.target.value)} />
-          </Field>
-          <Field id={`${fid}-phone`} label="Telefone (opcional)" error={errors.phone}>
+          </FormField>
+          <FormField alert id={`${fid}-phone`} label="Telefone (opcional)" error={errors.phone}>
             <input id={`${fid}-phone`} type="tel" maxLength={20} value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </Field>
+          </FormField>
         </div>
-        <Field id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description}>
+        <FormField alert id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description}>
           <textarea id={`${fid}-desc`} rows={3} maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
-        </Field>
+        </FormField>
       </form>
     </Dialog>
   );

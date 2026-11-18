@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { Icon } from '../components/icons';
 import { pendingActionsApi, type Category, type PendingActions as Data } from '../data/pendingActionsApi';
 import { SignInNotice } from '../components/Notice';
 import { CATEGORIES, longDate } from '../data/pendingActionsView';
 import { ActionPanel } from '../components/PendingActionPanel';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * /pending-actions - "As minhas ações pendentes" (docs/react-pending-actions.md). A page of grouped actions, not

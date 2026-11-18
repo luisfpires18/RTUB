@@ -1,11 +1,12 @@
 // Dialog to manage an event's repertoire by day.
 
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { dayOf, monthShort, eventsApi, type RepertoireManage, type RepertoireSong, type EventSummary, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
+import { Loading } from './ui/Loading';
+import { Segmented } from './ui/Segmented';
 
 /**
  * The event's repertoire for Admin/Owner: one tab per day (the event's days
@@ -76,7 +77,7 @@ export function RepertoireManagerDialog({ event, onClose, onChanged }: { event: 
         ) : (
           <>
             {data.days.length > 1 && (
-              <div className="segmented segmented--wrap" role="tablist" aria-label="Dia">
+              <Segmented label="Dia" role="tablist" wrap>
                 {data.days.map((d) => (
                   <button
                     key={d.date}
@@ -94,7 +95,7 @@ export function RepertoireManagerDialog({ event, onClose, onChanged }: { event: 
                     <span className="segmented__count">{d.items.length}</span>
                   </button>
                 ))}
-              </div>
+              </Segmented>
             )}
 
             {current.items.length === 0 ? (

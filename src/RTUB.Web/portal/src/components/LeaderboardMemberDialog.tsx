@@ -1,12 +1,12 @@
 // Leaderboard member details dialog.
 import { useEffect, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { MemberBadge } from './MemberBadge';
 import { type MemberDetail, api } from '../data/leaderboardApi';
 import { Comments } from './LeaderboardComments';
+import { Loading } from './ui/Loading';
+import { Avatar } from './ui/Avatar';
 
 /** "Detalhes da Classificação": level and progress for the year shown, XP origin and activities of all time, comments. */
 export function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYear: string; onClose: () => void }) {
@@ -31,7 +31,7 @@ export function MemberDialog({ id, fiscalYear, onClose }: { id: string; fiscalYe
       ) : (
         <div className="member-detail">
           <div className="member-detail__head">
-            <MemberFace avatarUrl={detail.avatarUrl} size={96} />
+            <Avatar className="who__avatar" src={detail.avatarUrl} size={96} />
             <p className="member-detail__name">{detail.displayName}</p>
             {detail.fullName && <p className="who__meta">{detail.fullName}</p>}
             <span className="member-badges">

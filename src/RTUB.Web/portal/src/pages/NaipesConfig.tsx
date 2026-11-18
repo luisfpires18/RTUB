@@ -1,5 +1,4 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import type { Outcome } from '../data/eventsApi';
@@ -8,6 +7,7 @@ import { naipesApi, type NaipeSetting } from '../data/naipesApi';
 import { MemberBadge } from '../components/MemberBadge';
 import { outcomeText } from '../data/api';
 import { Notice, SignInNotice } from '../components/Notice';
+import { Loading } from '../components/ui/Loading';
 
 const MAX_PICTURE = 5 * 1024 * 1024;
 const PICTURE_ACCEPT = 'image/jpeg,image/png,image/webp';

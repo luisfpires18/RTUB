@@ -1,10 +1,11 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { ExternalLink, Loading } from './AppShared';
+import { ExternalLink } from './AppShared';
 import { Dialog } from './Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { DEFAULT_AVATAR } from '../data/membersApi';
 import { outcomeText } from '../data/api';
+import { Loading } from './ui/Loading';
 
 // Órgãos Sociais for members. The RGI for Member, Mod, Admin and
 // Owner; fiscal years and position assignments for Mod, Admin and Owner. The server decides and validates everything

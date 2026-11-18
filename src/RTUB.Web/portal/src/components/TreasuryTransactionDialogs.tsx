@@ -1,12 +1,13 @@
 // Treasury report transaction and history dialogs.
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { isoDay, problem, treasuryApi, type Activity, type History, type Report, type Transaction } from '../data/treasuryApi';
-import { Field, SaveFooter } from './TreasuryUi';
 import { today } from '../data/format';
 import { PAGE } from '../data/treasuryReportView';
+import { Loading } from './ui/Loading';
+import { FormField } from './ui/FormField';
+import { DialogFooter } from './ui/DialogFooter';
 
 const MAX_RECEIPT = 10 * 1024 * 1024;
 
@@ -58,7 +59,7 @@ export function TransactionDialog({
     <Dialog
       title={transaction ? 'Editar transação' : `Nova transação · ${activity.name}`}
       onClose={onClose}
-      footer={<SaveFooter formId={`${fid}-form`} busy={busy} disabled={!description.trim() || !category.trim() || !amount || !date} onClose={onClose} />}
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!description.trim() || !category.trim() || !amount || !date} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         {errors.form && (
@@ -67,33 +68,33 @@ export function TransactionDialog({
           </p>
         )}
         <div className="form__row">
-          <Field id={`${fid}-date`} label="Data" error={errors.date}>
+          <FormField alert id={`${fid}-date`} label="Data" error={errors.date}>
             <input id={`${fid}-date`} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </Field>
-          <Field id={`${fid}-type`} label="Tipo" error={errors.type}>
+          </FormField>
+          <FormField alert id={`${fid}-type`} label="Tipo" error={errors.type}>
             <span className="control control--select">
               <select id={`${fid}-type`} value={type} onChange={(e) => setType(e.target.value)}>
                 <option value="Income">Receita</option>
                 <option value="Expense">Despesa</option>
               </select>
             </span>
-          </Field>
+          </FormField>
         </div>
-        <Field id={`${fid}-desc`} label="Descrição" error={errors.description}>
+        <FormField alert id={`${fid}-desc`} label="Descrição" error={errors.description}>
           <input id={`${fid}-desc`} type="text" maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
-        </Field>
+        </FormField>
         <div className="form__row">
-          <Field id={`${fid}-cat`} label="Categoria" error={errors.category}>
+          <FormField alert id={`${fid}-cat`} label="Categoria" error={errors.category}>
             <input id={`${fid}-cat`} type="text" maxLength={100} value={category} onChange={(e) => setCategory(e.target.value)} />
-          </Field>
-          <Field id={`${fid}-amount`} label="Valor (€)" error={errors.amount}>
+          </FormField>
+          <FormField alert id={`${fid}-amount`} label="Valor (€)" error={errors.amount}>
             <input id={`${fid}-amount`} type="number" inputMode="decimal" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
-          </Field>
+          </FormField>
         </div>
-        <Field id={`${fid}-receipt`} label="Recibo (opcional)" error={errors.receipt}>
+        <FormField alert id={`${fid}-receipt`} label="Recibo (opcional)" error={errors.receipt}>
           <input id={`${fid}-receipt`} type="file" accept="image/*,.pdf,application/pdf" onChange={(e) => pick(e.target.files?.[0] ?? null)} />
           <p className="form__hint">Uma imagem (JPG, PNG, …) ou um PDF, até 10 MB.</p>
-        </Field>
+        </FormField>
         {transaction?.receiptUrl && (
           <div className="tr-receipt">
             <a href={transaction.receiptUrl} target="_blank" rel="noopener noreferrer">

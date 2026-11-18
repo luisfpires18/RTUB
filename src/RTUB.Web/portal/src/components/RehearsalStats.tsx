@@ -1,7 +1,6 @@
 // Presença statistics dialog and the member's own presenças record.
 
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { dateLabel } from '../data/eventsApi';
 import { Icon } from './icons';
@@ -9,6 +8,7 @@ import { MemberBadge, badgeKind } from './MemberBadge';
 import { fold } from '../data/format';
 import { rehearsalsApi, type RehearsalSummary, type RehearsalStats } from '../data/rehearsalsApi';
 import { PresencePill } from './RehearsalShared';
+import { Loading } from './ui/Loading';
 
 // ---------- statistics and the member's own record ----------
 

@@ -1,10 +1,12 @@
 // Card discussion panel (comments and @mentions).
 import { useId, useState } from 'react';
-import { FieldError, MemberPicker, PersonChip } from './LogisticsFields';
+import { MemberPicker } from './LogisticsFields';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, type CardComment, type CardDetail } from '../data/logisticsApi';
 import { DEFAULT_AVATAR } from '../data/membersApi';
 import { at } from '../data/logisticsDates';
+import { FieldError } from './ui/FieldError';
+import { PersonChip } from './ui/PersonChip';
 
 /** The discussion: plain text (never HTML), @mentions picked from members, Ctrl/⌘+Enter sends. */
 export function Discussion({ boardId, detail, apply, busy, errors }: { boardId: number; detail: CardDetail; apply: Apply; busy?: string; errors: Record<string, string> }) {

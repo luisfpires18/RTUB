@@ -4,6 +4,7 @@ import { Icon } from './icons';
 import { type PlayAlong, type PlayAlongSection } from '../data/musicApi';
 import { PX_PER_SECOND, NOW_AT, INSTRUMENTS, STRINGS, shapeOf, pickingOf, PICK_PX, clock, savedInstrument, type Instrument } from '../data/playAlongChords';
 import { Diagram, Line } from './PlayAlongViews';
+import { BackLink } from './ui/BackLink';
 
 export function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string | null }) {
   const { chart } = data;
@@ -107,10 +108,7 @@ export function Player({ data, audioUrl }: { data: PlayAlong; audioUrl: string |
 
   return (
     <section className="page wrap playalong" aria-labelledby="playalong-title">
-      <a className="back-link" href="/music/learn">
-        <Icon name="arrow" />
-        Aprender Músicas
-      </a>
+      <BackLink href="/music/learn">Aprender Músicas</BackLink>
       <header className="playalong__head">
         <h1 id="playalong-title" className="playalong__title">
           {data.title}

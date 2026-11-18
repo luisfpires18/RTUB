@@ -133,7 +133,7 @@ public class OwnerOperationsSourceTests
         var page = Read(Portal, "pages/OwnerTracing.tsx");
         var dialogs = Read(Portal, "components/OwnerTracingDialogs.tsx");
         var tracing = string.Join("\n", page, dialogs, Read(Portal, "components/OwnerTracingParts.tsx"), Read(Portal, "data/ownerTracingHelpers.ts"));
-        var card = page[tracing.IndexOf("<ul className=\"owner-logs\">", StringComparison.Ordinal)..page.IndexOf("<OwnerPager", StringComparison.Ordinal)];
+        var card = page[tracing.IndexOf("<ul className=\"owner-logs\">", StringComparison.Ordinal)..page.IndexOf("<Pager", StringComparison.Ordinal)];
 
         string[] order = ["owner-log__name", "owner-log__type", "owner-action", "Crítica", "owner-log__meta", "name=\"eye\"", "icon-btn--danger"];
         order.Select(m => card.IndexOf(m, StringComparison.Ordinal)).Should().BeInAscendingOrder().And.NotContain(-1);

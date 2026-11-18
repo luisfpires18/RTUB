@@ -1,8 +1,8 @@
 // One recursive tree item (padrinho and afilhados) of the family tree.
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { type TreeNode } from '../data/membersApi';
 import { memberHref } from '../data/hierarchyTree';
+import { Avatar } from './ui/Avatar';
 
 export type BranchContext = {
   expanded: Set<string>;
@@ -46,7 +46,7 @@ export function Branch({ node, level, pos, size, ctx }: { node: TreeNode; level:
     >
       <div className="hnode">
         <a className="hnode__card" href={memberHref(node.id)} tabIndex={-1}>
-          <MemberFace avatarUrl={node.avatarUrl} size={32} />
+          <Avatar className="who__avatar" src={node.avatarUrl} size={32} />
           <span className="hnode__who">
             <strong id={`hname-${node.id}`}>{node.displayName}</strong>
             {node.fullName && <small id={`hfull-${node.id}`}>{node.fullName}</small>}

@@ -1,11 +1,10 @@
 // Shared pieces of the /meetings dialogs: field limits, error text, pills, avatars, ConfirmDialog and summary blocks.
-import { useId, useState, type ReactNode } from 'react';
-import { Dialog } from './Dialog';
+import { useId, type ReactNode } from 'react';
 import type { Outcome } from '../data/eventsApi';
 import { Icon, type IconName } from './icons';
 import type { MeetingCard, MeetingPerson } from '../data/meetingsTypes';
 import { longDateTime } from '../data/meetingsDates';
-import { DEFAULT_AVATAR } from '../data/membersApi';
+import { Avatar } from './ui/Avatar';
 
 export const MAX_TITLE = 200;
 export const MAX_LOCATION = 200;
@@ -35,22 +34,6 @@ export type Errors = Record<string, string>;
 
 export const fieldClass = (errors: Errors, key: string) => (errors[key] ? 'form__field form__field--error' : 'form__field');
 
-export function FieldError({ errors, name }: { errors: Errors; name: string }) {
-  return errors[name] ? (
-    <p className="form__error" role="alert">
-      {errors[name]}
-    </p>
-  ) : null;
-}
-
-export function Banner({ text }: { text?: string }) {
-  return text ? (
-    <p className="form__banner" role="alert">
-      {text}
-    </p>
-  ) : null;
-}
-
 export const typeClass = (type: string) =>
   type === 'ConselhoVeteranos' ? 'mtg-type mtg-type--cv' : type === 'ReuniaoDirecao' ? 'mtg-type mtg-type--direcao' : 'mtg-type mtg-type--ag';
 
@@ -59,81 +42,6 @@ const REQUEST_STATUS_PILL: Record<string, string> = { Pending: 'pill pill--wait'
 
 export function RequestStatusPill({ status }: { status: string }) {
   return <span className={REQUEST_STATUS_PILL[status] ?? 'pill'}>{REQUEST_STATUS_LABEL[status] ?? status}</span>;
-}
-
-export function Face({ src, size = 32 }: { src: string | null; size?: number }) {
-  return (
-    <img
-      className="mtg-face"
-      src={src || DEFAULT_AVATAR}
-      alt=""
-      width={size}
-      height={size}
-      loading="lazy"
-      onError={(e) => {
-        if (!e.currentTarget.src.endsWith(DEFAULT_AVATAR)) e.currentTarget.src = DEFAULT_AVATAR;
-      }}
-    />
-  );
-}
-
-export function Spinner({ on }: { on: boolean }) {
-  return on ? <span className="spinner spinner--small" aria-hidden="true" /> : null;
-}
-
-/** A yes / no question with its own busy state; `onConfirm` answers an error sentence, or nothing when done. */
-export function ConfirmDialog({
-  title,
-  children,
-  confirmLabel,
-  cancelLabel = 'Cancelar',
-  confirmIcon,
-  danger = false,
-  onConfirm,
-  onClose,
-}: {
-  title: string;
-  children: ReactNode;
-  confirmLabel: string;
-  cancelLabel?: string;
-  confirmIcon?: IconName;
-  danger?: boolean;
-  onConfirm: () => Promise<string | void>;
-  onClose: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-
-  const confirm = async () => {
-    setBusy(true);
-    setError(undefined);
-    const failure = await onConfirm();
-    setBusy(false);
-    if (failure) setError(failure);
-    else onClose();
-  };
-
-  return (
-    <Dialog
-      title={title}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            {cancelLabel}
-          </button>
-          <button type="button" className={danger ? 'btn btn--danger' : 'btn btn--primary'} onClick={confirm} disabled={busy}>
-            <Spinner on={busy} />
-            {!busy && confirmIcon && <Icon name={confirmIcon} />}
-            {confirmLabel}
-          </button>
-        </>
-      }
-    >
-      <div className="mtg-confirm">{children}</div>
-      <Banner text={error} />
-    </Dialog>
-  );
 }
 
 /** The meeting the notice is about. */
@@ -179,7 +87,7 @@ export function PeopleList({ title, people, empty }: { title: string; people: Me
         <ul className="mtg-people__list">
           {people.map((p, i) => (
             <li key={`${p.name}-${i}`} className="mtg-person">
-              <Face src={p.avatarUrl} />
+              <Avatar className="mtg-face" src={p.avatarUrl} />
               <span className="mtg-person__name">{p.name}</span>
               {p.detail && <small className="mtg-person__detail">{p.detail}</small>}
             </li>

@@ -1,9 +1,9 @@
 // Card checklist panel.
 import { useId, useState } from 'react';
 import { Icon } from './icons';
-import { FieldError } from './LogisticsFields';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, type CardDetail } from '../data/logisticsApi';
+import { FieldError } from './ui/FieldError';
 
 /** One item at a time: tick, rename (Enter saves, Esc cancels), remove, add. The item's text identifies it on the server. */
 export function Checklist({ detail, busy, errors, apply }: { detail: CardDetail; busy?: string; errors: Record<string, string>; apply: Apply }) {

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { eventsApi, dateLabel, type EventSummary, type EventDiscussion as Discussion } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { Notice, SignInNotice } from '../components/Notice';
 import { Composer } from '../components/EventDiscussionComposer';
 import { Post } from '../components/EventDiscussionPost';
+import { Loading } from '../components/ui/Loading';
 
 // EventContacts.tsx imports `when` from here.
 

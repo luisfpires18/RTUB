@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { Icon } from '../components/icons';
 import { normalize } from '../data/musicFormHelpers';
 import { SongForm } from '../components/MusicForms';
 import { MusicPlayer, type NowPlaying } from '../components/MusicPlayer';
-import { Badge, ConfirmDialog } from '../components/MusicUi';
+import { Badge } from '../components/MusicUi';
 import { musicApi, type AlbumDetail, type Song } from '../data/musicApi';
 import { loginTo } from '../data/content';
 import { MusicSongRow } from '../components/MusicAlbumSongRow';
 import { LyricsDialog, LinksDialog, VideosDialog } from '../components/MusicAlbumDialogs';
+import { Loading } from '../components/ui/Loading';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 type Load = { kind: 'loading' } | { kind: 'ok'; data: AlbumDetail } | { kind: 'signin' } | { kind: 'notfound' } | { kind: 'failed' };
 

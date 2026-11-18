@@ -2,16 +2,14 @@
 import { Icon } from './icons';
 import { logisticsApi, type Board } from '../data/logisticsApi';
 import { day } from '../data/format';
+import { BackLink } from './ui/BackLink';
 import type { Open } from '../data/logisticsBoardTypes';
 
 /** Board title, chips, actions and the archived banner. */
 export function LogisticsBoardHead({ data, total, manage, archived, setOpen, run }: { data: Board; total: number; manage: boolean; archived: boolean; setOpen: (o: Open | undefined) => void; run: (o: Promise<{ kind: string }>, what: string) => Promise<void> }) {
   return (
     <header className="lx-head">
-      <a className="back-link" href="/logistics">
-        <Icon name="arrow" />
-        Quadros
-      </a>
+      <BackLink href="/logistics">Quadros</BackLink>
       <div className="lx-head__row">
         <div className="lx-head__text">
           <h1 id="lx-board-title" className="page__title lx-head__title">

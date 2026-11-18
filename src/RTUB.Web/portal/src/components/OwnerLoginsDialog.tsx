@@ -2,7 +2,8 @@
 import { useEffect, useId, useState } from 'react';
 import { Dialog } from './Dialog';
 import { dateTime, ownerApi, ownerProblem, type Logins } from '../data/ownerApi';
-import { matches, OwnerPager, SearchBox } from './OwnerUi';
+import { matches, SearchBox } from './OwnerUi';
+import { Pager } from './ui/Pager';
 
 export const today = () => new Date().toLocaleDateString('sv-SE');
 /** The Portugal day (yyyy-MM-dd) of a UTC stamp, as the server buckets LoginEvents. */
@@ -128,7 +129,7 @@ export function LoginsDialog({ onClose }: { onClose: () => void }) {
           </ul>
           {filtered.length === 0 && <p className="note">Nenhum login corresponde à pesquisa.</p>}
           {filtered.length > pageSize && (
-            <OwnerPager
+            <Pager
               total={filtered.length}
               itemLabel="logins"
               page={page}

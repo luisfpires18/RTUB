@@ -148,7 +148,8 @@ public class HomePreviewTests : IntegrationTestBase
         Source("components/GalleryToolbar.tsx").Should().Contain("className=\"control\"").And.Contain("className=\"control control--select\"");
         Source("pages/Governance.tsx").Should().Contain("className=\"control control--select\"");
         Source("pages/MusicAlbum.tsx").Should().Contain("className=\"control album-tools__search\"").And.Contain("className=\"back-link\"");
-        Source("components/MusicUi.tsx").Should().Contain("control control--select control--sm");
+        Source("components/ui/Pager.tsx").Should().Contain("control control--select control--sm"); // the music TextPager moved to the kit in 119
+        Source("components/MusicStatistics.tsx").Should().Contain("<TextPager");
         Source("pages/Privacy.tsx").Should().Contain("className=\"back-link\"");
 
         var css = PortalCss.Read(Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src"));

@@ -1,5 +1,4 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { MemberDialog } from '../components/MemberDialogs';
@@ -9,6 +8,7 @@ import { membersApi, type Directory, type DirectoryFilters } from '../data/membe
 import { RetryNotice, SignInNotice } from '../components/Notice';
 import { Group } from '../components/MemberGroup';
 import { MemberTools, type Tool, ToolDialog } from '../components/MemberTools';
+import { Loading } from '../components/ui/Loading';
 
 const CATEGORIES = [
   { value: 'Leitao', label: 'Leitão' },

@@ -1,5 +1,4 @@
 import { useEffect, useId, useMemo, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { Icon } from '../components/icons';
 import { RetryNotice, SignInNotice } from '../components/Notice';
 import { AskDialog } from '../components/AskDialog';
@@ -7,6 +6,7 @@ import { ConfirmAction } from '../components/QuestionConfirm';
 import { type Question, type Recipient, api } from '../data/questionsApi';
 import { QuestionDialog } from '../components/QuestionDialog';
 import { QuestionList } from '../components/QuestionList';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * /questions - Perguntas aos Órgãos Sociais. Any signed-in member asks a question to

@@ -1,8 +1,6 @@
 // Naipes item card and pager.
-import { useId } from 'react';
 import { Icon } from './icons';
 import { type NaipeItem } from '../data/naipesApi';
-import { PAGE_SIZES } from '../data/naipesShared';
 
 export function NaipeCard({ item, onOpen, onEdit, onDelete }: { item: NaipeItem; onOpen: () => void; onEdit: () => void; onDelete: () => void }) {
   return (
@@ -48,55 +46,5 @@ export function NaipeCard({ item, onOpen, onEdit, onDelete }: { item: NaipeItem;
         </span>
       )}
     </article>
-  );
-}
-
-export function Pager({
-  total,
-  page,
-  pages,
-  pageSize,
-  onPage,
-  onPageSize,
-}: {
-  total: number;
-  page: number;
-  pages: number;
-  pageSize: number;
-  onPage: (page: number) => void;
-  onPageSize: (size: number) => void;
-}) {
-  const id = useId();
-  return (
-    <nav className="naipe-pager" aria-label="Páginas">
-      <span className="note">
-        {total} {total === 1 ? 'conteúdo' : 'conteúdos'}
-      </span>
-      <span className="naipe-pager__nav">
-        <button type="button" className="icon-btn" onClick={() => onPage(page - 1)} disabled={page <= 1}>
-          <Icon name="chevronLeft" />
-          <span className="sr-only">Página anterior</span>
-        </button>
-        <span>
-          {page} / {pages}
-        </span>
-        <button type="button" className="icon-btn" onClick={() => onPage(page + 1)} disabled={page >= pages}>
-          <Icon name="chevronRight" />
-          <span className="sr-only">Página seguinte</span>
-        </button>
-      </span>
-      <label htmlFor={id} className="naipe-pager__size">
-        Por página
-        <span className="control control--select control--sm">
-          <select id={id} value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))}>
-            {PAGE_SIZES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </span>
-      </label>
-    </nav>
   );
 }

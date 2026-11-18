@@ -1,10 +1,10 @@
 // Home page agenda (upcoming events) and latest news sections.
 import { useEffect, useState } from 'react';
 import { getLatestNews, getUpcomingEvents, newsDate, type NewsPost, type UpcomingEvent } from '../data/api';
-import { Loading } from './AppShared';
 import { portal } from '../data/content';
 import { Icon } from './icons';
 import { SectionHead, MoreLink } from './HomeParts';
+import { Loading } from './ui/Loading';
 
 // ---------- agenda ----------
 

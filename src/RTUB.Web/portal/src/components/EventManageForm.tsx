@@ -1,7 +1,6 @@
 // Create / edit event dialog with its cropped image.
 
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Cropper } from './Cropper';
 import { Dialog } from './Dialog';
 import { eventsApi, type EventInput, type EventTypeOption } from '../data/eventsApi';
@@ -9,6 +8,7 @@ import { Icon } from './icons';
 import { today } from '../data/format';
 import { MAX_SOURCE_BYTES, EVENT_IMAGE, blank, fromEdit, type Form } from '../data/eventFormDraft';
 import { failure } from './EventManageShared';
+import { Loading } from './ui/Loading';
 
 /**
  * Create (no `eventId`) or edit one event, with its optional image (cropped 3:2 in the browser,

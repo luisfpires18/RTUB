@@ -1,6 +1,6 @@
 // /logistics: the list of boards (Ativos, Concluídos, Arquivados).
 import { useEffect, useId, useState } from 'react';
-import { Loading, useLatest } from '../components/AppShared';
+import { useLatest } from '../components/AppShared';
 import { Icon } from '../components/icons';
 import { Notice, RetryNotice, SignInNotice } from '../components/Notice';
 import { logisticsApi, problem, type Boards, type BoardSummary } from '../data/logisticsApi';
@@ -9,6 +9,7 @@ import { TemplateDialog } from '../components/LogisticsTemplates';
 import { BoardTile } from '../components/LogisticsBoardTile';
 import { BoardDialog } from '../components/LogisticsBoardForm';
 import { DeleteBoardDialog, DuplicateBoardDialog } from '../components/LogisticsBoardCopyDelete';
+import { Loading } from '../components/ui/Loading';
 
 type Tab = 'active' | 'completed' | 'archived';
 const TABS: { key: Tab; label: string }[] = [

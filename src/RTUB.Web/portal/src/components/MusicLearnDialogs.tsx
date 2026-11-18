@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import { Icon } from './icons';
 import { PlayAlongField } from './MusicPlayAlongField';
-import { Dialog, Field, fieldProps } from './MusicUi';
+import { Dialog } from './MusicUi';
 import { musicApi, type AlbumSummary, type LearnSong, type Song } from '../data/musicApi';
+import { FormField, fieldProps } from './ui/FormField';
 
 const MAX_NOTICE = 300;
 
@@ -31,7 +32,7 @@ export function AddDialog({ taken, onChanged, onClose }: { taken: Set<number>; o
   return (
     <Dialog title="Adicionar música a Aprender" onClose={onClose}>
       <div className="form">
-        <Field id="learn-album" label="Álbum">
+        <FormField id="learn-album" label="Álbum">
           <select {...fieldProps('learn-album')} value={albumId ?? ''} onChange={(e) => setAlbumId(Number(e.target.value) || null)}>
             <option value="">Escolher álbum</option>
             {albums.map((a) => (
@@ -40,9 +41,9 @@ export function AddDialog({ taken, onChanged, onClose }: { taken: Set<number>; o
               </option>
             ))}
           </select>
-        </Field>
+        </FormField>
         {albumId !== null && (
-          <Field id="learn-song" label="Música" hint={songs.length === 0 ? 'Todas as músicas deste álbum já têm pauta.' : undefined}>
+          <FormField id="learn-song" label="Música" hint={songs.length === 0 ? 'Todas as músicas deste álbum já têm pauta.' : undefined}>
             <select
               {...fieldProps('learn-song', undefined, songs.length === 0 ? 'hint' : undefined)}
               value={songId ?? ''}
@@ -58,7 +59,7 @@ export function AddDialog({ taken, onChanged, onClose }: { taken: Set<number>; o
                 </option>
               ))}
             </select>
-          </Field>
+          </FormField>
         )}
         {songId !== null && (
           <PlayAlongField
@@ -118,7 +119,7 @@ export function NotifyDialog({ song, onClose }: { song: LearnSong; onClose: () =
         <p className="form__hint">
           Notificação push "Nova música para aprender" para os membros que podem ver <strong>{song.title}</strong>. Abre a música em Aprender.
         </p>
-        <Field id="learn-notice" label="Mensagem" hint={`${message.length} / ${MAX_NOTICE}`}>
+        <FormField id="learn-notice" label="Mensagem" hint={`${message.length} / ${MAX_NOTICE}`}>
           <textarea
             {...fieldProps('learn-notice', undefined, 'hint')}
             rows={3}
@@ -127,7 +128,7 @@ export function NotifyDialog({ song, onClose }: { song: LearnSong; onClose: () =
             disabled={busy || sent}
             onChange={(e) => setMessage(e.target.value)}
           />
-        </Field>
+        </FormField>
         {result && (
           <p className={result.error ? 'form__banner' : 'form__hint'} role={result.error ? 'alert' : 'status'}>
             {result.text}

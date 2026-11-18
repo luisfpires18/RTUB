@@ -1,13 +1,13 @@
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
-import { MemberFace } from '../components/MemberDialogs';
 import { memberAreaApi, type MapCity, type MemberMap, type Person } from '../data/memberAreaApi';
 import { DEFAULT_AVATAR } from '../data/membersApi';
 import { Notice, SignInNotice } from '../components/Notice';
+import { Loading } from '../components/ui/Loading';
+import { Avatar } from '../components/ui/Avatar';
 
 // Leaflet ships in this page's own chunk (vendor-leaflet), so no other page loads it.
 const PORTUGAL: L.LatLngTuple = [39.5, -8.0];
@@ -105,7 +105,7 @@ export default function MembersMap() {
                 <ul className="member-rows">
                   {map.withoutCity.map((m, i) => (
                     <li key={i} className="member-row">
-                      <MemberFace avatarUrl={m.avatarUrl} size={36} />
+                      <Avatar className="who__avatar" src={m.avatarUrl} size={36} />
                       <span className="member-row__who">
                         <strong>{m.displayName}</strong>
                         {m.fullName && <small>{m.fullName}</small>}

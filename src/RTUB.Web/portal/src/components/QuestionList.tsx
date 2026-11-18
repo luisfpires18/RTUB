@@ -1,9 +1,9 @@
 // The paged question list of /questions.
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { type Question, type QuestionPage, api, stamp, statusLabel, statusPill } from '../data/questionsApi';
+import { Loading } from './ui/Loading';
+import { Avatar } from './ui/Avatar';
 
 export function QuestionList({
   closed,
@@ -58,12 +58,12 @@ export function QuestionList({
               <li key={x.id} className="rq-card qs-card">
                 <div className="qs-card__people">
                   <span className="qs-person">
-                    <MemberFace avatarUrl={x.author.avatarUrl} size={32} />
+                    <Avatar className="who__avatar" src={x.author.avatarUrl} size={32} />
                     <strong>{x.author.displayName}</strong>
                   </span>
                   <Icon name="arrow" className="qs-card__to" />
                   <span className="qs-person">
-                    <MemberFace avatarUrl={x.recipient.avatarUrl} size={32} />
+                    <Avatar className="who__avatar" src={x.recipient.avatarUrl} size={32} />
                     <span>
                       <strong>{x.recipient.displayName}</strong>
                       <small className="note">{x.recipient.role}</small>

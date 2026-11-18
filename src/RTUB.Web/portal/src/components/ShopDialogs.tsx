@@ -1,11 +1,11 @@
 // Shop detail and reservation dialogs.
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { euros } from '../data/format';
 import { type Reservation, type Product, type Detail, SIZE_LABELS, api, when, problem } from '../data/shopApi';
 import { Confirm } from './ShopProductForm';
+import { Loading } from './ui/Loading';
 
 export function DetailDialog({ id, onClose }: { id: number; onClose: () => void }) {
   const [detail, setDetail] = useState<Detail | 'missing' | null>();

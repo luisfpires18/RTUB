@@ -1,11 +1,11 @@
 // Dialog to manage other members' answers (inscrições) on an event.
 
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { eventsApi, type EnrollmentList, type MemberOption, type EventSummary, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
+import { Loading } from './ui/Loading';
 
 /**
  * Other members' answers for Admin/Owner: every answer

@@ -5,6 +5,7 @@ import { useCurrentUser } from './AppShared';
 import { useSession, revealApp } from './AppLaunch';
 import { Header, Footer } from './AppChrome';
 import { SystemAnnouncement } from './AppAnnouncement';
+import { EmptyState } from './ui/EmptyState';
 
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -50,18 +51,23 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
   render() {
     if (!this.state.failed) return this.props.children;
     return (
-      <div className="state wrap" role="alert">
-        <p className="state__title">Não foi possível carregar esta página.</p>
+      <EmptyState
+        title="Não foi possível carregar esta página."
+        className="wrap"
+        role="alert"
+        actions={
+          <>
+            <button type="button" className="btn btn--primary" onClick={() => location.reload()}>
+              Tentar novamente
+            </button>
+            <a className="btn btn--ghost" href={portal.home}>
+              Voltar ao início
+            </a>
+          </>
+        }
+      >
         <p>Verifica a ligação e tenta outra vez.</p>
-        <div className="state__actions">
-          <button type="button" className="btn btn--primary" onClick={() => location.reload()}>
-            Tentar novamente
-          </button>
-          <a className="btn btn--ghost" href={portal.home}>
-            Voltar ao início
-          </a>
-        </div>
-      </div>
+      </EmptyState>
     );
   }
 }

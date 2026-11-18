@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { membersApi, type TreeNode } from '../data/membersApi';
 import { RetryNotice, SignInNotice } from '../components/Notice';
 import { FamilyTree } from '../components/FamilyTree';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * /members/hierarchy - Hierarquia (tree). Signed-in members only. The Padrinho → Afilhado family

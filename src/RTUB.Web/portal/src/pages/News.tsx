@@ -1,11 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { newsDate, type NewsFeed, type NewsPost } from '../data/api';
 import { Icon } from '../components/icons';
 import { MemberBadge } from '../components/MemberBadge';
 import { RetryNotice } from '../components/Notice';
 import { api, problem, type Tab } from '../data/newsApi';
 import { FormDialog, DeleteDialog } from '../components/NewsDialogs';
+import { Loading } from '../components/ui/Loading';
 
 // /api/news (Endpoints/NewsEndpoints.cs). Everyone, visitors included, reads published posts; Admin and
 // Owner also see drafts and write. The server decides every rule (NewsService); hiding a button here is only a convenience.

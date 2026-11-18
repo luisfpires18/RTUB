@@ -1,77 +1,8 @@
-import { useId, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Dialog } from './Dialog';
 import { Icon, type IconName } from './icons';
 
 export { Dialog };
-
-export function ConfirmDialog({
-  title,
-  children,
-  confirmLabel,
-  busy,
-  error,
-  onConfirm,
-  onClose,
-}: {
-  title: string;
-  children: ReactNode;
-  confirmLabel: string;
-  busy: boolean;
-  error?: string | null;
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <Dialog
-      title={title}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={onConfirm} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            {confirmLabel}
-          </button>
-        </>
-      }
-    >
-      {children}
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
-  );
-}
-
-export function Field({ id, label, error, hint, children }: { id: string; label: string; error?: string; hint?: string; children: ReactNode }) {
-  return (
-    <div className={`form__field${error ? ' form__field--error' : ''}`}>
-      <label htmlFor={id}>{label}</label>
-      {children}
-      {hint && (
-        <p id={`${id}-hint`} className="form__hint">
-          {hint}
-        </p>
-      )}
-      {error && (
-        <p id={`${id}-error`} className="form__error">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-/** aria wiring for an input inside <Field>. */
-export const fieldProps = (id: string, error?: string, hint?: string) => ({
-  id,
-  'aria-invalid': error ? true : undefined,
-  'aria-describedby': [error ? `${id}-error` : '', hint ? `${id}-hint` : ''].filter(Boolean).join(' ') || undefined,
-});
 
 export function Badge({ icon, children }: { icon: IconName; children: ReactNode }) {
   return (
@@ -100,52 +31,6 @@ export function IconButton({
       <Icon name={icon} />
       <span className="sr-only">{label}</span>
     </button>
-  );
-}
-
-/** Client-side paging for the statistics lists (fixed page sizes). */
-export function Pager({
-  page,
-  pageSize,
-  total,
-  label,
-  onPage,
-  onPageSize,
-}: {
-  page: number;
-  pageSize: number;
-  total: number;
-  label: string;
-  onPage: (page: number) => void;
-  onPageSize: (size: number) => void;
-}) {
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  const sizeId = useId();
-  if (total <= 5) return null;
-  return (
-    <div className="pager">
-      <button type="button" className="btn btn--ghost btn--sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-        Anterior
-      </button>
-      <span className="pager__status">
-        {page} / {pages} · {total} {label}
-      </span>
-      <button type="button" className="btn btn--ghost btn--sm" disabled={page >= pages} onClick={() => onPage(page + 1)}>
-        Seguinte
-      </button>
-      <label className="pager__size" htmlFor={sizeId}>
-        Por página
-        <span className="control control--select control--sm">
-          <select id={sizeId} value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))}>
-            {[5, 10, 15, 20, 25].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </span>
-      </label>
-    </div>
   );
 }
 

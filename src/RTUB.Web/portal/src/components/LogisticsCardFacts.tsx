@@ -1,8 +1,8 @@
 // Status buttons and priority / date fields of the card workspace side column.
-import { FieldError } from './LogisticsFields';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, PRIORITIES_LOW_FIRST, PRIORITY, STATUS, STATUSES, type Board, type CardDetail, type Priority } from '../data/logisticsApi';
 import { day } from '../data/format';
+import { FieldError } from './ui/FieldError';
 import type { Draft } from '../data/logisticsCardDraft';
 
 /** Status buttons of the card workspace side column. */

@@ -1,12 +1,14 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
 import { matches, problem, treasuryApi, type ReportSummary, type Reports } from '../data/treasuryApi';
-import { Confirm, Refusal, SaveFooter, TreasuryTabs } from '../components/TreasuryUi';
+import { Refusal, TreasuryTabs } from '../components/TreasuryUi';
 
 import { euros } from '../data/format';
+import { Loading } from '../components/ui/Loading';
+import { DialogFooter } from '../components/ui/DialogFooter';
+import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 /**
  * /treasury - Tesouraria. Treasury members: the annual reports, newest first,
  * with income, expenses and balance, search and PDF. Admin, Owner and treasury-team Mods create a report; Owner and the
@@ -124,10 +126,9 @@ export default function Treasury() {
 
           {creating && <CreateReportDialog years={reports.availableYears} onClose={() => setCreating(false)} onSaved={load} />}
           {publishing && (
-            <Confirm
+            <AsyncConfirmDialog
               title="Publicar relatório"
-              action="Publicar"
-              danger={false}
+              confirmLabel="Publicar"
               onClose={() => setPublishing(undefined)}
               onConfirm={async () => {
                 const o = await treasuryApi.publish(publishing.id);
@@ -142,12 +143,12 @@ export default function Treasury() {
                 <Icon name="warning" />
                 Depois de publicado, o relatório fica só de leitura.
               </p>
-            </Confirm>
+            </AsyncConfirmDialog>
           )}
           {deleting && (
-            <Confirm
+            <AsyncConfirmDialog danger
               title="Eliminar relatório"
-              action="Eliminar"
+              confirmLabel="Eliminar"
               onClose={() => setDeleting(undefined)}
               onConfirm={async () => {
                 const o = await treasuryApi.removeReport(deleting.id);
@@ -162,7 +163,7 @@ export default function Treasury() {
                 <Icon name="warning" />
                 Apaga também as atividades, as transações e os recibos. Não dá para desfazer.
               </p>
-            </Confirm>
+            </AsyncConfirmDialog>
           )}
         </>
       )}
@@ -188,7 +189,7 @@ function CreateReportDialog({ years, onClose, onSaved }: { years: number[]; onCl
   };
 
   return (
-    <Dialog title="Novo relatório" onClose={onClose} footer={<SaveFooter formId={`${fid}-form`} busy={busy} disabled={years.length === 0} onClose={onClose} />}>
+    <Dialog title="Novo relatório" onClose={onClose} footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={years.length === 0} onClose={onClose} />}>
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         {years.length === 0 ? (
           <p className="note">Todos os anos letivos até ao atual já têm relatório.</p>

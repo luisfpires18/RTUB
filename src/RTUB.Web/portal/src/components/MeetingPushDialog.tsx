@@ -1,11 +1,14 @@
 // The push-notification dialog of /meetings.
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingCard, MeetingNoticeResult, MeetingPushDraft } from '../data/meetingsTypes';
-import { MAX_PUSH, problem, type Errors, fieldClass, FieldError, Banner, Spinner, MeetingSummary, PeopleList } from './MeetingUi';
+import { MAX_PUSH, problem, type Errors, fieldClass, MeetingSummary, PeopleList } from './MeetingUi';
+import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
+import { FieldError } from './ui/FieldError';
+import { Spinner } from './ui/Spinner';
 
 export function PushDialog({ card, onClose, onSent }: { card: MeetingCard; onClose: () => void; onSent: (r: MeetingNoticeResult) => void }) {
   const [draft, setDraft] = useState<MeetingPushDraft | null>();
@@ -54,7 +57,7 @@ export function PushDialog({ card, onClose, onSent }: { card: MeetingCard; onClo
             Cancelar
           </button>
           <button type="button" className="btn btn--primary" onClick={send} disabled={busy || recipients.length === 0}>
-            <Spinner on={busy} />
+            {busy && <Spinner small />}
             {!busy && <Icon name="bell" />}
             Enviar Notificação Push
           </button>
@@ -81,7 +84,7 @@ export function PushDialog({ card, onClose, onSent }: { card: MeetingCard; onClo
                 </select>
               </span>
               <p className="form__hint">Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV.</p>
-              <FieldError errors={errors} name="tunoId" />
+              <FieldError text={errors.tunoId} />
             </div>
           )}
           <div className={fieldClass(errors, 'message')}>
@@ -99,7 +102,7 @@ export function PushDialog({ card, onClose, onSent }: { card: MeetingCard; onClo
             <p className="form__hint">
               A notificação terá um título automático com a data da reunião. Máximo {MAX_PUSH} caracteres ({message.length} / {MAX_PUSH}).
             </p>
-            <FieldError errors={errors} name="message" />
+            <FieldError text={errors.message} />
           </div>
           <p className="mtg-info">
             <Icon name="bell" />

@@ -1,9 +1,11 @@
 // Card owner and collaborators panel.
 import { useId } from 'react';
-import { FieldError, MemberPicker, PersonChip } from './LogisticsFields';
+import { MemberPicker } from './LogisticsFields';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, type CardDetail } from '../data/logisticsApi';
 import { DEFAULT_AVATAR } from '../data/membersApi';
+import { FieldError } from './ui/FieldError';
+import { PersonChip } from './ui/PersonChip';
 import type { Draft } from '../data/logisticsCardDraft';
 
 /** Owner (manager picks; saved with the card's fields) and collaborators (managers add / remove, saved at once). */

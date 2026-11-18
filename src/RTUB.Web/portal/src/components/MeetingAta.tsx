@@ -1,13 +1,16 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { Banner, ConfirmDialog, FieldError, fieldClass, problem, type Errors } from './MeetingUi';
+import { fieldClass, problem, type Errors } from './MeetingUi';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingAtaEditor, MeetingCard } from '../data/meetingsTypes';
 import { numericDateTime } from '../data/meetingsDates';
 import { type Point, type Values, toPoint, fromEditor, toInput, download, editorProblem } from '../data/meetingAtaForm';
 import { Block, SecretarySelect } from './MeetingAtaParts';
+import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
+import { FieldError } from './ui/FieldError';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 // The ata of a meeting: the editor for whoever may write it (a draft is only theirs, decision A1) and
 // "Ver Ata" for readers of a published one. The server decides who writes, reads, publishes and confirms.
@@ -198,7 +201,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                       value={values.ataNumber}
                       onChange={(e) => set({ ataNumber: e.target.value })}
                     />
-                    <FieldError errors={errors} name="ataNumber" />
+                    <FieldError text={errors.ataNumber} />
                   </div>
                   <div className="form__row">
                     <div className={fieldClass(errors, 'actualStartTime')}>
@@ -206,12 +209,12 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                         Hora de Início Efetiva <span className="mtg-required">*</span>
                       </label>
                       <input id={`${id}-start`} type="datetime-local" value={values.actualStartTime} onChange={(e) => set({ actualStartTime: e.target.value })} />
-                      <FieldError errors={errors} name="actualStartTime" />
+                      <FieldError text={errors.actualStartTime} />
                     </div>
                     <div className={fieldClass(errors, 'actualEndTime')}>
                       <label htmlFor={`${id}-end`}>Hora de Término</label>
                       <input id={`${id}-end`} type="datetime-local" value={values.actualEndTime} onChange={(e) => set({ actualEndTime: e.target.value })} />
-                      <FieldError errors={errors} name="actualEndTime" />
+                      <FieldError text={errors.actualEndTime} />
                     </div>
                   </div>
                   <div className={fieldClass(errors, 'location')}>
@@ -219,7 +222,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                       Local <span className="mtg-required">*</span>
                     </label>
                     <input id={`${id}-location`} type="text" maxLength={MAX_LOCATION} value={values.location} onChange={(e) => set({ location: e.target.value })} />
-                    <FieldError errors={errors} name="location" />
+                    <FieldError text={errors.location} />
                   </div>
                   {kind === 'ag' && (
                     <div className={fieldClass(errors, 'quorumBasis')}>
@@ -230,7 +233,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                           <option value="HoraAgendadaMais30Minutos">Iniciada 30 minutos após hora agendada</option>
                         </select>
                       </span>
-                      <FieldError errors={errors} name="quorumBasis" />
+                      <FieldError text={errors.quorumBasis} />
                     </div>
                   )}
                 </div>
@@ -399,7 +402,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                             </span>
                           </div>
                         </div>
-                        <FieldError errors={errors} name={`agendaPoints[${i}]`} />
+                        <FieldError text={errors[`agendaPoints[${i}]`]} />
                       </li>
                     ))}
                   </ol>
@@ -429,7 +432,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                     </button>
                   </div>
                 )}
-                <FieldError errors={errors} name="agendaPoints" />
+                <FieldError text={errors.agendaPoints} />
               </Block>
 
               <Block icon="journal" title="Encerramento">
@@ -443,7 +446,7 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                     value={values.closingText}
                     onChange={(e) => set({ closingText: e.target.value })}
                   />
-                  <FieldError errors={errors} name="closingText" />
+                  <FieldError text={errors.closingText} />
                 </div>
               </Block>
             </fieldset>
@@ -460,12 +463,14 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
         )}
       </Dialog>
       {confirmPublish && (
-        <ConfirmDialog title="Publicar Ata" confirmLabel="Sim, Publicar" confirmIcon="send" onClose={() => setConfirmPublish(false)} onConfirm={publish}>
-          <p>
-            Tem a certeza que deseja publicar esta ata? Após publicação, a ata ficará visível para os utilizadores autorizados e será criada uma pasta na
-            Documentação.
-          </p>
-        </ConfirmDialog>
+        <AsyncConfirmDialog title="Publicar Ata" confirmLabel="Sim, Publicar" confirmIcon="send" onClose={() => setConfirmPublish(false)} onConfirm={publish}>
+          <div className="mtg-confirm">
+            <p>
+              Tem a certeza que deseja publicar esta ata? Após publicação, a ata ficará visível para os utilizadores autorizados e será criada uma pasta na
+              Documentação.
+            </p>
+          </div>
+        </AsyncConfirmDialog>
       )}
     </>
   );

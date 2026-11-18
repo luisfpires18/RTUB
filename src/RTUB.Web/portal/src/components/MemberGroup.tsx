@@ -1,8 +1,8 @@
 // One titled group of member cards on the /members page.
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { MemberBadge } from './MemberBadge';
 import { type MemberCard } from '../data/membersApi';
+import { Avatar } from './ui/Avatar';
 
 export function Group({ title, people, limit, onMore, onOpen }: { title: string; people: MemberCard[]; limit: number; onMore: () => void; onOpen: (id: string) => void }) {
   return (
@@ -15,7 +15,7 @@ export function Group({ title, people, limit, onMore, onOpen }: { title: string;
           <li key={p.id}>
             <button type="button" className={p.expelled ? 'who__person member-card member-card--expelled' : 'who__person member-card'} onClick={() => onOpen(p.id)}>
               <span className={p.online ? 'member-card__online is-on' : 'member-card__online'}>{p.online ? 'Online' : 'Offline'}</span>
-              <MemberFace avatarUrl={p.avatarUrl} size={72} />
+              <Avatar className="who__avatar" src={p.avatarUrl} size={72} />
               <span className="who__name">{p.displayName}</span>
               {p.fullName && <span className="who__meta">{p.fullName}</span>}
               <span className="member-badges">

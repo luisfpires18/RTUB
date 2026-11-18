@@ -223,3 +223,6 @@ export type MeetingPoll = {
 };
 export type MeetingPollBoard = { createAudiences: MeetingPollAudienceOption[]; polls: MeetingPoll[] };
 export type MeetingPollInput = { audience: string; question: string; options: string[]; closesAt: string | null };
+
+/** Page sizes of the /meetings and /meetings/polls grids. */
+export const MEETING_PAGE_SIZES = [6, 12, 18, 24];

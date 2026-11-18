@@ -1,9 +1,9 @@
 // Card labels panel.
 import { useId, useState } from 'react';
 import { Icon } from './icons';
-import { FieldError } from './LogisticsFields';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, type CardDetail } from '../data/logisticsApi';
+import { FieldError } from './ui/FieldError';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 

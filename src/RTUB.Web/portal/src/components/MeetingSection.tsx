@@ -2,9 +2,10 @@
 import { type ReactNode } from 'react';
 import { Icon, type IconName } from './icons';
 import type { MeetingCard } from '../data/meetingsTypes';
-import { MEETING_PAGE_SIZES, Pager } from './MeetingPager';
+import { MEETING_PAGE_SIZES } from '../data/meetingsTypes';
 import { type Open } from './MeetingDialogHost';
 import { MeetingCardView } from './MeetingCardView';
+import { Pager } from './ui/Pager';
 
 export function Empty({ title, message }: { title: string; message?: string }) {
   return (

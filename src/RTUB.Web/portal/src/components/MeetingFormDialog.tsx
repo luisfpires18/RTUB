@@ -1,11 +1,14 @@
 // The create / edit meeting dialog of /meetings.
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingBoard, MeetingCard, MeetingDraft, MeetingForm, MeetingOption } from '../data/meetingsTypes';
 import { localDateTime } from '../data/meetingsDates';
-import { MAX_TITLE, MAX_LOCATION, MAX_STATEMENT, problem, type Errors, fieldClass, FieldError, Banner, Spinner } from './MeetingUi';
+import { MAX_TITLE, MAX_LOCATION, MAX_STATEMENT, problem, type Errors, fieldClass } from './MeetingUi';
+import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
+import { FieldError } from './ui/FieldError';
+import { Spinner } from './ui/Spinner';
 
 const TYPE_LABELS: Record<string, string> = {
   AssembleiaGeralOrdinaria: 'Assembleia Geral Ordinária',
@@ -99,7 +102,7 @@ export function MeetingFormDialog({
             Cancelar
           </button>
           <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy || !form}>
-            <Spinner on={busy} />
+            {busy && <Spinner small />}
             Guardar
           </button>
         </>
@@ -126,17 +129,17 @@ export function MeetingFormDialog({
                     ))}
                   </select>
                 </span>
-                <FieldError errors={errors} name="type" />
+                <FieldError text={errors.type} />
               </div>
               <div className={fieldClass(errors, 'title')}>
                 <label htmlFor={`${id}-title`}>Título</label>
                 <input id={`${id}-title`} type="text" maxLength={MAX_TITLE} placeholder="Inserir título..." value={title} onChange={(e) => setTitle(e.target.value)} />
-                <FieldError errors={errors} name="title" />
+                <FieldError text={errors.title} />
               </div>
               <div className={fieldClass(errors, 'date')}>
                 <label htmlFor={`${id}-date`}>Data e Hora</label>
                 <input id={`${id}-date`} type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
-                <FieldError errors={errors} name="date" />
+                <FieldError text={errors.date} />
               </div>
               <div className={fieldClass(errors, 'location')}>
                 <label htmlFor={`${id}-location`}>Localização (Opcional)</label>
@@ -148,7 +151,7 @@ export function MeetingFormDialog({
                   value={place}
                   onChange={(e) => setPlace(e.target.value)}
                 />
-                <FieldError errors={errors} name="location" />
+                <FieldError text={errors.location} />
               </div>
               {isCouncil && (
                 <div className={fieldClass(errors, 'tunoRepresentativeId')}>
@@ -167,7 +170,7 @@ export function MeetingFormDialog({
                     </select>
                   </span>
                   <p className="form__hint">Este tuno poderá ver e participar nesta reunião de CV.</p>
-                  <FieldError errors={errors} name="tunoRepresentativeId" />
+                  <FieldError text={errors.tunoRepresentativeId} />
                 </div>
               )}
               <div className={fieldClass(errors, 'statement')}>
@@ -183,7 +186,7 @@ export function MeetingFormDialog({
                 <p className="form__hint">
                   Máximo {MAX_STATEMENT} caracteres ({statement.length} / {MAX_STATEMENT})
                 </p>
-                <FieldError errors={errors} name="statement" />
+                <FieldError text={errors.statement} />
               </div>
             </>
           )}

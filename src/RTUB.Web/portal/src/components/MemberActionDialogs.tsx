@@ -4,6 +4,7 @@ import { Dialog } from './Dialog';
 import type { Outcome } from '../data/eventsApi';
 import { memberAdminApi } from '../data/membersApi';
 import { problem, username } from '../data/memberFormState';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 /** "Definir alcunha" for a Leitão: the new nickname and the username it gives; the member gets an email. */
 export function NicknameDialog({ member, onClose, onDone }: { member: { id: string; displayName: string }; onClose: () => void; onDone: () => void }) {
@@ -82,41 +83,15 @@ export function ConfirmAction({
   onDone: () => void;
   children: ReactNode;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-
   const confirm = async () => {
-    setBusy(true);
     const o = await run();
-    setBusy(false);
-    if (o.kind === 'ok') {
-      onDone();
-      onClose();
-    } else setError(problem(o, title.toLowerCase()));
+    if (o.kind !== 'ok') return problem(o, title.toLowerCase());
+    onDone();
   };
 
   return (
-    <Dialog
-      title={title}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className={danger ? 'btn btn--danger' : 'btn btn--primary'} onClick={confirm} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            {confirmLabel}
-          </button>
-        </>
-      }
-    >
+    <AsyncConfirmDialog title={title} confirmLabel={confirmLabel} danger={danger} onConfirm={confirm} onClose={onClose}>
       {children}
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </AsyncConfirmDialog>
   );
 }

@@ -1,11 +1,11 @@
 // The /profile passkey and security sections.
 import { useEffect, useId, useState, type FormEvent, type ReactNode, type Ref } from 'react';
-import { Loading } from './AppShared';
 import { Icon } from './icons';
 import { memberAreaApi } from '../data/memberAreaApi';
 import { shortDate } from '../data/membersApi';
 import { passkeyApi, passkeysSupported, type MyPasskey } from '../data/passkey';
 import { FormButtons, Section, problem, useFormState } from './ProfileShared';
+import { Loading } from './ui/Loading';
 
 export function PasskeySection() {
   const [list, setList] = useState<MyPasskey[] | 'failed'>();

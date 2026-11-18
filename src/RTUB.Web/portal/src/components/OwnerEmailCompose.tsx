@@ -2,10 +2,10 @@
 import { useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { ConfirmDialog } from './MusicUi';
 import { ownerApi, ownerProblem } from '../data/ownerApi';
 import { Flash } from './OwnerUi';
 import { TITLE_MAX, CONTENT_MAX, type Message } from '../data/ownerEmailsView';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 export function Compose({ count }: { count: number }) {
   const id = useId();

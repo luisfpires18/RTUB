@@ -1,12 +1,15 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
 import { isoDay, matches, problem, treasuryApi, type NerbaOrder, type NerbaOrders } from '../data/treasuryApi';
-import { Confirm, Field, Refusal, SaveFooter } from '../components/TreasuryUi';
+import { Refusal } from '../components/TreasuryUi';
 
 import { day, euros } from '../data/format';
+import { Loading } from '../components/ui/Loading';
+import { FormField } from '../components/ui/FormField';
+import { DialogFooter } from '../components/ui/DialogFooter';
+import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 type Sort = 'item' | 'type' | 'stock' | 'pricePerUnit' | 'total';
 const COLUMNS: { key: Sort; label: string; numeric?: boolean }[] = [
   { key: 'item', label: 'Item' },
@@ -187,9 +190,9 @@ export default function TreasuryNerbaEvent({ eventId }: { eventId: number }) {
 
       {form && <OrderDialog data={n} order={form.order} defaultDay={dayFilter} onClose={() => setForm(undefined)} onSaved={setData} />}
       {deleting && (
-        <Confirm
+        <AsyncConfirmDialog danger
           title="Eliminar item"
-          action="Eliminar"
+          confirmLabel="Eliminar"
           onClose={() => setDeleting(undefined)}
           onConfirm={async () => {
             const o = await treasuryApi.removeNerbaOrder(deleting.id);
@@ -200,7 +203,7 @@ export default function TreasuryNerbaEvent({ eventId }: { eventId: number }) {
           <p>
             Eliminar <strong>{deleting.item}</strong>?
           </p>
-        </Confirm>
+        </AsyncConfirmDialog>
       )}
     </section>
   );
@@ -251,7 +254,7 @@ function OrderDialog({
     <Dialog
       title={order ? 'Editar item' : 'Adicionar item'}
       onClose={onClose}
-      footer={<SaveFooter formId={`${fid}-form`} busy={busy} disabled={!item.trim() || !stock || !price} onClose={onClose} />}
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!item.trim() || !stock || !price} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         {errors.form && (
@@ -260,7 +263,7 @@ function OrderDialog({
           </p>
         )}
         {data.days.length > 0 && (
-          <Field id={`${fid}-day`} label="Dia" error={errors.orderDate}>
+          <FormField alert id={`${fid}-day`} label="Dia" error={errors.orderDate}>
             <span className="control control--select">
               <select id={`${fid}-day`} value={orderDate} onChange={(e) => setOrderDate(e.target.value)}>
                 {data.days.map((d) => (
@@ -270,21 +273,21 @@ function OrderDialog({
                 ))}
               </select>
             </span>
-          </Field>
+          </FormField>
         )}
-        <Field id={`${fid}-item`} label="Item" error={errors.item}>
+        <FormField alert id={`${fid}-item`} label="Item" error={errors.item}>
           <input id={`${fid}-item`} type="text" maxLength={200} value={item} onChange={(e) => setItem(e.target.value)} />
-        </Field>
-        <Field id={`${fid}-type`} label="Tipo (opcional)" error={errors.type}>
+        </FormField>
+        <FormField alert id={`${fid}-type`} label="Tipo (opcional)" error={errors.type}>
           <input id={`${fid}-type`} type="text" maxLength={100} value={type} onChange={(e) => setType(e.target.value)} />
-        </Field>
+        </FormField>
         <div className="form__row">
-          <Field id={`${fid}-stock`} label="Quantidade" error={errors.stock}>
+          <FormField alert id={`${fid}-stock`} label="Quantidade" error={errors.stock}>
             <input id={`${fid}-stock`} type="number" inputMode="numeric" min="1" step="1" value={stock} onChange={(e) => setStock(e.target.value)} />
-          </Field>
-          <Field id={`${fid}-price`} label="Preço por unidade (€)" error={errors.pricePerUnit}>
+          </FormField>
+          <FormField alert id={`${fid}-price`} label="Preço por unidade (€)" error={errors.pricePerUnit}>
             <input id={`${fid}-price`} type="number" inputMode="decimal" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
-          </Field>
+          </FormField>
         </div>
       </form>
     </Dialog>

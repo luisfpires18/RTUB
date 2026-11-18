@@ -3,6 +3,7 @@ import { useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { type Folder, type Docs, type Target, api, problem, fileSize } from '../data/documentationApi';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 /** "Criar pasta": always in the current fiscal year. */
 export function FolderDialog({ onClose, onDone }: { onClose: () => void; onDone: (name: string) => void }) {
@@ -133,36 +134,16 @@ export function UploadDialog({ docs, folder, onClose, onDone }: { docs: Docs; fo
 }
 
 export function DeleteDialog({ fiscalYear, target, onClose, onDone }: { fiscalYear: string; target: Target; onClose: () => void; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
   const { folder, document } = target;
 
   const remove = async () => {
-    setBusy(true);
     const o = document ? await api.removeDocument(fiscalYear, folder.name, document.name) : await api.removeFolder(fiscalYear, folder.name);
-    setBusy(false);
-    if (o.kind === 'ok' || o.kind === 'notfound') {
-      onDone();
-      onClose();
-    } else setError(problem(o, 'eliminar'));
+    if (o.kind !== 'ok' && o.kind !== 'notfound') return problem(o, 'eliminar');
+    onDone();
   };
 
   return (
-    <Dialog
-      title={document ? 'Eliminar documento' : 'Eliminar pasta'}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={remove} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Eliminar
-          </button>
-        </>
-      }
-    >
+    <AsyncConfirmDialog title={document ? 'Eliminar documento' : 'Eliminar pasta'} confirmLabel="Eliminar" danger onConfirm={remove} onClose={onClose}>
       <p>
         Eliminar {document ? 'o documento' : 'a pasta'} <strong>{document?.name ?? folder.label}</strong>?
       </p>
@@ -170,11 +151,6 @@ export function DeleteDialog({ fiscalYear, target, onClose, onDone }: { fiscalYe
         <Icon name="warning" />
         {document ? 'Não dá para desfazer.' : 'Elimina também todos os documentos da pasta. Não dá para desfazer.'}
       </p>
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </AsyncConfirmDialog>
   );
 }

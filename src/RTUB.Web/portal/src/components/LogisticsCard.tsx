@@ -1,9 +1,7 @@
 // The card workspace dialog: loads one card, edits its fields and lays out the panels.
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { FieldError } from './LogisticsFields';
 import { Section } from './LogisticsPanel';
 import type { Outcome } from '../data/eventsApi';
 import { logisticsApi, PRIORITY, problem, STATUS, type Board, type Card, type CardDetail } from '../data/logisticsApi';
@@ -19,6 +17,8 @@ import { LinkedCards } from './LogisticsLinkedCards';
 import { Reminders } from './LogisticsReminders';
 import { History } from './LogisticsHistory';
 import { draftOf, same, type Draft } from '../data/logisticsCardDraft';
+import { Loading } from './ui/Loading';
+import { FieldError } from './ui/FieldError';
 
 /**
  * The card workspace (Logística 2/5). One layout for everyone; the controls follow the server's flags:

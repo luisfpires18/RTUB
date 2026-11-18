@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Icon } from './icons';
-import { Dialog, Field, fieldProps } from './MusicUi';
+import { Dialog } from './MusicUi';
 import { musicApi, type FieldErrors, type SongInput } from '../data/musicApi';
 import { failedMessage } from '../data/musicFormHelpers';
 import { PlayAlongField } from './MusicPlayAlongField';
+import { FormField, fieldProps } from './ui/FormField';
 
 // ---------- song ----------
 
@@ -93,10 +94,10 @@ export function SongForm({
       ) : (
         <form id="song-form" className="form" onSubmit={submit} noValidate>
           <div className="form__row">
-            <Field id="song-title" label="Título *" error={errors.title}>
+            <FormField id="song-title" label="Título *" error={errors.title}>
               <input {...fieldProps('song-title', errors.title)} required maxLength={200} value={form.title} onChange={(e) => set('title', e.target.value)} />
-            </Field>
-            <Field id="song-track" label="Número da faixa" error={errors.trackNumber}>
+            </FormField>
+            <FormField id="song-track" label="Número da faixa" error={errors.trackNumber}>
               <input
                 {...fieldProps('song-track', errors.trackNumber)}
                 type="number"
@@ -106,21 +107,21 @@ export function SongForm({
                 value={form.trackNumber ?? ''}
                 onChange={(e) => set('trackNumber', e.target.value === '' ? null : Number(e.target.value))}
               />
-            </Field>
+            </FormField>
           </div>
           <div className="form__row">
-            <Field id="song-lyric-author" label="Autor da letra" error={errors.lyricAuthor}>
+            <FormField id="song-lyric-author" label="Autor da letra" error={errors.lyricAuthor}>
               <input {...fieldProps('song-lyric-author', errors.lyricAuthor)} maxLength={200} value={form.lyricAuthor} onChange={(e) => set('lyricAuthor', e.target.value)} />
-            </Field>
-            <Field id="song-music-author" label="Autor da música" error={errors.musicAuthor}>
+            </FormField>
+            <FormField id="song-music-author" label="Autor da música" error={errors.musicAuthor}>
               <input {...fieldProps('song-music-author', errors.musicAuthor)} maxLength={200} value={form.musicAuthor} onChange={(e) => set('musicAuthor', e.target.value)} />
-            </Field>
+            </FormField>
           </div>
           <div className="form__row">
-            <Field id="song-adaptation" label="Adaptação" error={errors.adaptation}>
+            <FormField id="song-adaptation" label="Adaptação" error={errors.adaptation}>
               <input {...fieldProps('song-adaptation', errors.adaptation)} maxLength={200} value={form.adaptation} onChange={(e) => set('adaptation', e.target.value)} />
-            </Field>
-            <Field id="song-spotify" label="Endereço no Spotify" error={errors.spotifyUrl}>
+            </FormField>
+            <FormField id="song-spotify" label="Endereço no Spotify" error={errors.spotifyUrl}>
               <input
                 {...fieldProps('song-spotify', errors.spotifyUrl)}
                 type="url"
@@ -130,7 +131,7 @@ export function SongForm({
                 value={form.spotifyUrl}
                 onChange={(e) => set('spotifyUrl', e.target.value)}
               />
-            </Field>
+            </FormField>
           </div>
           <label className="form__check">
             <input type="checkbox" checked={form.hasAudio} onChange={(e) => set('hasAudio', e.target.checked)} />
@@ -170,7 +171,7 @@ export function SongForm({
             {errors.youTubeUrls && <p className="form__error">{errors.youTubeUrls}</p>}
           </fieldset>
 
-          <Field id="song-lyrics" label="Letra" hint="Só quando a música não está no cancioneiro em PDF." error={errors.lyrics}>
+          <FormField id="song-lyrics" label="Letra" hint="Só quando a música não está no cancioneiro em PDF." error={errors.lyrics}>
             <textarea
               {...fieldProps('song-lyrics', errors.lyrics, 'hint')}
               rows={10}
@@ -178,7 +179,7 @@ export function SongForm({
               value={form.lyrics}
               onChange={(e) => set('lyrics', e.target.value)}
             />
-          </Field>
+          </FormField>
 
           {songId !== null && canPlayAlong && <PlayAlongField songId={songId} has={hasPlayAlong} onChange={setHasPlayAlong} />}
         </form>

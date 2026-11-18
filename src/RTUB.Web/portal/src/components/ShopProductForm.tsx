@@ -1,11 +1,12 @@
 // Shop product form and delete confirmation.
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
-import { Loading } from './AppShared';
 import { Cropper } from './Cropper';
 import { Dialog } from './Dialog';
 import { type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { type ProductInput, api, MAX_SOURCE, CROP_TEXT, problem } from '../data/shopApi';
+import { Loading } from './ui/Loading';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 export function Confirm({
   title,
@@ -22,40 +23,15 @@ export function Confirm({
   onDone: () => void;
   children: ReactNode;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
   const go = async () => {
-    setBusy(true);
     const o = await run();
-    setBusy(false);
-    if (o.kind === 'ok' || o.kind === 'notfound') {
-      onDone();
-      onClose();
-    } else setError(problem(o, title.toLowerCase()));
+    if (o.kind !== 'ok' && o.kind !== 'notfound') return problem(o, title.toLowerCase());
+    onDone();
   };
   return (
-    <Dialog
-      title={title}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={go} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            {label}
-          </button>
-        </>
-      }
-    >
+    <AsyncConfirmDialog title={title} confirmLabel={label} danger onConfirm={go} onClose={onClose}>
       {children}
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </AsyncConfirmDialog>
   );
 }
 

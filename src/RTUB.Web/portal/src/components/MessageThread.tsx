@@ -1,10 +1,10 @@
 // One open conversation: messages, reactions, replies, mute and remove.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Loading } from './AppShared';
 import { Icon } from './icons';
-import { ConfirmDialog } from './MusicUi';
 import { ChatFace, Composer } from './MessageParts';
 import { type Detail, type MessageItem, THREAD_POLL_MS, api, clock, dayLabel, problem, sameDay, toDate } from '../data/messagesApi';
+import { Loading } from './ui/Loading';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 export function Thread({ id, onBack, onChanged, onRemoved }: { id: number; onBack: () => void; onChanged: () => void; onRemoved: () => void }) {
   const [removing, setRemoving] = useState<'ask' | 'busy'>();

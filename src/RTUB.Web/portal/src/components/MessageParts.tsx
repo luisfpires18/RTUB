@@ -1,14 +1,14 @@
 // Small chat pieces: conversation face and the message composer.
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { MAX_BODY, type MessageItem } from '../data/messagesApi';
+import { Avatar } from './ui/Avatar';
 
 /** Only "Notificações RTUB" wears the app logo (the one the portal header uses); groups a plain chat icon, people their photo. */
 const RTUB_LOGO = '/icons/rtub-logo-352.webp';
 
 export function ChatFace({ kind, avatarUrl, size }: { kind: string; avatarUrl: string; size: number }) {
-  if (kind !== 'group') return <MemberFace avatarUrl={kind === 'system' ? RTUB_LOGO : avatarUrl} size={size} />;
+  if (kind !== 'group') return <Avatar className="who__avatar" src={kind === 'system' ? RTUB_LOGO : avatarUrl} size={size} />;
   return (
     <span className="chat-face" style={{ width: size, height: size }} aria-hidden="true">
       <Icon name="people" />

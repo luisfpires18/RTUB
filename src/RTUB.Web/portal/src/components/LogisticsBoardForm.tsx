@@ -1,10 +1,10 @@
 // The create / edit board dialog.
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { logisticsApi, problem, type BoardInput, type BoardSummary, type LogisticsEvent, type Visibility } from '../data/logisticsApi';
 import { AccessFields, person, type Person } from './LogisticsAccessFields';
 import { EventField } from './LogisticsEventField';
+import { Loading } from './ui/Loading';
 
 /** "Criar quadro" / "Editar quadro": name, description, event and responsible member, visibility and access list. */
 export function BoardDialog({ board, onClose, onSaved }: { board?: BoardSummary; onClose: () => void; onSaved: () => void }) {

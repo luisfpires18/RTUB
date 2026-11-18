@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading, useLatest } from '../components/AppShared';
+import { useLatest } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { RetryNotice, SignInNotice } from '../components/Notice';
@@ -7,6 +7,7 @@ import { ConfirmAction } from '../components/RequestConfirm';
 import { CreateEventOffer, RequestDialog } from '../components/RequestDialogs';
 import { RequestGroup } from '../components/RequestGroup';
 import { type RequestItem, type RequestList, api } from '../data/requestsApi';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * /requests - Gestão de Pedidos. The performance requests sent through the public

@@ -1,9 +1,9 @@
 // Cards linked to this card panel.
 import { useId, useState } from 'react';
 import { Icon } from './icons';
-import { FieldError } from './LogisticsFields';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, type Board, type CardDetail } from '../data/logisticsApi';
+import { FieldError } from './ui/FieldError';
 
 /** Links to other cards of this board ("Cartões ligados"), distinct from the attachments. */
 export function LinkedCards({ detail, board, apply, errors }: { detail: CardDetail; board: Board; apply: Apply; errors: Record<string, string> }) {

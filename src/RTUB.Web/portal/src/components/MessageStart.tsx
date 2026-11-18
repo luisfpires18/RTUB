@@ -1,11 +1,11 @@
 // Starting a conversation: the draft thread and the people picker dialog.
 import { useEffect, useId, useMemo, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { ChatFace, Composer } from './MessageParts';
 import { type Draft, type Person, api, problem } from '../data/messagesApi';
+import { Loading } from './ui/Loading';
+import { Avatar } from './ui/Avatar';
 
 export function DraftThread({ draft, onBack, onStarted }: { draft: Draft; onBack: () => void; onStarted: (id: number) => void }) {
   const [error, setError] = useState<string>();
@@ -112,7 +112,7 @@ export function StartDialog({ onClose, onPicked }: { onClose: () => void; onPick
                   aria-pressed={chosen.some((c) => c.id === p.id)}
                   onClick={() => toggle(p)}
                 >
-                  <MemberFace avatarUrl={p.avatarUrl} size={36} />
+                  <Avatar className="who__avatar" src={p.avatarUrl} size={36} />
                   <span>
                     <strong>{p.displayName}</strong>
                     {p.fullName && p.fullName !== p.displayName && <small>{p.fullName}</small>}

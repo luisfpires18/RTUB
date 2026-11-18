@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { naipesApi, type NaipeBoard, type NaipeItem } from '../data/naipesApi';
 import { Notice, SignInNotice } from '../components/Notice';
-import { type Editing } from '../data/naipesShared';
-import { NaipeCard, Pager } from '../components/NaipeCard';
+import { PAGE_SIZES, type Editing } from '../data/naipesShared';
+import { NaipeCard } from '../components/NaipeCard';
 import { ViewDialog } from '../components/NaipeViewDialog';
 import { EditDialog, DeleteDialog } from '../components/NaipeEditDialogs';
+import { Loading } from '../components/ui/Loading';
+import { Pager } from '../components/ui/Pager';
 
 /**
  * /naipes. Each instrument's teaching videos and images: pick an instrument, search,
@@ -148,10 +149,14 @@ export default function Naipes() {
                     ))}
                   </ul>
                   <Pager
+                    block="naipe-pager"
+                    ariaLabel="Páginas"
                     total={board.items.length}
+                    itemLabel={board.items.length === 1 ? 'conteúdo' : 'conteúdos'}
                     page={Math.min(page, pages)}
                     pages={pages}
                     pageSize={pageSize}
+                    sizes={PAGE_SIZES}
                     onPage={setPage}
                     onPageSize={(size) => (setPageSize(size), setPage(1))}
                   />

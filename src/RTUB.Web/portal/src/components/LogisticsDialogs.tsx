@@ -4,7 +4,11 @@ import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import type { Outcome } from '../data/eventsApi';
 import { logisticsApi, problem, STATUS, STATUSES, type List, type MemberOption, type Status } from '../data/logisticsApi';
-import { FieldError, Footer, MemberPicker, PersonChip } from './LogisticsFields';
+import { MemberPicker } from './LogisticsFields';
+import { FieldError } from './ui/FieldError';
+import { PersonChip } from './ui/PersonChip';
+import { DialogFooter } from './ui/DialogFooter';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 export function ConfirmDialog({
   title,
@@ -21,44 +25,19 @@ export function ConfirmDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
   const run = async () => {
-    setBusy(true);
     const o = await action();
-    setBusy(false);
-    if (o.kind === 'ok' || o.kind === 'notfound') {
-      onDone();
-      onClose();
-    } else setError(problem(o, 'eliminar'));
+    if (o.kind !== 'ok' && o.kind !== 'notfound') return problem(o, 'eliminar');
+    onDone();
   };
   return (
-    <Dialog
-      title={title}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={run} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Eliminar
-          </button>
-        </>
-      }
-    >
+    <AsyncConfirmDialog title={title} confirmLabel="Eliminar" danger onConfirm={run} onClose={onClose}>
       <p>Eliminar {what}?</p>
       <p className="warning">
         <Icon name="warning" />
         {warning}
       </p>
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </AsyncConfirmDialog>
   );
 }
 
@@ -82,7 +61,7 @@ export function ListDialog({ boardId, list, onClose, onSaved }: { boardId: numbe
     onClose();
   };
   return (
-    <Dialog title={list ? 'Editar coluna' : 'Nova coluna'} onClose={onClose} footer={<Footer onClose={onClose} busy={busy} form={`${fid}-form`} label="Guardar" disabled={!name.trim()} />}>
+    <Dialog title={list ? 'Editar coluna' : 'Nova coluna'} onClose={onClose} footer={<DialogFooter onClose={onClose} busy={busy} form={`${fid}-form`} label="Guardar" disabled={!name.trim()} />}>
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         <div className={error ? 'form__field form__field--error' : 'form__field'}>
           <label htmlFor={`${fid}-name`}>Nome da coluna</label>
@@ -128,7 +107,7 @@ export function CreateCardDialog({ boardId, list, onClose, onCreated }: { boardI
     onCreated(o.data.card.id);
   };
   return (
-    <Dialog title={`Novo cartão · ${list.name}`} onClose={onClose} footer={<Footer onClose={onClose} busy={busy} form={`${fid}-form`} label="Criar" disabled={!title.trim()} />}>
+    <Dialog title={`Novo cartão · ${list.name}`} onClose={onClose} footer={<DialogFooter onClose={onClose} busy={busy} form={`${fid}-form`} label="Criar" disabled={!title.trim()} />}>
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         <FieldError text={errors.form} />
         <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>

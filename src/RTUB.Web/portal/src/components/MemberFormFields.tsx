@@ -2,10 +2,10 @@
 import { useEffect, useId, useState } from 'react';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { memberAdminApi, type MemberInstrument, type Mentor, type Option } from '../data/membersApi';
 import { MemberBadge } from './MemberBadge';
 import { LOCKED_HINT, MIN_YEAR, MONTHS, problem } from '../data/memberFormState';
+import { Avatar } from './ui/Avatar';
 
 export function MonthYear({
   label,
@@ -224,7 +224,7 @@ export function MentorPicker({
                   setQuery('');
                 }}
               >
-                <MemberFace avatarUrl={m.avatarUrl} size={36} />
+                <Avatar className="who__avatar" src={m.avatarUrl} size={36} />
                 <span className="member-row__who">
                   <strong>{m.displayName}</strong>
                   {m.fullName && <small>{m.fullName}</small>}

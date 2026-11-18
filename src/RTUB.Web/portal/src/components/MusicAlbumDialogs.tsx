@@ -1,9 +1,13 @@
 // Lyrics, links and members-only videos dialogs opened from an album song.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ExternalLink, Loading } from './AppShared';
+import { ExternalLink } from './AppShared';
 import { Icon } from './icons';
-import { ConfirmDialog, Dialog, IconButton } from './MusicUi';
+import { Dialog, IconButton } from './MusicUi';
 import { MAX_VIDEO_BYTES, musicApi, type Lyrics, type MusicLink, type Song, type Video } from '../data/musicApi';
+import { Loading } from './ui/Loading';
+import { ConfirmDialog } from './ui/ConfirmDialog';
+import { EmptyState } from './ui/EmptyState';
+import { Segmented } from './ui/Segmented';
 
 // ---------- lyrics ----------
 
@@ -29,21 +33,18 @@ export function LyricsDialog({ song, onClose }: { song: Song; onClose: () => voi
       ) : !lyrics ? (
         <Loading label="A procurar a letra…" />
       ) : !lyrics.pdfUrl && !lyrics.text ? (
-        <div className="state">
-          <Icon name="lyrics" className="state__icon" />
-          <p className="state__title">Ainda não há letra para esta música.</p>
-        </div>
+        <EmptyState icon="lyrics" title="Ainda não há letra para esta música." />
       ) : (
         <div className="lyrics">
           {lyrics.pdfUrl && lyrics.text && (
-            <div className="segmented" role="group" aria-label="Formato da letra">
+            <Segmented label="Formato da letra" role="group">
               <button type="button" aria-pressed={view === 'pdf'} onClick={() => setView('pdf')}>
                 Cancioneiro (PDF)
               </button>
               <button type="button" aria-pressed={view === 'text'} onClick={() => setView('text')}>
                 Texto
               </button>
-            </div>
+            </Segmented>
           )}
           {view === 'pdf' && lyrics.pdfUrl ? (
             <>

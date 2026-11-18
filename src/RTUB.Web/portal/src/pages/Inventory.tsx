@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading, useLatest } from '../components/AppShared';
+import { useLatest } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { MemberBadge } from '../components/MemberBadge';
@@ -7,6 +7,7 @@ import { RetryNotice, SignInNotice } from '../components/Notice';
 import { type Card, type List, api, PAGE, conditionClass } from '../data/inventoryApi';
 import { Thumb, DetailDialog, DeleteDialog } from '../components/InventoryDialogs';
 import { FormDialog } from '../components/InventoryForm';
+import { Loading } from '../components/ui/Loading';
 
 // manage. The server decides every rule (InstrumentInventoryService); hiding a button here is only a convenience.
 

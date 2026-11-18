@@ -2,9 +2,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Cropper } from './Cropper';
 import { Icon } from './icons';
-import { Dialog, Field, fieldProps } from './MusicUi';
+import { Dialog } from './MusicUi';
 import { musicApi, type AlbumEdit, type AlbumInput, type FieldErrors, type Member } from '../data/musicApi';
 import { failedMessage, normalize } from '../data/musicFormHelpers';
+import { FormField, fieldProps } from './ui/FormField';
 
 /**
  * Create or edit an album. A new cover always goes through the square cropper first; private is
@@ -94,10 +95,10 @@ export function AlbumForm({
                 {banner}
               </p>
             )}
-            <Field id="album-title" label="Título *" error={errors.title}>
+            <FormField id="album-title" label="Título *" error={errors.title}>
               <input {...fieldProps('album-title', errors.title)} required maxLength={200} value={form.title} onChange={(e) => set('title', e.target.value)} />
-            </Field>
-            <Field id="album-year" label="Ano" error={errors.year}>
+            </FormField>
+            <FormField id="album-year" label="Ano" error={errors.year}>
               <input
                 {...fieldProps('album-year', errors.year)}
                 type="number"
@@ -107,8 +108,8 @@ export function AlbumForm({
                 value={form.year}
                 onChange={(e) => set('year', e.target.value)}
               />
-            </Field>
-            <Field id="album-description" label="Descrição" error={errors.description}>
+            </FormField>
+            <FormField id="album-description" label="Descrição" error={errors.description}>
               <textarea
                 {...fieldProps('album-description', errors.description)}
                 rows={3}
@@ -116,7 +117,7 @@ export function AlbumForm({
                 value={form.description}
                 onChange={(e) => set('description', e.target.value)}
               />
-            </Field>
+            </FormField>
             <label className="form__check">
               <input type="checkbox" checked={form.isPrivate} onChange={(e) => set('isPrivate', e.target.checked)} />
               Privado: só membros com sessão iniciada
@@ -144,9 +145,9 @@ export function AlbumForm({
                         ))}
                       </ul>
                     )}
-                    <Field id="album-access" label="Adicionar membro">
+                    <FormField id="album-access" label="Adicionar membro">
                       <input id="album-access" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pesquisar por nome…" />
-                    </Field>
+                    </FormField>
                     {search && (
                       <ul className="access__results">
                         {matches.length === 0 ? (

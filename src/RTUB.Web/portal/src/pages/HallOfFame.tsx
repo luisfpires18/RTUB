@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
-import { MemberFace } from '../components/MemberDialogs';
 import { memberAreaApi, type FameRecord, type HallOfFame as Fame } from '../data/memberAreaApi';
 import { Notice, SignInNotice } from '../components/Notice';
+import { Loading } from '../components/ui/Loading';
+import { Avatar } from '../components/ui/Avatar';
 
 /**
  * /hall-of-fame. The tuna's twelve records, as the server computes them
@@ -61,7 +61,7 @@ function FamePanel({ record }: { record: FameRecord }) {
           <ul className="fame-winners">
             {record.winners.map((w, i) => (
               <li key={i} className="fame-winner">
-                <MemberFace avatarUrl={w.avatarUrl} size={72} />
+                <Avatar className="who__avatar" src={w.avatarUrl} size={72} />
                 <strong>{w.displayName}</strong>
                 {w.fullName && <small>{w.fullName}</small>}
               </li>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getGallery, getGalleryItem, type GalleryFilters, type GalleryItem, type GalleryTimeline } from '../data/api';
-import { Loading, useLatest } from '../components/AppShared';
+import { useLatest } from '../components/AppShared';
 import { EditDialog, UploadDialog } from '../components/GalleryManage';
 import type { UploadEvent } from '../data/galleryUploadApi';
 import { Icon } from '../components/icons';
@@ -9,6 +9,7 @@ import { Toolbar } from '../components/GalleryToolbar';
 import { Tile } from '../components/GalleryTile';
 import { Lightbox } from '../components/GalleryLightbox';
 import { groupTimeline } from '../data/galleryTimeline';
+import { Loading } from '../components/ui/Loading';
 
 
 /** ?upload=1&event=&date=&title= (from /pending-actions → Galeria → Adicionar) opens the upload for that event. */

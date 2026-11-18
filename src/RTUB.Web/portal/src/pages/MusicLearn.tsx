@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { Icon } from '../components/icons';
 import { PlayAlongField } from '../components/MusicPlayAlongField';
-import { ConfirmDialog, Dialog, IconButton } from '../components/MusicUi';
+import { Dialog, IconButton } from '../components/MusicUi';
 import { musicApi, type LearnSong } from '../data/musicApi';
 import { AddDialog, NotifyDialog } from '../components/MusicLearnDialogs';
+import { Loading } from '../components/ui/Loading';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 /** Group id of the starred songs (album ids start at 1). */
 const FAVORITES = 0;

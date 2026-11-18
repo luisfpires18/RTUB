@@ -1,14 +1,15 @@
 // The "Pedidos de Reuniões" section of /meetings.
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Icon, type IconName } from './icons';
-import { ConfirmDialog, RequestStatusPill, problem, typeClass } from './MeetingUi';
+import { RequestStatusPill, problem, typeClass } from './MeetingUi';
 import { RequestDetailsDialog } from './MeetingProposalDialogs';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingDraft, MeetingRequest, MeetingRequestPage } from '../data/meetingsTypes';
 import { numericDate } from '../data/meetingsDates';
 import { RetryNotice } from './Notice';
-import { Pager } from './MeetingPager';
+import { Loading } from './ui/Loading';
+import { Pager } from './ui/Pager';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 const REQUEST_PAGE_SIZES = [4, 8, 12, 16, 20];
 
@@ -223,7 +224,7 @@ export function RequestsSection({
 
       {action?.kind === 'details' && <RequestDetailsDialog request={action.request} onClose={() => setAction(undefined)} />}
       {action?.kind === 'delete' && (
-        <ConfirmDialog
+        <AsyncConfirmDialog
           title="Confirmar Eliminação"
           confirmLabel="Eliminar"
           confirmIcon="trash"
@@ -235,14 +236,16 @@ export function RequestsSection({
             reload();
           }}
         >
-          <p>
-            Tem a certeza que quer eliminar o pedido <strong>{action.request.title}</strong>?
-          </p>
-          <p className="note">Não é possível desfazer.</p>
-        </ConfirmDialog>
+          <div className="mtg-confirm">
+            <p>
+              Tem a certeza que quer eliminar o pedido <strong>{action.request.title}</strong>?
+            </p>
+            <p className="note">Não é possível desfazer.</p>
+          </div>
+        </AsyncConfirmDialog>
       )}
       {action?.kind === 'remind' && (
-        <ConfirmDialog
+        <AsyncConfirmDialog
           title="Enviar Lembrete"
           confirmLabel="Enviar"
           confirmIcon="bell"
@@ -253,11 +256,13 @@ export function RequestsSection({
             setSuccess('Notificação Enviada!');
           }}
         >
-          <p>
-            Tem a certeza que quer enviar um lembrete sobre o pedido <strong>{action.request.title}</strong>?
-          </p>
-          <p className="note">Será enviada uma notificação push para os responsáveis.</p>
-        </ConfirmDialog>
+          <div className="mtg-confirm">
+            <p>
+              Tem a certeza que quer enviar um lembrete sobre o pedido <strong>{action.request.title}</strong>?
+            </p>
+            <p className="note">Será enviada uma notificação push para os responsáveis.</p>
+          </div>
+        </AsyncConfirmDialog>
       )}
     </section>
   );

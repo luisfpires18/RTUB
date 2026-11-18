@@ -1,10 +1,10 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { Notice, RetryNotice, SignInNotice } from '../components/Notice';
 import { type Doc, type Folder, type Docs, type Target, api, problem, fileSize, count } from '../data/documentationApi';
 import { FolderDialog, UploadDialog, DeleteDialog } from '../components/DocumentationDialogs';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * /documentation - Documentação. Signed-in members, Leitões excepted. The

@@ -3,6 +3,7 @@ import { useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { naipesApi, type NaipeBoard, type NaipeItem } from '../data/naipesApi';
 import { MAX_VIDEO, MAX_IMAGE, VIDEO_ACCEPT, IMAGE_ACCEPT, problem, type Editing } from '../data/naipesShared';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 /** "Adicionar vídeo" / "Adicionar imagem" (instrument, file, title, description, order) and "Editar". */
 export function EditDialog({ board, editing, onClose, onSaved }: { board: NaipeBoard; editing: Editing; onClose: () => void; onSaved: (item: NaipeItem) => void }) {
@@ -131,43 +132,18 @@ export function EditDialog({ board, editing, onClose, onSaved }: { board: NaipeB
 }
 
 export function DeleteDialog({ item, onClose, onDone }: { item: NaipeItem; onClose: () => void; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
 
   const confirm = async () => {
-    setBusy(true);
     const o = await naipesApi.remove(item.id);
-    setBusy(false);
-    if (o.kind === 'ok') {
-      onDone();
-      onClose();
-    } else setError(problem(o, 'eliminar'));
+    if (o.kind !== 'ok') return problem(o, 'eliminar');
+    onDone();
   };
 
   return (
-    <Dialog
-      title="Eliminar conteúdo"
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={confirm} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Eliminar
-          </button>
-        </>
-      }
-    >
+    <AsyncConfirmDialog title="Eliminar conteúdo" confirmLabel="Eliminar" danger onConfirm={confirm} onClose={onClose}>
       <p>
         Eliminar <strong>{item.title}</strong>? O ficheiro e os comentários vão com ele, sem volta atrás.
       </p>
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </AsyncConfirmDialog>
   );
 }

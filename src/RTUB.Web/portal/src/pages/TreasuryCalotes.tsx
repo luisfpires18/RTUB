@@ -1,13 +1,14 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { matches, problem, treasuryApi, type Calotes, type Person } from '../data/treasuryApi';
-import { Confirm, Refusal, TreasuryTabs } from '../components/TreasuryUi';
+import { Refusal, TreasuryTabs } from '../components/TreasuryUi';
 import { day, euros } from '../data/format';
 import { DEFAULT_AVATAR } from '../data/membersApi';
 import { type Debt, key } from '../data/treasuryCalotesView';
 import { DebtsDialog, DebtDialog } from '../components/TreasuryCalotesDialogs';
+import { Loading } from '../components/ui/Loading';
+import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 
 /**
  * /treasury/calotes - Calotes. Treasury members see
@@ -163,9 +164,9 @@ export default function TreasuryCalotes() {
             />
           )}
           {deleting && (
-            <Confirm
+            <AsyncConfirmDialog danger
               title="Remover calote"
-              action="Remover"
+              confirmLabel="Remover"
               onClose={() => setDeleting(undefined)}
               onConfirm={async () => {
                 const o = await treasuryApi.removeDebt(deleting.debt.id);
@@ -176,7 +177,7 @@ export default function TreasuryCalotes() {
               <p>
                 Remover o calote de <strong>{deleting.who}</strong> ({euros(deleting.debt.amount)})?
               </p>
-            </Confirm>
+            </AsyncConfirmDialog>
           )}
         </>
       )}

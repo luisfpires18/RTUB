@@ -1,10 +1,10 @@
 // The member info dialog (Members admin).
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { memberAdminApi, type MemberInfo, type MemberInfoInput, type MemberInstrument, type Option } from '../data/membersApi';
 import { Instruments, MentorPicker, MonthYear } from './MemberFormFields';
 import { problem } from '../data/memberFormState';
+import { Loading } from './ui/Loading';
 
 /**
  * "Completar informação" - the limited edit Mod, Admin and Owner share: Cidade, Contacto, instruments, the

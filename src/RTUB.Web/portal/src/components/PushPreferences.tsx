@@ -1,9 +1,9 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { pushApi, type PushPreference } from '../data/push';
+import { Loading } from './ui/Loading';
 
 /**
  * "O que receber": the member's account-wide push preferences, from /profile → Notificações

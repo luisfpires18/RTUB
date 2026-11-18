@@ -1,13 +1,13 @@
 // Naipes item view dialog with comments.
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { naipesApi, type NaipeComment, type NaipeItem } from '../data/naipesApi';
 import { MemberBadge } from './MemberBadge';
 import { MAX_COMMENT, problem } from '../data/naipesShared';
+import { Loading } from './ui/Loading';
+import { Avatar } from './ui/Avatar';
 
 /** One item: the video or image, its description and numbers, and the comments. */
 export function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onClose: () => void; onChanged: () => void }) {
@@ -110,7 +110,7 @@ export function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onCl
             <ul className="naipe-comments__list">
               {comments.map((c) => (
                 <li key={c.id} className="naipe-comment">
-                  <MemberFace avatarUrl={c.authorAvatarUrl || null} size={36} />
+                  <Avatar className="who__avatar" src={c.authorAvatarUrl || null} size={36} />
                   <span className="naipe-comment__body">
                     <span className="naipe-comment__who">
                       <strong>{c.authorName}</strong>

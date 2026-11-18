@@ -2,8 +2,9 @@
 import { useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { isoDay, problem, treasuryApi, type Activity, type ReportEvent, type Report } from '../data/treasuryApi';
-import { Field, SaveFooter } from './TreasuryUi';
 import { day, today } from '../data/format';
+import { FormField } from './ui/FormField';
+import { DialogFooter } from './ui/DialogFooter';
 
 /** "Editar Dinheiro no Banco / em Caixa": one value, any sign; 0 clears it. */
 export function BalanceDialog({ report, kind, onClose, onSaved }: { report: Report; kind: 'bank' | 'cash'; onClose: () => void; onSaved: (r: Report) => void }) {
@@ -28,12 +29,12 @@ export function BalanceDialog({ report, kind, onClose, onSaved }: { report: Repo
     <Dialog
       title={kind === 'bank' ? 'Editar dinheiro no banco' : 'Editar dinheiro em caixa'}
       onClose={onClose}
-      footer={<SaveFooter formId={`${fid}-form`} busy={busy} onClose={onClose} />}
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
-        <Field id={`${fid}-value`} label="Valor (€)" error={error}>
+        <FormField alert id={`${fid}-value`} label="Valor (€)" error={error}>
           <input id={`${fid}-value`} type="number" inputMode="decimal" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} />
-        </Field>
+        </FormField>
       </form>
     </Dialog>
   );
@@ -84,7 +85,7 @@ export function ActivityDialog({
     <Dialog
       title={activity ? 'Editar atividade' : 'Nova atividade'}
       onClose={onClose}
-      footer={<SaveFooter formId={`${fid}-form`} busy={busy} disabled={!name.trim() || !start} onClose={onClose} />}
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!name.trim() || !start} onClose={onClose} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         {errors.form && (
@@ -92,25 +93,25 @@ export function ActivityDialog({
             {errors.form}
           </p>
         )}
-        <Field id={`${fid}-name`} label="Nome" error={errors.name}>
+        <FormField alert id={`${fid}-name`} label="Nome" error={errors.name}>
           <input id={`${fid}-name`} type="text" maxLength={200} value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
+        </FormField>
         <label className="check">
           <input type="checkbox" checked={range} onChange={(e) => setRange(e.target.checked)} />
           Intervalo de datas (em vez de data única)
         </label>
         <div className="form__row">
-          <Field id={`${fid}-start`} label={range ? 'Data de início' : 'Data'} error={errors.startDate}>
+          <FormField alert id={`${fid}-start`} label={range ? 'Data de início' : 'Data'} error={errors.startDate}>
             <input id={`${fid}-start`} type="date" value={start} onChange={(e) => setStart(e.target.value)} />
-          </Field>
+          </FormField>
           {range && (
-            <Field id={`${fid}-end`} label="Data de fim (opcional)" error={errors.endDate}>
+            <FormField alert id={`${fid}-end`} label="Data de fim (opcional)" error={errors.endDate}>
               <input id={`${fid}-end`} type="date" min={start} value={end} onChange={(e) => setEnd(e.target.value)} />
-            </Field>
+            </FormField>
           )}
         </div>
         {events.length > 0 && (
-          <Field id={`${fid}-event`} label="Atuação (opcional)" error={errors.eventId}>
+          <FormField alert id={`${fid}-event`} label="Atuação (opcional)" error={errors.eventId}>
             <span className="control control--select">
               <select id={`${fid}-event`} value={eventId ?? ''} onChange={(e) => setEventId(Number(e.target.value) || null)}>
                 <option value="">Nenhuma</option>
@@ -121,11 +122,11 @@ export function ActivityDialog({
                 ))}
               </select>
             </span>
-          </Field>
+          </FormField>
         )}
-        <Field id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description}>
+        <FormField alert id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description}>
           <textarea id={`${fid}-desc`} rows={3} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} />
-        </Field>
+        </FormField>
       </form>
     </Dialog>
   );

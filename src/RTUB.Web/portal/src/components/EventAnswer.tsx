@@ -2,11 +2,11 @@
 
 import { eventActivity, CalendarOffer } from './CalendarOffer';
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { portal } from '../data/content';
 import { eventsApi, dateLabel, timeLabel, type EventSummary, type EventEnrollment } from '../data/eventsApi';
 import { Icon } from './icons';
+import { Loading } from './ui/Loading';
 
 const NOTES_MAX = 1000;
 

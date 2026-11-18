@@ -1,7 +1,8 @@
 // Responsible member, visibility and access list fields of a board.
 import { useId } from 'react';
 import type { Assignee, Visibility } from '../data/logisticsApi';
-import { MemberPicker, PersonChip } from './LogisticsFields';
+import { MemberPicker } from './LogisticsFields';
+import { PersonChip } from './ui/PersonChip';
 
 export type Person = { id: string; name: string; avatar: string | null };
 export const person = (a: Assignee): Person => ({ id: a.userId ?? '', name: a.displayName, avatar: a.avatarUrl });

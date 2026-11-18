@@ -1,13 +1,13 @@
 // Event answer statistics dialogs: the member's own record and everyone's "vou" counts.
 
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { portal } from '../data/content';
 import { eventsApi, dateLabel, type EventSummary, type EventStats } from '../data/eventsApi';
 import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { fold } from '../data/format';
+import { Loading } from './ui/Loading';
 
 // ---------- statistics (members) ----------
 

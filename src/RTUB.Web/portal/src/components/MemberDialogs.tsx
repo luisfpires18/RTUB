@@ -1,9 +1,10 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
-import { DEFAULT_AVATAR, membersApi, shortDate, type MemberDetail, type MemberState, type TimelineItem } from '../data/membersApi';
+import { membersApi, shortDate, type MemberDetail, type MemberState, type TimelineItem } from '../data/membersApi';
+import { Loading } from './ui/Loading';
+import { Avatar } from './ui/Avatar';
 
 // The /members dialogs. The server decides who sees what (MemberDirectoryService); Admin/Owner
 // tools come in through `actions` / `rowActions` from Members.tsx.
@@ -15,22 +16,6 @@ import { DEFAULT_AVATAR, membersApi, shortDate, type MemberDetail, type MemberSt
  */
 export const progressText = (progress: string | null, retired: boolean | null) =>
   !progress || (retired && /até reforma/.test(progress)) ? null : progress.replace(/^1 meses/, '1 mês');
-
-export function MemberFace({ avatarUrl, size }: { avatarUrl: string | null; size: number }) {
-  return (
-    <img
-      className="who__avatar"
-      src={avatarUrl ?? DEFAULT_AVATAR}
-      alt=""
-      width={size}
-      height={size}
-      loading="lazy"
-      onError={(e) => {
-        if (!e.currentTarget.src.endsWith(DEFAULT_AVATAR)) e.currentTarget.src = DEFAULT_AVATAR;
-      }}
-    />
-  );
-}
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -75,7 +60,7 @@ function MemberBody({ m }: { m: MemberDetail }) {
   return (
     <div className="member-detail">
       <div className="member-detail__head">
-        <MemberFace avatarUrl={m.avatarUrl} size={96} />
+        <Avatar className="who__avatar" src={m.avatarUrl} size={96} />
         <p className="member-detail__name">{m.displayName}</p>
         {m.fullName && <p className="who__meta">{m.fullName}</p>}
         <span className="member-badges">

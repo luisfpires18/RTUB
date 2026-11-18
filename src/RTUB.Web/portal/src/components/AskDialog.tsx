@@ -2,8 +2,8 @@
 import { useId, useMemo, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { MAX_CONTENT, MAX_TITLE, MIN_CONTENT, type Recipient, api, fold, problem } from '../data/questionsApi';
+import { Avatar } from './ui/Avatar';
 
 export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipient[]; onClose: () => void; onAsked: (id: number) => void }) {
   const id = useId();
@@ -65,7 +65,7 @@ export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipi
           ) : chosen ? (
             <div className="qs-chosen">
               <span className="qs-person">
-                <MemberFace avatarUrl={chosen.avatarUrl} size={36} />
+                <Avatar className="who__avatar" src={chosen.avatarUrl} size={36} />
                 <span>
                   <strong>{chosen.displayName}</strong>
                   <small className="note">{chosen.role}</small>
@@ -92,7 +92,7 @@ export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipi
                 {found.map((r) => (
                   <li key={`${r.id}-${r.position}`}>
                     <button type="button" className="qs-pick__option" onClick={() => setChosen(r)}>
-                      <MemberFace avatarUrl={r.avatarUrl} size={32} />
+                      <Avatar className="who__avatar" src={r.avatarUrl} size={32} />
                       <span>
                         <strong>{r.displayName}</strong>
                         <small className="note">{r.role}</small>

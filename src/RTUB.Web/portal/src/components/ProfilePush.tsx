@@ -1,10 +1,10 @@
 // The /profile push-notification section.
 import { useEffect, useState, type ReactNode } from 'react';
-import { Loading } from './AppShared';
 import { Icon, type IconName } from './icons';
 import { PushPreferencesDialog } from './PushPreferences';
 import { readPush, sendTest, turnOff, turnOn, type PushResult, type PushState } from '../data/push';
 import { Section } from './ProfileShared';
+import { Loading } from './ui/Loading';
 
 /**
  * This browser's push notifications (push.ts). Read on load without asking anything; permission and the

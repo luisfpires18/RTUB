@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { EnrollmentDialog } from '../components/EventAnswer';
 import { PrizesDialog } from '../components/EventPrizesDialog';
 import { WhereYouWereDialog, StatsDialog } from '../components/EventStats';
@@ -10,6 +9,7 @@ import { RetryNotice } from '../components/Notice';
 import { filtersFromUrl, filtersToUrl, filterPast, groupBySeason, type Filters } from '../data/eventFilters';
 import { Toolbar } from '../components/EventsToolbar';
 import { AgendaCard, ArchiveRow, type Manage } from '../components/EventsCards';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * Requests' "criar atuação" lands here with ?openModal=true&name=&location=&date=&description=:

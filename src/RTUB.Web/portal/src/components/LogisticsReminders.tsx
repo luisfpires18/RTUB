@@ -1,10 +1,12 @@
 // Card reminders panel.
 import { useId, useState } from 'react';
 import { Icon } from './icons';
-import { FieldError, MemberPicker, PersonChip } from './LogisticsFields';
+import { MemberPicker } from './LogisticsFields';
 import { Section, type Apply } from './LogisticsPanel';
 import { FREQUENCY, logisticsApi, type CardDetail, type Frequency, type MemberOption, type Reminder } from '../data/logisticsApi';
 import { day, lisbonToday } from '../data/format';
+import { FieldError } from './ui/FieldError';
+import { PersonChip } from './ui/PersonChip';
 
 /** Tomorrow at 10:00, Portugal time, as a datetime-local value. */
 const tomorrowAtTen = () => {

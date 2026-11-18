@@ -1,15 +1,13 @@
 // The notice shown when a board cannot be opened.
 import { Icon } from './icons';
 import { loginTo } from '../data/content';
+import { BackLink } from './ui/BackLink';
 
 /** Why a board did not open: sign in, no access, missing, or a failure with a retry. */
 export function BoardNotice({ board, boardId, retry }: { board: 'signin' | 'forbidden' | 'missing' | null; boardId: number; retry: () => void }) {
   return (
     <section className="page wrap events-page lx-page">
-      <a className="back-link" href="/logistics">
-        <Icon name="arrow" />
-        Quadros
-      </a>
+      <BackLink href="/logistics">Quadros</BackLink>
       <div className="notice" role="status">
         {board === 'signin' ? (
           <>

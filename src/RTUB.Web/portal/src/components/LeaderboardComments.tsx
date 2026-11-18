@@ -1,10 +1,10 @@
 // Leaderboard comments list and delete dialog.
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { type Comment, api, MAX_COMMENT, problem, ago } from '../data/leaderboardApi';
+import { Loading } from './ui/Loading';
+import { Avatar } from './ui/Avatar';
 
 export function Comments({ memberId }: { memberId: string }) {
   const id = useId();
@@ -85,7 +85,7 @@ export function Comments({ memberId }: { memberId: string }) {
           {list.map((c) => (
             <li key={c.id} className="leaderboard-comment">
               <span className="leaderboard-comment__head">
-                <MemberFace avatarUrl={c.authorAvatarUrl} size={36} />
+                <Avatar className="who__avatar" src={c.authorAvatarUrl} size={36} />
                 <strong>{c.authorName}</strong>
                 <small className="note">{ago(c.createdAt)}</small>
                 {c.canDelete && (

@@ -1,11 +1,11 @@
 // Card files and links panel.
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from './icons';
-import { FieldError } from './LogisticsFields';
 import { size } from '../data/logisticsFiles';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, problem, uploadAttachment, type Board, type CardAttachment, type CardDetail } from '../data/logisticsApi';
 import { FILE_TYPES, MAX_FILE } from '../data/logisticsFiles';
+import { FieldError } from './ui/FieldError';
 
 type Upload = { name: string; share: number; file: File; error?: string };
 

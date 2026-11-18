@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useState } from 'react';
 import { getGovernance, type Governance as GovernanceData, type GovernanceMember } from '../data/api';
-import { Loading, useCurrentUser } from '../components/AppShared';
+import { useCurrentUser } from '../components/AppShared';
 import { portal } from '../data/content';
 import {
   AssignDialog,
@@ -15,6 +15,7 @@ import {
 import { Icon } from '../components/icons';
 import { DEFAULT_AVATAR } from '../data/membersApi';
 import { Notice, RetryNotice } from '../components/Notice';
+import { Loading } from '../components/ui/Loading';
 
 /** ?fy=2024-2025 keeps a mandate shareable. */
 const yearFromUrl = () => new URLSearchParams(location.search).get('fy') ?? undefined;

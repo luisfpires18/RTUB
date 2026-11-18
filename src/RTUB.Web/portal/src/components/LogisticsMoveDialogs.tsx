@@ -3,7 +3,10 @@ import { useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { logisticsApi, problem, STATUS, type Board, type Card, type List, type MemberOption } from '../data/logisticsApi';
-import { FieldError, Footer, MemberPicker, PersonChip } from './LogisticsFields';
+import { MemberPicker } from './LogisticsFields';
+import { FieldError } from './ui/FieldError';
+import { PersonChip } from './ui/PersonChip';
+import { DialogFooter } from './ui/DialogFooter';
 
 /** Delete a column: its cards never go with it - they move to the chosen column and take its state. */
 export function DeleteListDialog({ board, list, onClose, onDone }: { board: Board; list: List; onClose: () => void; onDone: () => void }) {
@@ -85,7 +88,7 @@ export function CreateCardDialog({ boardId, list, onClose, onCreated }: { boardI
     onCreated(o.data.card.id);
   };
   return (
-    <Dialog title={`Novo cartão · ${list.name}`} onClose={onClose} footer={<Footer onClose={onClose} busy={busy} form={`${fid}-form`} label="Criar" disabled={!title.trim()} />}>
+    <Dialog title={`Novo cartão · ${list.name}`} onClose={onClose} footer={<DialogFooter onClose={onClose} busy={busy} form={`${fid}-form`} label="Criar" disabled={!title.trim()} />}>
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         <FieldError text={errors.form} />
         <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>

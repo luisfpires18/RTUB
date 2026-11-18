@@ -1,5 +1,4 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { meetingsApi } from '../data/meetingsApi';
@@ -8,6 +7,7 @@ import { RetryNotice, SignInNotice } from '../components/Notice';
 import { RequestsSection } from '../components/MeetingRequests';
 import { type Open, Dialogs } from '../components/MeetingDialogHost';
 import { Empty, MeetingSection } from '../components/MeetingSection';
+import { Loading } from '../components/ui/Loading';
 
 const UPCOMING_EMPTY =
   'Não existem reuniões agendadas no momento. As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos.';

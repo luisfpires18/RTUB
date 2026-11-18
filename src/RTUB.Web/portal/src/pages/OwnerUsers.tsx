@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { ownerApi, type OwnerUserCard } from '../data/ownerApi';
-import { Flash, OwnerPage, OwnerPager, SearchBox, useOwnerLoad } from '../components/OwnerUi';
+import { Flash, OwnerPage, SearchBox, useOwnerLoad } from '../components/OwnerUi';
 import { type Message } from '../data/ownerUsersView';
 import { UserCard } from '../components/OwnerUserCard';
 import { DetailsDialog, RoleDialog } from '../components/OwnerUserDialogs';
+import { Pager } from '../components/ui/Pager';
 
 /**
  * /users: every account, online first, searchable; the Owner sees an account's details,
@@ -96,7 +97,7 @@ export default function OwnerUsers() {
               ))}
             </ul>
           )}
-          <OwnerPager
+          <Pager
             total={data.total}
             itemLabel="utilizadores"
             page={data.page}

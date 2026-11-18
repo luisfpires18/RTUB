@@ -1,10 +1,10 @@
 // Prize list manager shown on the event page.
 
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { eventsApi, type EventPrize, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { failure } from './EventManageShared';
+import { Loading } from './ui/Loading';
 
 /**
  * The event's prizes for Admin/Owner, inside the Prémios modal: rename or delete each one in

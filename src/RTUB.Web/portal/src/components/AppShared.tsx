@@ -72,12 +72,3 @@ export function ExternalLink({ href, className, children }: { href: string; clas
     </a>
   );
 }
-
-export function Loading({ label }: { label: string }) {
-  return (
-    <div className="state" role="status">
-      <span className="spinner" aria-hidden="true" />
-      <p>{label}</p>
-    </div>
-  );
-}

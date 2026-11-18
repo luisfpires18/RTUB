@@ -1,6 +1,6 @@
 // Confirm dialog for request actions on /requests.
 import { useState } from 'react';
-import { Dialog } from './Dialog';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import { type RequestItem, api, problem } from '../data/requestsApi';
 
 const confirmCopy = {
@@ -48,27 +48,8 @@ export function ConfirmAction({
   };
 
   return (
-    <Dialog
-      title={copy.title}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className={action === 'approve' ? 'btn btn--primary' : 'btn btn--danger'} onClick={confirm} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            {copy.button}
-          </button>
-        </>
-      }
-    >
+    <ConfirmDialog title={copy.title} confirmLabel={copy.button} danger={action !== 'approve'} busy={busy} error={error} onConfirm={confirm} onClose={onClose}>
       <p>{copy.text(request.name)}</p>
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </ConfirmDialog>
   );
 }

@@ -4,7 +4,10 @@ import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingCard } from '../data/meetingsTypes';
-import { MAX_NOTES, problem, type Errors, fieldClass, FieldError, Banner, Spinner } from './MeetingUi';
+import { MAX_NOTES, problem, type Errors, fieldClass } from './MeetingUi';
+import { Banner } from './ui/Banner';
+import { FieldError } from './ui/FieldError';
+import { Spinner } from './ui/Spinner';
 
 export function ParticipationDialog({
   card,
@@ -52,7 +55,7 @@ export function ParticipationDialog({
             Cancelar
           </button>
           <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy}>
-            <Spinner on={busy} />
+            {busy && <Spinner small />}
             {existing ? 'Guardar' : 'Confirmar'}
           </button>
         </>
@@ -77,7 +80,7 @@ export function ParticipationDialog({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
-          <FieldError errors={errors} name="notes" />
+          <FieldError text={errors.notes} />
         </div>
       </form>
     </Dialog>

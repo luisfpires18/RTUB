@@ -2,11 +2,11 @@
 
 import { rehearsalActivity, CalendarOffer } from './CalendarOffer';
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { rehearsalsApi, presenceLabel, type MyAttendance } from '../data/rehearsalsApi';
 import { NOTES_MAX, problem, RehearsalLine } from './RehearsalShared';
+import { Loading } from './ui/Loading';
 
 // ---------- the member's presença ----------
 

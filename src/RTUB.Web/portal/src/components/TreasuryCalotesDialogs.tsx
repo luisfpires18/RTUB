@@ -3,9 +3,12 @@ import { useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { isoDay, problem, treasuryApi, type Calotes, type DebtGroup, type Person } from '../data/treasuryApi';
-import { Field, MemberPicker, PersonChip, SaveFooter } from './TreasuryUi';
+import { MemberPicker } from './TreasuryUi';
 import { day, euros } from '../data/format';
 import { type Debt } from '../data/treasuryCalotesView';
+import { PersonChip } from './ui/PersonChip';
+import { FormField } from './ui/FormField';
+import { DialogFooter } from './ui/DialogFooter';
 
 /** One member's debts of the year, with the commitment date (managers change it) and, for managers, edit / remove. */
 export function DebtsDialog({
@@ -53,9 +56,9 @@ export function DebtsDialog({
           </h3>
           {calotes.canManage ? (
             <form className="tr-inline-form" onSubmit={saveCommitment} noValidate>
-              <Field id={`${fid}-until`} label="Até (opcional)">
+              <FormField alert id={`${fid}-until`} label="Até (opcional)">
                 <input id={`${fid}-until`} type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
-              </Field>
+              </FormField>
               <button type="submit" className="btn btn--primary btn--sm" disabled={busy}>
                 {busy && <span className="spinner spinner--small" aria-hidden="true" />}
                 Guardar
@@ -145,7 +148,7 @@ export function DebtDialog({
     <Dialog
       title={debt ? 'Editar calote' : `Adicionar calote · ${fiscalYear}`}
       onClose={onClose}
-      footer={<SaveFooter formId={`${fid}-form`} busy={busy} disabled={!member || !amount} onClose={onClose} label={debt ? 'Guardar' : 'Adicionar'} />}
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!member || !amount} onClose={onClose} label={debt ? 'Guardar' : 'Adicionar'} />}
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
         {errors.form && (
@@ -156,7 +159,7 @@ export function DebtDialog({
         <div className={errors.userId ? 'form__field form__field--error' : 'form__field'}>
           <span className="form__label">Membro</span>
           {member ? (
-            <PersonChip person={member} onRemove={debt || initial ? undefined : () => setMember(undefined)} />
+            <PersonChip name={member.displayName} avatar={member.avatarUrl} onRemove={debt || initial ? undefined : () => setMember(undefined)} />
           ) : (
             <MemberPicker forDebts label="Procurar membro" onPick={setMember} />
           )}
@@ -166,12 +169,12 @@ export function DebtDialog({
             </p>
           )}
         </div>
-        <Field id={`${fid}-amount`} label="Montante (€)" error={errors.amount}>
+        <FormField alert id={`${fid}-amount`} label="Montante (€)" error={errors.amount}>
           <input id={`${fid}-amount`} type="number" inputMode="decimal" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
-        </Field>
-        <Field id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description}>
+        </FormField>
+        <FormField alert id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description}>
           <input id={`${fid}-desc`} type="text" maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
-        </Field>
+        </FormField>
       </form>
     </Dialog>
   );

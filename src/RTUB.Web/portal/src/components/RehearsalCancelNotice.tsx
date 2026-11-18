@@ -1,11 +1,11 @@
 // Admin/Owner dialogs to cancel a rehearsal or push a notice about it.
 
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { rehearsalsApi, type RehearsalSummary, type NoticeAudience } from '../data/rehearsalsApi';
 import { problem, RehearsalLine } from './RehearsalShared';
+import { Loading } from './ui/Loading';
 
 /** Cancel (reason required): every presença is removed; no email goes out. */
 export function CancelDialog({ rehearsal, onClose, onDone }: { rehearsal: RehearsalSummary; onClose: () => void; onDone: () => void }) {

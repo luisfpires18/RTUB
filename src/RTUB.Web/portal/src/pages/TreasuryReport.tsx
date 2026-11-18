@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { problem, treasuryApi, type Activity, type ReportEvent, type Report, type Transaction } from '../data/treasuryApi';
-import { Confirm, Refusal, TreasuryTabs } from '../components/TreasuryUi';
+import { Refusal, TreasuryTabs } from '../components/TreasuryUi';
 import { euros } from '../data/format';
 import { ActivityPanel } from '../components/TreasuryActivityPanel';
 import { BalanceDialog, ActivityDialog } from '../components/TreasuryReportDialogs';
 import { TransactionDialog, HistoryDialog } from '../components/TreasuryTransactionDialogs';
+import { Loading } from '../components/ui/Loading';
+import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 
 /**
  * /treasury/reports/{id} - one annual report. Treasury members:
@@ -200,9 +201,9 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
         />
       )}
       {deleting?.activity && (
-        <Confirm
+        <AsyncConfirmDialog danger
           title="Eliminar atividade"
-          action="Eliminar"
+          confirmLabel="Eliminar"
           onClose={() => setDeleting(undefined)}
           onConfirm={async () => {
             const o = await treasuryApi.removeActivity(deleting.activity!.id);
@@ -217,12 +218,12 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
             <Icon name="warning" />
             Apaga também as transações e os recibos dela. Não dá para desfazer.
           </p>
-        </Confirm>
+        </AsyncConfirmDialog>
       )}
       {deleting?.transaction && (
-        <Confirm
+        <AsyncConfirmDialog danger
           title="Eliminar transação"
-          action="Eliminar"
+          confirmLabel="Eliminar"
           onClose={() => setDeleting(undefined)}
           onConfirm={async () => {
             const o = await treasuryApi.removeTransaction(deleting.transaction!.id);
@@ -237,7 +238,7 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
             <Icon name="warning" />
             Não dá para desfazer.
           </p>
-        </Confirm>
+        </AsyncConfirmDialog>
       )}
       {history && <HistoryDialog reportId={r.id} onClose={() => setHistory(false)} />}
     </section>

@@ -1,6 +1,5 @@
 // The "Ver Ata" dialog of /meetings: the published ata and the attendee confirm / refuse.
 import { useEffect, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { problem } from './MeetingUi';
@@ -8,6 +7,7 @@ import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingAtaView, MeetingCard } from '../data/meetingsTypes';
 import { numericDateTime } from '../data/meetingsDates';
 import { Block } from './MeetingAtaParts';
+import { Loading } from './ui/Loading';
 
 /** "Ver Ata": the ata as published (or a writer's own draft), and the attendee's confirm / refuse. */
 export function AtaViewDialog({ card, onClose }: { card: MeetingCard; onClose: () => void }) {

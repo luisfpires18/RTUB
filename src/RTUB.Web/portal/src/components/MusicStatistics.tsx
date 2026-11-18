@@ -1,9 +1,10 @@
 // Music statistics dialog: most played songs, albums and (for managers) members.
 import { useEffect, useState } from 'react';
-import { Loading } from './AppShared';
 import { Icon } from './icons';
-import { Dialog, Pager, plays } from './MusicUi';
+import { Dialog, plays } from './MusicUi';
 import { musicApi, type Statistics } from '../data/musicApi';
+import { Loading } from './ui/Loading';
+import { TextPager } from './ui/Pager';
 
 // ---------- statistics ----------
 
@@ -72,7 +73,7 @@ function RankList({ title, empty, label, rows }: { title: string; empty: string;
               </li>
             ))}
           </ol>
-          <Pager
+          <TextPager
             page={page}
             pageSize={size}
             total={rows.length}
@@ -129,7 +130,7 @@ function MemberStats({ members }: { members: NonNullable<Statistics['members']> 
               </li>
             ))}
           </ul>
-          <Pager
+          <TextPager
             page={page}
             pageSize={size}
             total={members.length}

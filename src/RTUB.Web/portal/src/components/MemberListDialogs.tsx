@@ -1,11 +1,12 @@
 // Member list dialogs: active members (with search) and upcoming birthdays.
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
 import { membersApi, shortDate, type ActiveMember, type Birthday } from '../data/membersApi';
-import { MemberFace, progressText } from './MemberDialogs';
+import { progressText } from './MemberDialogs';
+import { Loading } from './ui/Loading';
+import { Avatar } from './ui/Avatar';
 
 function useSearch(initial = '') {
   const [text, setText] = useState(initial);
@@ -62,7 +63,7 @@ export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => vo
         <ul className="member-rows">
           {list.map((m) => (
             <li key={m.id} className="member-row">
-              <MemberFace avatarUrl={m.avatarUrl} size={48} />
+              <Avatar className="who__avatar" src={m.avatarUrl} size={48} />
               <span className="member-row__who">
                 <strong>{m.displayName}</strong>
                 {m.fullName && <small>{m.fullName}</small>}
@@ -135,7 +136,7 @@ export function BirthdaysDialog({ onClose }: { onClose: () => void }) {
         <ul className="member-rows">
           {list.map((b) => (
             <li key={b.id} className="member-row">
-              <MemberFace avatarUrl={b.avatarUrl} size={48} />
+              <Avatar className="who__avatar" src={b.avatarUrl} size={48} />
               <span className="member-row__who">
                 <strong>{b.displayName}</strong>
                 {b.fullName && <small>{b.fullName}</small>}

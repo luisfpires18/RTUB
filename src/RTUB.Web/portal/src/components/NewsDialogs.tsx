@@ -4,6 +4,7 @@ import { type NewsPost } from '../data/api';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { api, problem, TITLE_MAX, BODY_MAX } from '../data/newsApi';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 /** "Nova publicação" (save as a draft or publish now) / "Editar publicação" (title and text; the state stays). */
 export function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClose: () => void; onSaved: () => void }) {
@@ -114,35 +115,15 @@ export function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClos
 }
 
 export function DeleteDialog({ post, onClose, onDone }: { post: NewsPost; onClose: () => void; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
 
   const remove = async () => {
-    setBusy(true);
     const o = await api.remove(post.id);
-    setBusy(false);
-    if (o.kind === 'ok' || o.kind === 'notfound') {
-      onDone();
-      onClose();
-    } else setError(problem(o, 'eliminar'));
+    if (o.kind !== 'ok' && o.kind !== 'notfound') return problem(o, 'eliminar');
+    onDone();
   };
 
   return (
-    <Dialog
-      title="Eliminar publicação"
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={remove} disabled={busy}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-            Eliminar
-          </button>
-        </>
-      }
-    >
+    <AsyncConfirmDialog title="Eliminar publicação" confirmLabel="Eliminar" danger onConfirm={remove} onClose={onClose}>
       <p>
         Eliminar <strong>{post.title ?? 'esta publicação'}</strong>
         {post.publishedAt ? ' das Novidades' : ''}?
@@ -151,11 +132,6 @@ export function DeleteDialog({ post, onClose, onDone }: { post: NewsPost; onClos
         <Icon name="warning" />
         Não dá para desfazer.
       </p>
-      {error && (
-        <p className="form__banner" role="alert">
-          {error}
-        </p>
-      )}
-    </Dialog>
+    </AsyncConfirmDialog>
   );
 }

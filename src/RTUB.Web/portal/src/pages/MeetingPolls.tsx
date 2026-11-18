@@ -1,13 +1,14 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
-import { MEETING_PAGE_SIZES, Pager } from '../components/MeetingPager';
+import { MEETING_PAGE_SIZES } from '../data/meetingsTypes';
 import { Icon, type IconName } from '../components/icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingPoll, MeetingPollBoard } from '../data/meetingsTypes';
 import { SignInNotice } from '../components/Notice';
 import { pollProblem, PollCard } from '../components/MeetingPollCard';
 import { CreatePollDialog } from '../components/MeetingPollCreateDialog';
+import { Loading } from '../components/ui/Loading';
+import { Pager } from '../components/ui/Pager';
 
 /**
  * /meetings/polls: the Votações of the meeting bodies, open ones and closed ones in two paged grids. The server decides

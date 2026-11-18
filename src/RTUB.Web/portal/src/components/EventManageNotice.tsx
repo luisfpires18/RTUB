@@ -5,6 +5,7 @@ import { Dialog } from './Dialog';
 import { eventsApi, type EventSummary } from '../data/eventsApi';
 import { Icon } from './icons';
 import { failure, EventLine, members, useAudience } from './EventManageShared';
+import { Segmented } from './ui/Segmented';
 
 /**
  * One notice about an upcoming event: an email ("Nova atuação" or
@@ -75,7 +76,7 @@ export function NoticeDialog({ event, onClose }: { event: EventSummary; onClose:
           </>
         ) : (
           <>
-            <div className="segmented" role="radiogroup" aria-label="Canal">
+            <Segmented label="Canal" role="radiogroup">
               {(['email', 'push'] as const).map((c) => (
                 <label key={c} className={channel === c ? 'segmented__option is-on' : 'segmented__option'}>
                   <input type="radio" name="notice-channel" checked={channel === c} onChange={() => change(() => setChannel(c))} disabled={busy} />
@@ -83,7 +84,7 @@ export function NoticeDialog({ event, onClose }: { event: EventSummary; onClose:
                   {c === 'email' ? 'Email' : 'Push'}
                 </label>
               ))}
-            </div>
+            </Segmented>
 
             {channel === 'email' ? (
               <div className="form__field">

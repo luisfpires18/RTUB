@@ -3,6 +3,7 @@ import { submitRequest, type FieldErrors, type RequestForm } from '../data/api';
 import { contactEmail, portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { today } from '../data/format';
+import { FormField } from '../components/ui/FormField';
 
 // Suggestions only: the event type stays free text.
 const examples = ['Serenata', 'Casamento', 'Batizado', 'Aniversário', 'Arraial', 'Arruada', 'Convívio', 'Missa', 'Festival'];
@@ -273,21 +274,9 @@ export default function RequestPage() {
 }
 
 function Field({ id, label, error, children }: { id: keyof RequestForm; label: string; error?: string; children: ReactNode }) {
-  const hint = hints[id];
   return (
-    <div className={error ? 'form__field form__field--error' : 'form__field'}>
-      <label htmlFor={`request-${id}`}>{label}</label>
+    <FormField id={`request-${id}`} label={label} error={error} hint={error ? undefined : hints[id]}>
       {children}
-      {hint && !error && (
-        <p id={`request-${id}-hint`} className="form__hint">
-          {hint}
-        </p>
-      )}
-      {error && (
-        <p id={`request-${id}-error`} className="form__error">
-          {error}
-        </p>
-      )}
-    </div>
+    </FormField>
   );
 }

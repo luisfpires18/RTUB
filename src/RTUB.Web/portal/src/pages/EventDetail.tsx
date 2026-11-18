@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { EnrollmentDialog } from '../components/EventAnswer';
 import { PrizesDialog } from '../components/EventPrizesDialog';
 import { CancelEventDialog, ReactivateEventDialog, NoticeDialog, ParticipantsManagerDialog, RepertoireManagerDialog, VideoManagerDialog } from '../components/EventManageLazy';
@@ -7,6 +6,7 @@ import { portal } from '../data/content';
 import { eventsApi, type EventDetail as Detail } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { Body } from '../components/EventDetailBody';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * ?respond=1 (from an old link) opens the answer modal once. Read

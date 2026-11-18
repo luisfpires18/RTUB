@@ -4,26 +4,6 @@ import { Icon } from './icons';
 import { logisticsApi, type MemberOption } from '../data/logisticsApi';
 import { DEFAULT_AVATAR } from '../data/membersApi';
 
-export const Footer = ({ onClose, busy, form, label, disabled }: { onClose: () => void; busy: boolean; form: string; label: string; disabled?: boolean }) => (
-  <>
-    <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-      Cancelar
-    </button>
-    <button type="submit" form={form} className="btn btn--primary" disabled={busy || disabled}>
-      {busy && <span className="spinner spinner--small" aria-hidden="true" />}
-      {label}
-    </button>
-  </>
-);
-
-/** A field's error message under it, or nothing. */
-export const FieldError = ({ text }: { text?: string }) =>
-  text ? (
-    <p className="form__error" role="alert">
-      {text}
-    </p>
-  ) : null;
-
 /**
  * Search members by nickname or name (the server returns at most 20) and pick one. With `boardId`: only
  * members who may see that board (a private board's access list, Mod, Admin, Owner).
@@ -88,14 +68,3 @@ export function MemberPicker({
     </div>
   );
 }
-
-export const PersonChip = ({ name, avatar, onRemove, removeLabel }: { name: string; avatar: string | null; onRemove: () => void; removeLabel: string }) => (
-  <span className="chip chip--removable">
-    <img src={avatar ?? DEFAULT_AVATAR} alt="" width="24" height="24" />
-    {name}
-    <button type="button" className="chip__remove" onClick={onRemove}>
-      <Icon name="close" />
-      <span className="sr-only">{removeLabel}</span>
-    </button>
-  </span>
-);

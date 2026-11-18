@@ -1,6 +1,5 @@
 // /logistics/{id}: one board page - state, filters, drag and drop; the pieces live in components/Logistics*.
 import { useEffect, useId, useRef, useState, type DragEvent } from 'react';
-import { Loading } from '../components/AppShared';
 import { Icon } from '../components/icons';
 import { ListView, Summary } from '../components/LogisticsViews';
 import { logisticsApi, problem, STATUSES, type Board, type Card, type List, type Priority, type Status } from '../data/logisticsApi';
@@ -15,6 +14,7 @@ import { LogisticsBoardDialogs } from '../components/LogisticsBoardDialogs';
 import { ArchivedCards } from '../components/LogisticsArchivedCards';
 import { BoardNotice } from '../components/LogisticsBoardNotice';
 import { CalendarView } from '../components/LogisticsCalendar';
+import { Loading } from '../components/ui/Loading';
 
 const VIEWS: { key: View; label: string; icon: 'kanban' | 'listOl' | 'calendar' }[] = [
   { key: 'board', label: 'Quadro', icon: 'kanban' },

@@ -1,11 +1,11 @@
 // Inventory add / edit instrument form dialog.
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Cropper } from './Cropper';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { type Option, type Input, api, MAX_IMAGE, IMAGE_TYPES, CROP_TEXT, problem } from '../data/inventoryApi';
 import { Thumb } from './InventoryDialogs';
+import { Loading } from './ui/Loading';
 
 const blank = (): Input => ({
   name: '',

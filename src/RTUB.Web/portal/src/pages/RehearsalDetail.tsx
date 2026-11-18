@@ -1,5 +1,4 @@
 import { rehearsalActivity, CalendarOfferDialog } from '../components/CalendarOffer';
-import { Loading } from '../components/AppShared';
 import { useEffect, useState } from 'react';
 import { loginTo } from '../data/content';
 import { weekday, dateLabel, type Outcome } from '../data/eventsApi';
@@ -10,6 +9,7 @@ import { PresenceDialog } from '../components/RehearsalPresence';
 import { PresencePill } from '../components/RehearsalShared';
 import { RehearsalFormDialog } from '../components/RehearsalFormDialogs';
 import { Counts, Group, AddAttendee } from '../components/RehearsalAttendees';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * /rehearsals/{id} - one rehearsal: its details, the member's own presença and everyone's

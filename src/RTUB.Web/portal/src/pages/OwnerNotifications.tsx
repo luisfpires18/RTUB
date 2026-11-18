@@ -2,9 +2,10 @@ import { useId, useState, type FormEvent } from 'react';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
-import { ConfirmDialog } from '../components/MusicUi';
 import { ownerApi, ownerProblem, type OwnerPerson } from '../data/ownerApi';
-import { Flash, matches, OwnerPage, OwnerPager, SearchBox, useOwnerLoad } from '../components/OwnerUi';
+import { Flash, matches, OwnerPage, SearchBox, useOwnerLoad } from '../components/OwnerUi';
+import { Pager } from '../components/ui/Pager';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 const TITLE_MAX = 100;
 const BODY_MAX = 500;
@@ -193,7 +194,7 @@ function Composer({ people }: { people: OwnerPerson[] }) {
             </ul>
             {filtered.length === 0 && <p className="note">Ninguém corresponde à pesquisa.</p>}
             {filtered.length > pageSize && (
-              <OwnerPager
+              <Pager
                 total={filtered.length}
                 itemLabel="utilizadores"
                 page={page}

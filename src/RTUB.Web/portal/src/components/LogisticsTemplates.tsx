@@ -1,10 +1,10 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { AccessFields } from './LogisticsAccessFields';
 import { EventField } from './LogisticsEventField';
 import { logisticsApi, PRIORITY, problem, STATUS, type LogisticsEvent, type Priority, type Template, type Visibility, PRIORITIES_LOW_FIRST } from '../data/logisticsApi';
+import { Loading } from './ui/Loading';
 
 type Person = { id: string; name: string; avatar: string | null };
 type Draft = { include: boolean; title: string; priority: Priority; dueDate: string; checklist: string };

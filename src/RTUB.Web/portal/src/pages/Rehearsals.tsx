@@ -1,5 +1,4 @@
 import { useEffect, useId, useMemo, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { dateLabel, dayOf, monthShort, weekday } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { MyPresencesDialog, StatsDialog } from '../components/RehearsalStats';
@@ -9,6 +8,7 @@ import { RangeDialog, RehearsalFormDialog } from '../components/RehearsalFormDia
 import { rehearsalsApi, type RehearsalAgenda, type RehearsalSummary } from '../data/rehearsalsApi';
 import { fold } from '../data/format';
 import { RetryNotice, SignInNotice } from '../components/Notice';
+import { Loading } from '../components/ui/Loading';
 
 /** The season (September-August) a day falls in, as the server names it. */
 const seasonOf = (d: Date) => {

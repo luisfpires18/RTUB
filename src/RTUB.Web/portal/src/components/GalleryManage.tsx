@@ -1,10 +1,10 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { today } from '../data/format';
 import { MAX_IMAGE, MAX_VIDEO, type EditData, type Form, type UploadEvent, galleryApi, problem, upload } from '../data/galleryUploadApi';
 import { PeoplePicker, Details } from './GalleryFormParts';
+import { Loading } from './ui/Loading';
 
 // Gallery management. Any signed-in member uploads; the
 // uploader, Admin or Owner edit and delete. The server decides and validates everything (GalleryManagementService).

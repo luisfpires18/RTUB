@@ -1,10 +1,10 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary, Layout } from './components/App';
-import { Loading } from './components/AppShared';
 import { Home } from './pages/Home';
 import './styles.css';
 import { getCurrentUser } from './data/api';
+import { Loading } from './components/ui/Loading';
 
 // The session request leaves with the bundle's first bytes instead of after React's first commit;
 // getCurrentUser caches its promise, so the shell's own call joins this one.

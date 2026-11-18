@@ -1,5 +1,4 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { Dialog } from '../components/Dialog';
 import { portal } from '../data/content';
 import { dateLabel, eventsApi, type EventContactRow, type EventContacts as Contacts, type EventSummary } from '../data/eventsApi';
@@ -7,6 +6,7 @@ import { Icon } from '../components/icons';
 import { when } from '../components/EventDiscussionShared';
 import { fold } from '../data/format';
 import { Notice, SignInNotice } from '../components/Notice';
+import { Loading } from '../components/ui/Loading';
 
 const NOTES_MAX = 500;
 

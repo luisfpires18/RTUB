@@ -2,10 +2,10 @@
 import { useId, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { ConfirmDialog } from './MusicUi';
 import { entityLabel, ownerApi, ownerProblem, type AuditEntry, type AuditFilters } from '../data/ownerApi';
 import { CONFIRMATION, primaryName, stamp, actionTone, pretty } from '../data/ownerTracingHelpers';
 import { Select } from './OwnerTracingParts';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 export function DetailsDialog({ entry, onClose }: { entry: AuditEntry; onClose: () => void }) {
   return (

@@ -1,11 +1,11 @@
 // Dialog to upload, order, rename and delete an event's videos.
 
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import { eventsApi, MAX_EVENT_VIDEO_BYTES, type ManagedVideo, type EventSummary, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
+import { Loading } from './ui/Loading';
 
 /**
  * The event's videos for Admin/Owner: upload (past events; file ≤100 MB and a

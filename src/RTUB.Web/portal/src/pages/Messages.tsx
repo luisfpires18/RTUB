@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loading } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { publishUnread, useUnreadProvider } from '../data/unread';
@@ -8,6 +7,7 @@ import { ChatFace } from '../components/MessageParts';
 import { type ConversationItem, type Draft, LIST_POLL_MS, api, byTier, conversationFromUrl, listStamp } from '../data/messagesApi';
 import { DraftThread, StartDialog } from '../components/MessageStart';
 import { Thread } from '../components/MessageThread';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * /messages - Mensagens (Messaging v2). The conversation list and one chat; on phones one at a time (the

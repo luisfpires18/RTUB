@@ -1,13 +1,16 @@
 // The participants dialog of /meetings (who goes, who does not, add members).
 import { useEffect, useId, useState } from 'react';
-import { Loading } from './AppShared';
 import { Dialog } from './Dialog';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingCandidate, MeetingCard, MeetingParticipant, MeetingParticipants } from '../data/meetingsTypes';
 import { MemberBadge, badgeKind } from './MemberBadge';
-import { problem, Banner, Face, Spinner } from './MeetingUi';
+import { problem } from './MeetingUi';
+import { Loading } from './ui/Loading';
+import { Banner } from './ui/Banner';
+import { Avatar } from './ui/Avatar';
+import { Spinner } from './ui/Spinner';
 
 /** "Participantes - {título}": who goes and who does not, with notes; Admin / Owner add members. */
 export function ParticipantsDialog({ card, onClose, onChanged }: { card: MeetingCard; onClose: () => void; onChanged: () => void }) {
@@ -67,7 +70,7 @@ export function ParticipantsDialog({ card, onClose, onChanged }: { card: Meeting
         <ul className="who mtg-who__list">
           {people.map((p) => (
             <li key={p.id} className="who__person mtg-who__person" title={p.fullName || undefined}>
-              <Face src={p.avatarUrl} size={64} />
+              <Avatar className="mtg-face" src={p.avatarUrl} size={64} />
               <p className="who__name">{p.nickname || p.fullName}</p>
               {p.fullName && p.fullName !== p.nickname && <p className="who__meta">{p.fullName}</p>}
               {p.badge && <MemberBadge kind={badgeKind(p.badge)}>{p.badge}</MemberBadge>}
@@ -123,7 +126,7 @@ export function ParticipantsDialog({ card, onClose, onChanged }: { card: Meeting
                   onClick={() => run(meetingsApi.removeParticipation(card.id, removing.id), 'Participação removida com sucesso.', 'remover a participação')}
                   disabled={busy}
                 >
-                  <Spinner on={busy} />
+                  {busy && <Spinner small />}
                   Eliminar
                 </button>
               </span>
@@ -169,7 +172,7 @@ export function ParticipantsDialog({ card, onClose, onChanged }: { card: Meeting
                     <ul className="mtg-candidates">
                       {candidates.map((c) => (
                         <li key={c.id} className="mtg-candidate">
-                          <Face src={c.avatarUrl} size={36} />
+                          <Avatar className="mtg-face" src={c.avatarUrl} size={36} />
                           <span className="mtg-candidate__name">{c.name}</span>
                           <button
                             type="button"

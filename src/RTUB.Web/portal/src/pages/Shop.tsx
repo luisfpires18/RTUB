@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { Loading, useLatest } from '../components/AppShared';
+import { useLatest } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { MemberBadge } from '../components/MemberBadge';
@@ -9,6 +9,7 @@ import { RetryNotice, SignInNotice } from '../components/Notice';
 import { type Product, type Catalogue, api, PAGE } from '../data/shopApi';
 import { DetailDialog, ReserveDialog, MineDialog, ReservationsDialog } from '../components/ShopDialogs';
 import { Confirm, ProductForm } from '../components/ShopProductForm';
+import { Loading } from '../components/ui/Loading';
 
 type Open =
   | { kind: 'detail' | 'reserve' | 'mine' | 'reservations' | 'delete'; product: Product }

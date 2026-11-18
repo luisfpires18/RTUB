@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loading, useCurrentUser } from '../components/AppShared';
+import { useCurrentUser } from '../components/AppShared';
 import { loginToProfile, portal } from '../data/content';
 import { Icon, type IconName } from '../components/icons';
 import { MemberBadge } from '../components/MemberBadge';
@@ -12,6 +12,7 @@ import { PersonalSection } from '../components/ProfilePersonal';
 import { ProfilePhoto } from '../components/ProfilePhoto';
 import { PushSection } from '../components/ProfilePush';
 import { TunaSection } from '../components/ProfileTuna';
+import { Loading } from '../components/ui/Loading';
 
 /**
  * /profile - the members-only corner of a public portal. RTUB has no public accounts: the tuna creates its members'

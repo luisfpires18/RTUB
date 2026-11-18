@@ -2,7 +2,7 @@
 import { AtaEditorDialog } from './MeetingAta';
 import { AtaViewDialog } from './MeetingAtaView';
 import { CancelDialog } from './MeetingCancelDialog';
-import { ConfirmDialog, problem } from './MeetingUi';
+import { problem } from './MeetingUi';
 import { DetailsDialog } from './MeetingDetailsDialog';
 import { EmailDialog } from './MeetingEmailDialog';
 import { MeetingFormDialog } from './MeetingFormDialog';
@@ -13,6 +13,7 @@ import { PushDialog } from './MeetingPushDialog';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingBoard, MeetingCard, MeetingDraft } from '../data/meetingsTypes';
 import { type Flash } from '../pages/Meetings';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 export type Open =
   | { kind: 'details'; card: MeetingCard }
@@ -57,7 +58,7 @@ export function Dialogs({
       return <MeetingFormDialog card={open.card} draft={open.draft} board={board} onClose={onClose} onSaved={(m) => (done(m), onClose())} />;
     case 'delete':
       return (
-        <ConfirmDialog
+        <AsyncConfirmDialog
           title="Confirmar Eliminação"
           confirmLabel="Eliminar"
           confirmIcon="trash"
@@ -69,17 +70,19 @@ export function Dialogs({
             done('Reunião eliminada.');
           }}
         >
-          <p>
-            Tem a certeza que quer eliminar a reunião <strong>{open.card.title}</strong>?
-          </p>
-          <p className="note">Não é possível desfazer.</p>
-        </ConfirmDialog>
+          <div className="mtg-confirm">
+            <p>
+              Tem a certeza que quer eliminar a reunião <strong>{open.card.title}</strong>?
+            </p>
+            <p className="note">Não é possível desfazer.</p>
+          </div>
+        </AsyncConfirmDialog>
       );
     case 'respond':
       return <ParticipationDialog card={open.card} willAttend={open.willAttend} onClose={onClose} onSaved={() => (done(), onClose())} />;
     case 'removeOwn':
       return (
-        <ConfirmDialog
+        <AsyncConfirmDialog
           title="Confirmar Remoção de Participação"
           confirmLabel="Sim, Remover"
           cancelLabel="Não"
@@ -93,8 +96,10 @@ export function Dialogs({
             done('Participação removida.');
           }}
         >
-          <p>Tem certeza que deseja remover sua participação nesta reunião?</p>
-        </ConfirmDialog>
+          <div className="mtg-confirm">
+            <p>Tem certeza que deseja remover sua participação nesta reunião?</p>
+          </div>
+        </AsyncConfirmDialog>
       );
     case 'participants':
       return <ParticipantsDialog card={open.card} onClose={onClose} onChanged={onChanged} />;
@@ -116,7 +121,7 @@ export function Dialogs({
       );
     case 'uncancel':
       return (
-        <ConfirmDialog
+        <AsyncConfirmDialog
           title="Reverter cancelamento"
           confirmLabel="Reverter"
           confirmIcon="restore"
@@ -127,10 +132,12 @@ export function Dialogs({
             done('A reunião voltou a ficar agendada.');
           }}
         >
-          <p>
-            A reunião <strong>{open.card.title}</strong> volta a ficar agendada.
-          </p>
-        </ConfirmDialog>
+          <div className="mtg-confirm">
+            <p>
+              A reunião <strong>{open.card.title}</strong> volta a ficar agendada.
+            </p>
+          </div>
+        </AsyncConfirmDialog>
       );
     case 'ata':
       return <AtaEditorDialog card={open.card} onClose={onClose} onChanged={onChanged} />;

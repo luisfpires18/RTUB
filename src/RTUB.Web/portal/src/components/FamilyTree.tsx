@@ -1,10 +1,10 @@
 // The family tree widget of /members/hierarchy: search, keyboard navigation, selected branch.
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Icon } from './icons';
-import { MemberFace } from './MemberDialogs';
 import { type TreeNode } from '../data/membersApi';
 import { Branch, type BranchContext } from './HierarchyBranch';
 import { ancestorsOf, fold, indexTree, initialExpanded, memberHref, reducedMotion } from '../data/hierarchyTree';
+import { Avatar } from './ui/Avatar';
 
 export function FamilyTree({ roots }: { roots: TreeNode[] }) {
   const index = useMemo(() => indexTree(roots), [roots]);
@@ -250,7 +250,7 @@ export function FamilyTree({ roots }: { roots: TreeNode[] }) {
                   href={memberHref(n.id)}
                   aria-current={selected === n.id ? 'true' : undefined}
                 >
-                  <MemberFace avatarUrl={n.avatarUrl} size={28} />
+                  <Avatar className="who__avatar" src={n.avatarUrl} size={28} />
                   <span>
                     <strong>{n.displayName}</strong>
                     {n.fullName && <small>{n.fullName}</small>}
