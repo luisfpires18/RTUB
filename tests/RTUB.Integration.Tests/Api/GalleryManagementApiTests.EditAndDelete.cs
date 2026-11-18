@@ -89,4 +89,13 @@ public partial class GalleryManagementApiTests
         _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.Is<IEnumerable<string>>(ids => ids.Contains(added.Id)), It.IsAny<SendPushNotificationDto>()),
             Times.Never, "only tags made on upload notify, as before");
     }
+
+    /// <summary>Task 135: /api/DownloadMedia fetched any URL for any signed-in account. No page called it; it is gone.</summary>
+    [Fact]
+    public async Task TheDownloadProxy_IsGone()
+    {
+        var (member, _) = await SignInAsync();
+
+        (await member.GetAsync("/api/DownloadMedia?url=http%3A%2F%2F127.0.0.1%3A9%2Fx.jpg&filename=x.jpg")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }
