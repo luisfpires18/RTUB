@@ -148,7 +148,7 @@ redacted in the audit log (`AuditConfiguration`).
 | `docs/release-and-rollback.md` | **Runbook**: branch model, versions, releasing, archive, rollback, hotfix, database rules and restore. |
 | `docs/ci-cd-and-azure-environments.md` | DEV/PROD matrix, workflows, packaging, run-from-package, OIDC identities, setting names, smoke. |
 | `docs/configuration-runbook.md`, `scripts/config/` | Every setting per environment (`required-settings.json`), redacted audits of local user-secrets and the Azure App Settings, placeholder-only `set` templates, VAPID key generation. Outputs go to the git-ignored `.local/config-audit/`. |
-| `.deployment`, `Directory.Build.props`, `Directory.Packages.props` | Deployment hook (inert), central build settings + version stamping, central package versions. |
+| `Directory.Build.props`, `Directory.Packages.props` | Central build settings + version stamping, central package versions. |
 | `global.json` | .NET SDK pin **and** `test.runner: Microsoft.Testing.Platform` — what makes `dotnet test` discover the xUnit v3 suites. |
 | `scripts/release.sh` | version / bump-check / package / zip guards / `release.json` / schema gate. `--self-test`. |
 | `scripts/release-archive.sh` | The release archive: create-only put, verified get, list. `--self-test` against a fake `az`. |

@@ -1,7 +1,7 @@
 # React Events (`/events`)
 
 `/events` is the React agenda (`src/RTUB.Web/portal/src/pages/Events.tsx`); `/events/{id}` is one event (`EventDetail.tsx`).
-Members answer (Vou / Não vou) in a modal (`EventDialogs.tsx`), from a card's quick reply or the event page. Admin and
+Members answer (Vou / Não vou) in a modal (`components/EventAnswer.tsx`), from a card's quick reply or the event page. Admin and
 Owner create, edit, delete, manage the image, cancel or reactivate, and send notices in modals on the same pages.
 
 Code: `Endpoints/EventEndpoints.cs` → `IEventAgendaService` (reads), `IEventAdminService` (Admin/Owner writes),

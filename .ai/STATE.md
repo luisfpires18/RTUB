@@ -48,7 +48,8 @@ Task 117 (`chore/117/geocoding-single-request`, on top of 116): a members-map lo
   `Games__*`, `MyTunoScaling__*` app settings. Local user-secrets may still hold dead `IDrive:*` keys.
 - Retire basic auth: delete repo secret `AZURE_WEBAPP_PUBLISH_PROFILE`; `rtub` `basicPublishingCredentialsPolicies/scm`
   allow=false.
-- Copilot coding agent: Repository access → No repositories; delete the `copilot` environment and `copilot/*` branches.
+- Copilot coding agent: Repository access → No repositories; delete the `copilot` environment and the
+  `copilot/read-docs-and-apply-best-practices` branch (the Copilot instruction files are gone from the repo).
 - CodeQL is not configured (Settings → Code security → Code scanning → Default), if wanted.
 - Rulesets on `master` and `dev`: block force pushes and deletions; `development` environment has no branch policy.
 - `iarc_rating_id` for the manifest needs the IARC certificate from Play Console.
@@ -117,7 +118,6 @@ Task 117 (`chore/117/geocoding-single-request`, on top of 116): a members-map lo
 - Shop: a reservation snapshots no product name or price and is deleted with its product; `InFiscalYear` compares UTC
   `CreatedAt` with local-calendar bounds.
 - Deleting an instrument leaves its thumbnail in R2; "Remover imagem" on `/naipes/config` leaves the R2 object.
-- `CachedGeocodingService` creates a DbContext per lookup without disposing it.
 - `UserProfileService.UpdateProfilePictureAsync` deletes the old image before the upload succeeds.
 - `NewsEndpoints.cs` 403 title names system roles (API callers only; the portal shows its own message).
 - React `/roles` probes `GET /api/governance/manage`, logging a 403 console error for members without rights.
@@ -139,13 +139,7 @@ Task 117 (`chore/117/geocoding-single-request`, on top of 116): a members-map lo
 **Dead code and config**
 - `AspNetUsers.ExperiencePoints` / `Level` have no writer (the leaderboard computes XP per request): DB cleanup candidate.
 - `PostMedia` / `CommentImages`: production row counts needed before dropping (`docs/db-cleanup-inventory.md`).
-- ~80 interface methods with no production caller (storage `*ExistsAsync` / `GetFileSizeAsync` / `ListFoldersAsync`,
-  CRUD helpers); `IRequestService.GetPendingRequestsAsync`; `MimeTypeHelper.GetMediaMimeType`;
-  `ApplicationUserExtensions.GetYearsAsTuno` and friends (tests only).
-- Committed but unread settings: `Gallery:MaxVideoSizeMB` (code reads `GalleryMedia:MaxVideoSize`), `ImageCaching:*`,
-  `UseSqlServer`.
-- Kept on purpose: the old-URL 302s in `Program.cs`; npm `bootstrap-icons` (path-data source for `icons.tsx`).
-- `wwwroot/images/icons/*` has no in-repo reference (old logo copies).
+- Kept on purpose: npm `bootstrap-icons` (path-data source for `icons.tsx`).
 
 **Tooling and dependencies**
 - `npm audit`: 5 high in vite 6 dependencies (build time only).
@@ -153,13 +147,9 @@ Task 117 (`chore/117/geocoding-single-request`, on top of 116): a members-map lo
 - `xUnit1051` suppressed.
 - `refresh-dev-database.yml` and Deploy • DEV use different concurrency groups (a push during a refresh can deploy
   mid-refresh); pinned `checkout@v4` / `setup-dotnet@v4`.
-- `.deployment` (`SCM_DO_BUILD_DURING_DEPLOYMENT=true`) is inert; `deploy-prod.yml` comment says npm runs in the build
-  (it does not).
 - Local runs read `ConnectionStrings:SqliteConnection`; point it at a scratch copy or the run writes to
   `src/RTUB.Web/app.db`. A local run without `Cloudflare:R2:PublicUrl` blocks R2 images in the CSP (local only).
 - GitGuardian: historical incidents stay historical; mark them by hand.
-- `scripts/test-twa-config.sh` points at docs that never existed (`docs/URGENT-TWA-SETUP-INSTRUCTIONS.md`,
-  `docs/twa-configuration-guide.md`).
 
 ## Next
 Owner decides the next task (GitHub Issues).

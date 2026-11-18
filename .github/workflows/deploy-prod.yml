@@ -70,7 +70,7 @@ jobs:
     permissions:
       contents: read
 
-  # The only job that builds. It holds no Azure token: npm and NuGet code runs here, so it gets
+  # The only job that builds. It holds no Azure token: NuGet restore and build code runs here, so it gets
   # read access to the repository and nothing else.
   package:
     name: Package (build once)
