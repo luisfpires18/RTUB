@@ -136,7 +136,7 @@ export function ConfirmDialog({
   );
 }
 
-/** The meeting the notice is about, as the old dialogs showed it. */
+/** The meeting the notice is about. */
 export function MeetingSummary({ card, heading = 'Detalhes da Reunião:' }: { card: MeetingCard; heading?: string }) {
   return (
     <section className="mtg-summary" aria-label={heading}>

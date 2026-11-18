@@ -17,7 +17,7 @@ function useSearch(initial = '') {
   return { text, setText, q };
 }
 
-/** The old "Gestão de Membros Ativos": who is active or retired, and since when; Admin/Owner act on a row. */
+/** "Gestão de Membros Ativos": who is active or retired, and since when; Admin/Owner act on a row. */
 export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => void; rowActions?: (m: ActiveMember, reload: () => void) => ReactNode }) {
   const [list, setList] = useState<ActiveMember[] | null>();
   const [status, setStatus] = useState('');
@@ -101,7 +101,7 @@ export function ActiveMembersDialog({ onClose, rowActions }: { onClose: () => vo
   );
 }
 
-/** The old "Aniversários": the birthdays still to come this year, soonest first. */
+/** "Aniversários": the birthdays still to come this year, soonest first. */
 export function BirthdaysDialog({ onClose }: { onClose: () => void }) {
   const [list, setList] = useState<Birthday[] | null>();
   const search = useSearch();

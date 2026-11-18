@@ -7,9 +7,9 @@ import { unreadLabel, useUnread } from '../data/unread';
 import { DEFAULT_AVATAR } from '../data/membersApi';
 
 /**
- * The signed-in member shell (task 030, reshaped in 044): the header carries [inbox] [profile] [menu] on the right, and
- * the one member menu is a drawer from the right on every screen size (no permanent sidebar). Only routes that still
- * exist are listed; the retired modules (games, bets, MyTuno, images, labels) are deliberately absent. Perfil and
+ * The signed-in member shell: the header carries [inbox] [profile] [menu] on the right, and
+ * the one member menu is a drawer from the right on every screen size (no permanent sidebar). Only routes that
+ * exist are listed; games, bets, MyTuno, images and labels are deliberately absent. Perfil and
  * Mensagens are not in the menu: the profile chip and the inbox button are their direct entries.
  * The server decides which groups a member sees (MemberMenuAccess); every page still enforces its own rule.
  */
@@ -19,12 +19,12 @@ export type Member = Extract<CurrentUser, { authenticated: true }>;
 type MenuLink = { href: string; label: string; icon: IconName; when?: keyof MemberMenu; notRetired?: true };
 type MenuGroup = { key: string; label: string; links: MenuLink[] };
 
-export const memberMenu: MenuGroup[] = [
+const memberMenu: MenuGroup[] = [
   {
     key: 'member',
     label: 'Membro',
     links: [
-      // Task 071: every signed-in member (Leitões too), outside Gestão; the page decides its panels. 087: not a Reformado.
+      // Every signed-in member (Leitões too) except a Reformado, outside Gestão; the page decides its panels.
       { href: portal.pendingActions, label: 'As minhas ações pendentes', icon: 'calendarCheck', notRetired: true },
       { href: portal.events, label: 'Atuações', icon: 'calendar' },
       { href: portal.rehearsals, label: 'Ensaios', icon: 'clock' },
@@ -76,7 +76,7 @@ export const memberMenu: MenuGroup[] = [
 ];
 
 /** The groups and links this member sees; a group with nothing left is dropped. */
-export function visibleMenu(menu: MemberMenu, retired = false): MenuGroup[] {
+function visibleMenu(menu: MemberMenu, retired = false): MenuGroup[] {
   return memberMenu
     .map((g) => ({ ...g, links: g.links.filter((l) => (!l.when || menu[l.when]) && !(l.notRetired && retired)) }))
     .filter((g) => g.links.length > 0);

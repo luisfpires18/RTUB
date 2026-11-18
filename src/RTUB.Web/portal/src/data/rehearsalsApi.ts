@@ -1,10 +1,10 @@
-// Typed client for /api/rehearsals (React track 014, Endpoints/RehearsalEndpoints.cs). Rehearsals speak of
+// Typed client for /api/rehearsals (Endpoints/RehearsalEndpoints.cs). Rehearsals speak of
 // presença (attendance); events keep their own answer word. The server decides what the caller may see and do.
 // Dates are local "yyyy-MM-dd" / "HH:mm" text, never parsed as UTC.
 import { call, type EventAuthor, type MemberOption } from './eventsApi';
 
 /** The caller's own presença: "pending" (vou, not approved yet), "approved" or "notGoing". */
-export type PresenceStatus = 'pending' | 'approved' | 'notGoing';
+type PresenceStatus = 'pending' | 'approved' | 'notGoing';
 
 export type RehearsalSummary = {
   id: number;
@@ -93,7 +93,7 @@ export const rehearsalsApi = {
   saveAttendance: (id: number, willAttend: boolean, instrument: string | null, notes: string | null) =>
     call<MyAttendance>('PUT', `${base}/${id}/attendance`, { willAttend, instrument, notes }),
   removeAttendance: (id: number) => call<MyAttendance>('DELETE', `${base}/${id}/attendance`),
-  // Admin/Owner; the server refuses everyone else (401/403).
+  // Admin/Owner; the server refuses everyone else.
   create: (input: RehearsalInput) => call<RehearsalSummary>('POST', base, input),
   createRange: (input: { from: string; to: string; location: string; theme: string; description: string }) =>
     call<{ created: number; skipped: number }>('POST', `${base}/range`, input),
@@ -105,7 +105,7 @@ export const rehearsalsApi = {
   sendNotice: (id: number, message: string, onlyLeitoesAndCaloiros: boolean) =>
     call<{ sent: number; failed: number }>('POST', `${base}/${id}/notice`, { message, onlyLeitoesAndCaloiros }),
   approve: (id: number, attendanceId: number) => call<void>('POST', `${base}/${id}/attendances/${attendanceId}/approve`),
-  /** Task 075: "Recusar" - recorded as not attended, the member notified (not a deletion). */
+  /** "Recusar" - recorded as not attended, the member notified (not a deletion). */
   refuse: (id: number, attendanceId: number) => call<void>('POST', `${base}/${id}/attendances/${attendanceId}/refuse`),
   removeAttendee: (id: number, attendanceId: number) => call<void>('DELETE', `${base}/${id}/attendances/${attendanceId}`),
   members: (id: number, q: string) => call<MemberOption[]>('GET', `${base}/${id}/attendances/members?q=${encodeURIComponent(q)}`),

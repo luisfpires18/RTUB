@@ -75,7 +75,7 @@ export default function Login() {
     requestAnimationFrame(() => bannerRef.current?.focus());
   };
 
-  // Face ID / fingerprint (task 057): no username or password, the device offers its RTUB passkey.
+  // Face ID / fingerprint: no username or password, the device offers its RTUB passkey.
   const onPasskey = async () => {
     if (submitting) return;
     setSubmitting(true);

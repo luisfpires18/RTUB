@@ -2,7 +2,7 @@ import type { SignInOutcome } from './api';
 import { antiforgeryToken, call } from './eventsApi';
 
 /**
- * Face ID / fingerprint sign-in (task 057): WebAuthn passkeys on ASP.NET Core Identity. The server hands out the
+ * Face ID / fingerprint sign-in: WebAuthn passkeys on ASP.NET Core Identity. The server hands out the
  * options as WebAuthn JSON and takes the credential back as JSON; this file only converts between that JSON and the
  * browser API (natively where the browser can, by hand for older Safari). Nothing throws.
  */

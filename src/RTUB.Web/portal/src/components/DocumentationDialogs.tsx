@@ -4,7 +4,7 @@ import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { type Folder, type Docs, type Target, api, problem, fileSize } from '../data/documentationApi';
 
-/** "Criar pasta": always in the current fiscal year, as before. */
+/** "Criar pasta": always in the current fiscal year. */
 export function FolderDialog({ onClose, onDone }: { onClose: () => void; onDone: (name: string) => void }) {
   const [name, setName] = useState('');
   const [error, setError] = useState<string>();

@@ -2,7 +2,7 @@
 import { call, type Outcome } from './eventsApi';
 import { outcomeText } from './api';
 
-// /api/questions (task 031, Endpoints/QuestionEndpoints.cs). Dates are UTC.
+// /api/questions (Endpoints/QuestionEndpoints.cs). Dates are UTC.
 type Status = 'unanswered' | 'answered' | 'inDiscussion' | 'closed';
 
 type Person = { displayName: string; fullName: string | null; avatarUrl: string | null };

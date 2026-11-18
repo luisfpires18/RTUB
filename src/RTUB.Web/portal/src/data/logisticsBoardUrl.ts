@@ -1,11 +1,11 @@
-// The board page's view, filters and open card kept in the address (task 070).
+// The board page's view, filters and open card kept in the address.
 import { PRIORITIES_URGENT_FIRST, STATUSES, type Priority, type Status } from './logisticsApi';
 import { lisbonToday } from './format';
 import type { Due, View } from './logisticsBoardTypes';
 import type { Sort } from './logisticsRows';
 
 /**
- * Task 070: what the address keeps - the view, the filters, the list order, the calendar month and the open card - so
+ * What the address keeps - the view, the filters, the list order, the calendar month and the open card - so
  * refresh and back restore the board as it was. Only the member's own choices, and nothing from a card but its id. A
  * person filter is "mine" / "none", or "person" for a named member: the name never goes in the address (a link may be
  * shared). It is kept in that history entry's own state (history.state, per entry, kept by the browser across refresh

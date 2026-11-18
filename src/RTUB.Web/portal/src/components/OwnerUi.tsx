@@ -6,7 +6,7 @@ import { portal } from '../data/content';
 import { Notice, SignInNotice } from './Notice';
 
 /** What an Owner page shows: the data, a sign-in prompt, the refusal, or a failure (null). */
-export type Loaded<T> = T | 'signin' | 'forbidden' | null | undefined;
+type Loaded<T> = T | 'signin' | 'forbidden' | null | undefined;
 
 /** Loads on mount and whenever `deps` change; `reload()` asks again. */
 export function useOwnerLoad<T>(load: () => Promise<Outcome<T>>, deps: unknown[]): [Loaded<T>, () => void, (next: T) => void] {
@@ -28,7 +28,7 @@ export function useOwnerLoad<T>(load: () => Promise<Outcome<T>>, deps: unknown[]
 }
 
 /**
- * The frame of every Owner tool (task 035): heading, then the content once loaded. Anyone but the Owner gets the
+ * The frame of every Owner tool: heading, then the content once loaded. Anyone but the Owner gets the
  * refusal (the server already answered them 403); a visitor gets the sign-in prompt.
  */
 export function OwnerPage<T>({
@@ -117,7 +117,7 @@ export function Flash({ message, onDismiss }: { message?: { text: string; error?
   );
 }
 
-/** Pages of a list, with the page sizes the old page offered. */
+/** Pages of a list, with fixed page sizes. */
 export function OwnerPager({
   total,
   itemLabel,

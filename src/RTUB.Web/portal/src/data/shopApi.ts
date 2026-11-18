@@ -17,7 +17,7 @@ export type Product = {
   myReservation: Reservation | null;
   canReserve: boolean;
   availableAllYears: boolean;
-  /** Admin / Owner only (#226 F20): the reservations a delete removes; null for everyone else. */
+  /** Admin / Owner only: the reservations a delete removes; null for everyone else. */
   reservationCount: number | null;
 };
 type PublicProduct = {

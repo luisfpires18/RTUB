@@ -1,4 +1,4 @@
-// Task 080: self-check of the startup notification reminder rules (portal/src/data/startupRules.ts). Run: npm run check:startup
+// Self-check of the startup notification reminder rules (portal/src/data/startupRules.ts). Run: npm run check:startup
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 

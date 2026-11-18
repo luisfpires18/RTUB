@@ -16,7 +16,7 @@ export type RequestForm = {
 
 export type FieldErrors = Partial<Record<keyof RequestForm, string>>;
 
-export type SubmitOutcome =
+type SubmitOutcome =
   | { kind: 'submitted' }
   | { kind: 'invalid'; errors: FieldErrors }
   | { kind: 'expired' } // antiforgery token refused: reload and retry

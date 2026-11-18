@@ -7,7 +7,7 @@ import { readPush, sendTest, turnOff, turnOn, type PushResult, type PushState } 
 import { Section } from './ProfileShared';
 
 /**
- * This browser's push notifications (task 038, push.ts). Read on load without asking anything; permission and the
+ * This browser's push notifications (push.ts). Read on load without asking anything; permission and the
  * subscription only from a button. Each device is turned on separately; the count of the member's other devices
  * comes from the server.
  */
@@ -146,7 +146,7 @@ export function PushSection() {
           {error}
         </p>
       )}
-      {/* Task 082 (#263): account-wide content preferences, apart from this device's switch above. */}
+      {/* Account-wide content preferences, apart from this device's switch above. */}
       <div className="push-prefs__open">
         <p className="note">O que receber vale para a tua conta, em todos os dispositivos.</p>
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => setChoosing(true)}>
@@ -159,4 +159,4 @@ export function PushSection() {
   );
 }
 
-// ---------- Face ID / impressão digital (task 057) ----------
+// ---------- Face ID / impressão digital ----------

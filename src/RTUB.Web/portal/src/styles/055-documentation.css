@@ -1,4 +1,4 @@
-/* Documentação (React track 022): one collapsible card per folder, a row per document. */
+/* Documentação: one collapsible card per folder, a row per document. */
 .doc-folders,
 .doc-files {
   display: grid;
@@ -115,14 +115,14 @@
   overflow-wrap: anywhere;
 }
 
-/* Logística (React track 023): boards, then one board as a horizontal Kanban. Status colours: TODO red, WIP yellow,
+/* Logística: boards, then one board as a horizontal Kanban. Status colours: TODO red, WIP yellow,
    DONE green - a strip on the card's left edge and a chip. */
 .lx-page {
   grid-template-columns: minmax(0, 1fr);
   --st-todo: #e5484d;
   --st-wip: #f5c542;
   --st-done: #30a46c;
-  /* Task 067: "Bloqueado" - waiting on something outside the card. */
+  /* "Bloqueado" - waiting on something outside the card. */
   --st-blocked: #a78bfa;
 }
 

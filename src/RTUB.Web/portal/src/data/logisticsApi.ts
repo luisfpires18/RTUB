@@ -1,7 +1,7 @@
 import { antiforgeryToken, queryString, outcomeText } from './api';
 import { call, type Outcome } from './eventsApi';
 
-// /api/logistics (Endpoints/LogisticsEndpoints.cs, React track 023). Signed-in members read (Leitões too since 065);
+// /api/logistics (Endpoints/LogisticsEndpoints.cs). Signed-in members read (Leitões too);
 // assignees tick checklists and change status; Mod, Admin and Owner manage. The server decides every rule
 // (LogisticsKanbanService).
 
@@ -13,7 +13,7 @@ export * from './logisticsTypes';
 export const logisticsApi = {
   boards: (search: string) => call<Boards>('GET', `/api/logistics${queryString({ q: search })}`),
   events: (search: string) => call<LogisticsEvent[]>('GET', `/api/logistics/events${queryString({ q: search })}`),
-  /** With `boardId`: only members who may see that board (task 067). */
+  /** With `boardId`: only members who may see that board. */
   members: (search: string, boardId?: number) => call<MemberOption[]>('GET', `/api/logistics/members${queryString({ q: search, boardId: boardId ? String(boardId) : '' })}`),
   createBoard: (input: BoardInput) => call<BoardSummary>('POST', '/api/logistics/boards', input),
   updateBoard: (id: number, input: BoardInput) => call<BoardSummary>('PUT', `/api/logistics/boards/${id}`, input),
@@ -40,7 +40,7 @@ export const logisticsApi = {
   setStatus: (id: number, status: Status) => call<CardDetail>('POST', `/api/logistics/cards/${id}/status`, { status }),
   moveCard: (id: number, listId: number, position: number) => call<void>('POST', `/api/logistics/cards/${id}/move`, { listId, position }),
   setLabels: (id: number, labels: Label[]) => call<CardDetail>('PUT', `/api/logistics/cards/${id}/labels`, { labels }),
-  // The checklist one item at a time (task 066): the item's text identifies it, so two people never overwrite each other.
+  // The checklist one item at a time: the item's text identifies it, so two people never overwrite each other.
   addItem: (id: number, task: string) => call<CardDetail>('POST', `/api/logistics/cards/${id}/checklist`, { task }),
   renameItem: (id: number, index: number, expected: string, task: string) =>
     call<CardDetail>('PUT', `/api/logistics/cards/${id}/checklist/${index}`, { expected, task }),
@@ -97,7 +97,7 @@ export const PRIORITIES_URGENT_FIRST: Priority[] = ['Urgent', 'High', 'Normal', 
 
 export const FREQUENCY: Record<Frequency, string> = { OneTime: 'Uma vez', Daily: 'Todos os dias', Weekly: 'Todas as semanas' };
 
-/** A card on its board: the board page opens it from ?card= (task 069; pushes link here too). */
+/** A card on its board: the board page opens it from ?card= (pushes link here too). */
 export const cardUrl = (boardId: number, cardId: number) => `/logistics/${boardId}?card=${cardId}`;
 
 export const problem = (o: Outcome<unknown>, what: string) =>
@@ -105,7 +105,7 @@ export const problem = (o: Outcome<unknown>, what: string) =>
 
 
 /**
- * A card file (task 066), through XHR so the upload reports its progress. Same outcomes as `call`; a refused antiforgery
+ * A card file, through XHR so the upload reports its progress. Same outcomes as `call`; a refused antiforgery
  * token is fetched again once.
  */
 export async function uploadAttachment(cardId: number, file: File, onProgress: (share: number) => void, retried = false): Promise<Outcome<CardDetail>> {

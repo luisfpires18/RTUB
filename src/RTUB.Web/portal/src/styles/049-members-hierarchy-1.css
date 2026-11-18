@@ -1,4 +1,4 @@
-/* ---------- /members/hierarchy (#223): a CSS-only padrinho → afilhado tree ----------
+/* ---------- /members/hierarchy: a CSS-only padrinho → afilhado tree ----------
    One semantic tree (role="tree"). Phones: indented (16px a level) and collapsible, connectors on the left.
    Wide screens: left to right, each family in its own card, parents centred on their afilhados with elbow lines.
    No canvas, no pan or zoom: the page scrolls as usual; a very deep family scrolls inside its own card. */

@@ -20,7 +20,7 @@ export default function Questions() {
   const [q, setQ] = useState('');
   const [recipient, setRecipient] = useState('');
   const [version, setVersion] = useState(0);
-  // ?question={id} (task 073, from "As minhas ações pendentes") opens that conversation once; the API decides access.
+  // ?question={id} (from "As minhas ações pendentes") opens that conversation once; the API decides access.
   const [open, setOpen] = useState<number | undefined>(() => Number(new URLSearchParams(location.search).get('question')) || undefined);
   const [asking, setAsking] = useState(false);
   const [action, setAction] = useState<{ kind: 'close' | 'remind' | 'delete'; question: Question }>();

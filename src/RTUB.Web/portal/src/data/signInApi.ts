@@ -1,7 +1,7 @@
 // Sign in and sign out against the account endpoints.
 import { rememberMemberShell } from './apiSession';
 
-/** 'passkey': the device's passkey is unknown here (removed in /profile, or made on another site) - task 057. */
+/** 'passkey': the device's passkey is unknown here (removed in /profile, or made on another site). */
 export type SignInFailure = 'invalid' | 'locked' | 'expelled' | 'throttled' | 'expired' | 'failed' | 'passkey';
 export type SignInOutcome = { kind: 'signedIn'; redirect: string } | { kind: SignInFailure };
 

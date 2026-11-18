@@ -1,6 +1,6 @@
 import { call } from './eventsApi';
 
-// /api/members (Endpoints/MemberEndpoints.cs, React tracks 017 and 018). Signed-in members only; the writes are
+// /api/members (Endpoints/MemberEndpoints.cs). Signed-in members only; the writes are
 // Admin/Owner and the server decides every rule (MemberAdminService).
 
 export type Badge = { label: string; kind: string };
@@ -24,7 +24,7 @@ export type Directory = {
   instruments: Option[];
   canManage: boolean;
   canDeleteMembers: boolean;
-  /** Task 076: the limited member-information edit (Mod, Admin, Owner). */
+  /** The limited member-information edit (Mod, Admin, Owner). */
   canEditInfo: boolean;
 };
 export type DirectoryFilters = { q: string; category: string; subCategory: string; instrument: string; activeOnly: boolean };
@@ -95,7 +95,7 @@ const query = (params: Record<string, string | boolean>) => {
   return s ? `?${s}` : '';
 };
 
-// ---------- member admin (Admin/Owner, React track 018) ----------
+// ---------- member admin (Admin/Owner) ----------
 
 export type MemberInstrument = { id: number; instrument: string; label: string; primary: boolean };
 export type MemberEdit = {
@@ -130,7 +130,7 @@ export type Mentor = { id: string; displayName: string; fullName: string | null;
 
 const at = (id: string) => `/api/members/${encodeURIComponent(id)}`;
 
-/** Task 076: the limited member-information edit. `fields` apply to the member; `missing` are still empty. */
+/** The limited member-information edit. `fields` apply to the member; `missing` are still empty. */
 export type MemberInfo = {
   id: string;
   displayName: string;
@@ -179,7 +179,7 @@ export const membersApi = {
 
 export const DEFAULT_AVATAR = '/images/default-avatar.webp';
 
-/** "12 out 2025", as the old page's "dd MMM yyyy" in pt-PT. */
+/** "12 out 2025": "dd MMM yyyy" in pt-PT. */
 export const shortDate = (iso: string | null) => {
   if (!iso) return null;
   const d = new Date(iso);

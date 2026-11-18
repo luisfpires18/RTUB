@@ -6,7 +6,7 @@ import { deadline } from '../data/logisticsDates';
 import { isLate, type Row, type Sort } from '../data/logisticsRows';
 
 /**
- * Task 070 (issue #250): the board's list and calendar views and the summary they share with the Kanban. Every view
+ * The board's list and calendar views and the summary they share with the Kanban. Every view
  * gets the same cards (the board's active cards the server sent - only what the caller may see - after the same
  * filters) and opens the same card workspace; nothing here writes, so every change goes through the card, under the
  * card's rules.

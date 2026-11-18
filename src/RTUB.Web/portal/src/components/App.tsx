@@ -30,7 +30,7 @@ export function Layout({ children }: { children: ReactNode }) {
   );
 }
 
-/** A confirmed visitor (signed out, or on /login before signing in or switching account) starts a new launch (task 080). */
+/** A confirmed visitor (signed out, or on /login before signing in or switching account) starts a new launch. */
 function StartupReset() {
   const { user } = useCurrentUser();
   useEffect(() => {

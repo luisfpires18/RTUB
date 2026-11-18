@@ -16,7 +16,7 @@ export function Thumb({ url, size }: { url: string | null; size: number }) {
   );
 }
 
-/** "Detalhes do Instrumento": every field the old modal showed any member. */
+/** "Detalhes do Instrumento": every field any member may see. */
 export function DetailDialog({ id, onClose }: { id: number; onClose: () => void }) {
   const [detail, setDetail] = useState<Detail | 'missing' | null>();
 

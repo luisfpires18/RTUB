@@ -2,7 +2,7 @@
 import { call, type Outcome } from './eventsApi';
 import { queryString, outcomeText } from './api';
 
-// /api/inventory (Endpoints/InventoryEndpoints.cs, React track 020). Signed-in members only; Mod, Admin and Owner
+// /api/inventory (Endpoints/InventoryEndpoints.cs). Signed-in members only; Mod, Admin and Owner
 
 export type Option = { value: string; label: string };
 export type Card = {

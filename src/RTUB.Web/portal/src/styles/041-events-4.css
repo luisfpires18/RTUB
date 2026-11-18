@@ -34,7 +34,7 @@
   overflow-y: auto;
 }
 
-/* Admin/Owner video management (012C) reuses the prize rows; the upload sits under the list. */
+/* Admin/Owner video management reuses the prize rows; the upload sits under the list. */
 .video-manager__file {
   display: grid;
   gap: 6px;
@@ -48,7 +48,7 @@
   border-top: 1px solid var(--line);
 }
 
-/* Admin/Owner prize management inside the Prémios modal (012B). */
+/* Admin/Owner prize management inside the Prémios modal. */
 .prize-manager {
   display: grid;
   gap: 10px;

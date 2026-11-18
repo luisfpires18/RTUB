@@ -7,7 +7,7 @@ import { Icon } from './icons';
 import { failure, EventLine, members, useAudience } from './EventManageShared';
 
 /**
- * One notice about an upcoming event, as the old page offered: an email ("Nova atuação" or
+ * One notice about an upcoming event: an email ("Nova atuação" or
  * "Lembrete") to the members with email notifications on, or a push message to the members with
  * push on (optionally Leitões and Caloiros only). The audience is shown before anything is sent,
  * and sending takes a second, explicit confirmation.

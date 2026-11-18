@@ -12,7 +12,7 @@ import { FormDialog } from '../components/InventoryForm';
 
 /**
  * /inventory - Instrumentos. Signed-in members only. Every instrument of the
- * RTUB by name, with the old counters, search (name, type, brand) and type / condition filters; a card opens its
+ * RTUB by name, with counters, search (name, type, brand) and type / condition filters; a card opens its
  * details. Mod, Admin and Owner add, edit (image included) and delete.
  */
 export default function Inventory() {

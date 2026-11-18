@@ -170,7 +170,7 @@ export default function Treasury() {
   );
 }
 
-/** "Novo relatório": only the fiscal year; the title is "Relatório de Contas Y - Y+1", as before. */
+/** "Novo relatório": only the fiscal year; the title is "Relatório de Contas Y - Y+1". */
 function CreateReportDialog({ years, onClose, onSaved }: { years: number[]; onClose: () => void; onSaved: () => void }) {
   const [year, setYear] = useState(years[0] ?? 0);
   const [error, setError] = useState<string>();

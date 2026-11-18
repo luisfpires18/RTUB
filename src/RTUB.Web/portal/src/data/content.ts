@@ -1,8 +1,8 @@
-// Public-portal pilot data. Portal copy is written for the portal: the current site is a source
+// Public-portal data. Portal copy is written for the portal: the current site is a source
 // of facts (dates, names, album titles, positions), never of sentences - PortalCopyOriginalityTests
 // enforces that. Nothing here is read from the database; see docs/react-portal-pilot.md.
 
-/** React-owned routes (Program.cs maps exactly these; the old /portal... URLs redirect here). */
+/** React-owned routes (Program.cs maps exactly these; /portal... URLs redirect here). */
 export const portal = {
   home: '/',
   privacy: '/privacy',

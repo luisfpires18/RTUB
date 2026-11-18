@@ -7,10 +7,10 @@ import { Instruments, MentorPicker, MonthYear } from './MemberFormFields';
 import { problem } from '../data/memberFormState';
 
 /**
- * Task 076: "Completar informação" - the limited edit Mod, Admin and Owner share: Cidade, Contacto, instruments, the
+ * "Completar informação" - the limited edit Mod, Admin and Owner share: Cidade, Contacto, instruments, the
  * missing Leitão / Caloiro / Tuno dates and the Padrinho, only the fields that apply to this member (the server's rule),
  * the empty ones marked. A complete date pair stays locked unless the caller is Owner or the Magister. Saving over a
- * newer version is refused (409) and asks to open again; errors keep what was typed.
+ * newer version is refused and asks to open again; errors keep what was typed.
  */
 export function MemberInfoDialog({
   memberId,
@@ -180,7 +180,7 @@ export function MemberInfoDialog({
   );
 }
 
-/** Task 076 review: the lock explained without naming who may change it (the Magister needs more than the position). */
+/** The lock explained without naming who may change it (the Magister needs more than the position). */
 const INFO_LOCKED_HINT = 'Data fechada: não a podes alterar aqui.';
 
 const INFO_LABELS: Record<string, string> = {

@@ -130,7 +130,7 @@
   }
 }
 
-/* Task 070: the view switcher hugs its buttons; the extra filters fold on phones. */
+/* The view switcher hugs its buttons; the extra filters fold on phones. */
 .lx-views {
   justify-self: start;
   width: fit-content;

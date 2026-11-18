@@ -8,7 +8,7 @@ import type { Draft } from '../data/logisticsCardDraft';
 /** Status buttons of the card workspace side column. */
 export function CardStatus({ fid, detail, board, busy, errors, apply }: { fid: string; detail: CardDetail; board: Board; busy?: string; errors: Record<string, string>; apply: Apply }) {
   const card = detail.card;
-  // Task 067: a status is a column; only states the board has columns for are offered.
+  // A status is a column; only states the board has columns for are offered.
   const states = STATUSES.filter((s) => board.lists.some((l) => l.state === s));
   return (
       <Section id={`${fid}-status`} title="Estado">

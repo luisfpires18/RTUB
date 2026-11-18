@@ -9,7 +9,7 @@ import { PeoplePicker, Details } from './GalleryFormParts';
 // Gallery management. Any signed-in member uploads; the
 // uploader, Admin or Owner edit and delete. The server decides and validates everything (GalleryManagementService).
 
-/** Upload one photo or video; the people tagged get a push notification, as before. */
+/** Upload one photo or video; the people tagged get a push notification. */
 export function UploadDialog({ onClose, onDone, event }: { onClose: () => void; onDone: () => void; event?: UploadEvent }) {
   const [file, setFile] = useState<File>();
   const [preview, setPreview] = useState<string>();

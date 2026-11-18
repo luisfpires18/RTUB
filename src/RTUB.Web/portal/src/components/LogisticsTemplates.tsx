@@ -17,7 +17,7 @@ const plus = (anchor: string, days: number) => {
 };
 
 /**
- * "A partir de modelo" (task 067, managers): pick Organizar FITAB or Preparar deslocação/atuação, anchor the deadlines
+ * "A partir de modelo" (managers): pick Organizar FITAB or Preparar deslocação/atuação, anchor the deadlines
  * to the event's date (or a date of your choice), review and edit every suggested task - include or leave out, title,
  * priority, deadline, checklist - and who sees the board, then create it. Nothing is created before "Criar quadro";
  * nothing is assigned or notified.

@@ -35,8 +35,8 @@ const fullIndex = (list: List, visible: number[], index: number, dragged: number
  * /logistics/{id} - one board. Lists side by side in a horizontal scroll, cards
  * by position with a coloured status (TODO red, WIP yellow, DONE green), labels, dates, checklist progress and counts.
  * Search, status, label and "Só os meus" filters stay in a sticky bar. Mod, Admin and Owner manage everything and drag
- * cards between lists (or use "Mover…"); every member (Leitões too, task 065) opens any card to read it, and the members
- * a card is assigned to tick its checklist and change its status there. Reminders live on the card (task 069); ?card=<id> opens a card (links and pushes).
+ * cards between lists (or use "Mover…"); every member (Leitões too) opens any card to read it, and the members
+ * a card is assigned to tick its checklist and change its status there. Reminders live on the card; ?card=<id> opens a card (links and pushes).
  */
 export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const [board, setBoard] = useState<Board | 'signin' | 'forbidden' | 'missing' | null>();
@@ -51,7 +51,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const [due, setDue] = useState<Due>(initial.due);
   const [sort, setSort] = useState<Sort>(initial.sort);
   const [month, setMonth] = useState(initial.month);
-  // ?card=<id> (task 069): a link or a push opens that card; the address follows the open card, so it can be shared.
+  // ?card=<id>: a link or a push opens that card; the address follows the open card, so it can be shared.
   const [open, setOpen] = useState<Open | undefined>(() => (initial.card ? { kind: 'card', id: initial.card } : undefined));
   const pushNext = useRef(false);
   // Phones: the extra filters fold behind "Filtros", so the sticky bar stays one or two rows high.
@@ -87,7 +87,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
     load();
   }, [boardId]);
 
-  // The address follows the view, filters, order, month and open card (task 070). Changing the view adds a history
+  // The address follows the view, filters, order, month and open card. Changing the view adds a history
   // entry, so Back returns to the previous view; everything else replaces the current one.
   const cardOpen = open?.kind === 'card' ? open.id : undefined;
   useEffect(() => {
@@ -149,7 +149,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const people = [...new Set([...named, ...data.lists.flatMap((l) => l.cards.flatMap((c) => (c.assignedTo ? [c.assignedTo.displayName] : [])))]).values()].sort((a, b) =>
     a.localeCompare(b, 'pt-PT'),
   );
-  // One filter for every view (task 070): state, label, responsible member, priority, deadline, title / details.
+  // One filter for every view: state, label, responsible member, priority, deadline, title / details.
   const visible = (cards: Card[]) =>
     cards.filter(
       (c) =>
@@ -169,7 +169,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const total = allCards.length;
   const rows: Row[] = data.lists.flatMap((list) => visible(list.cards).map((card) => ({ card, list })));
   const clear = () => (setText(''), setStatus(''), setLabel(''), setWho(''), setPrio(''), setDue(''));
-  // Task 067: an archived board is read-only for everyone; managers only restore it.
+  // An archived board is read-only for everyone; managers only restore it.
   const archived = !!data.archivedAt;
   const manage = data.canManage && !archived;
   const states = STATUSES.filter((s) => data.lists.some((l) => l.state === s));

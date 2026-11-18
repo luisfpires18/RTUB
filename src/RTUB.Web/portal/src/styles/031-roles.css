@@ -1,6 +1,6 @@
 /* ---------- /roles ---------- */
 
-/* #224: the head is the shared events-page__head (intro on the left, tools at the right edge, as on Atuações and
+/* The head is the shared events-page__head (intro on the left, tools at the right edge, as on Atuações and
    Classificação); the year controls are one compact panel instead of a select floating at the intro's edge. */
 .governance-page__tools {
   display: flex;

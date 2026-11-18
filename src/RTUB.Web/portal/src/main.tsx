@@ -6,7 +6,7 @@ import { Home } from './pages/Home';
 import './styles.css';
 import { getCurrentUser } from './data/api';
 
-// The session request leaves with the bundle's first bytes instead of after React's first commit (task 054);
+// The session request leaves with the bundle's first bytes instead of after React's first commit;
 // getCurrentUser caches its promise, so the shell's own call joins this one.
 getCurrentUser();
 
@@ -65,28 +65,28 @@ const Page = pages[path];
 const MusicAlbum = lazy(() => import('./pages/MusicAlbum'));
 const albumId = /^\/music\/albums\/(\d+)$/.exec(path)?.[1];
 
-// /music/play/{songId} (task 094): the play-along page; Program.cs sends visitors to sign in first.
+// /music/play/{songId}: the play-along page; Program.cs sends visitors to sign in first.
 const MusicPlayAlong = lazy(() => import('./pages/MusicPlayAlong'));
 const playSongId = Number(/^\/music\/play\/(\d+)$/.exec(path)?.[1]) || undefined;
 
-// /events/{id} (React track 011), mapped with {id:int} as well. Answering is a modal on that page.
+// /events/{id}, mapped with {id:int} as well. Answering is a modal on that page.
 const EventDetail = lazy(() => import('./pages/EventDetail'));
 const eventId = Number(/^\/events\/(\d+)$/.exec(path)?.[1]) || undefined;
 
-// /events/{id}/discussion and /events/{id}/contacts (React track 013); Program.cs sends visitors to sign in first.
+// /events/{id}/discussion and /events/{id}/contacts; Program.cs sends visitors to sign in first.
 const EventDiscussion = lazy(() => import('./pages/EventDiscussion'));
 const EventContacts = lazy(() => import('./pages/EventContacts'));
 const eventPage = /^\/events\/(\d+)\/(discussion|contacts)$/.exec(path);
 
-// /rehearsals/{id} (React track 014); Program.cs sends visitors to sign in first.
+// /rehearsals/{id}; Program.cs sends visitors to sign in first.
 const RehearsalDetail = lazy(() => import('./pages/RehearsalDetail'));
 const rehearsalId = Number(/^\/rehearsals\/(\d+)$/.exec(path)?.[1]) || undefined;
 
-// /logistics/{id} (React track 023); Program.cs sends visitors to sign in first.
+// /logistics/{id}; Program.cs sends visitors to sign in first.
 const LogisticsBoard = lazy(() => import('./pages/LogisticsBoard'));
 const boardId = Number(/^\/logistics\/(\d+)$/.exec(path)?.[1]) || undefined;
 
-// /treasury/reports/{id} and /treasury/nerba/{eventId} (React track 024); Program.cs sends visitors to sign in first.
+// /treasury/reports/{id} and /treasury/nerba/{eventId}; Program.cs sends visitors to sign in first.
 const TreasuryReport = lazy(() => import('./pages/TreasuryReport'));
 const TreasuryNerbaEvent = lazy(() => import('./pages/TreasuryNerbaEvent'));
 const treasuryReportId = Number(/^\/treasury\/reports\/(\d+)$/.exec(path)?.[1]) || undefined;

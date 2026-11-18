@@ -1,4 +1,4 @@
-// Task 080 (#261): who sees the startup notification reminder. Pure, so portal/checks/startup.check.mjs runs it.
+// Who sees the startup notification reminder. Pure, so portal/checks/startup.check.mjs runs it.
 import type { PushState } from './push';
 
 /** Device states the reminder is for. Loading, unknown and errors are not "off": no reminder, nothing consumed. */

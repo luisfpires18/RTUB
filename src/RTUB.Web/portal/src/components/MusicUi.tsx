@@ -103,7 +103,7 @@ export function IconButton({
   );
 }
 
-/** Client-side paging for the statistics lists (sizes as on the retired page). */
+/** Client-side paging for the statistics lists (fixed page sizes). */
 export function Pager({
   page,
   pageSize,

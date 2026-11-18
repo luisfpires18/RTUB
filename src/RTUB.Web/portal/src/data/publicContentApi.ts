@@ -3,8 +3,8 @@ import { json } from './apiCall';
 
 /** GET /api/public/governance (Endpoints/GovernanceEndpoints.cs). Public fields only. */
 export type GovernanceMember = { displayName: string; fullName: string | null; avatarUrl: string | null };
-export type GovernancePosition = { title: string; holders: GovernanceMember[] };
-export type GovernanceBody = { name: string; positions: GovernancePosition[] };
+type GovernancePosition = { title: string; holders: GovernanceMember[] };
+type GovernanceBody = { name: string; positions: GovernancePosition[] };
 export type Governance = { fiscalYears: string[]; fiscalYear: string | null; bodies: GovernanceBody[] };
 
 /** One mandate; the server picks the default and ignores an unknown year. */
@@ -27,7 +27,7 @@ export type GalleryItem = {
   day: number | null;
   membersOnly: boolean;
   people: GalleryPerson[];
-  /** The uploader, Admin or Owner (015): edit and delete; the server enforces it. */
+  /** The uploader, Admin or Owner: edit and delete; the server enforces it. */
   canEdit: boolean;
 };
 export type GalleryTimeline = {
@@ -82,7 +82,7 @@ export function getUpcomingEvents(): Promise<UpcomingEvent[]> {
   return fetch('/api/public/events/upcoming', { headers: { Accept: 'application/json' } }).then(json<UpcomingEvent[]>);
 }
 
-// ---------- Novidades (React track 025) ----------
+// ---------- Novidades ----------
 
 /** One post of GET /api/news. `publishedAt` is UTC ISO, null for a draft; `authorName` only reaches Admin/Owner. */
 export type NewsPost = { id: number; title: string | null; body: string; publishedAt: string | null; authorName: string | null; membersOnly: boolean };

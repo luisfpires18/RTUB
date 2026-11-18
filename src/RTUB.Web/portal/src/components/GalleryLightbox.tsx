@@ -16,7 +16,7 @@ export function Lightbox({
   siblings: GalleryItem[];
   onMove: (item: GalleryItem) => void;
   onClose: () => void;
-  /** The uploader, Admin or Owner (015). */
+  /** The uploader, Admin or Owner. */
   onEdit?: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);

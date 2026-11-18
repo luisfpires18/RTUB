@@ -12,7 +12,7 @@ const SQUARE = {
 };
 
 /**
- * Fixed-ratio crop: square (1:1) album covers, 3:2 event images (as the old event cropper). Canvas
+ * Fixed-ratio crop: square (1:1) album covers, 3:2 event images. Canvas
  * only: the picked file is read as a data: URL (CSP allows data: images, not blob:), panned by drag or
  * the arrow keys, zoomed with a slider, and exported as WebP (JPEG where the browser cannot encode WebP).
  */

@@ -7,7 +7,7 @@ import { RetryNotice, SignInNotice } from '../components/Notice';
 import { FamilyTree } from '../components/FamilyTree';
 
 /**
- * /members/hierarchy - Hierarquia (React track 017; #223 tree). Signed-in members only. The Padrinho → Afilhado family
+ * /members/hierarchy - Hierarquia (tree). Signed-in members only. The Padrinho → Afilhado family
  * of Caloiros, Tunos, Veteranos and Tunossauros (never Leitões): roots by name, each member's afilhados by the month they
  * became Caloiro (MemberDirectoryService over IMemberHierarchyService; the rules live there, unchanged).
  *

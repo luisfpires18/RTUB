@@ -12,7 +12,7 @@ import { RehearsalFormDialog } from '../components/RehearsalFormDialogs';
 import { Counts, Group, AddAttendee } from '../components/RehearsalAttendees';
 
 /**
- * /rehearsals/{id} - one rehearsal (React track 014): its details, the member's own presença and everyone's
+ * /rehearsals/{id} - one rehearsal: its details, the member's own presença and everyone's
  * presenças (members going, Leitões, not going) with what they play. Admin/Owner edit, notify, cancel or delete it,
  * and once it can be approved confirm, remove or add presenças. Every rule is the server's.
  */

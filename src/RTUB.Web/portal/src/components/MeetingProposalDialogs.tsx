@@ -16,7 +16,7 @@ const PROPOSAL_TITLES: Record<string, string> = {
 
 export function ProposalDialog({ type, onClose, onSent }: { type: string; onClose: () => void; onSent: () => void }) {
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState(() => localDateTime(7)); // the old default: a week from now
+  const [date, setDate] = useState(() => localDateTime(7)); // default: a week from now
   const [place, setPlace] = useState('');
   const [description, setDescription] = useState('');
   const [errors, setErrors] = useState<Errors>({});

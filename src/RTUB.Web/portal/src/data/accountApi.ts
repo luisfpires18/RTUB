@@ -1,6 +1,6 @@
 import { call } from './eventsApi';
 
-// /api/account/forgot-password, /reset-password and /confirm-email (Endpoints/AccountRecoveryEndpoints.cs, task 036).
+// /api/account/forgot-password, /reset-password and /confirm-email (Endpoints/AccountRecoveryEndpoints.cs).
 // Public; every call is a POST with the X-CSRF-TOKEN header (call()). Tokens go in the body, never in a URL we build.
 
 export type RecoveryResult = { succeeded: boolean; message: string };

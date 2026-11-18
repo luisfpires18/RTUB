@@ -19,7 +19,7 @@ export default function TreasuryReport({ reportId }: { reportId: number }) {
   const [message, setMessage] = useState<string>();
   const [balance, setBalance] = useState<'bank' | 'cash'>();
   const [activityForm, setActivityForm] = useState<{ activity?: Activity; event?: ReportEvent }>();
-  // Task 074: ?activityForEvent={id} (from "As minhas ações pendentes") opens "Nova atividade" for that event, once.
+  // ?activityForEvent={id} (from "As minhas ações pendentes") opens "Nova atividade" for that event, once.
   const forEvent = useRef(Number(new URLSearchParams(location.search).get('activityForEvent')) || 0);
   const [transactionForm, setTransactionForm] = useState<{ activity: Activity; transaction?: Transaction }>();
   const [deleting, setDeleting] = useState<{ activity?: Activity; transaction?: Transaction }>();

@@ -1,4 +1,4 @@
-/* ---- As minhas ações pendentes (/pending-actions, task 071, docs/react-pending-actions.md) ----
+/* ---- As minhas ações pendentes (/pending-actions, docs/react-pending-actions.md) ----
    Grouped panels, two columns on wide screens, stacked on phones. Each panel keeps a three-row footprint (rows still
    grow for wrapped text: a minimum, never a fixed height) and its pager at the bottom, aligned across a row. */
 .pa-page {

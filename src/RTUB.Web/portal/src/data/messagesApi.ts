@@ -2,7 +2,7 @@
 import { call, type Outcome } from './eventsApi';
 import { outcomeText } from './api';
 
-// /api/conversations + /api/messages (task 041, Endpoints/MessagingEndpoints.cs): Messaging v2 over the preserved v1
+// /api/conversations + /api/messages (Endpoints/MessagingEndpoints.cs): Messaging v2 over the preserved v1
 // tables. The server decides every rule (MessagingService): a conversation the member is not in is a 404, and
 // `canSend` only spares a composer that would be refused. Text only. Dates are UTC.
 export type Person = { id: string; displayName: string; fullName: string | null; avatarUrl: string };

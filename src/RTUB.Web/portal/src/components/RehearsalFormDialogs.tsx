@@ -10,7 +10,7 @@ import { problem } from './RehearsalShared';
 
 const emptyInput = (): RehearsalInput => ({ date: today(), location: 'Centro Académico', theme: '', description: '', notes: '' });
 
-/** Create (no `rehearsal`) or edit one rehearsal. Editing never changes the date, as before. */
+/** Create (no `rehearsal`) or edit one rehearsal. Editing never changes the date. */
 export function RehearsalFormDialog({ rehearsal, notes, onClose, onSaved }: { rehearsal?: RehearsalSummary; notes?: string | null; onClose: () => void; onSaved: (id: number) => void }) {
   const [form, setForm] = useState<RehearsalInput>(() =>
     rehearsal

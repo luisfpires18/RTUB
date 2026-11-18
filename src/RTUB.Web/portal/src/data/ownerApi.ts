@@ -1,15 +1,15 @@
 import { call, type Outcome } from './eventsApi';
 
-// /api/owner/* (Endpoints/OwnerEndpoints.cs, task 035). Owner only, every call: a visitor gets 401 and any other member
+// /api/owner/* (Endpoints/OwnerEndpoints.cs). Owner only, every call: a visitor gets 401 and any other member
 // 403 from the server, whatever this page shows. Writes carry the X-CSRF-TOKEN header (call()).
 
 export type OwnerPerson = { id: string; nickname: string; fullName: string; email: string | null; avatarUrl: string };
 
 export type EmailRecipients = { subscribed: OwnerPerson[]; notSubscribed: OwnerPerson[] };
-export type SubscriptionResult = { changed: number; errors: string[]; recipients: EmailRecipients };
-export type EmailResult = { success: boolean; sent: number; total: number; message: string | null };
+type SubscriptionResult = { changed: number; errors: string[]; recipients: EmailRecipients };
+type EmailResult = { success: boolean; sent: number; total: number; message: string | null };
 
-export type PushRecipients = { recipients: OwnerPerson[] };
+type PushRecipients = { recipients: OwnerPerson[] };
 export type PushResult = { recipients: number; sent: number; failed: number };
 
 export type OwnerUserCard = {
@@ -24,7 +24,7 @@ export type OwnerUserCard = {
   locked: boolean;
   lastLoginAt: string | null;
 };
-export type OwnerUserPage = { items: OwnerUserCard[]; total: number; page: number; pageSize: number };
+type OwnerUserPage = { items: OwnerUserCard[]; total: number; page: number; pageSize: number };
 export type OwnerUserDetail = {
   id: string;
   userName: string;
@@ -62,16 +62,16 @@ export type AuditEntry = {
   action: string;
   isCritical: boolean;
   changes: string | null;
-  /** #220, never stored: today's name for an old entry whose stored name is missing or carries a member id. */
+  /** Never stored: today's name for an old entry whose stored name is missing or carries a member id. */
   currentDisplayName: string | null;
 };
-export type AuditPage = { items: AuditEntry[]; total: number; page: number; pageSize: number; criticalOnPage: number };
+type AuditPage = { items: AuditEntry[]; total: number; page: number; pageSize: number; criticalOnPage: number };
 export type AuditFilters = { users: string[]; entityTypes: string[]; actions: string[] };
 /**
- * Task 050: from LoginEvents. lastLoginAt / firstAt are the latest / earliest sign-in or activity in the range;
+ * From LoginEvents. lastLoginAt / firstAt are the latest / earliest sign-in or activity in the range;
  * fromHistory false = listed only by the account's last access (no LoginEvents row in the range).
  */
-export type LoginRecord = {
+type LoginRecord = {
   userId: string;
   userName: string;
   nickname: string;
@@ -105,7 +105,7 @@ export function auditQuery(f: Partial<AuditFilter>): string {
 }
 
 /**
- * #220: the words the page shows for a stored EntityType. Presentation only (/owner/tracing and /owner/dashboard): filters, export and Details keep the raw
+ * The words the page shows for a stored EntityType. Presentation only (/owner/tracing and /owner/dashboard): filters, export and Details keep the raw
  * type; an unknown type shows as it is.
  */
 export const ENTITY_LABELS: Record<string, string> = {
@@ -181,7 +181,7 @@ export const ENTITY_LABELS: Record<string, string> = {
 
 export const entityLabel = (type: string) => ENTITY_LABELS[type] ?? type;
 
-/** /owner/dashboard (task 050): one value per Portugal day; see OwnerOperationsService.Dashboard.cs. */
+/** /owner/dashboard: one value per Portugal day; see OwnerOperationsService.Dashboard.cs. */
 export type DashboardSeries = { key: string; label: string; values: number[]; total: number; previousTotal: number };
 export type DashboardRank = { label: string; count: number };
 export type Dashboard = {
@@ -190,9 +190,9 @@ export type Dashboard = {
   days: string[];
   series: DashboardSeries[];
   topMembers: DashboardRank[];
-  /** Areas of the app (Atuações, Logística…), decided by the server (088). */
+  /** Areas of the app (Atuações, Logística…), decided by the server. */
   areas: DashboardRank[];
-  /** Routes with ids normalised to {id} (089); the label map is the client's. */
+  /** Routes with ids normalised to {id}; the label map is the client's. */
   topPages: DashboardRank[];
   /** 7 rows (Monday first) × 24 Portugal hours. */
   hours: number[][];

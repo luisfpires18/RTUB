@@ -33,7 +33,7 @@ export function QuestionList({
     };
   }, [closed, q, recipient, page, version]);
 
-  // The closed list only appears once there is something in it, as before.
+  // The closed list only appears once there is something in it.
   if (closed && data && data.total === 0 && page === 1) return null;
 
   const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;

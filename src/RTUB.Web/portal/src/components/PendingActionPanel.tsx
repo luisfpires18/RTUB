@@ -73,7 +73,7 @@ export function ActionPanel({
   };
 
   /**
-   * An answer (072). Nothing changes on the page until the server says so: saved → the same page again, in place (the
+   * An answer. Nothing changes on the page until the server says so: saved → the same page again, in place (the
    * row leaves, the counts drop, an emptied last page shows the one before); already answered or changed meanwhile →
    * the page again, with the reason; anything else → the row stays, with the error. Returns the field error, if any,
    * for the instrument dialog.
@@ -106,7 +106,7 @@ export function ActionPanel({
   };
 
   /**
-   * Task 079: after a saved "Vou" (upcoming only, never "Fui"), the module's own read of the answer gives the calendar
+   * After a saved "Vou" (upcoming only, never "Fui"), the module's own read of the answer gives the calendar
    * details; the offer opens only when that read confirms the member is going to an open, upcoming activity. A failed
    * read just skips the offer: the answer is saved either way.
    */

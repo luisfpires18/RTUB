@@ -72,7 +72,7 @@ export default function Events() {
   }, [agenda, prefill]);
   const hasPrizes = agenda?.past.some((e) => e.trophies.length > 0);
   // The server sends canEdit (Mod and above: create, edit) and canManage (Admin/Owner: the rest) and refuses the
-  // writes for anyone else. Notices and cancel / reactivate only for upcoming dates, as the old page.
+  // writes for anyone else. Notices and cancel / reactivate only for upcoming dates.
   const manage = (e: EventSummary): Manage =>
     agenda?.canEdit
       ? {
@@ -90,7 +90,7 @@ export default function Events() {
   const update = (next: Partial<Filters>) => setFilters((f) => ({ ...f, ...next }));
 
   // The address follows the filters after a pause: history.replaceState on every keystroke is what Safari throttles
-  // (100 calls per 30 s), and a state updater is no place for it anyway (task 054).
+  // (100 calls per 30 s), and a state updater is no place for it anyway.
   useEffect(() => {
     const timer = setTimeout(() => filtersToUrl(filters), 250);
     return () => clearTimeout(timer);

@@ -22,7 +22,7 @@ export function EventFormDialog({
   onSaved,
 }: {
   eventId?: number;
-  /** A new event's starting values (Requests' "criar atuação", 012F). */
+  /** A new event's starting values (Requests' "criar atuação"). */
   prefill?: Partial<Pick<Form, 'name' | 'location' | 'description' | 'date'>>;
   types: EventTypeOption[];
   onClose: () => void;

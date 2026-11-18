@@ -8,7 +8,7 @@ import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
 
 /**
- * Other members' answers for Admin/Owner (012E), as the old /events/{id}/enrollments: every answer
+ * Other members' answers for Admin/Owner: every answer
  * grouped as "Quem vai" shows it, remove any of them, and add a member who has not answered yet (as
  * going, with their primary instrument, without a notification). Nobody's answer is edited here: each
  * member changes their own in the answer modal. `onChanged` refreshes the page behind.

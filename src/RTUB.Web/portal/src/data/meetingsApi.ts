@@ -1,7 +1,7 @@
 import { call } from './eventsApi';
 
-// /api/meetings (Endpoints/MeetingEndpoints.cs, task 034). Signed-in members only; a Leitão is refused everything
-// (403) and a meeting the member does not see is a 404. The server decides every rule (MeetingBoardService): the
+// /api/meetings (Endpoints/MeetingEndpoints.cs). Signed-in members only; a Leitão is refused everything
+// and a meeting the member does not see is a 404. The server decides every rule (MeetingBoardService): the
 // `access`, `can` and `canX` flags only spare people buttons that would be refused. Dates travel as local
 // "yyyy-MM-ddTHH:mm" text and are never handed to a Date parser, so no time zone can move them.
 

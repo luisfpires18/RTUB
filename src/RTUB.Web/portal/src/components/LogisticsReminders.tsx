@@ -19,7 +19,7 @@ const when = (local: string) => `${day(local)} às ${local.slice(11, 16)}`;
 type ReminderDraft = { id?: number; frequency: Frequency; at: string; people: MemberOption[]; personal: boolean };
 
 /**
- * Lembretes (task 069). The owner and collaborators (Leitões too) set reminders for themselves; managers for any members
+ * Lembretes. The owner and collaborators (Leitões too) set reminders for themselves; managers for any members
  * who see the board. Each one arrives as a notification (and stays in "Notificações RTUB") at the time shown, Portugal
  * time; it stops when the card is done or archived or its members lose access.
  */

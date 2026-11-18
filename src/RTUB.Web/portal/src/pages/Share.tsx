@@ -12,7 +12,7 @@ const shared = {
 };
 
 /**
- * /share (task 053): the Web Share Target. Shows the shared title, text and link read-only, with a copy button.
+ * /share: the Web Share Target. Shows the shared title, text and link read-only, with a copy button.
  */
 export default function Share() {
   const [copied, setCopied] = useState(false);

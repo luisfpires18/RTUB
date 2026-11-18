@@ -6,7 +6,7 @@ import { memberAdminApi, type MemberInstrument, type Option } from '../data/memb
 import { CATEGORIES, type Form, blank, fromEdit, problem } from '../data/memberFormState';
 import { Instruments, MentorPicker, MonthYear } from './MemberFormFields';
 
-/** "Adicionar membro" / "Editar membro": the old modal's fields, rules and dependent fields. */
+/** "Adicionar membro" / "Editar membro": the member's fields, rules and dependent fields. */
 export function MemberFormDialog({
   memberId,
   instrumentOptions,
@@ -21,7 +21,7 @@ export function MemberFormDialog({
   const creating = memberId === undefined;
   const [form, setForm] = useState<Form | 'failed' | undefined>(creating ? blank() : undefined);
   const [locked, setLocked] = useState({ leitao: false, caloiro: false, tuno: false });
-  // Creating: kept here and sent with the form. Editing: saved one by one, as before.
+  // Creating: kept here and sent with the form. Editing: saved one by one.
   const [instruments, setInstruments] = useState<MemberInstrument[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<string>();

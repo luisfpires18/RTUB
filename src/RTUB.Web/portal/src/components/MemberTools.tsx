@@ -4,7 +4,7 @@ import { ConfirmAction, NicknameDialog } from './MemberActionDialogs';
 import { MemberFormDialog } from './MemberFormDialog';
 import { memberAdminApi, type ActiveMember, type Directory, type MemberDetail } from '../data/membersApi';
 
-/** An Admin/Owner tool open over the page (React track 018). */
+/** An Admin/Owner tool open over the page. */
 export type Tool =
   | { kind: 'create' }
   | { kind: 'edit'; id: string }

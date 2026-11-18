@@ -3,21 +3,23 @@
 export const json = <T,>(r: Response) => (r.ok ? (r.json() as Promise<T>) : Promise.reject(new Error(`HTTP ${r.status}`)));
 
 // ---------- the shared request helper (every answer maps onto an Outcome; nothing throws) ----------
-// Moved here from eventsApi.ts in task 054: the shell mounts the unread badge on every member page, and the badge
-// importing `call` from the events client pulled that whole client into the entry chunk.
+// It lives in its own small module because the shell mounts the unread badge on every member page: importing `call`
+// from a page client would pull that whole client into the entry chunk.
 
 /** Every answer maps onto one of these; nothing throws. */
 export type Outcome<T> =
   | { kind: 'ok'; data: T }
-  | { kind: 'invalid'; errors: Record<string, string> }
+  /** `title` is the server's summary sentence (Música shows it). */
+  | { kind: 'invalid'; errors: Record<string, string>; title?: string }
   | { kind: 'signin' }
   | { kind: 'closed' }
-  | { kind: 'notfound' }
+  /** `unavailable`: the thing exists but its file does not (a Música song without audio). */
+  | { kind: 'notfound'; unavailable?: boolean }
   | { kind: 'forbidden' }
   | { kind: 'inuse' }
-  /** 409 from a Logística card saved from an older copy (task 066); an archived board or card is 'closed' (067). */
+  /** 409 from a Logística card saved from an older copy; an archived board or card is 'closed'. */
   | { kind: 'conflict' }
-  | { kind: 'failed' };
+  | { kind: 'failed'; title?: string };
 
 /**
  * The sentence a page shows when a call did not work. `what` finishes "Não foi possível …" ("guardar", "apagar a
@@ -71,11 +73,11 @@ export async function call<T>(method: string, url: string, body?: unknown, retri
     if (r.status === 204) return { kind: 'ok', data: undefined as T };
     if (r.ok) return { kind: 'ok', data: (await r.json()) as T };
 
-    const problem = (await r.json().catch(() => ({}))) as { errors?: Record<string, string[]>; type?: string };
+    const problem = (await r.json().catch(() => ({}))) as { errors?: Record<string, string[]>; type?: string; title?: string };
     if (r.status === 400 && problem.errors) {
       const errors: Record<string, string> = {};
       for (const [k, v] of Object.entries(problem.errors)) errors[k.charAt(0).toLowerCase() + k.slice(1)] = v[0];
-      return { kind: 'invalid', errors };
+      return { kind: 'invalid', errors, title: problem.title };
     }
     // A refused antiforgery token (expired page, new session): fetch a fresh one and try once more.
     if (r.status === 400 && method !== 'GET' && !retried) {
@@ -83,10 +85,10 @@ export async function call<T>(method: string, url: string, body?: unknown, retri
       return call<T>(method, url, body, true);
     }
     if (r.status === 401) return { kind: 'signin' };
-    if (r.status === 404) return { kind: 'notfound' };
+    if (r.status === 404) return { kind: 'notfound', unavailable: problem.type === 'music:audio-unavailable' };
     if (r.status === 403) return { kind: 'forbidden' };
     if (r.status === 409) return { kind: problem.type === 'events:in-use' ? 'inuse' : problem.type === 'logistics:conflict' ? 'conflict' : 'closed' };
-    return { kind: 'failed' };
+    return { kind: 'failed', title: problem.title };
   } catch {
     return { kind: 'failed' };
   }

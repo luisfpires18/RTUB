@@ -130,7 +130,7 @@
   text-decoration: line-through;
 }
 
-/* Task 065: the read-only / assigned card view, "Atribuído a si", "Só os meus". */
+/* The read-only / assigned card view, "Atribuído a si", "Só os meus". */
 .lx-chip--mine {
   border-color: var(--purple-ink);
   background: color-mix(in srgb, var(--purple) 28%, transparent);

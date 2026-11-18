@@ -1,10 +1,10 @@
 import { call, type Outcome } from './api';
 
-// /api/pending-actions (Endpoints/PendingActionsEndpoints.cs, task 071, docs/react-pending-actions.md). The server decides
+// /api/pending-actions (Endpoints/PendingActionsEndpoints.cs, docs/react-pending-actions.md). The server decides
 // every panel, row, count and whether a row is required or may be dismissed (PendingActionsService); the page only shows.
 
 /**
- * A link to the module's page, or an in-page answer sent to /responses: 'yes' / 'no' (072), 'done' / 'close' (073).
+ * A link to the module's page, or an in-page answer sent to /responses: 'yes' / 'no', 'done' / 'close'.
  * `confirm`: the server's question to ask first (a change the member cannot undo here).
  */
 export type ActionButton = {
@@ -28,10 +28,10 @@ export type ActionRow = {
   actions: ActionButton[];
   /** The item's own page (the title links there). */
   href: string | null;
-  /** The dismiss button's text when "Agora não" does not fit (075: "Não é necessário"). */
+  /** The dismiss button's text when "Agora não" does not fit (e.g. "Não é necessário"). */
   dismissLabel: string | null;
 };
-export type PanelFilter = { key: string; label: string; count: number };
+type PanelFilter = { key: string; label: string; count: number };
 export type Category = 'participation' | 'tasks' | 'responsibilities';
 export type Panel = {
   key: string;
@@ -44,7 +44,7 @@ export type Panel = {
   total: number;
   rows: ActionRow[];
 };
-export type ActivityStatus = 'active' | 'retired' | 'none';
+type ActivityStatus = 'active' | 'retired' | 'none';
 export type InstrumentOption = { value: string; label: string };
 export type PendingActions = {
   today: string;

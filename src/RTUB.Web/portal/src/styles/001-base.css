@@ -2,7 +2,7 @@
    Tokens reuse the live palette (#6f42c1 primary, #3F2A86 theme, #a88ee5 link) - no new hues. */
 
 /* Fraunces: plain static files under wwwroot/fonts (30-day cache) and preloaded from index.html, so they leave with
-   the HTML instead of after the stylesheet is parsed (task 054). Same two faces as before. */
+   the HTML instead of after the stylesheet is parsed. Two faces. */
 @font-face {
   font-family: 'Fraunces';
   font-style: normal;
@@ -137,7 +137,7 @@ main {
   padding-inline: var(--gutter);
 }
 
-/* !important on purpose (#229): a field rule such as `.form__field input { width: 100%; min-height: 48px }` is more
+/* !important on purpose: a field rule such as `.form__field input { width: 100%; min-height: 48px }` is more
    specific, and gave the hidden file inputs (cover / image pickers) a full width that scrolled dialogs sideways. */
 .sr-only {
   position: absolute !important;

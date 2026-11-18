@@ -259,7 +259,7 @@
   margin-bottom: 8px;
 }
 
-/* Admin/Owner participants manager (012E) reuses the prize rows. */
+/* Admin/Owner participants manager reuses the prize rows. */
 .participants-manager__group {
   display: grid;
   gap: 8px;
@@ -292,7 +292,7 @@
   list-style: none;
 }
 
-/* Admin/Owner repertoire management (012D) reuses the prize rows and the segmented control. */
+/* Admin/Owner repertoire management reuses the prize rows and the segmented control. */
 .segmented--wrap {
   flex-wrap: wrap;
   border-radius: 16px;

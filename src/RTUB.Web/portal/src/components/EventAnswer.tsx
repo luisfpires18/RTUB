@@ -135,7 +135,7 @@ function AnswerForm({
     setBusy(false);
     if (outcome.kind === 'ok') {
       onSaved(outcome.data);
-      // Task 079: a new "vou" to an upcoming event offers the calendar; a no, an unchanged yes or a past event closes.
+      // A new "vou" to an upcoming event offers the calendar; a no, an unchanged yes or a past event closes.
       const saved = outcome.data;
       if (choice.willAttend && enrollment.status !== 'going' && saved.state === 'open' && !saved.event.past && !saved.event.cancelled) setOffer(saved);
       else onClose();

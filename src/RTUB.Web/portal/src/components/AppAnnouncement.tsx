@@ -9,8 +9,8 @@ const ANNOUNCEMENT_KEY = 'rtub-announcement-seen';
 const ANNOUNCEMENT_POLL_MS = 30_000;
 
 /**
- * The Owner's system announcement (/owner/tracing), on every portal page, signed in or not (task 037; it used to be
- * a server-rendered banner). The server keeps only the latest one, for a few minutes, so the page asks every 30 s
+ * The Owner's system announcement (/owner/tracing), on every portal page, signed in or not.
+ * The server keeps only the latest one, for a few minutes, so the page asks every 30 s
  * while it is visible and once more on coming back. Dismissed ids are remembered, so an announcement is shown once
  * per browser (per page load if storage is blocked).
  */

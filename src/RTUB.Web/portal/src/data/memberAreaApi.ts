@@ -1,7 +1,7 @@
 import { call } from './eventsApi';
 import type { MemberDetail, MemberInstrument, Mentor, Option } from './membersApi';
 
-// /api/me, /api/members/map and /api/hall-of-fame (Endpoints/MemberAreaEndpoints.cs, task 032). Signed-in members
+// /api/me, /api/members/map and /api/hall-of-fame (Endpoints/MemberAreaEndpoints.cs). Signed-in members
 // only; the server decides every rule (MyProfileService, MemberMapService, HallOfFameService).
 
 export type Person = { displayName: string; fullName: string | null; avatarUrl: string | null };
@@ -18,7 +18,7 @@ export type MemberMap = { total: number; cities: MapCity[]; withoutCity: Person[
 
 // ---------- my profile ----------
 
-export type Personal = {
+type Personal = {
   firstName: string | null;
   lastName: string | null;
   nickname: string | null;
@@ -29,7 +29,7 @@ export type Personal = {
   city: string | null;
   degree: string | null;
 };
-export type Tuna = {
+type Tuna = {
   showMentor: boolean;
   mentorId: string | null;
   mentorName: string | null;
@@ -45,7 +45,7 @@ export type Tuna = {
   monthTuno: number | null;
   lockedDates: { leitao: boolean; caloiro: boolean; tuno: boolean };
 };
-export type Rank = {
+type Rank = {
   level: number;
   name: string;
   xp: number;

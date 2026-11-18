@@ -9,7 +9,7 @@ import { numericDateTime } from '../data/meetingsDates';
 import { type Point, type Values, toPoint, fromEditor, toInput, download, editorProblem } from '../data/meetingAtaForm';
 import { Block, SecretarySelect } from './MeetingAtaParts';
 
-// The ata of a meeting (task 034): the editor for whoever may write it (a draft is only theirs, decision A1) and
+// The ata of a meeting: the editor for whoever may write it (a draft is only theirs, decision A1) and
 // "Ver Ata" for readers of a published one. The server decides who writes, reads, publishes and confirms.
 
 const MAX_ATA_NUMBER = 50;

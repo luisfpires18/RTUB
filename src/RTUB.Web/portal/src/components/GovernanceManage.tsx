@@ -12,7 +12,7 @@ import { outcomeText } from '../data/api';
 
 export type Holder = { assignmentId: number; displayName: string; fullName: string | null; avatarUrl: string | null };
 export type ManagePosition = { position: string; title: string; holders: Holder[] };
-export type ManageBody = { name: string; positions: ManagePosition[] };
+type ManageBody = { name: string; positions: ManagePosition[] };
 export type Manage = { fiscalYears: string[]; fiscalYear: string | null; availableStartYears: number[]; bodies: ManageBody[] };
 type Candidate = { id: string; displayName: string; fullName: string | null; avatarUrl: string | null };
 
@@ -28,7 +28,7 @@ export const governanceApi = {
 const problem = (o: Outcome<unknown>, what: string) =>
   outcomeText(o, what, { forbidden: 'Não tem permissão para gerir os órgãos sociais.', notfound: 'Este cargo já não está atribuído.' });
 
-/** Regulamentos Gerais Internos: the PDF in R2 through a short-lived link, as on the old page. */
+/** Regulamentos Gerais Internos: the PDF in R2 through a short-lived link. */
 export function RgiDialog({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<{ url: string | null } | { error: string }>();
 

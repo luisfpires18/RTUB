@@ -5,7 +5,7 @@ import { musicApi, type PlayAlongChart } from '../data/musicApi';
 import { failedMessage } from '../data/musicFormHelpers';
 
 /**
- * The song's play-along chart (task 094): a .json file made offline with tools/playalong. Sending and
+ * The song's play-along chart: a .json file made offline with tools/playalong. Sending and
  * removing act at once, apart from "Guardar"; the server validates the chart.
  */
 export function PlayAlongField({ songId, has, onChange }: { songId: number; has: boolean; onChange: (has: boolean) => void }) {

@@ -57,7 +57,7 @@ export function DeleteEventDialog({ event, onClose, onDeleted }: { event: EventS
   );
 }
 /**
- * Cancels an upcoming event, as the old page did: a reason is required, every inscrição is deleted,
+ * Cancels an upcoming event: a reason is required, every inscrição is deleted,
  * and an email to the members with email notifications on is opt-in. `onDone` refreshes the page.
  */
 export function CancelEventDialog({ event, onClose, onDone }: { event: EventSummary; onClose: () => void; onDone: () => void }) {

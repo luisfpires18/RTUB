@@ -31,7 +31,7 @@ export function LoginsDialog({ onClose }: { onClose: () => void }) {
 
   const records = typeof logins === 'object' ? logins.records : logins;
   const filtered = Array.isArray(records) ? records.filter((r) => matches(q, r.nickname, r.fullName, r.userName)) : [];
-  // Task 050: sign-in history (LoginEvents) starts with its deploy; earlier days only know each account's last access.
+  // Sign-in history (LoginEvents) has no rows from before it was deployed; earlier days only know each account's last access.
   const historyDay = typeof logins === 'object' && logins.historySince ? dayOf(logins.historySince) : null;
   const partial = typeof logins === 'object' && (historyDay === null || from < historyDay);
 

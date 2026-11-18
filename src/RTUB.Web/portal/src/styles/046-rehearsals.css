@@ -1,4 +1,4 @@
-/* ---------- Rehearsals (/rehearsals, /rehearsals/{id}, React track 014) ---------- */
+/* ---------- Rehearsals (/rehearsals, /rehearsals/{id}) ---------- */
 
 .pill--wait {
   background: rgba(255, 196, 87, 0.14);
@@ -80,7 +80,7 @@
   margin: 0 0 12px;
 }
 
-/* ---------- Gallery management (React track 015) ---------- */
+/* ---------- Gallery management ---------- */
 
 .gallery-manage__preview {
   overflow: hidden;

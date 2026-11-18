@@ -101,7 +101,7 @@
   }
 }
 
-/* Novidades: Todas / Públicas / Privadas for signed-in readers (#222). */
+/* Novidades: Todas / Públicas / Privadas for signed-in readers. */
 .news-tabs {
   display: flex;
   gap: 4px;
@@ -134,7 +134,7 @@
   vertical-align: middle;
 }
 
-/* /share (053): the Web Share Target page, copy and back side by side. */
+/* /share: the Web Share Target page, copy and back side by side. */
 .share__actions {
   display: flex;
   flex-wrap: wrap;

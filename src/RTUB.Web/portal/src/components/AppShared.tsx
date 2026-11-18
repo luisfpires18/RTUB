@@ -4,7 +4,7 @@ import { getCurrentUser, type CurrentUser } from '../data/api';
 import { portal } from '../data/content';
 import { Icon } from './icons';
 
-// ---------- latest request wins (#226 F14) ----------
+// ---------- latest request wins ----------
 
 /**
  * For a page whose search / filters reload a list: `latest(request, apply)` applies an answer only if no newer request

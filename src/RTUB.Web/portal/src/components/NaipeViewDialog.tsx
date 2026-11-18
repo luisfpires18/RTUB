@@ -23,7 +23,7 @@ export function ViewDialog({ item, onClose, onChanged }: { item: NaipeItem; onCl
   }, [item.id]);
 
   const onPlay = () => {
-    if (played.current) return; // one play per opening, as before
+    if (played.current) return; // one play per opening
     played.current = true;
     naipesApi.played(item.id).then((o) => o.kind === 'ok' && onChanged());
   };

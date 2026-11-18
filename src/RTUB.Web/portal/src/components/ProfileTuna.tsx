@@ -88,7 +88,7 @@ export function InstrumentPic({ url, large }: { url?: string; large?: boolean })
   );
 }
 
-/** "Estado na Tuna": the server's status, progress and the last rehearsal / event, as in the old profile. */
+/** "Estado na Tuna": the server's status, progress and the last rehearsal / event. */
 function TunaState({ state }: { state: MemberState }) {
   return (
     <section className="tuna-info__block" aria-labelledby="tuna-state-title">

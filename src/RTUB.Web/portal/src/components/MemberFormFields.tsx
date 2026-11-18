@@ -27,7 +27,7 @@ export function MonthYear({
   const id = useId();
   const years: number[] = [];
   for (let y = new Date().getFullYear(); y >= MIN_YEAR; y--) years.push(y);
-  // As the old picker: choosing one half fills the other (January / this year), clearing one clears both.
+  // Choosing one half fills the other (January / this year), clearing one clears both.
   const pickMonth = (m: string) => (m ? onChange(year ?? new Date().getFullYear(), Number(m)) : onChange(null, null));
   const pickYear = (y: string) => (y ? onChange(Number(y), month ?? 1) : onChange(null, null));
 
@@ -88,7 +88,7 @@ export function Instruments({
   const [busy, setBusy] = useState(false);
   const available = options.filter((o) => !list.some((i) => i.instrument === o.value));
 
-  // An existing member's instruments are saved at once, as before; a new member's go with the form.
+  // An existing member's instruments are saved at once; a new member's go with the form.
   const run = async (action: () => Promise<Outcome<MemberInstrument[]>>) => {
     setBusy(true);
     const o = await action();
@@ -175,7 +175,7 @@ export function MentorPicker({
   mentorName: string | null;
   error?: string;
   onChange: (id: string | null, name: string | null) => void;
-  /** Admin/Owner by default; the member's own profile passes its own search (task 032). */
+  /** Admin/Owner by default; the member's own profile passes its own search. */
   search?: (q: string, exclude?: string) => Promise<Outcome<Mentor[]>>;
 }) {
   const id = useId();

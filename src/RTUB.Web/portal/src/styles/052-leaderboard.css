@@ -1,6 +1,6 @@
-/* ---------- classification (React track 019) ---------- */
+/* ---------- classification ---------- */
 
-/* "Níveis de Alcoolismo" (#225): one card, open by default; the summary is its header and still folds it away. */
+/* "Níveis de Alcoolismo": one card, open by default; the summary is its header and still folds it away. */
 .leaderboard-levels {
   margin-bottom: 20px;
   padding: 4px 16px 16px;
@@ -283,7 +283,7 @@
 
 .member-activities .member-badge {
   flex: none;
-  /* #229: `.member-activities span` (min-width: 0) matched the badge too, so its nowrap "+15 XP" shrank and spilled
+  /* `.member-activities span` (min-width: 0) matches the badge too, so without this its nowrap "+15 XP" shrinks and spills
      out of the row, scrolling the "Detalhes da classificação" dialog sideways at 320px. */
   min-width: auto;
   margin-left: auto;

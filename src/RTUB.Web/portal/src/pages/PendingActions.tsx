@@ -7,9 +7,9 @@ import { CATEGORIES, longDate } from '../data/pendingActionsView';
 import { ActionPanel } from '../components/PendingActionPanel';
 
 /**
- * /pending-actions - "As minhas ações pendentes" (task 071, docs/react-pending-actions.md). A page of grouped actions, not
+ * /pending-actions - "As minhas ações pendentes" (docs/react-pending-actions.md). A page of grouped actions, not
  * an inbox: one panel per module, each paged on its own (three rows, previous / next), with the action buttons on the
- * row (072: Vou / Não vou, Fui / Não fui answered in place). The server decides which panels, rows and buttons a member gets. Coming back to the page (back button, PWA
+ * row (Vou / Não vou, Fui / Não fui answered in place). The server decides which panels, rows and buttons a member gets. Coming back to the page (back button, PWA
  * resume) asks every panel again for the page it shows, so something answered elsewhere disappears.
  */
 export default function PendingActions() {
@@ -20,7 +20,7 @@ export default function PendingActions() {
   const load = useCallback(
     () =>
       pendingActionsApi.page().then((o) => {
-        // 087: the page is not for a Reformado (404, and no menu entry): the agenda is where they answer.
+        // The page is not for a Reformado (404, and no menu entry): the agenda is where they answer.
         if (o.kind === 'notfound') return window.location.replace('/events');
         setData(o.kind === 'ok' ? o.data : o.kind === 'signin' ? 'signin' : null);
       }),

@@ -11,7 +11,7 @@ import { Lightbox } from '../components/GalleryLightbox';
 import { groupTimeline } from '../data/galleryTimeline';
 
 
-/** Task 077: ?upload=1&event=&date=&title= (from /pending-actions → Galeria → Adicionar) opens the upload for that event. */
+/** ?upload=1&event=&date=&title= (from /pending-actions → Galeria → Adicionar) opens the upload for that event. */
 function uploadEventFromUrl(): UploadEvent | undefined {
   const q = new URLSearchParams(location.search);
   const id = Number(q.get('event'));
@@ -32,7 +32,7 @@ function setItemInUrl(id?: number) {
 /**
  * /gallery - the RTUB through the years, newest first. Visitors see the public photos; signed-in
  * members also see members-only ones (badged) and who is in each photo. Everything is decided by
- * GET /api/gallery from the session. Members upload here, and the uploader, Admin or Owner edit (015).
+ * GET /api/gallery from the session. Members upload here, and the uploader, Admin or Owner edit.
  */
 export default function Gallery() {
   const [data, setData] = useState<GalleryTimeline>();
@@ -62,7 +62,7 @@ export default function Gallery() {
       ({ timeline }) => {
         setLoadingMore(false);
         if (!timeline) return setFailed(true);
-        // The facets (years, people) come with the first page only; later pages keep the ones in hand (task 054).
+        // The facets (years, people) come with the first page only; later pages keep the ones in hand.
         setData((previous) =>
           page === 1 || !previous ? timeline : { ...timeline, years: previous.years, people: previous.people },
         );

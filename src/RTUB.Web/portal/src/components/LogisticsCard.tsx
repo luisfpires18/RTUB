@@ -21,7 +21,7 @@ import { History } from './LogisticsHistory';
 import { draftOf, same, type Draft } from '../data/logisticsCardDraft';
 
 /**
- * The card workspace (Logística 2/5, task 066). One layout for everyone; the controls follow the server's flags:
+ * The card workspace (Logística 2/5). One layout for everyone; the controls follow the server's flags:
  * `canWork` (owner, collaborators, managers) edits the card's fields, checklist, status, comments and attachments;
  * `canManage` also changes the owner, collaborators, labels, linked cards and deletes. The card's own fields save
  * together ("Guardar alterações" in the footer, version-checked: a 409 shows a conflict and keeps the draft); the
@@ -94,7 +94,7 @@ export function CardWorkspace({
       onChanged();
       return true;
     }
-    // 404: the card is gone or no longer visible (access removed, task 067) - drop what is shown, do not keep stale data.
+    // 404: the card is gone or no longer visible (access removed) - drop what is shown, do not keep stale data.
     if (r.kind === 'notfound') {
       setDetail('missing');
       onChanged();

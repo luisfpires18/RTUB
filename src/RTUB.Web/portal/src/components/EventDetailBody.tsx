@@ -119,7 +119,7 @@ export function Body({
   );
 }
 
-export function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => void }) {
+function MemberPanel({ detail, onAnswer }: { detail: Detail; onAnswer: () => void }) {
   const { event } = detail;
   const m = event.member!;
   const open = !event.past && !event.cancelled;

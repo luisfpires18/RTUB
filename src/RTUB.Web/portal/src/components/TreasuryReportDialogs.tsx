@@ -5,7 +5,7 @@ import { isoDay, problem, treasuryApi, type Activity, type ReportEvent, type Rep
 import { Field, SaveFooter } from './TreasuryUi';
 import { day, today } from '../data/format';
 
-/** "Editar Dinheiro no Banco / em Caixa": one value, any sign; 0 clears it (as before). */
+/** "Editar Dinheiro no Banco / em Caixa": one value, any sign; 0 clears it. */
 export function BalanceDialog({ report, kind, onClose, onSaved }: { report: Report; kind: 'bank' | 'cash'; onClose: () => void; onSaved: (r: Report) => void }) {
   const [value, setValue] = useState(String(kind === 'bank' ? report.totals.bank : report.totals.cash));
   const [error, setError] = useState<string>();
@@ -40,7 +40,7 @@ export function BalanceDialog({ report, kind, onClose, onSaved }: { report: Repo
 }
 
 /**
- * "Nova atividade" / "Editar atividade": name, one date or a range, description, and (task 074) the event it accounts
+ * "Nova atividade" / "Editar atividade": name, one date or a range, description, and the event it accounts
  * for. Opened for an event (from "As minhas ações pendentes"), it starts with the event's name and dates.
  */
 export function ActivityDialog({

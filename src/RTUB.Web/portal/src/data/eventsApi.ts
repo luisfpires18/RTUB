@@ -1,4 +1,4 @@
-// Typed client for /api/events (React track 011, Endpoints/EventEndpoints.cs). The server decides
+// Typed client for /api/events (Endpoints/EventEndpoints.cs). The server decides
 // what the caller may see and do; `isMember` and `member` only spare people buttons that would be
 // refused. Dates are local "yyyy-MM-dd" / "HH:mm" text, never parsed as UTC.
 
@@ -26,14 +26,14 @@ import type {
   RepertoireSong,
 } from './eventsTypes';
 
-// The shared request helper lives in api.ts since task 054 (the shell's unread badge needs it on every page, and
+// The shared request helper lives in api.ts (the shell's unread badge needs it on every page, and
 // importing it from here pulled this whole client into the entry chunk); re-exported for the pages that import it here.
 export { antiforgeryToken, call, type Outcome } from './api';
 import { call } from './api';
 
 export const eventsApi = {
   agenda: () => call<EventAgenda>('GET', '/api/events'),
-  // Discussion (members, 013).
+  // Discussion (members).
   discussion: (id: number) => call<EventDiscussion>('GET', `/api/events/${id}/discussion`),
   addPost: (id: number, title: string, body: string) => call<EventDiscussion>('POST', `/api/events/${id}/discussion/posts`, { title, body }),
   editPost: (id: number, postId: number, title: string, body: string) =>
@@ -56,7 +56,7 @@ export const eventsApi = {
     call<EventDiscussion>('POST', `/api/events/${id}/discussion/posts/${postId}/passengers`, { userId }),
   removePassenger: (id: number, postId: number, passengerId: number) =>
     call<EventDiscussion>('DELETE', `/api/events/${id}/discussion/posts/${postId}/passengers/${passengerId}`),
-  // Contact tracking (Mod and above, 013).
+  // Contact tracking (Mod and above).
   contacts: (id: number) => call<EventContacts>('GET', `/api/events/${id}/contacts`),
   saveContact: (id: number, userId: string, willAttend: boolean | null, notes: string) =>
     call<EventContacts>('PUT', `/api/events/${id}/contacts/${encodeURIComponent(userId)}`, { willAttend, notes }),
@@ -69,12 +69,12 @@ export const eventsApi = {
     call<EventEnrollment>('PUT', `/api/events/${id}/enrollment`, input),
   removeEnrollment: (id: number) => call<EventEnrollment>('DELETE', `/api/events/${id}/enrollment`),
   videoPlayed: (videoId: number) => call<void>('POST', `/api/events/videos/${videoId}/plays`),
-  // Admin/Owner; the server refuses everyone else (401/403).
+  // Admin/Owner; the server refuses everyone else.
   eventForEdit: (id: number) => call<EventEdit>('GET', `/api/events/${id}/edit`),
   createEvent: (input: EventInput) => call<EventSummary>('POST', '/api/events', input),
   updateEvent: (id: number, input: EventInput) => call<EventSummary>('PUT', `/api/events/${id}`, input),
   deleteEvent: (id: number) => call<void>('DELETE', `/api/events/${id}`),
-  // Admin/Owner, 012A. The image arrives already cropped (WebP, JPEG where WebP cannot be encoded).
+  // Admin/Owner. The image arrives already cropped (WebP, JPEG where WebP cannot be encoded).
   setImage: (id: number, image: Blob) => {
     const form = new FormData();
     form.set('image', image, image.type === 'image/jpeg' ? 'event-image.jpg' : 'event-image.webp');
@@ -86,13 +86,13 @@ export const eventsApi = {
   reactivateEvent: (id: number) => call<void>('POST', `/api/events/${id}/reactivate`),
   noticeAudience: (id: number) => call<NoticeAudience>('GET', `/api/events/${id}/notices`),
   sendNotice: (id: number, input: NoticeInput) => call<NoticeResult>('POST', `/api/events/${id}/notices`, input),
-  // Admin/Owner, 012B. Every write answers the event's prizes as they now are.
+  // Admin/Owner. Every write answers the event's prizes as they now are.
   prizes: (id: number) => call<EventPrize[]>('GET', `/api/events/${id}/prizes`),
   addPrize: (id: number, name: string) => call<EventPrize[]>('POST', `/api/events/${id}/prizes`, { name }),
   renamePrize: (id: number, prizeId: number, name: string) =>
     call<EventPrize[]>('PUT', `/api/events/${id}/prizes/${prizeId}`, { name }),
   deletePrize: (id: number, prizeId: number) => call<EventPrize[]>('DELETE', `/api/events/${id}/prizes/${prizeId}`),
-  // Admin/Owner, 012C. Every write answers the event's videos in order.
+  // Admin/Owner. Every write answers the event's videos in order.
   videos: (id: number) => call<ManagedVideo[]>('GET', `/api/events/${id}/videos`),
   uploadVideo: (id: number, file: File, title: string) => {
     const form = new FormData();
@@ -104,7 +104,7 @@ export const eventsApi = {
     call<ManagedVideo[]>('PUT', `/api/events/${id}/videos/${videoId}`, { title }),
   reorderVideos: (id: number, videoIds: number[]) => call<ManagedVideo[]>('POST', `/api/events/${id}/videos/reorder`, { videoIds }),
   deleteVideo: (id: number, videoId: number) => call<ManagedVideo[]>('DELETE', `/api/events/${id}/videos/${videoId}`),
-  // Admin/Owner, 012D. Every write answers the whole repertoire.
+  // Admin/Owner. Every write answers the whole repertoire.
   repertoire: (id: number) => call<RepertoireManage>('GET', `/api/events/${id}/repertoire`),
   repertoireSongs: (id: number, q: string) =>
     call<RepertoireSong[]>('GET', `/api/events/${id}/repertoire/songs?q=${encodeURIComponent(q)}`),
@@ -114,7 +114,7 @@ export const eventsApi = {
   clearRepertoireDay: (id: number, date: string) => call<RepertoireManage>('DELETE', `/api/events/${id}/repertoire/days/${date}`),
   reorderRepertoire: (id: number, date: string, itemIds: number[]) =>
     call<RepertoireManage>('POST', `/api/events/${id}/repertoire/reorder`, { date, itemIds }),
-  // Admin/Owner, 012E: other members' answers. Every write answers the whole list.
+  // Admin/Owner: other members' answers. Every write answers the whole list.
   enrollments: (id: number) => call<EnrollmentList>('GET', `/api/events/${id}/enrollments`),
   enrollmentMembers: (id: number, q: string) =>
     call<MemberOption[]>('GET', `/api/events/${id}/enrollments/members?q=${encodeURIComponent(q)}`),

@@ -14,7 +14,7 @@ const TYPE_LABELS: Record<string, string> = {
   ReuniaoDirecao: 'Reunião de Direção',
 };
 
-// The old default: AGO when allowed, else CV, else AGE.
+// The default type: AGO when allowed, else CV, else AGE.
 const defaultType = (types: MeetingOption[]) =>
   ['AssembleiaGeralOrdinaria', 'ConselhoVeteranos', 'AssembleiaGeralExtraordinaria'].find((t) => types.some((o) => o.value === t)) ?? types[0]?.value ?? '';
 
@@ -36,7 +36,7 @@ export function MeetingFormDialog({
   const [form, setForm] = useState<MeetingForm | null>();
   const [type, setType] = useState(card?.type ?? draft?.type ?? '');
   const [title, setTitle] = useState(card?.title ?? draft?.title ?? '');
-  const [date, setDate] = useState(card?.date ?? (draft?.date || localDateTime(1, 20))); // the old default: tomorrow at 20:00 (075: also for a ?new= draft)
+  const [date, setDate] = useState(card?.date ?? (draft?.date || localDateTime(1, 20))); // default: tomorrow at 20:00, also for a ?new= draft
   const [place, setPlace] = useState(card?.location ?? draft?.location ?? '');
   const [statement, setStatement] = useState(card?.statement ?? draft?.statement ?? '');
   const [representative, setRepresentative] = useState(card?.tunoRepresentativeId ?? '');

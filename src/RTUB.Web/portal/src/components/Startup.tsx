@@ -6,8 +6,8 @@ import { ReleaseNotesDialog } from './ReleaseNotes';
 import { releaseNotesApi, type ReleaseNote } from '../data/releaseNotesApi';
 import { reminderDue, reminderFits } from '../data/startupRules';
 
-// Task 080 (#261; docs/react-push-v2.md → Startup reminder). The startup queue: one dialog at a time, in order, once
-// per app opening, for signed-in members only. The release notes (task 083, #264) go first in STEPS; the notification
+// docs/react-push-v2.md → Startup reminder. The startup queue: one dialog at a time, in order, once
+// per app opening, for signed-in members only. The release notes go first in STEPS; the notification
 // reminder follows. Every page is its own document (no client router), so "an app opening" is this tab's session: a new tab or
 // window, or a cold launch of the installed app, starts one; moving between pages, coming back to the app, polls and
 // re-renders do not. The visitor shell clears it (sign-out, and /login before signing in or switching account).
@@ -86,7 +86,7 @@ export function StartupModals() {
   return <Current key={step} hidden={blocked} onDone={() => setStep((s) => s + 1)} />;
 }
 
-// ---------- release notes (task 083, #264) ----------
+// ---------- release notes ----------
 
 const RELEASE = 'release';
 
