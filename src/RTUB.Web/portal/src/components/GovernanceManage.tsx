@@ -1,10 +1,11 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
+import { Banner } from './ui/Banner';
 import { FieldError } from './ui/FieldError';
 import { ExternalLink } from './AppShared';
 import { Dialog } from './Dialog';
 import { call, type Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
-import { DEFAULT_AVATAR } from '../data/membersApi';
+import { Avatar } from './ui/Avatar';
 import { outcomeText } from '../data/api';
 import { Loading } from './ui/Loading';
 
@@ -45,13 +46,9 @@ export function RgiDialog({ onClose }: { onClose: () => void }) {
       {!state ? (
         <Loading label="A carregar o RGI…" />
       ) : 'error' in state ? (
-        <p className="form__banner" role="alert">
-          {state.error}
-        </p>
+        <Banner text={state.error} />
       ) : !state.url ? (
-        <p className="form__banner" role="status">
-          O documento RGI não está disponível de momento.
-        </p>
+        <Banner role="status" text="O documento RGI não está disponível de momento." />
       ) : (
         <div className="lyrics">
           <iframe className="lyrics__pdf" src={`${state.url}#toolbar=0&navpanes=0`} title="Regulamentos Gerais Internos" />
@@ -111,7 +108,7 @@ export function CreateYearDialog({ years, onDone, onClose }: { years: number[]; 
                 ))}
               </select>
             </span>
-            {error && <p className="form__error">{error}</p>}
+            <FieldError text={error} alert={false} />
           </div>
         </form>
       )}
@@ -190,7 +187,7 @@ export function AssignDialog({
               {found.map((m) => (
                 <li key={m.id}>
                   <button type="button" aria-pressed={picked?.id === m.id} onClick={() => setPicked(m)}>
-                    <img src={m.avatarUrl ?? DEFAULT_AVATAR} alt="" width="28" height="28" loading="lazy" />
+                    <Avatar src={m.avatarUrl} size={28} />
                     <span>
                       {m.displayName}
                       {m.fullName && <small>{m.fullName}</small>}

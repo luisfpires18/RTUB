@@ -1,5 +1,7 @@
 // Member form field pieces: month/year picker, instruments editor, mentor picker.
 import { useEffect, useId, useState } from 'react';
+import { EmptyNote } from './ui/EmptyNote';
+import { FieldError } from './ui/FieldError';
 import type { Outcome } from '../data/eventsApi';
 import { Icon } from './icons';
 import { memberAdminApi, type MemberInstrument, type Mentor, type Option } from '../data/membersApi';
@@ -64,7 +66,7 @@ export function MonthYear({
         </span>
       </span>
       {locked && <p className="form__hint">{lockedHint}</p>}
-      {error && <p className="form__error">{error}</p>}
+      <FieldError text={error} alert={false} />
     </fieldset>
   );
 }
@@ -152,9 +154,9 @@ export function Instruments({
           ))}
         </ul>
       ) : (
-        memberId && <p className="note">Nenhum instrumento adicionado ainda.</p>
+        memberId && <EmptyNote>Nenhum instrumento adicionado ainda.</EmptyNote>
       )}
-      {shown && <p className="form__error">{shown}</p>}
+      <FieldError text={shown} alert={false} />
     </div>
   );
 }
@@ -211,7 +213,7 @@ export function MentorPicker({
         <Icon name="search" />
         <input id={id} type="search" placeholder="Procurar padrinho por nome ou alcunha" value={query} onChange={(e) => setQuery(e.target.value)} />
       </span>
-      {found && found.length === 0 && <p className="note">Nenhum padrinho encontrado.</p>}
+      {found && found.length === 0 && <EmptyNote>Nenhum padrinho encontrado.</EmptyNote>}
       {found && found.length > 0 && (
         <ul className="member-rows member-form__mentors">
           {found.map((m) => (
@@ -234,7 +236,7 @@ export function MentorPicker({
           ))}
         </ul>
       )}
-      {error && <p className="form__error">{error}</p>}
+      <FieldError text={error} alert={false} />
     </div>
   );
 }

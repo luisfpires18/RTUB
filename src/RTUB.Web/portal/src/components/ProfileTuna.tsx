@@ -6,7 +6,8 @@ import { ActivityList, TunaPath, progressText } from './MemberDialogs';
 import { MemberBadge } from './MemberBadge';
 import { MentorPicker, MonthYear } from './MemberFormFields';
 import { memberAreaApi, type MyProfile, type TunaInput } from '../data/memberAreaApi';
-import { DEFAULT_AVATAR, shortDate, type MemberState } from '../data/membersApi';
+import { shortDate, type MemberState } from '../data/membersApi';
+import { Avatar } from './ui/Avatar';
 import { FormButtons, SavedNote, Section, problem, useFormState } from './ProfileShared';
 
 const tunaOf = (p: MyProfile): TunaInput => ({
@@ -55,11 +56,11 @@ function TunaInfo({ profile }: { profile: MyProfile }) {
             {t.mentorName ? (
               <ol className="lineage" aria-label="Padrinho e afilhado">
                 <li className="lineage__node">
-                  <img src={t.mentorAvatarUrl ?? DEFAULT_AVATAR} alt="" width="64" height="64" loading="lazy" />
+                  <Avatar src={t.mentorAvatarUrl} size={64} />
                   <span>{t.mentorName}</span>
                 </li>
                 <li className="lineage__node lineage__node--me">
-                  <img src={m.avatarUrl ?? DEFAULT_AVATAR} alt="" width="64" height="64" loading="lazy" />
+                  <Avatar src={m.avatarUrl} size={64} />
                   <span>{m.displayName}</span>
                 </li>
               </ol>

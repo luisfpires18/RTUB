@@ -1,5 +1,6 @@
 // People picker and details fields shared by the gallery upload and edit dialogs.
 import { useEffect, useId, useState } from 'react';
+import { FieldError } from './ui/FieldError';
 import { GalleryPerson } from '../data/api';
 import { Icon } from './icons';
 import { type Taggable, type Form, galleryApi } from '../data/galleryUploadApi';
@@ -73,13 +74,13 @@ export function Details({ form, set, errors, idPrefix }: { form: Form; set: (f: 
       <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
         <label htmlFor={`${idPrefix}-title`}>Título</label>
         <input id={`${idPrefix}-title`} maxLength={200} value={form.title} onChange={(e) => set({ title: e.target.value })} />
-        {errors.title && <p className="form__error">{errors.title}</p>}
+        <FieldError text={errors.title} alert={false} />
       </div>
       <div className={errors.date ? 'form__field form__field--error' : 'form__field'}>
         <label htmlFor={`${idPrefix}-date`}>Data</label>
         <input id={`${idPrefix}-date`} type="date" value={form.date} onChange={(e) => set({ date: e.target.value })} />
         <p className="form__hint">Sem a data exata? Escolhe o dia 1 do mês (guarda só o mês) ou o 1 de janeiro (guarda só o ano).</p>
-        {errors.date && <p className="form__error">{errors.date}</p>}
+        <FieldError text={errors.date} alert={false} />
       </div>
       <label className="check">
         <input type="checkbox" checked={form.membersOnly} onChange={(e) => set({ membersOnly: e.target.checked })} />

@@ -1,5 +1,6 @@
 // The family tree widget of /members/hierarchy: search, keyboard navigation, selected branch.
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { IconAction } from './ui/IconAction';
 import { Icon } from './icons';
 import { type TreeNode } from '../data/membersApi';
 import { Branch, type BranchContext } from './HierarchyBranch';
@@ -298,10 +299,7 @@ export function FamilyTree({ roots }: { roots: TreeNode[] }) {
               <Icon name="person" />
               Ver membro
             </a>
-            <button type="button" className="icon-btn icon-btn--sm" onClick={() => setSelected(undefined)}>
-              <Icon name="close" />
-              <span className="sr-only">Limpar a seleção</span>
-            </button>
+            <IconAction icon="close" label="Limpar a seleção" onClick={() => setSelected(undefined)} />
           </div>
         </div>
       )}

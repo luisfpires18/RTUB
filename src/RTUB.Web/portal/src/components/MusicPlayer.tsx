@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { IconAction } from './ui/IconAction';
 import { Icon } from './icons';
 
 export type NowPlaying = { songId: number; title: string; audioUrl: string };
@@ -118,10 +119,7 @@ export function MusicPlayer({
           <span className="player__album">{album}</span>
         </div>
         <div className="player__controls">
-          <button type="button" className="icon-btn icon-btn--sm" onClick={onPrevious} disabled={!hasPrevious} title="Anterior">
-            <Icon name="prev" />
-            <span className="sr-only">Música anterior</span>
-          </button>
+          <IconAction icon="prev" label="Música anterior" title="Anterior" onClick={onPrevious} disabled={!hasPrevious} />
           <audio
             ref={audio}
             className="player__audio"
@@ -131,14 +129,8 @@ export function MusicPlayer({
           >
             O seu navegador não reproduz áudio.
           </audio>
-          <button type="button" className="icon-btn icon-btn--sm" onClick={onNext} disabled={!hasNext} title="Seguinte">
-            <Icon name="next" />
-            <span className="sr-only">Música seguinte</span>
-          </button>
-          <button type="button" className="icon-btn icon-btn--sm" onClick={onClose} title="Fechar">
-            <Icon name="close" />
-            <span className="sr-only">Fechar o leitor</span>
-          </button>
+          <IconAction icon="next" label="Música seguinte" title="Seguinte" onClick={onNext} disabled={!hasNext} />
+          <IconAction icon="close" label="Fechar o leitor" title="Fechar" onClick={onClose} />
         </div>
       </div>
     </div>

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { EmptyNote } from '../components/ui/EmptyNote';
 import { BackLink } from '../components/ui/BackLink';
 import { portal } from '../data/content';
 import { membersApi, type TreeNode } from '../data/membersApi';
 import { RetryNotice, SignInNotice } from '../components/Notice';
 import { FamilyTree } from '../components/FamilyTree';
 import { Loading } from '../components/ui/Loading';
+import { PageHead } from '../components/ui/PageHead';
 
 /**
  * /members/hierarchy - Hierarquia (tree). Signed-in members only. The Padrinho → Afilhado family
@@ -32,13 +34,7 @@ export default function MembersHierarchy() {
   return (
     <section className="page wrap events-page hierarchy-page" aria-labelledby="hierarchy-title">
       <BackLink href={portal.members}>Membros</BackLink>
-      <header className="page__head">
-        <p className="eyebrow">Área de membros</p>
-        <h1 id="hierarchy-title" className="page__title">
-          Hierarquia
-        </h1>
-        <p className="page__lead">A família da tuna: cada padrinho e os seus afilhados.</p>
-      </header>
+      <PageHead plain eyebrow="Área de membros" title="Hierarquia" titleId="hierarchy-title" lead="A família da tuna: cada padrinho e os seus afilhados." />
 
       {tree === undefined ? (
         <Loading label="A carregar a hierarquia…" />
@@ -47,7 +43,7 @@ export default function MembersHierarchy() {
       ) : tree === null ? (
         <RetryNotice onRetry={load}>Não conseguimos abrir a hierarquia agora.</RetryNotice>
       ) : tree.length === 0 ? (
-        <p className="note">Nenhum membro encontrado.</p>
+        <EmptyNote>Nenhum membro encontrado.</EmptyNote>
       ) : (
         <FamilyTree roots={tree} />
       )}

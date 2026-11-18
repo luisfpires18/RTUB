@@ -1,5 +1,6 @@
 // Music statistics dialog: most played songs, albums and (for managers) members.
 import { Banner } from './ui/Banner';
+import { EmptyNote } from './ui/EmptyNote';
 import { useEffect, useState } from 'react';
 import { Icon } from './icons';
 import { Dialog, plays } from './MusicUi';
@@ -99,7 +100,7 @@ function MemberStats({ members }: { members: NonNullable<Statistics['members']> 
       <h3 className="stats__title">Por membro</h3>
       <p className="note">Visível apenas para a administração.</p>
       {members.length === 0 ? (
-        <p className="note">Ainda não há reproduções de membros.</p>
+        <EmptyNote>Ainda não há reproduções de membros.</EmptyNote>
       ) : (
         <>
           <ul className="member-stats">

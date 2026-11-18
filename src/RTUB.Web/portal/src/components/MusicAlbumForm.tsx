@@ -1,7 +1,9 @@
 // Dialog to create or edit an album (cover, visibility, exclusive member list).
 import { PersonChip } from './ui/PersonChip';
+import { FieldError } from './ui/FieldError';
 import { DialogFooter } from './ui/DialogFooter';
 import { Banner } from './ui/Banner';
+import { CheckField } from './ui/CheckField';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Cropper } from './Cropper';
 import { Icon } from './icons';
@@ -107,17 +109,15 @@ export function AlbumForm({
                 onChange={(e) => set('description', e.target.value)}
               />
             </FormField>
-            <label className="form__check">
-              <input type="checkbox" checked={form.isPrivate} onChange={(e) => set('isPrivate', e.target.checked)} />
+            <CheckField checked={form.isPrivate} onChange={(c) => set('isPrivate', c)}>
               Privado: só membros com sessão iniciada
-            </label>
+            </CheckField>
 
             {canManageExclusive && (
               <fieldset className="access">
-                <label className="form__check">
-                  <input type="checkbox" checked={form.isExclusive} onChange={(e) => set('isExclusive', e.target.checked)} />
+                <CheckField checked={form.isExclusive} onChange={(c) => set('isExclusive', c)}>
                   Exclusivo: só os membros escolhidos
-                </label>
+                </CheckField>
                 {form.isExclusive && (
                   <>
                     {access.length > 0 && (
@@ -196,7 +196,7 @@ export function AlbumForm({
                     </button>
                   )}
                   <p className="form__hint">A imagem é recortada em quadrado antes de guardar.</p>
-                  {errors.cover && <p className="form__error">{errors.cover}</p>}
+                  <FieldError text={errors.cover} alert={false} />
                 </div>
               </div>
             </div>

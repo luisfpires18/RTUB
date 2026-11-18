@@ -10,6 +10,8 @@ import { RetryNotice, SignInNotice } from '../components/Notice';
 import { Group } from '../components/MemberGroup';
 import { MemberTools, type Tool, ToolDialog } from '../components/MemberTools';
 import { Loading } from '../components/ui/Loading';
+import { ToolsBar, SearchField, SelectField } from '../components/ui/SearchTools';
+import { EmptyNote } from '../components/ui/EmptyNote';
 
 const CATEGORIES = [
   { value: 'Leitao', label: 'Leitão' },
@@ -132,57 +134,44 @@ export default function Members() {
         <RetryNotice onRetry={() => setFilters({ ...filters })}>Não conseguimos abrir a lista de membros agora.</RetryNotice>
       ) : (
         <>
-          <div className="events-tools members-tools" role="search">
-            <label className="control" htmlFor={ids.q}>
-              <span className="sr-only">Procurar membro</span>
-              <Icon name="search" />
-              <input id={ids.q} type="search" placeholder="Procurar por nome, alcunha, email, telefone ou cidade" value={query} onChange={(e) => setQuery(e.target.value)} />
-            </label>
-            <label className="control control--select" htmlFor={ids.category}>
-              <span className="sr-only">Categoria</span>
-              <select id={ids.category} value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value, subCategory: '' })}>
-                <option value="">Todas as categorias</option>
-                {CATEGORIES.map((c) => (
+          <ToolsBar className="members-tools">
+            <SearchField id={ids.q} label="Procurar membro" placeholder="Procurar por nome, alcunha, email, telefone ou cidade" value={query} onChange={setQuery} />
+            <SelectField id={ids.category} label="Categoria" value={filters.category} onChange={(v) => setFilters({ ...filters, category: v, subCategory: '' })}>
+              <option value="">Todas as categorias</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </SelectField>
+            {filters.category === 'Tuno' && (
+              <SelectField id={ids.sub} label="Sub-categoria" value={filters.subCategory} onChange={(v) => setFilters({ ...filters, subCategory: v })}>
+                <option value="">Todas as sub-categorias</option>
+                {SUB_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
                     {c.label}
                   </option>
                 ))}
-              </select>
-            </label>
-            {filters.category === 'Tuno' && (
-              <label className="control control--select" htmlFor={ids.sub}>
-                <span className="sr-only">Sub-categoria</span>
-                <select id={ids.sub} value={filters.subCategory} onChange={(e) => setFilters({ ...filters, subCategory: e.target.value })}>
-                  <option value="">Todas as sub-categorias</option>
-                  {SUB_CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              </SelectField>
             )}
-            <label className="control control--select" htmlFor={ids.instrument}>
-              <span className="sr-only">Instrumento</span>
-              <select id={ids.instrument} value={filters.instrument} onChange={(e) => setFilters({ ...filters, instrument: e.target.value })}>
-                <option value="">Todos os instrumentos</option>
-                {data?.instruments.map((i) => (
-                  <option key={i.value} value={i.value}>
-                    {i.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectField id={ids.instrument} label="Instrumento" value={filters.instrument} onChange={(v) => setFilters({ ...filters, instrument: v })}>
+              <option value="">Todos os instrumentos</option>
+              {data?.instruments.map((i) => (
+                <option key={i.value} value={i.value}>
+                  {i.label}
+                </option>
+              ))}
+            </SelectField>
             <label className="check" htmlFor={ids.active}>
               <input id={ids.active} type="checkbox" checked={filters.activeOnly} onChange={(e) => setFilters({ ...filters, activeOnly: e.target.checked })} />
               Só ativos
             </label>
-          </div>
+          </ToolsBar>
 
           {!data ? (
             <Loading label="A carregar os membros…" />
           ) : data.members.length + data.leitoes.length === 0 ? (
-            <p className="note">Nenhum membro corresponde à pesquisa.</p>
+            <EmptyNote>Nenhum membro corresponde à pesquisa.</EmptyNote>
           ) : (
             <>
               {data.members.length > 0 && (

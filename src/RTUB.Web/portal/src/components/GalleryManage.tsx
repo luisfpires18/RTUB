@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
+import { FieldError } from './ui/FieldError';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { today } from '../data/format';
@@ -66,14 +67,14 @@ export function UploadDialog({ onClose, onDone, event }: { onClose: () => void; 
           <label htmlFor={`${id}-file`}>Foto ou vídeo</label>
           <input id={`${id}-file`} type="file" accept="image/*,video/*" onChange={(e) => pick(e.target.files?.[0])} disabled={busy} />
           <p className="form__hint">Imagens até 10 MB, vídeos até 100 MB.</p>
-          {errors.file && <p className="form__error">{errors.file}</p>}
+          <FieldError text={errors.file} alert={false} />
         </div>
         {event && (
           <p className="note">
             <Icon name="calendar" /> Fica associada ao evento «{event.title}». Só uma foto resolve o pedido da galeria; um vídeo não.
           </p>
         )}
-        {errors.eventId && <p className="form__error">{errors.eventId}</p>}
+        <FieldError text={errors.eventId} alert={false} />
         {file && preview && (
           <div className="gallery-manage__preview">
             {file.type.startsWith('video/') ? <video src={preview} controls playsInline preload="metadata" /> : <img src={preview} alt="" />}
@@ -81,14 +82,14 @@ export function UploadDialog({ onClose, onDone, event }: { onClose: () => void; 
         )}
         <Details form={form} set={set} errors={errors} idPrefix={id} />
         <PeoplePicker people={form.people} onChange={(people) => set({ people })} />
-        {errors.personIds && <p className="form__error">{errors.personIds}</p>}
+        <FieldError text={errors.personIds} alert={false} />
         {form.people.length > 0 && (
           <p className="note">
             <Icon name="bell" /> {form.people.length === 1 ? 'A pessoa marcada recebe' : `As ${form.people.length} pessoas marcadas recebem`} uma notificação.
           </p>
         )}
         {busy && <progress className="gallery-manage__progress" max={1} value={progress} aria-label="Progresso do carregamento" />}
-        {errors.form && <p className="form__error">{errors.form}</p>}
+        <FieldError text={errors.form} alert={false} />
       </form>
     </Dialog>
   );
@@ -179,9 +180,9 @@ export function EditDialog({ itemId, onClose, onDone }: { itemId: number; onClos
           )}
           <Details form={form} set={set} errors={errors} idPrefix={id} />
           <PeoplePicker people={form.people} onChange={(people) => set({ people })} />
-          {errors.personIds && <p className="form__error">{errors.personIds}</p>}
+          <FieldError text={errors.personIds} alert={false} />
           <p className="form__hint">Mudar quem aparece não envia notificações.</p>
-          {errors.form && <p className="form__error">{errors.form}</p>}
+          <FieldError text={errors.form} alert={false} />
         </form>
       )}
     </Dialog>

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { EmptyNote } from '../components/ui/EmptyNote';
+import { Banner } from '../components/ui/Banner';
 import { BackLink } from '../components/ui/BackLink';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Icon } from '../components/icons';
@@ -183,16 +185,12 @@ export default function MusicAlbum({ albumId }: { albumId: number }) {
         </label>
       </div>
 
-      {notice && (
-        <p className="form__banner album-notice" role="status">
-          {notice}
-        </p>
-      )}
+      <Banner role="status" className="album-notice" text={notice} />
 
       {songs.length === 0 ? (
         <EmptyState icon="music" title="Ainda não há músicas neste álbum." />
       ) : shown.length === 0 ? (
-        <p className="note">Nenhuma faixa corresponde à pesquisa.</p>
+        <EmptyNote>Nenhuma faixa corresponde à pesquisa.</EmptyNote>
       ) : (
         <ol className="songs">
           {shown.map((s) => (

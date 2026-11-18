@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import { Dialog } from './Dialog';
 import { Icon, type IconName } from './icons';
+import { IconAction } from './ui/IconAction';
 
 export { Dialog };
 
@@ -26,12 +27,7 @@ export function IconButton({
   tone?: 'danger';
   disabled?: boolean;
 }) {
-  return (
-    <button type="button" className={`icon-btn icon-btn--sm${tone ? ` icon-btn--${tone}` : ''}`} onClick={onClick} disabled={disabled} title={label}>
-      <Icon name={icon} />
-      <span className="sr-only">{label}</span>
-    </button>
-  );
+  return <IconAction icon={icon} label={label} title={label} onClick={onClick} danger={tone === 'danger'} disabled={disabled} />;
 }
 
 export const plays = (n: number) => `${n} ${n === 1 ? 'reprodução' : 'reproduções'}`;
