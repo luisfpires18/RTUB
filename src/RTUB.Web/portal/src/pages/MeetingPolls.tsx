@@ -9,6 +9,7 @@ import { pollProblem, PollCard } from '../components/MeetingPollCard';
 import { CreatePollDialog } from '../components/MeetingPollCreateDialog';
 import { Loading } from '../components/ui/Loading';
 import { Pager } from '../components/ui/Pager';
+import { BackLink } from '../components/ui/BackLink';
 
 /**
  * /meetings/polls: the Votações of the meeting bodies, open ones and closed ones in two paged grids. The server decides
@@ -71,10 +72,9 @@ export default function MeetingPolls() {
     <section className="page wrap events-page mtg-page" aria-labelledby="meeting-polls-title">
       <header className="page__head events-page__head">
         <div>
-          <a className="back-link" href={portal.meetings}>
-            <Icon name="arrowLeft" />
+          <BackLink href={portal.meetings} icon="arrowLeft">
             Reuniões
-          </a>
+          </BackLink>
           <h1 id="meeting-polls-title" className="page__title">
             Votações
           </h1>

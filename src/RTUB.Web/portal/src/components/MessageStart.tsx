@@ -6,6 +6,7 @@ import { ChatFace, Composer } from './MessageParts';
 import { type Draft, type Person, api, problem } from '../data/messagesApi';
 import { Loading } from './ui/Loading';
 import { Avatar } from './ui/Avatar';
+import { FormField } from './ui/FormField';
 
 export function DraftThread({ draft, onBack, onStarted }: { draft: Draft; onBack: () => void; onStarted: (id: number) => void }) {
   const [error, setError] = useState<string>();
@@ -123,10 +124,9 @@ export function StartDialog({ onClose, onPicked }: { onClose: () => void; onPick
           </ul>
           {shown.length === 0 && <p className="note">Ninguém com esse nome.</p>}
           {group && (
-            <div className="form__field">
-              <label htmlFor={titleId}>Nome do grupo</label>
+            <FormField id={titleId} label="Nome do grupo">
               <input id={titleId} type="text" maxLength={200} required value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
+            </FormField>
           )}
           <button type="submit" className="btn btn--primary btn--sm" disabled={!ready || busy}>
             {chosen.length === 0 ? 'Escolhe membros' : group ? `Criar grupo (${chosen.length})` : `Conversar com ${chosen[0].displayName}`}

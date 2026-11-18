@@ -8,6 +8,7 @@ import { MAX_SUBJECT, MAX_EMAIL_BODY, problem, type Errors, fieldClass, MeetingS
 import { Loading } from './ui/Loading';
 import { Banner } from './ui/Banner';
 import { FieldError } from './ui/FieldError';
+import { FormField } from './ui/FormField';
 import { Spinner } from './ui/Spinner';
 
 /**
@@ -166,8 +167,7 @@ export function EmailDialog({ card, onClose, onSent }: { card: MeetingCard; onCl
             )}
           </div>
           {draft.tunoOptions.length > 0 && (
-            <div className={fieldClass(errors, 'tunoId')}>
-              <label htmlFor={`${id}-tuno`}>Adicionar um Representante de Tunos</label>
+            <FormField id={`${id}-tuno`} label="Adicionar um Representante de Tunos" error={errors.tunoId} hint="Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV." alert>
               <span className="control control--select">
                 <select id={`${id}-tuno`} value={tunoId} onChange={(e) => setTunoId(e.target.value)}>
                   <option value="">Nenhum representante selecionado</option>
@@ -178,9 +178,7 @@ export function EmailDialog({ card, onClose, onSent }: { card: MeetingCard; onCl
                   ))}
                 </select>
               </span>
-              <p className="form__hint">Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV.</p>
-              <FieldError text={errors.tunoId} />
-            </div>
+            </FormField>
           )}
           <p className="mtg-info">
             <Icon name="envelope" />

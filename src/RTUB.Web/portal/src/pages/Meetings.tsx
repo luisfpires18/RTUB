@@ -8,6 +8,7 @@ import { RequestsSection } from '../components/MeetingRequests';
 import { type Open, Dialogs } from '../components/MeetingDialogHost';
 import { Empty, MeetingSection } from '../components/MeetingSection';
 import { Loading } from '../components/ui/Loading';
+import { EmptyState } from '../components/ui/EmptyState';
 
 const UPCOMING_EMPTY =
   'Não existem reuniões agendadas no momento. As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos.';
@@ -106,18 +107,21 @@ export default function Meetings() {
   if (board === 'forbidden') {
     return (
       <section className="page wrap mtg-page" aria-labelledby="meetings-refused">
-        <div className="state mtg-refusal" role="status">
-          <Icon name="lock" className="state__icon" />
-          <h1 id="meetings-refused" className="state__title">
-            Acesso Restrito
-          </h1>
-          <p>Esta página não está disponível para utilizadores Leitão.</p>
-          <div className="state__actions">
+        <EmptyState
+          icon="lock"
+          title="Acesso Restrito"
+          titleId="meetings-refused"
+          heading
+          className="mtg-refusal"
+          role="status"
+          actions={
             <a className="btn btn--ghost btn--sm" href={portal.profile}>
               Voltar ao perfil
             </a>
-          </div>
-        </div>
+          }
+        >
+          <p>Esta página não está disponível para utilizadores Leitão.</p>
+        </EmptyState>
       </section>
     );
   }

@@ -6,6 +6,9 @@ import { MemberBadge } from './MemberBadge';
 import { type Detail, MAX_CONTENT, type Question, api, problem, stamp, statusLabel, statusPill } from '../data/questionsApi';
 import { Loading } from './ui/Loading';
 import { Avatar } from './ui/Avatar';
+import { Banner } from './ui/Banner';
+import { FormField } from './ui/FormField';
+import { Spinner } from './ui/Spinner';
 
 export function QuestionDialog({
   id,
@@ -68,9 +71,7 @@ export function QuestionDialog({
       ) : detail === 'missing' ? (
         <p className="note">Esta pergunta já não existe.</p>
       ) : !d || !x ? (
-        <p className="form__banner" role="alert">
-          Não foi possível carregar a pergunta.
-        </p>
+        <Banner text="Não foi possível carregar a pergunta." />
       ) : (
         <div className="qs-detail">
           <div className="qs-card__people">
@@ -114,8 +115,7 @@ export function QuestionDialog({
 
           {x.canReply ? (
             <form className="form" onSubmit={submit} noValidate>
-              <div className={error ? 'form__field form__field--error' : 'form__field'}>
-                <label htmlFor={replyId}>A tua resposta</label>
+              <FormField id={replyId} label="A tua resposta" error={error} alert>
                 <textarea
                   id={replyId}
                   rows={4}
@@ -124,14 +124,9 @@ export function QuestionDialog({
                   onChange={(e) => setText(e.target.value)}
                   aria-invalid={error ? true : undefined}
                 />
-                {error && (
-                  <p className="form__error" role="alert">
-                    {error}
-                  </p>
-                )}
-              </div>
+              </FormField>
               <button type="submit" className="btn btn--primary btn--sm" disabled={busy || !text.trim()}>
-                {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+                {busy && <Spinner small />}
                 <Icon name="send" />
                 Responder
               </button>

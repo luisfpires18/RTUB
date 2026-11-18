@@ -4,6 +4,10 @@ import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { MAX_CONTENT, MAX_TITLE, MIN_CONTENT, type Recipient, api, fold, problem } from '../data/questionsApi';
 import { Avatar } from './ui/Avatar';
+import { Banner } from './ui/Banner';
+import { FieldError } from './ui/FieldError';
+import { FormField, fieldProps } from './ui/FormField';
+import { Spinner } from './ui/Spinner';
 
 export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipient[]; onClose: () => void; onAsked: (id: number) => void }) {
   const id = useId();
@@ -45,7 +49,7 @@ export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipi
             Cancelar
           </button>
           <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy || !valid}>
-            {busy && <span className="spinner spinner--small" aria-hidden="true" />}
+            {busy && <Spinner small />}
             <Icon name="send" />
             Enviar pergunta
           </button>
@@ -53,11 +57,7 @@ export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipi
       }
     >
       <form id={`${id}-form`} className="form" onSubmit={submit} noValidate>
-        {banner && (
-          <p className="form__banner" role="alert">
-            {banner}
-          </p>
-        )}
+        <Banner text={banner} />
         <fieldset className={errors.recipientId ? 'form__field form__field--error qs-recipient' : 'form__field qs-recipient'}>
           <legend>Para quem</legend>
           {recipients.length === 0 ? (
@@ -104,42 +104,28 @@ export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipi
               </ul>
             </>
           )}
-          {errors.recipientId && (
-            <p className="form__error" role="alert">
-              {errors.recipientId}
-            </p>
-          )}
+          <FieldError text={errors.recipientId} />
         </fieldset>
 
-        <div className={errors.title ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${id}-title`}>Título</label>
+        <FormField id={`${id}-title`} label="Título" error={errors.title} hint={`${title.length} / ${MAX_TITLE}`}>
           <input
-            id={`${id}-title`}
+            {...fieldProps(`${id}-title`, errors.title, 'x')}
             type="text"
             maxLength={MAX_TITLE}
             placeholder="Resumo da pergunta"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            aria-invalid={errors.title ? true : undefined}
           />
-          <p className="form__hint">
-            {title.length} / {MAX_TITLE}
-          </p>
-          {errors.title && <p className="form__error">{errors.title}</p>}
-        </div>
-        <div className={errors.content ? 'form__field form__field--error' : 'form__field'}>
-          <label htmlFor={`${id}-content`}>A pergunta</label>
+        </FormField>
+        <FormField id={`${id}-content`} label="A pergunta" error={errors.content} hint={`Pelo menos ${MIN_CONTENT} caracteres.`}>
           <textarea
-            id={`${id}-content`}
+            {...fieldProps(`${id}-content`, errors.content, 'x')}
             rows={6}
             maxLength={MAX_CONTENT}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            aria-invalid={errors.content ? true : undefined}
           />
-          <p className="form__hint">Pelo menos {MIN_CONTENT} caracteres.</p>
-          {errors.content && <p className="form__error">{errors.content}</p>}
-        </div>
+        </FormField>
       </form>
     </Dialog>
   );

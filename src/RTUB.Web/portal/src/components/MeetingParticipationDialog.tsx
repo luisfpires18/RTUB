@@ -4,10 +4,10 @@ import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingCard } from '../data/meetingsTypes';
-import { MAX_NOTES, problem, type Errors, fieldClass } from './MeetingUi';
+import { MAX_NOTES, problem, type Errors } from './MeetingUi';
 import { Banner } from './ui/Banner';
-import { FieldError } from './ui/FieldError';
-import { Spinner } from './ui/Spinner';
+import { FormField } from './ui/FormField';
+import { DialogFooter } from './ui/DialogFooter';
 
 export function ParticipationDialog({
   card,
@@ -50,15 +50,7 @@ export function ParticipationDialog({
       title={title}
       onClose={onClose}
       footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="submit" form={`${id}-form`} className="btn btn--primary" disabled={busy}>
-            {busy && <Spinner small />}
-            {existing ? 'Guardar' : 'Confirmar'}
-          </button>
-        </>
+        <DialogFooter form={`${id}-form`} busy={busy} label={existing ? 'Guardar' : 'Confirmar'} onClose={onClose} />
       }
     >
       <form id={`${id}-form`} className="form mtg-form" onSubmit={submit} noValidate>
@@ -70,8 +62,7 @@ export function ParticipationDialog({
           <strong>{card.title}</strong>
         </p>
         <Banner text={banner} />
-        <div className={fieldClass(errors, 'notes')}>
-          <label htmlFor={`${id}-notes`}>{willAttend ? 'Notas (opcional)' : 'Motivo (opcional)'}</label>
+        <FormField id={`${id}-notes`} label={willAttend ? 'Notas (opcional)' : 'Motivo (opcional)'} error={errors.notes} alert>
           <textarea
             id={`${id}-notes`}
             rows={4}
@@ -80,8 +71,7 @@ export function ParticipationDialog({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
-          <FieldError text={errors.notes} />
-        </div>
+        </FormField>
       </form>
     </Dialog>
   );

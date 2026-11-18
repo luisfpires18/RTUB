@@ -4,6 +4,7 @@ import { contactEmail, portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { today } from '../data/format';
 import { FormField } from '../components/ui/FormField';
+import { Spinner } from '../components/ui/Spinner';
 
 // Suggestions only: the event type stays free text.
 const examples = ['Serenata', 'Casamento', 'Batizado', 'Aniversário', 'Arraial', 'Arruada', 'Convívio', 'Missa', 'Festival'];
@@ -239,7 +240,7 @@ export default function RequestPage() {
               <button type="submit" className="btn btn--primary btn--lg form__submit" disabled={submitting} aria-busy={submitting}>
                 {submitting ? (
                   <>
-                    <span className="spinner spinner--small" aria-hidden="true" />A enviar…
+                    <Spinner small />A enviar…
                   </>
                 ) : (
                   <>

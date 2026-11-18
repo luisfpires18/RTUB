@@ -5,9 +5,9 @@ import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingRequest } from '../data/meetingsTypes';
 import { localDateTime, numericDateTime } from '../data/meetingsDates';
-import { MAX_TITLE, MAX_LOCATION, MAX_DESCRIPTION, problem, type Errors, fieldClass, typeClass, RequestStatusPill, Detail } from './MeetingUi';
+import { MAX_TITLE, MAX_LOCATION, MAX_DESCRIPTION, problem, type Errors, typeClass, RequestStatusPill, Detail } from './MeetingUi';
 import { Banner } from './ui/Banner';
-import { FieldError } from './ui/FieldError';
+import { FormField } from './ui/FormField';
 import { Spinner } from './ui/Spinner';
 
 const PROPOSAL_TITLES: Record<string, string> = {
@@ -63,18 +63,13 @@ export function ProposalDialog({ type, onClose, onSent }: { type: string; onClos
     >
       <form id={`${id}-form`} className="form mtg-form" onSubmit={submit} noValidate>
         <Banner text={banner} />
-        <div className={fieldClass(errors, 'title')}>
-          <label htmlFor={`${id}-title`}>Título</label>
+        <FormField id={`${id}-title`} label="Título" error={errors.title} alert>
           <input id={`${id}-title`} type="text" maxLength={MAX_TITLE} placeholder="Inserir título..." value={title} onChange={(e) => setTitle(e.target.value)} />
-          <FieldError text={errors.title} />
-        </div>
-        <div className={fieldClass(errors, 'proposedDate')}>
-          <label htmlFor={`${id}-date`}>Data e Hora Proposta</label>
+        </FormField>
+        <FormField id={`${id}-date`} label="Data e Hora Proposta" error={errors.proposedDate} alert>
           <input id={`${id}-date`} type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
-          <FieldError text={errors.proposedDate} />
-        </div>
-        <div className={fieldClass(errors, 'location')}>
-          <label htmlFor={`${id}-location`}>Localização (Opcional)</label>
+        </FormField>
+        <FormField id={`${id}-location`} label="Localização (Opcional)" error={errors.location} alert>
           <input
             id={`${id}-location`}
             type="text"
@@ -83,10 +78,8 @@ export function ProposalDialog({ type, onClose, onSent }: { type: string; onClos
             value={place}
             onChange={(e) => setPlace(e.target.value)}
           />
-          <FieldError text={errors.location} />
-        </div>
-        <div className={fieldClass(errors, 'description')}>
-          <label htmlFor={`${id}-description`}>Descrição/Motivo</label>
+        </FormField>
+        <FormField id={`${id}-description`} label="Descrição/Motivo" error={errors.description} hint={`Máximo ${MAX_DESCRIPTION} caracteres (${description.length} / ${MAX_DESCRIPTION})`} alert>
           <textarea
             id={`${id}-description`}
             rows={10}
@@ -95,11 +88,7 @@ export function ProposalDialog({ type, onClose, onSent }: { type: string; onClos
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-          <p className="form__hint">
-            Máximo {MAX_DESCRIPTION} caracteres ({description.length} / {MAX_DESCRIPTION})
-          </p>
-          <FieldError text={errors.description} />
-        </div>
+        </FormField>
       </form>
     </Dialog>
   );
