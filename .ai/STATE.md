@@ -3,44 +3,22 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git and GitHub, durable detail
 in the docs `CLAUDE.md` links. Overwrite stale entries.
 
-_Last updated: 2026-11-17_
+_Last updated: 2026-11-18_
 
 ## Release state
-- `master` (PROD): **2.3.10**. `dev`: **2.3.11** (unreleased).
+- `master` (PROD): **2.3.12**. `dev`: **2.3.13** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-Task 110 (`chore/110/codebase-cleanup`): phase 1 of the readability cleanup. Blazor-era history comments rewritten as
-present-tense rules, old-URL redirects moved out of `Program.cs` (deleted in 118), service
-methods with no production caller removed (with their tests). No behaviour change.
-Task 111 (`chore/111/portal-folders`, on top of 110): phase 2, `portal/src` split into `pages/`, `components/`, `data/`
-(moves and import paths only; layout rule in `docs/frontend-practices.md` → *Layout*).
-Task 112 (`chore/112/shared-ui`, on top of 111): phase 3, shared pieces. `components/Notice.tsx` (Notice,
-SignInNotice, RetryNotice: same markup), `data/format.ts`, `queryString` + `outcomeText` in `data/api.ts`, `loginTo`
-in `data/content.ts`; one copy of `DEFAULT_AVATAR`, the Logística status/priority lists and the antiforgery token.
-Task 113 (`chore/113/split-portal-files`, on top of 112): phase 4, every portal file at most 300 lines by pure moves
-(`styles.css` now imports `styles/NNN-area.css` in cascade order; built CSS byte-identical). Three files stay over
-300: `components/MeetingAta.tsx` (472), `MessageThread.tsx` (318), `FamilyTree.tsx` (310): one function each.
-Task 114 (`chore/114/split-csharp-files`, on top of 113): phase 5, C# under `src/` at most 300 lines: services as
-partial classes by topic, `Program.cs` → `Extensions/*Extensions.cs`, `ServiceCollectionExtensions` partials. Two stay
-over 300 (one method each): `Data/SeedData.Member.cs` (766, a 701-line seed method sharing ~75 locals) and
-`Services/AtaPdfService.cs` (447, a 344-line PDF method).
-Task 115 (`chore/115/split-test-files`, on top of 114): phase 6, every test file at most 300 lines (partial test
-classes by topic, one class per file); test count unchanged (4175).
-Task 116 (`chore/116/remove-unused-code`, on top of 115): unused code deleted: 30 public members with no caller in
-`src/` (and the 88 tests that only covered them), unused private members/parameters, 2,141 unused `using`s, 11 dead
-CSS rules.
-Task 117 (`chore/117/geocoding-single-request`, on top of 116): a members-map lookup sends one Nominatim search
-(was three identical ones whenever nothing was found); only a failed request is retried once.
-Task 118 (`chore/118/remove-leftovers`, on top of 117): Copilot instructions and agent profiles removed; history
-comments (task / track / issue numbers, "as before") rewritten as present-tense rules; old-URL redirects deleted (any
-unmapped path is 404); retired-route checks merged into `RetiredRoutesTests`; 64 portal exports trimmed;
-`musicApi.ts` uses the shared request helper; TWA script, `.deployment` and stale doc references gone.
-Task 119 (`chore/119/ui-consistency`, on top of 118): one shared UI set in `components/ui/` (24 components: PageHead,
-BackLink, EmptyState/EmptyNote/EmptyBlock, Banner, FieldError, FormField, CheckField, DialogFooter/CloseFooter,
-ConfirmDialog/AsyncConfirmDialog, Pager/TextPager/SimplePager, SearchTools, Segmented, Avatar, PersonChip, PersonLine,
-FactRow, IconAction, LoadMore, Spinner, Loading, AnswerActions, AccountDone); hand-written copies replaced across every
-area (page heads 40→0, form errors 110→1, banners 85→1). Same DOM; small differences in the PR.
+Task 120 (`chore/120/test-speed`): phase 1 of the second cleanup round (audit of 2026-11-18). Test hosts no longer start
+the application's 13 background workers; one copy of the shared test helpers (`tests/Shared/RepoPaths.cs`,
+`Api/AreaHttp.cs`); the sleep, the skipped tests and the tests that asserted nothing are gone (4,048 → 4,038 tests).
+Full suite on the same machine: 3 m 28 s → 2 m 11 s. No production code changed.
+
+Last: tasks 110-119 (PRs #314-#325, merged into `dev`): the first cleanup round. No Blazor leftovers; `portal/src` in
+`pages/`, `components/`, `data/`, `styles/`; one shared UI set in `components/ui/`; no file over 300 lines except
+five that are one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree.tsx`,
+`Data/SeedData.Member.cs`, `Services/AtaPdfService.cs`); unused code removed.
 
 ## Not verified yet
 - Aprender: real R2 audio, real phones, the prototype chart's timing by ear ("É Esta a Tuna", album 4; the chart is not
@@ -79,8 +57,17 @@ area (page heads 40→0, form errors 110→1, banners 85→1). Same DOM; small d
   with `aria-expanded`, a single-primary-button footer, DialogFooter keeping Cancelar enabled while busy.
 
 **Tests**
-- Integration test hosts run `PendingActionsReminderService`, so a full `dotnet test` between 18:00 and 24:00 Portugal
-  time can fail 3 `NewsApiTests` ("Push.Invocations to be empty"). Fix: disable the worker in the test factories.
+- One host per integration test class (about 68 boots, about 7 s each alone). One shared host for the 28
+  `IntegrationTestBase` classes cut the Integration project from about 130 s to 87 s, but 3 tests failed
+  (`HomePreviewTests` needs an empty database; `AuthAntiforgeryTests` hit the login rate limit, which is per IP).
+  Sharing only the 9 read-only classes gained nothing measurable.
+- Sleeps that make two timestamps differ: `LeaderboardCommentServiceTests.cs:147`,
+  `PostServiceTests.PinLockDelete.cs:178`, `RehearsalAttendanceAdminWorkflowTests.InstrumentAndConsistency.cs:142`,
+  `RTUB.Core.Tests/Entities/PostTests.cs:175`; `ApplicationUserExtensionsTests.*` compute expectations from
+  `DateTime.Now`. Both need a clock the entities accept.
+- Nine `Json(response)` helpers in the API tests assert exactly 200 (`AreaHttp.Json` accepts any 2xx); nine page test
+  classes repeat the same `_client` constructor; the Cloudflare storage `Constructor_*InitializesSuccessfully` tests
+  assert only "not null".
 - `NoStylesheet_SetsOverflowHiddenOnTheViewportRoot` sweeps only `error.css` / `offline.css`, not the portal
   `styles.css`.
 - Windows-only: an ignored `src/RTUB.Web/publish/` output, when present, fails guard tests that sweep `src/`.
@@ -165,4 +152,7 @@ area (page heads 40→0, form errors 110→1, banners 85→1). Same DOM; small d
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Owner decides the next task (GitHub Issues).
+Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 121 backend
+queries (report history, reports list, push fan-out loops), 122 shared backend helpers (endpoint result mapping, claims
+helpers, repository overrides), 123 dead code and stale docs, 124 portal data layer (one load hook, shared types),
+125 UI kit leftovers, 126 portal lazy loading, 127 CSS merges, 128 tests for money, permissions and push gaps.
