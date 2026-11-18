@@ -10,15 +10,24 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 132 (`fix/132/release-gate`), first phase of the round the 2026-11-18 audit proposed (133-142 wait for the owner,
+see Next). Deploy • PROD's schema check refused the squashed release: it wants every migration id of the live build,
+2.3.12 lists 180 and a build with the Baseline lists 3. `release.sh` `cmd_schema_gate` now counts every id up to the
+squash point as known to a build that has the Baseline (same two ids as `MigrationBaseline`, pinned by
+`ReleaseWorkflowTests`). Checked on the real id lists: refused before, passes after; a rollback to 2.3.12 is still
+refused without `allow_newer_schema`. Also: the refusal text and the runbook name 2.3.12 (not 2.3.13) as the last
+release with the old chain; the runbook says how to keep a backup outside the app's rotation before a drop.
+
 Task 131 (`chore/131/unused-columns`, on top of 130): the app stops using `AspNetUsers.ExperiencePoints` / `Level`,
 `MemberStatuses.OverrideRetired`, `MeetingAtaAttachments.FileUrl` and `Reports.PdfData`. `UserXpLevelDefaults` gives the
 two NOT NULL ones a database default (an `AspNetUsers` rebuild); `StopMappingUnusedColumns` changes only the snapshot.
 The columns stay until the drop release (`docs/db-cleanup-inventory.md` → *Pending drop*). Rehearsed on a real-data
-copy: same 31,537 rows, no foreign-key violations, defaults 0 / 1, and release 2.3.13 still starts on the result.
+copy: same 31,537 rows, no foreign-key violations, defaults 0 / 1, and the build before task 131 still starts on the
+result.
 Task 130 (`chore/130/squash-migrations`): the 180 migrations are one `20261118134743_Baseline` (same tables, columns,
 foreign keys and indexes; 686,048 → 14,890 lines). Startup gives a database that ran the old chain only the Baseline's
 history row (`Data/MigrationBaseline.cs`); one that stopped earlier is refused. Rehearsed on a copy of the local
-database brought to the chain's end: schema unchanged, one history row added. Rollback • PROD to 2.3.13 or older needs
+database brought to the chain's end: schema unchanged, one history row added. Rollback • PROD to 2.3.12 or older needs
 `allow_newer_schema` (the Baseline changes no schema). Next: task 131 stops using the five unused columns; the drop
 itself goes one release later.
 
@@ -245,7 +254,42 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   `src/RTUB.Web/app.db`. A local run without `Cloudflare:R2:PublicUrl` blocks R2 images in the CSP (local only).
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
+**Found by the 2026-11-18 audit for tasks 132+ (new; not fixed)**
+- Data: `UserProfileService.Delete.cs` deletes a member's data in about 20 steps with no transaction and never looks at
+  `MbwayTransfers` (`MemberUserId` is Restrict): a member with an MBWay transfer loses photos, posts and comments, then
+  the delete fails. `InstrumentInventoryService.Images.cs:41` deletes the old image before the new upload, like the
+  profile picture. A second submit answers 500 on a shop reservation (`ProductReservationService.cs:46`) and a poll vote
+  (unique index). A reservation never lowers stock (owner decision). Meeting atas are last-write-wins (a 409 needs a
+  version column, as `LogisticsCard.Version`).
+- Dates: `RequestAdminService.cs:82` compares UTC `CreatedAt` with Portugal fiscal-year bounds (as the shop does);
+  `CalotesNotificationBackgroundService.cs:99` reads the fiscal year from the system clock, not its injected clock;
+  `ApplicationUserExtensions.cs:148` uses `DateTime.Now`.
+- Security: `DownloadMediaController` fetches any URL for any signed-in account and the portal never calls it; the
+  password-reset link is built from the request Host (`AccountRecoveryEndpoints.cs:20`), as the event links are;
+  `GalleryManagementService.cs:107` trusts the browser's `image/` / `video/` prefix (the profile photo checks the type
+  list and the first bytes); every API group is `AllowAnonymous()` and the checks live only in the services; member
+  emails are logged at Information level (`EmailNotificationService.*`).
+- Portal: nine loads have no late-answer guard (`MemberListDialogs.tsx:105`, `Documentation.tsx:34`,
+  `TreasuryTransactionDialogs.tsx:126`, `Governance.tsx:43,55`, `TreasuryCalotes.tsx:31`, `News.tsx:42`,
+  `MusicLearnDialogs.tsx:24`, `OwnerLoginsDialog.tsx:25`, `MusicPlayAlongField.tsx:19`); `sw-register.js` gets the 30-day
+  cache (`StaticFilesPipelineExtensions.cs`); `LogisticsBoard.tsx:13` imports its dialogs statically.
+- Release: the daily backup keeps two generations, needs Always On and alerts nobody on failure; no test restores a
+  backup; `release.sh` checks only that VERSION goes up, not the MAJOR bump of a drop release; `AdoptAsync` writes the
+  Baseline row before the pre-migration snapshot.
+- Tests: 10 copies of a private `FixedClock` / `Clock`; `TestPrincipal` has no name claim (10 private `SignedIn`
+  helpers, not 20); the Push items above are out of date (`PushDeliveryTests`, `NotificationInboxTests` cover sends and
+  the inbox copy); test hosts hash passwords at Identity's default cost; 75 integration classes boot 75 hosts.
+- Local: a database that stopped before `20261117191014_AddAprenderViewsAndStars` is refused by `dev`; start commit
+  `5d1b9cb9` (or release 2.3.12) against it once.
+- Measured on a local copy (108 users, 17,761 messages): no `/api` GET over 95 ms, every SQL command 0 ms;
+  `/api/me/profile` 15 queries, `/api/members` 7, `/api/leaderboard` 7. Every route loads 137 kB gzip first.
+
 ## Next
+Phases the audit proposed, each waiting for the owner's "yes, phase N": 133 data-loss bugs, 134 Portugal time, 135
+security, 136 rule tests for the 14 `*Authorization` helpers, 137 test speed and a local launch profile, 138 a shared
+portal load hook, 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
+portal intro animation is not to be removed or shortened. Not proposed: the CSS merges, backend query work.
+
 After the release with tasks 130-131 is live on PROD: the hand-written drop of the five columns (MAJOR bump,
 `docs/db-cleanup-inventory.md`). Other owner decisions left by the audit: the empty 401 of `PushEndpoints` /
 `ReleaseEndpoints`; the `NoStore` filter missing on the two public Gallery GETs; a lazy `Home`; the five files over 300

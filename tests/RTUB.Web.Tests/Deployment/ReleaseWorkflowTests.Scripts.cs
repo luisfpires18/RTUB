@@ -1,6 +1,7 @@
 // Release bash scripts self-test
 using System.Diagnostics;
 using FluentAssertions;
+using RTUB.Application.Data;
 
 namespace RTUB.Web.Tests.Deployment;
 
@@ -35,5 +36,18 @@ public partial class ReleaseWorkflowTests
 
         process.ExitCode.Should().Be(0, await stdout + await stderr);
         (await stdout).Should().Contain(expected);
+    }
+
+    /// <summary>
+    /// Deploy • PROD refuses a release that does not know a migration of the live one. The squash removed 180 ids,
+    /// so the check must hold the same two ids as the app, or the next release is refused (or a real gap is let through).
+    /// </summary>
+    [Fact]
+    public void SchemaGate_KnowsTheSquash_WithTheSameIdsAsTheApp()
+    {
+        var script = Read("scripts/release.sh");
+
+        script.Should().Contain($"BASELINE = \"{MigrationBaseline.BaselineId}\"");
+        script.Should().Contain($"SQUASHED_THROUGH = \"{MigrationBaseline.LastSquashedId}\"");
     }
 }

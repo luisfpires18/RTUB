@@ -351,9 +351,16 @@ try:
 except Exception as e:
     print(f"ERROR: cannot compare migrations: {e}", file=sys.stderr)
     sys.exit(2)
-ahead = sorted(live_ids - target_ids)
+# Every migration up to SQUASHED_THROUGH is inside BASELINE (src/RTUB.Application/Data/MigrationBaseline.cs holds the
+# same two ids), so a target with the Baseline knows them. EF Core orders migration ids as plain strings; so does "<=".
+BASELINE = "20261118134743_Baseline"
+SQUASHED_THROUGH = "20261117191014_AddAprenderViewsAndStars"
+unknown = live_ids - target_ids
+squashed = {m for m in unknown if BASELINE in target_ids and m <= SQUASHED_THROUGH}
+ahead = sorted(unknown - squashed)
 if not ahead:
-    print(f"OK: {target['version']} knows every migration {live['version']} applied")
+    through = f" ({len(squashed)} of them through {BASELINE})" if squashed else ""
+    print(f"OK: {target['version']} knows every migration {live['version']} applied{through}")
     sys.exit(0)
 print(f"The live release {live['version']} applied {len(ahead)} migration(s) that {target['version']} does not know:")
 for m in ahead:
@@ -535,12 +542,23 @@ w("live-same.json", "1.1.2", ["20250101000000_First", "20250202000000_Second"])
 w("live-older.json", "1.1.1", ["20250101000000_First"])
 w("live-ahead.json", "1.2.0", ["20250101000000_First", "20250202000000_Second", "20250404000000_Third"])
 open(os.path.join(root, "broken.json"), "w").write("{not json")
+# The squash: the old chain (one id has a short date, as in the real one) against a release with the Baseline.
+chain = ["20251026142327_Db", "20260204_AddBattlePendingRewardsFields", "20261117191014_AddAprenderViewsAndStars"]
+squashed = ["20261118134743_Baseline", "20261118140141_UserXpLevelDefaults"]
+w("chain.json", "2.3.12", chain)
+w("squashed.json", "2.3.13", squashed)
+w("chain-later.json", "2.3.12", chain + ["20261118000000_AfterTheSquashPoint"])
+w("no-baseline.json", "2.3.13", ["20261118140141_UserXpLevelDefaults"])
 PY
     expect "redeploy same release"          0 bash "$0" schema-gate "$tmp/live-same.json" "$tmp/target.json"
     expect "forward release"                0 bash "$0" schema-gate "$tmp/live-older.json" "$tmp/target.json"
     expect "rollback behind live schema"    3 bash "$0" schema-gate "$tmp/live-ahead.json" "$tmp/target.json"
     expect "unreadable manifest"            2 bash "$0" schema-gate "$tmp/broken.json" "$tmp/target.json"
     expect "missing manifest"               2 bash "$0" schema-gate "$tmp/nope.json" "$tmp/target.json"
+    expect "forward over the squash"        0 bash "$0" schema-gate "$tmp/chain.json" "$tmp/squashed.json"
+    expect "rollback behind the Baseline"   3 bash "$0" schema-gate "$tmp/squashed.json" "$tmp/chain.json"
+    expect "a migration after the squash point is not in the Baseline" 3 bash "$0" schema-gate "$tmp/chain-later.json" "$tmp/squashed.json"
+    expect "no Baseline, nothing is squashed" 3 bash "$0" schema-gate "$tmp/chain.json" "$tmp/no-baseline.json"
     out=$(bash "$0" schema-gate "$tmp/live-ahead.json" "$tmp/target.json" 2>&1)
     [[ "$out" == *"20250404000000_Third"* ]] && echo "  OK    names the migration that stays applied" \
         || { echo "  FAIL  schema-gate did not name the migration"; rc=1; }

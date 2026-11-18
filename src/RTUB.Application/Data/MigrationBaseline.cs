@@ -36,7 +36,7 @@ public static class MigrationBaseline
         {
             throw new InvalidOperationException(
                 $"This database stopped at migration '{applied.Max()}', before '{LastSquashedId}'. The migrations up to that one " +
-                $"were squashed into '{BaselineId}', so this release cannot bring it forward: start release 2.3.13 or older " +
+                $"were squashed into '{BaselineId}', so this release cannot bring it forward: start release 2.3.12 or older " +
                 "against it once, or restore a newer backup.");
         }
 
