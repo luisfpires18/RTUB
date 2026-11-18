@@ -1,9 +1,10 @@
 // The paged question list of /questions.
+import { PersonLine } from './ui/PersonLine';
+import { SimplePager } from './ui/SimplePager';
 import { useEffect, useId, useState } from 'react';
 import { Icon } from './icons';
 import { type Question, type QuestionPage, api, stamp, statusLabel, statusPill } from '../data/questionsApi';
 import { Loading } from './ui/Loading';
-import { Avatar } from './ui/Avatar';
 import { Banner } from './ui/Banner';
 
 export function QuestionList({
@@ -56,18 +57,9 @@ export function QuestionList({
             {data.items.map((x) => (
               <li key={x.id} className="rq-card qs-card">
                 <div className="qs-card__people">
-                  <span className="qs-person">
-                    <Avatar className="who__avatar" src={x.author.avatarUrl} size={32} />
-                    <strong>{x.author.displayName}</strong>
-                  </span>
+                  <PersonLine name={x.author.displayName} avatar={x.author.avatarUrl} />
                   <Icon name="arrow" className="qs-card__to" />
-                  <span className="qs-person">
-                    <Avatar className="who__avatar" src={x.recipient.avatarUrl} size={32} />
-                    <span>
-                      <strong>{x.recipient.displayName}</strong>
-                      <small className="note">{x.recipient.role}</small>
-                    </span>
-                  </span>
+                  <PersonLine name={x.recipient.displayName} avatar={x.recipient.avatarUrl} note={x.recipient.role} />
                 </div>
                 <div className="rq-card__head">
                   <strong className="rq-card__title">{x.title}</strong>
@@ -104,19 +96,7 @@ export function QuestionList({
               </li>
             ))}
           </ul>
-          {pages > 1 && (
-            <div className="pager">
-              <button type="button" className="btn btn--ghost btn--sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                Anterior
-              </button>
-              <span className="pager__status">
-                {page} / {pages}
-              </span>
-              <button type="button" className="btn btn--ghost btn--sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>
-                Seguinte
-              </button>
-            </div>
-          )}
+          <SimplePager page={page} pages={pages} onPage={setPage} />
         </>
       )}
     </section>

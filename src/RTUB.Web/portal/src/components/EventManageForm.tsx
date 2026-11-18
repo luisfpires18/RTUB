@@ -1,5 +1,6 @@
 // Create / edit event dialog with its cropped image.
 
+import { CheckField } from './ui/CheckField';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Cropper } from './Cropper';
 import { Dialog } from './Dialog';
@@ -172,10 +173,9 @@ export function EventFormDialog({
             <textarea id={ids.description} rows={4} maxLength={2000} value={form.description} onChange={(e) => set({ description: e.target.value })} />
           </FormField>
 
-          <label className="form__check" htmlFor={ids.membersOnly}>
-            <input id={ids.membersOnly} type="checkbox" checked={form.membersOnly} onChange={(e) => set({ membersOnly: e.target.checked })} />
+          <CheckField id={ids.membersOnly} checked={form.membersOnly} onChange={(membersOnly) => set({ membersOnly })}>
             Privado (só membros): quem não tem sessão iniciada não vê esta atuação
-          </label>
+          </CheckField>
 
           <div className={errors.image ? 'form__field form__field--error' : 'form__field'}>
             <span className="form__label">Imagem (opcional)</span>

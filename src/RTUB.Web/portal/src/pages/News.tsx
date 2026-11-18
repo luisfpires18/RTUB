@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { EmptyBlock } from '../components/ui/EmptyNote';
 import { Banner } from '../components/ui/Banner';
 import { Spinner } from '../components/ui/Spinner';
 import { PageHead } from '../components/ui/PageHead';
@@ -133,11 +134,10 @@ export default function News() {
           )}
 
           {feed.posts.length === 0 ? (
-            <div className="talk__empty">
-              <Icon name="chat" />
+            <EmptyBlock className="talk__empty" icon="chat">
               <p className="talk__empty-title">Ainda não há novidades</p>
               <p>{tab === 'all' ? 'Quando a RTUB publicar alguma coisa, aparece aqui.' : 'Não há publicações nesta categoria.'}</p>
-            </div>
+            </EmptyBlock>
           ) : (
             <ol className="talk__feed" aria-label="Publicações">
               {feed.posts.map(post)}

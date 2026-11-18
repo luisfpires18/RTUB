@@ -3,7 +3,7 @@ import { useId } from 'react';
 import { MemberPicker } from './LogisticsFields';
 import { Section, type Apply } from './LogisticsPanel';
 import { logisticsApi, type CardDetail } from '../data/logisticsApi';
-import { DEFAULT_AVATAR } from '../data/membersApi';
+import { FormField } from './ui/FormField';
 import { FieldError } from './ui/FieldError';
 import { PersonChip } from './ui/PersonChip';
 import type { Draft } from '../data/logisticsCardDraft';
@@ -26,18 +26,11 @@ export function People({
 }) {
   const id = useId();
   const cardId = detail.card.id;
-  const person = (name: string, avatar: string | null, note?: string) => (
-    <span className="chip lx-person">
-      <img src={avatar ?? DEFAULT_AVATAR} alt="" width="24" height="24" />
-      {name}
-      {note && <small className="lx-view__lead">{note}</small>}
-    </span>
-  );
+  const person = (name: string, avatar: string | null, note?: string) => <PersonChip readOnly name={name} avatar={avatar} note={note} />;
 
   return (
     <Section id={`${id}-people`} title="Pessoas">
-      <div className="form__field">
-        <span className="form__label">Responsável</span>
+      <FormField id={`${id}-owner`} label="Responsável" heading>
         {detail.canManage ? (
           draft.owner ? (
             <PersonChip name={draft.owner.name} avatar={draft.owner.avatar} onRemove={() => set({ owner: null })} removeLabel="Remover o responsável" />
@@ -50,7 +43,7 @@ export function People({
           <p className="note">Sem responsável.</p>
         )}
         <FieldError text={errors.assignedToUserId} />
-      </div>
+      </FormField>
       <div className="form__field">
         <span className="form__label">Colaboradores</span>
         {detail.assignments.length > 0 ? (

@@ -1,4 +1,5 @@
 // The push-notification dialog of /meetings.
+import { DialogFooter } from './ui/DialogFooter';
 import { useEffect, useId, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -9,7 +10,6 @@ import { Loading } from './ui/Loading';
 import { Banner } from './ui/Banner';
 import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
-import { Spinner } from './ui/Spinner';
 
 export function PushDialog({ card, onClose, onSent }: { card: MeetingCard; onClose: () => void; onSent: (r: MeetingNoticeResult) => void }) {
   const [draft, setDraft] = useState<MeetingPushDraft | null>();
@@ -52,18 +52,7 @@ export function PushDialog({ card, onClose, onSent }: { card: MeetingCard; onClo
       title="Enviar notificação push da reunião"
       size="lg"
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--primary" onClick={send} disabled={busy || recipients.length === 0}>
-            {busy && <Spinner small />}
-            {!busy && <Icon name="bell" />}
-            Enviar Notificação Push
-          </button>
-        </>
-      }
+      footer={<DialogFooter busy={busy} disabled={recipients.length === 0} onClose={onClose} onSubmit={send} icon="bell" label="Enviar Notificação Push" />}
     >
       <MeetingSummary card={card} />
       <Banner text={banner} />

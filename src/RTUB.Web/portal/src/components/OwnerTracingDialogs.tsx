@@ -1,4 +1,5 @@
 // Owner tracing detail, delete and truncate dialogs.
+import { CloseFooter } from './ui/DialogFooter';
 import { useId, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -6,7 +7,6 @@ import { entityLabel, ownerApi, ownerProblem, type AuditEntry, type AuditFilters
 import { CONFIRMATION, primaryName, stamp, actionTone, pretty } from '../data/ownerTracingHelpers';
 import { Select } from './OwnerTracingParts';
 import { ConfirmDialog } from './ui/ConfirmDialog';
-import { Spinner } from './ui/Spinner';
 import { Banner } from './ui/Banner';
 
 export function DetailsDialog({ entry, onClose }: { entry: AuditEntry; onClose: () => void }) {
@@ -15,11 +15,7 @@ export function DetailsDialog({ entry, onClose }: { entry: AuditEntry; onClose: 
       title={`Detalhes · ${entityLabel(entry.entityType)}`}
       size="lg"
       onClose={onClose}
-      footer={
-        <button type="button" className="btn btn--ghost" onClick={onClose}>
-          Fechar
-        </button>
-      }
+      footer={<CloseFooter onClose={onClose} />}
     >
       {/* #220: everything the log stored, raw; the card's prettier name never replaces it here. */}
       <dl className="owner-dl">
@@ -120,20 +116,14 @@ export function TruncateDialog({
   };
 
   return (
-    <Dialog
+    <ConfirmDialog
       title={user ? 'Apagar os registos de um utilizador' : 'Apagar todos os registos'}
+      confirmLabel={user ? 'Apagar os registos dele' : 'Apagar tudo'}
+      confirmIcon="trash"
+      confirmDisabled={typed !== CONFIRMATION}
+      busy={busy}
+      onConfirm={truncate}
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button type="button" className="btn btn--danger" onClick={truncate} disabled={busy || typed !== CONFIRMATION}>
-            {busy ? <Spinner small /> : <Icon name="trash" />}
-            {user ? 'Apagar os registos dele' : 'Apagar tudo'}
-          </button>
-        </>
-      }
     >
       <div className="form">
         <Select id={`${id}-user`} label="Utilizador (opcional)" all="Todos os utilizadores" value={user} items={filters.users} onChange={setUser} />
@@ -152,6 +142,6 @@ export function TruncateDialog({
         </div>
         <Banner text={error} />
       </div>
-    </Dialog>
+    </ConfirmDialog>
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../components/icons';
 import { pendingActionsApi, type Category, type PendingActions as Data } from '../data/pendingActionsApi';
-import { SignInNotice } from '../components/Notice';
+import { RetryNotice, SignInNotice } from '../components/Notice';
 import { CATEGORIES, longDate } from '../data/pendingActionsView';
 import { ActionPanel } from '../components/PendingActionPanel';
 import { Loading } from '../components/ui/Loading';
@@ -70,12 +70,9 @@ export default function PendingActions() {
       {data === 'signin' ? (
         <SignInNotice path={'/pending-actions'}>As ações pendentes são da área de membros.</SignInNotice>
       ) : data === null ? (
-        <div className="notice" role="alert">
-          <p>Não conseguimos abrir as tuas ações pendentes agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => (setData(undefined), load())}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice alert onRetry={() => (setData(undefined), load())}>
+          Não conseguimos abrir as tuas ações pendentes agora.
+        </RetryNotice>
       ) : !page ? (
         <Loading label="A carregar as ações pendentes…" />
       ) : page.panels.length === 0 ? (

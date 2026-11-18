@@ -1,4 +1,5 @@
 // Inventory thumbnail, detail and delete dialogs.
+import { FactRow } from './ui/FactRow';
 import { useEffect, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -26,12 +27,7 @@ export function DetailDialog({ id, onClose }: { id: number; onClose: () => void 
     api.get(id).then((o) => setDetail(o.kind === 'ok' ? o.data : o.kind === 'notfound' ? 'missing' : null));
   }, [id]);
 
-  const field = (label: string, value: string | null) => (
-    <div className="member-field">
-      <dt>{label}</dt>
-      <dd>{value ?? <span className="note">Não definido</span>}</dd>
-    </div>
-  );
+  const field = (label: string, value: string | null) => <FactRow label={label}>{value}</FactRow>;
 
   return (
     <Dialog title="Detalhes do instrumento" size="lg" onClose={onClose}>

@@ -1,4 +1,5 @@
 // Treasury report transaction and history dialogs.
+import { SimplePager } from './ui/SimplePager';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -153,19 +154,7 @@ export function HistoryDialog({ reportId, onClose }: { reportId: number; onClose
               </li>
             ))}
           </ul>
-          {pages > 1 && (
-            <div className="pager">
-              <button type="button" className="btn btn--ghost btn--sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                Anterior
-              </button>
-              <span>
-                Página {page} de {pages}
-              </span>
-              <button type="button" className="btn btn--ghost btn--sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>
-                Seguinte
-              </button>
-            </div>
-          )}
+          <SimplePager page={page} pages={pages} onPage={setPage} words />
         </>
       )}
     </Dialog>

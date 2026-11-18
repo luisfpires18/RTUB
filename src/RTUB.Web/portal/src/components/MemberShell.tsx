@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
+import { Avatar } from './ui/Avatar';
 import { signOut, type CurrentUser, type MemberMenu } from '../data/api';
 import { portal } from '../data/content';
 import { Icon, type IconName } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { unreadLabel, useUnread } from '../data/unread';
-import { DEFAULT_AVATAR } from '../data/membersApi';
 
 /**
  * The signed-in member shell: the header carries [inbox] [profile] [menu] on the right, and
@@ -234,16 +234,7 @@ export function MemberIdentity({ member }: { member?: Member }) {
 
   return (
     <a className="idchip" href={portal.profile}>
-      <img
-        className="idchip__avatar"
-        src={member.avatarUrl}
-        alt=""
-        width="36"
-        height="36"
-        onError={(e) => {
-          if (!e.currentTarget.src.endsWith(DEFAULT_AVATAR)) e.currentTarget.src = DEFAULT_AVATAR;
-        }}
-      />
+      <Avatar className="idchip__avatar" src={member.avatarUrl} size={36} eager />
       <span className="idchip__text">
         <span className="idchip__name">{member.displayName}</span>
       </span>

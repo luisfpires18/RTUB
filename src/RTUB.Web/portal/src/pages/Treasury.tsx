@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
+import { SearchField, ToolsBar } from '../components/ui/SearchTools';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
@@ -63,13 +64,9 @@ export default function Treasury() {
       ) : (
         <>
           <TreasuryTabs current="reports" />
-          <div className="events-tools" role="search">
-            <label className="control" htmlFor={id}>
-              <span className="sr-only">Procurar relatório</span>
-              <Icon name="search" />
-              <input id={id} type="search" placeholder="Procurar por título ou ano" value={search} onChange={(e) => setSearch(e.target.value)} />
-            </label>
-          </div>
+          <ToolsBar>
+            <SearchField id={id} label="Procurar relatório" placeholder="Procurar por título ou ano" value={search} onChange={setSearch} />
+          </ToolsBar>
 
           {shown.length === 0 ? (
             <p className="note">{search ? 'Nenhum relatório corresponde à pesquisa.' : 'Ainda não há relatórios de contas.'}</p>

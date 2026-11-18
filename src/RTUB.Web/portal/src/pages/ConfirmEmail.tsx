@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { PageHead } from '../components/ui/PageHead';
 import { accountApi, takeLinkQuery, type RecoveryResult } from '../data/accountApi';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
@@ -27,12 +28,7 @@ export default function ConfirmEmail() {
 
   return (
     <section className="page wrap" aria-labelledby="confirm-title">
-      <header className="page__head">
-        <p className="eyebrow">Área de membros</p>
-        <h1 id="confirm-title" className="page__title">
-          Confirmação de email
-        </h1>
-      </header>
+      <PageHead plain eyebrow="Área de membros" title="Confirmação de email" titleId="confirm-title" />
 
       <div className="request__form-card account-card">
         {!result ? (

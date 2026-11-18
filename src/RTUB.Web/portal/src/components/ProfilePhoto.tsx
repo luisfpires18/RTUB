@@ -1,11 +1,11 @@
 // The /profile photo picker with crop and upload.
+import { Avatar } from './ui/Avatar';
 import { Spinner } from './ui/Spinner';
 import { useId, useRef, useState } from 'react';
 import { getCurrentUser } from '../data/api';
 import { Cropper } from './Cropper';
 import { Icon } from './icons';
 import { memberAreaApi, type MyProfile } from '../data/memberAreaApi';
-import { DEFAULT_AVATAR } from '../data/membersApi';
 import { problem } from './ProfileShared';
 
 const MAX_PHOTO = 10 * 1024 * 1024;
@@ -51,16 +51,7 @@ export function ProfilePhoto({ profile, onChange }: { profile: MyProfile; onChan
 
   return (
     <div className="profile-avatar">
-      <img
-        className="profile-avatar__img"
-        src={profile.member.avatarUrl ?? DEFAULT_AVATAR}
-        alt="A tua foto de perfil"
-        width="112"
-        height="112"
-        onError={(e) => {
-          if (!e.currentTarget.src.endsWith(DEFAULT_AVATAR)) e.currentTarget.src = DEFAULT_AVATAR;
-        }}
-      />
+      <Avatar className="profile-avatar__img" src={profile.member.avatarUrl} size={112} eager alt="A tua foto de perfil" />
       <input
         ref={input}
         id={id}

@@ -1,4 +1,6 @@
 import { useEffect, useId, useState } from 'react';
+import { LoadMore } from '../components/ui/LoadMore';
+import { SearchField, SelectField, ToolsBar } from '../components/ui/SearchTools';
 import { useLatest } from '../components/AppShared';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
@@ -79,38 +81,28 @@ export default function ShopPage() {
       ) : (
         <>
           <PromotionsSection />
-          <div className="events-tools" role="search">
-            <label className="control" htmlFor={ids.q}>
-              <span className="sr-only">Procurar produto</span>
-              <Icon name="search" />
-              <input id={ids.q} type="search" placeholder="Procurar por nome ou tipo" value={text} onChange={(e) => setText(e.target.value)} />
-            </label>
-            <label className="control control--select" htmlFor={ids.type}>
-              <span className="sr-only">Tipo</span>
-              <select id={ids.type} value={type} onChange={(e) => setType(e.target.value)}>
-                <option value="">Todos os tipos</option>
-                {data.types.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="control control--select" htmlFor={ids.year}>
-              <span className="sr-only">Ano letivo</span>
-              <select id={ids.year} value={data.fiscalYear} onChange={(e) => setFiscalYear(e.target.value)}>
-                <option value="">Todos os anos</option>
-                {data.fiscalYear && !data.fiscalYears.some((y) => y.value === data.fiscalYear) && (
-                  <option value={data.fiscalYear}>{data.fiscalYear} (ATUAL)</option>
-                )}
-                {data.fiscalYears.map((y) => (
-                  <option key={y.value} value={y.value}>
-                    {y.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <ToolsBar>
+            <SearchField id={ids.q} label="Procurar produto" placeholder="Procurar por nome ou tipo" value={text} onChange={setText} />
+            <SelectField id={ids.type} label="Tipo" value={type} onChange={setType}>
+              <option value="">Todos os tipos</option>
+              {data.types.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </SelectField>
+            <SelectField id={ids.year} label="Ano letivo" value={data.fiscalYear} onChange={setFiscalYear}>
+              <option value="">Todos os anos</option>
+              {data.fiscalYear && !data.fiscalYears.some((y) => y.value === data.fiscalYear) && (
+                <option value={data.fiscalYear}>{data.fiscalYear} (ATUAL)</option>
+              )}
+              {data.fiscalYears.map((y) => (
+                <option key={y.value} value={y.value}>
+                  {y.label}
+                </option>
+              ))}
+            </SelectField>
+          </ToolsBar>
 
           {data.products.length === 0 ? (
             <p className="note">{type ? 'Neste momento não há produtos deste tipo.' : 'Neste momento não há produtos na loja.'}</p>
@@ -192,11 +184,7 @@ export default function ShopPage() {
                   );
                 })}
               </ul>
-              {data.products.length > shown && (
-                <button type="button" className="btn btn--ghost btn--sm members-more" onClick={() => setShown(shown + PAGE)}>
-                  Mostrar mais ({data.products.length - shown})
-                </button>
-              )}
+              <LoadMore remaining={data.products.length - shown} onMore={() => setShown(shown + PAGE)} />
             </>
           )}
 

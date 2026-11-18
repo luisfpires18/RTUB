@@ -1,4 +1,5 @@
 // Dialog to create or edit an album (cover, visibility, exclusive member list).
+import { PersonChip } from './ui/PersonChip';
 import { DialogFooter } from './ui/DialogFooter';
 import { Banner } from './ui/Banner';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
@@ -122,14 +123,14 @@ export function AlbumForm({
                     {access.length > 0 && (
                       <ul className="access__chips" aria-label="Membros com acesso">
                         {access.map((m) => (
-                          <li key={m.id} className="chip chip--removable">
-                            <img src={m.avatarUrl} alt="" width="24" height="24" />
-                            {m.displayName}
-                            <button type="button" className="chip__remove" onClick={() => setAccess((a) => a.filter((x) => x.id !== m.id))}>
-                              <Icon name="close" />
-                              <span className="sr-only">Remover {m.displayName}</span>
-                            </button>
-                          </li>
+                          <PersonChip
+                            key={m.id}
+                            item
+                            name={m.displayName}
+                            avatar={m.avatarUrl}
+                            onRemove={() => setAccess((a) => a.filter((x) => x.id !== m.id))}
+                            removeLabel={`Remover ${m.displayName}`}
+                          />
                         ))}
                       </ul>
                     )}

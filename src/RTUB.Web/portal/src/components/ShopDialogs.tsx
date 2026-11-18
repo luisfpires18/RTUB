@@ -28,9 +28,9 @@ export function DetailDialog({ id, onClose }: { id: number; onClose: () => void 
       {detail === undefined ? (
         <Loading label="A carregar…" />
       ) : detail === 'missing' ? (
-        <p className="form__banner">Este produto já não existe.</p>
+        <Banner role="none" text="Este produto já não existe." />
       ) : detail === null ? (
-        <p className="form__banner">Não foi possível carregar o produto.</p>
+        <Banner role="none" text="Não foi possível carregar o produto." />
       ) : (
         <div className="member-detail">
           <div className="member-detail__head">

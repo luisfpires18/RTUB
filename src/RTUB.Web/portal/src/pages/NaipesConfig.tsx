@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
+import { PageHead } from '../components/ui/PageHead';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import type { Outcome } from '../data/eventsApi';
@@ -37,17 +38,16 @@ export default function NaipesConfig() {
 
   return (
     <section className="page wrap events-page naipes-page" aria-labelledby="naipes-config-title">
-      <header className="page__head events-page__head">
-        <div>
+      <PageHead
+        titleId="naipes-config-title"
+        title="Configurar naipes"
+        lead="Que instrumentos aparecem nos naipes, por que ordem e com que imagem."
+        before={
           <BackLink href={portal.naipes} icon="arrowLeft">
             Naipes
           </BackLink>
-          <h1 id="naipes-config-title" className="page__title">
-            Configurar naipes
-          </h1>
-          <p className="page__lead">Que instrumentos aparecem nos naipes, por que ordem e com que imagem.</p>
-        </div>
-      </header>
+        }
+      />
 
       {settings === undefined ? (
         <Loading label="A carregar os instrumentos…" />

@@ -1,0 +1,1 @@
+import{j as s}from"./vendor-react-DI41Mul8.js";function e({remaining:t,onMore:o,className:r="members-more"}){return t<=0?null:s.jsxs("button",{type:"button",className:`btn btn--ghost btn--sm ${r}`,onClick:o,children:["Mostrar mais (",t,")"]})}export{e as L};

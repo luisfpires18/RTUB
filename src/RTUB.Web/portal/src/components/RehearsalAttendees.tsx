@@ -136,7 +136,7 @@ export function AddAttendee({ rehearsalId, onAdded }: { rehearsalId: number; onA
           {members.map((m) => (
             <li key={m.id}>
               <button type="button" disabled={busy} onClick={() => add(m)}>
-                <img src={m.avatarUrl} alt="" width="28" height="28" loading="lazy" />
+                <Avatar src={m.avatarUrl} size={28} />
                 <span>
                   {m.name}
                   {m.fullName && m.fullName !== m.name && <small>{m.fullName}</small>}

@@ -1,11 +1,11 @@
 // One question with its replies and answer form.
+import { PersonLine } from './ui/PersonLine';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { MemberBadge } from './MemberBadge';
 import { type Detail, MAX_CONTENT, type Question, api, problem, stamp, statusLabel, statusPill } from '../data/questionsApi';
 import { Loading } from './ui/Loading';
-import { Avatar } from './ui/Avatar';
 import { Banner } from './ui/Banner';
 import { FormField } from './ui/FormField';
 import { Spinner } from './ui/Spinner';
@@ -75,13 +75,7 @@ export function QuestionDialog({
       ) : (
         <div className="qs-detail">
           <div className="qs-card__people">
-            <span className="qs-person">
-              <Avatar className="who__avatar" src={x.author.avatarUrl} size={36} />
-              <span>
-                <strong>{x.author.displayName}</strong>
-                <small className="note">{stamp(x.createdAt)}</small>
-              </span>
-            </span>
+            <PersonLine name={x.author.displayName} avatar={x.author.avatarUrl} size={36} note={stamp(x.createdAt)} />
             <span className={statusPill[x.status]}>{statusLabel[x.status]}</span>
           </div>
           <p className="note">
@@ -99,14 +93,12 @@ export function QuestionDialog({
             <ul className="member-rows qs-replies">
               {d.replies.map((r) => (
                 <li key={r.id} className={r.fromRecipient ? 'qs-reply qs-reply--recipient' : 'qs-reply'}>
-                  <span className="qs-person">
-                    <Avatar className="who__avatar" src={r.author.avatarUrl} size={32} />
-                    <span>
-                      <strong>{r.author.displayName}</strong>
-                      {r.fromRecipient && <MemberBadge kind="position">{x.recipient.role}</MemberBadge>}
-                      <small className="note">{stamp(r.createdAt)}</small>
-                    </span>
-                  </span>
+                  <PersonLine
+                    name={r.author.displayName}
+                    avatar={r.author.avatarUrl}
+                    badge={r.fromRecipient && <MemberBadge kind="position">{x.recipient.role}</MemberBadge>}
+                    note={stamp(r.createdAt)}
+                  />
                   <p className="rq-message">{r.content}</p>
                 </li>
               ))}

@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { FactRow } from './ui/FactRow';
 import { Banner } from './ui/Banner';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -18,14 +19,7 @@ import { Avatar } from './ui/Avatar';
 export const progressText = (progress: string | null, retired: boolean | null) =>
   !progress || (retired && /até reforma/.test(progress)) ? null : progress.replace(/^1 meses/, '1 mês');
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="member-field">
-      <dt>{label}</dt>
-      <dd>{children ?? <span className="note">Não definido</span>}</dd>
-    </div>
-  );
-}
+export const Field = FactRow;
 
 /** "Detalhes do Membro": the sections and fields any signed-in member may see. */
 export function MemberDialog({ memberId, onClose, actions }: { memberId: string; onClose: () => void; actions?: (m: MemberDetail) => ReactNode }) {

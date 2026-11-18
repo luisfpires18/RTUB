@@ -1,4 +1,5 @@
 // The ask-a-question dialog of /questions.
+import { PersonLine } from './ui/PersonLine';
 import { useId, useMemo, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
@@ -64,13 +65,7 @@ export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipi
             <p className="note">Não há membros nos Órgãos Sociais neste momento.</p>
           ) : chosen ? (
             <div className="qs-chosen">
-              <span className="qs-person">
-                <Avatar className="who__avatar" src={chosen.avatarUrl} size={36} />
-                <span>
-                  <strong>{chosen.displayName}</strong>
-                  <small className="note">{chosen.role}</small>
-                </span>
-              </span>
+              <PersonLine name={chosen.displayName} avatar={chosen.avatarUrl} size={36} note={chosen.role} />
               <button type="button" className="btn btn--ghost btn--sm" onClick={() => setChosen(undefined)}>
                 Mudar
               </button>

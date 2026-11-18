@@ -3,6 +3,7 @@
 import { useId, useRef, useState } from 'react';
 import { eventsApi, type EventPost, type Outcome, type EventDiscussion as Discussion } from '../data/eventsApi';
 import { Icon } from './icons';
+import { FieldError } from './ui/FieldError';
 import { COMMENT_MAX, problem, Text, Who, submitOnCtrlEnter } from './EventDiscussionShared';
 
 // ---------- comments ----------
@@ -122,7 +123,7 @@ export function Comments({ eventId, post, onChange }: { eventId: number; post: E
           Comentários fechados.
         </p>
       )}
-      {error && <p className="form__error">{error}</p>}
+      <FieldError text={error} alert={false} />
     </div>
   );
 }

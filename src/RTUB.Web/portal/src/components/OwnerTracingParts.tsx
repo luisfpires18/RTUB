@@ -94,10 +94,7 @@ export function Announcement() {
         Anúncio de sistema
       </h2>
       <Flash message={message} onDismiss={() => setMessage(undefined)} />
-      <div className="form__field">
-        <label htmlFor={`${id}-text`} className="sr-only">
-          Anúncio
-        </label>
+      <FormField id={`${id}-text`} label="Anúncio" hideLabel>
         <textarea
           id={`${id}-text`}
           rows={2}
@@ -106,7 +103,7 @@ export function Announcement() {
           placeholder="Ex.: O servidor vai ser reiniciado para atualização. Por favor, aguarda."
           onChange={(e) => setText(e.target.value)}
         />
-      </div>
+      </FormField>
       <div className="owner-actions">
         <button type="button" className="btn btn--primary btn--sm" onClick={send} disabled={busy || !text.trim()}>
           {busy ? <Spinner small /> : <Icon name="megaphone" />}

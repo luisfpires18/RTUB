@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { PageHead } from '../components/ui/PageHead';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { publishUnread, useUnreadProvider } from '../data/unread';
@@ -58,12 +59,7 @@ export default function Messages() {
 
   return (
     <section className={`page wrap chat-page${selected || draft ? ' chat-page--open' : ''}`} aria-labelledby="chat-title">
-      <header className="page__head chat-page__head">
-        <p className="eyebrow">Área de membros</p>
-        <h1 id="chat-title" className="page__title">
-          Mensagens
-        </h1>
-      </header>
+      <PageHead plain className="chat-page__head" eyebrow="Área de membros" title="Mensagens" titleId="chat-title" />
 
       {list === undefined ? (
         <Loading label="A carregar as conversas…" />

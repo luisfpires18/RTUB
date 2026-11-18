@@ -5,7 +5,7 @@ import { WhereYouWereDialog, StatsDialog } from '../components/EventStats';
 import { EventFormDialog, DeleteEventDialog, CancelEventDialog, ReactivateEventDialog, NoticeDialog } from '../components/EventManageLazy';
 import { eventsApi, type EventSummary, type EventAgenda } from '../data/eventsApi';
 import { Icon } from '../components/icons';
-import { RetryNotice } from '../components/Notice';
+import { ActionNotice, RetryNotice } from '../components/Notice';
 import { filtersFromUrl, filtersToUrl, filterPast, groupBySeason, type Filters } from '../data/eventFilters';
 import { Toolbar } from '../components/EventsToolbar';
 import { AgendaCard, ArchiveRow, type Manage } from '../components/EventsCards';
@@ -167,16 +167,9 @@ export default function Events() {
             {agenda.past.length === 0 ? (
               <p className="note">O arquivo ainda está vazio.</p>
             ) : seasons.length === 0 ? (
-              <div className="notice" role="status">
-                <p>Nenhuma atuação corresponde a estes filtros.</p>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => update({ season: '', type: '', q: '', videos: false })}
-                >
-                  Limpar filtros
-                </button>
-              </div>
+              <ActionNotice label="Limpar filtros" onAction={() => update({ season: '', type: '', q: '', videos: false })}>
+                Nenhuma atuação corresponde a estes filtros.
+              </ActionNotice>
             ) : (
               <div className="archive">
                 {seasons.map(([season, events]) => (

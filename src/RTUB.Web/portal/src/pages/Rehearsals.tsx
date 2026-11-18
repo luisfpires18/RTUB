@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react';
+import { EmptyBlock } from '../components/ui/EmptyNote';
 import { dateLabel, dayOf, monthShort, weekday } from '../data/eventsApi';
 import { Icon } from '../components/icons';
 import { MyPresencesDialog, StatsDialog } from '../components/RehearsalStats';
@@ -111,10 +112,9 @@ export default function Rehearsals() {
               Próximos ensaios
             </h2>
             {agenda.upcoming.length === 0 ? (
-              <div className="upcoming-empty">
-                <Icon name="calendar" />
+              <EmptyBlock className="upcoming-empty" icon="calendar">
                 <p>Sem ensaios marcados por agora.</p>
-              </div>
+              </EmptyBlock>
             ) : (
               <ul className="agenda">
                 {agenda.upcoming.map((r) => (

@@ -1,0 +1,1 @@
+import{j as e}from"./vendor-react-DI41Mul8.js";function n({label:s,children:d}){return e.jsxs("div",{className:"member-field",children:[e.jsx("dt",{children:s}),e.jsx("dd",{children:d??e.jsx("span",{className:"note",children:"Não definido"})})]})}export{n as F};

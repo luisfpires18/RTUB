@@ -3,6 +3,7 @@ import { accountApi } from '../data/accountApi';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { FormField, fieldProps } from '../components/ui/FormField';
+import { Banner } from '../components/ui/Banner';
 import { Spinner } from '../components/ui/Spinner';
 import { AccountDone } from '../components/ui/AccountDone';
 
@@ -66,11 +67,7 @@ export default function ForgotPassword() {
           </AccountDone>
         ) : (
           <form className="form" noValidate onSubmit={onSubmit}>
-            {banner && (
-              <div className="form__banner" role="alert">
-                {banner}
-              </div>
-            )}
+            <Banner block text={banner} />
             <FormField id="forgot-email" label="Email" error={error}>
               <input
                 {...fieldProps('forgot-email', error)}

@@ -4,11 +4,11 @@ import { Icon } from './icons';
 
 // The short message a page shows where its content would be. Use these instead of writing the markup again.
 
-/** Just the message. */
-export function Notice({ children }: { children: ReactNode }) {
+/** Just the message. `id` goes on the `<p>` (a heading target); `alert`: announced as an alert, not a status. */
+export function Notice({ id, alert, children }: { id?: string; alert?: boolean; children: ReactNode }) {
   return (
-    <div className="notice" role="status">
-      <p>{children}</p>
+    <div className="notice" role={alert ? 'alert' : 'status'}>
+      <p id={id}>{children}</p>
     </div>
   );
 }
@@ -26,14 +26,35 @@ export function SignInNotice({ path, children }: { path: string; children: React
   );
 }
 
-/** Loading failed: the message and a "Tentar novamente" button. */
-export function RetryNotice({ onRetry, children }: { onRetry: () => void; children: ReactNode }) {
+/** The message and one small ghost button with its own label ("Limpar filtros"). */
+export function ActionNotice({
+  label,
+  onAction,
+  id,
+  alert,
+  children,
+}: {
+  label: string;
+  onAction: () => void;
+  id?: string;
+  alert?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <div className="notice" role="status">
-      <p>{children}</p>
-      <button type="button" className="btn btn--ghost btn--sm" onClick={onRetry}>
-        Tentar novamente
+    <div className="notice" role={alert ? 'alert' : 'status'}>
+      <p id={id}>{children}</p>
+      <button type="button" className="btn btn--ghost btn--sm" onClick={onAction}>
+        {label}
       </button>
     </div>
+  );
+}
+
+/** Loading failed: the message and a "Tentar novamente" button. */
+export function RetryNotice({ onRetry, id, alert, children }: { onRetry: () => void; id?: string; alert?: boolean; children: ReactNode }) {
+  return (
+    <ActionNotice label="Tentar novamente" onAction={onRetry} id={id} alert={alert}>
+      {children}
+    </ActionNotice>
   );
 }

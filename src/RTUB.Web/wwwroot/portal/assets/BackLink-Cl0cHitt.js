@@ -1,0 +1,1 @@
+import{j as r}from"./vendor-react-DI41Mul8.js";import{I as o}from"./index-CDosIQX8.js";function t({href:a,icon:s="arrow",children:n}){return r.jsxs("a",{className:"back-link",href:a,children:[r.jsx(o,{name:s}),n]})}export{t as B};

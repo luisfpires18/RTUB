@@ -1,5 +1,6 @@
 // "Quem vai / Quem foi" on the event page: who answered, as avatar-led tiles.
 
+import { EmptyNote } from './ui/EmptyNote';
 import type { EventParticipant } from '../data/eventsApi';
 import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
@@ -35,7 +36,7 @@ export function WhoIsGoing({
         )}
       </div>
       {total === 0 && notGoing.length === 0 ? (
-        <p className="note">Ainda ninguém respondeu.</p>
+        <EmptyNote>Ainda ninguém respondeu.</EmptyNote>
       ) : (
         <>
           {going.length > 0 && <People people={going} />}

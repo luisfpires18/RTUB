@@ -1,6 +1,6 @@
 // Create/edit and delete dialogs for a news post.
+import { DialogFooter } from './ui/DialogFooter';
 import { Banner } from './ui/Banner';
-import { Spinner } from './ui/Spinner';
 import { useId, useState, type FormEvent } from 'react';
 import { type NewsPost } from '../data/api';
 import { Dialog } from './Dialog';
@@ -53,20 +53,19 @@ export function FormDialog({ post, onClose, onSaved }: { post?: NewsPost; onClos
       size="lg"
       onClose={onClose}
       footer={
-        <>
-          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          {!post && (
-            <button type="button" className="btn btn--ghost" onClick={() => save(false)} disabled={busy}>
-              Guardar rascunho
-            </button>
-          )}
-          <button type="submit" form={`${fid}-form`} className="btn btn--primary" disabled={busy}>
-            {busy && <Spinner small />}
-            {post ? 'Guardar' : 'Publicar'}
-          </button>
-        </>
+        <DialogFooter
+          form={`${fid}-form`}
+          busy={busy}
+          onClose={onClose}
+          label={post ? 'Guardar' : 'Publicar'}
+          extra={
+            !post && (
+              <button type="button" className="btn btn--ghost" onClick={() => save(false)} disabled={busy}>
+                Guardar rascunho
+              </button>
+            )
+          }
+        />
       }
     >
       <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>

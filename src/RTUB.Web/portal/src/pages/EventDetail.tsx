@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { EnrollmentDialog } from '../components/EventAnswer';
 import { PrizesDialog } from '../components/EventPrizesDialog';
 import { CancelEventDialog, ReactivateEventDialog, NoticeDialog, ParticipantsManagerDialog, RepertoireManagerDialog, VideoManagerDialog } from '../components/EventManageLazy';
+import { RetryNotice } from '../components/Notice';
 import { portal } from '../data/content';
 import { eventsApi, type EventDetail as Detail } from '../data/eventsApi';
 import { Icon } from '../components/icons';
@@ -106,12 +107,9 @@ export default function EventDetail({ eventId }: { eventId: number }) {
           </a>
         </div>
       ) : detail === null ? (
-        <div className="notice" role="status">
-          <p id="event-title">Não conseguimos abrir esta atuação agora.</p>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => load()}>
-            Tentar novamente
-          </button>
-        </div>
+        <RetryNotice id="event-title" onRetry={() => load()}>
+          Não conseguimos abrir esta atuação agora.
+        </RetryNotice>
       ) : (
         <Body
           detail={detail}

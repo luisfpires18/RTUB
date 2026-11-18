@@ -1,5 +1,6 @@
 // Dialog to send an email / push notice about an event.
 
+import { CheckField } from './ui/CheckField';
 import { useId, useState } from 'react';
 import { Dialog } from './Dialog';
 import { eventsApi, type EventSummary } from '../data/eventsApi';
@@ -115,10 +116,9 @@ export function NoticeDialog({ event, onClose }: { event: EventSummary; onClose:
                   />
                   <p className="form__hint">O título é o nome da atuação. Máximo 500 caracteres ({message.length}/500).</p>
                 </div>
-                <label className="form__check">
-                  <input type="checkbox" checked={young} onChange={(e) => change(() => setYoung(e.target.checked))} disabled={busy} />
+                <CheckField checked={young} onChange={(v) => change(() => setYoung(v))} disabled={busy}>
                   Só Leitões e Caloiros
-                </label>
+                </CheckField>
               </>
             )}
 

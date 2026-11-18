@@ -55,7 +55,7 @@ public class ResponsiveLayoutSourceTests
     {
         var page = Read("src", "pages/Governance.tsx");
         page.Should().Contain("<PageHead ");
-        Read("src", "components/ui/PageHead.tsx").Should().Contain("<header className=\"page__head events-page__head\">");
+        Read("src", "components/ui/PageHead.tsx").Should().Contain("'page__head', plain ? '' : 'events-page__head'");
         page.Should().Contain("const canAddYear = !!manage && manage.availableStartYears.length > 0;",
             "the server's list of start years still missing decides (#224), not a client rule");
         page.Should().Contain("{canAddYear && (");

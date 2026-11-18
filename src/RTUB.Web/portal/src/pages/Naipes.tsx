@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { EmptyNote } from '../components/ui/EmptyNote';
 import { portal } from '../data/content';
 import { Icon } from '../components/icons';
 import { naipesApi, type NaipeBoard, type NaipeItem } from '../data/naipesApi';
@@ -121,7 +122,7 @@ export default function Naipes() {
           )}
 
           {!board.instrument ? (
-            <p className="notice naipe-empty">Escolhe um instrumento para veres os vídeos e as imagens dele.</p>
+            <EmptyNote className="notice naipe-empty">Escolhe um instrumento para veres os vídeos e as imagens dele.</EmptyNote>
           ) : board.totalForInstrument === 0 ? (
             <p className="notice naipe-empty">Ainda não há vídeos nem imagens de {chosen?.label ?? 'este instrumento'}. Podes ser o primeiro a juntar.</p>
           ) : (

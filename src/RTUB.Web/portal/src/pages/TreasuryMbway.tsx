@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
+import { LoadMore } from '../components/ui/LoadMore';
 import { portal } from '../data/content';
 import { Dialog } from '../components/Dialog';
 import { Icon } from '../components/icons';
@@ -157,11 +158,7 @@ export default function TreasuryMbway() {
                   ))}
                 </ul>
               )}
-              {shown.length > limit && (
-                <button type="button" className="btn btn--ghost btn--sm tr-more" onClick={() => setLimit(limit + PAGE)}>
-                  Mostrar mais ({shown.length - limit})
-                </button>
-              )}
+              <LoadMore className="tr-more" remaining={shown.length - limit} onMore={() => setLimit(limit + PAGE)} />
             </>
           )}
 

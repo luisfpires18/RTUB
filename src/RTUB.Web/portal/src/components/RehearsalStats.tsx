@@ -8,6 +8,7 @@ import { MemberBadge, badgeKind } from './MemberBadge';
 import { fold } from '../data/format';
 import { rehearsalsApi, type RehearsalSummary, type RehearsalStats } from '../data/rehearsalsApi';
 import { PresencePill } from './RehearsalShared';
+import { FieldError } from './ui/FieldError';
 import { Loading } from './ui/Loading';
 import { Avatar } from './ui/Avatar';
 
@@ -74,7 +75,7 @@ export function StatsDialog({ onClose }: { onClose: () => void }) {
           <input id={ids.q} type="search" placeholder="Procurar pelo nome" value={q} onChange={(e) => setQ(e.target.value)} />
         </label>
       </div>
-      {error && <p className="form__error">{error}</p>}
+      <FieldError text={error} alert={false} />
       {stats === undefined ? (
         <Loading label="A carregar as estatísticas…" />
       ) : stats === null ? (

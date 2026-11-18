@@ -11,6 +11,8 @@ type Common = {
   confirmLabel: string;
   cancelLabel?: string;
   confirmIcon?: IconName;
+  /** Extra condition that keeps the confirm button off (e.g. a word still to be typed). */
+  confirmDisabled?: boolean;
   onClose: () => void;
 };
 
@@ -21,6 +23,7 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel = 'Cancelar',
   confirmIcon,
+  confirmDisabled,
   danger = true,
   busy,
   error,
@@ -36,7 +39,7 @@ export function ConfirmDialog({
           <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
             {cancelLabel}
           </button>
-          <button type="button" className={danger ? 'btn btn--danger' : 'btn btn--primary'} onClick={onConfirm} disabled={busy}>
+          <button type="button" className={danger ? 'btn btn--danger' : 'btn btn--primary'} onClick={onConfirm} disabled={busy || confirmDisabled}>
             {busy && <Spinner small />}
             {!busy && confirmIcon && <Icon name={confirmIcon} />}
             {confirmLabel}

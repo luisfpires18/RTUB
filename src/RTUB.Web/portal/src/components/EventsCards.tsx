@@ -3,6 +3,7 @@
 import { portal } from '../data/content';
 import { dayOf, monthShort, yearOf, dateLabel, timeLabel, type EventSummary } from '../data/eventsApi';
 import { Icon } from './icons';
+import { IconAction } from './ui/IconAction';
 
 /** The caller's own answer, for members only. */
 export function MyStatus({ event }: { event: EventSummary }) {
@@ -31,30 +32,17 @@ function ManageButtons({ event, manage }: { event: EventSummary; manage: Manage 
   if (!manage) return null;
   return (
     <span className="manage">
-      <button type="button" className="icon-btn icon-btn--sm" onClick={manage.onEdit} title="Editar">
-        <Icon name="pencil" />
-        <span className="sr-only">Editar {event.name}</span>
-      </button>
-      {manage.onNotice && (
-        <button type="button" className="icon-btn icon-btn--sm" onClick={manage.onNotice} title="Enviar aviso">
-          <Icon name="bell" />
-          <span className="sr-only">Enviar aviso sobre {event.name}</span>
-        </button>
-      )}
+      <IconAction icon="pencil" title="Editar" label={`Editar ${event.name}`} onClick={manage.onEdit} />
+      {manage.onNotice && <IconAction icon="bell" title="Enviar aviso" label={`Enviar aviso sobre ${event.name}`} onClick={manage.onNotice} />}
       {manage.onCancel && (
-        <button type="button" className="icon-btn icon-btn--sm" onClick={manage.onCancel} title={event.cancelled ? 'Reativar' : 'Cancelar atuação'}>
-          <Icon name={event.cancelled ? 'restore' : 'ban'} />
-          <span className="sr-only">
-            {event.cancelled ? 'Reativar' : 'Cancelar'} {event.name}
-          </span>
-        </button>
+        <IconAction
+          icon={event.cancelled ? 'restore' : 'ban'}
+          title={event.cancelled ? 'Reativar' : 'Cancelar atuação'}
+          label={`${event.cancelled ? 'Reativar' : 'Cancelar'} ${event.name}`}
+          onClick={manage.onCancel}
+        />
       )}
-      {manage.onDelete && (
-        <button type="button" className="icon-btn icon-btn--sm icon-btn--danger" onClick={manage.onDelete} title="Apagar">
-          <Icon name="trash" />
-          <span className="sr-only">Apagar {event.name}</span>
-        </button>
-      )}
+      {manage.onDelete && <IconAction danger icon="trash" title="Apagar" label={`Apagar ${event.name}`} onClick={manage.onDelete} />}
     </span>
   );
 }
