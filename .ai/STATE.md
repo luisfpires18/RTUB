@@ -10,6 +10,14 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 136 (`test/136/rule-tests`), fifth phase of the audit round. Tests only: no file under `src/` changed.
+- Rule tests for the 14 `*Authorization` helpers that had none (`tests/RTUB.Application.Tests/Helpers/`): one row per
+  role, a visitor, and role claims on an identity nobody signed in. `EventsAuthorization.CanTrackContactsAsync` (a
+  Leitão by category, from the database) is not covered there.
+- `TestPrincipal` carries a name claim and has `WithRole` and `NotSignedIn`; the 10 private `SignedIn` / `Principal`
+  helpers of the Application tests are gone.
+- `NotificationInboxTests`: only `PushNotificationService` may use the WebPush library, so no sender skips the inbox.
+
 Task 135 (`fix/135/security`), fourth phase of the audit round. Each fix has a test that failed first.
 - `DownloadMediaController` is deleted: it fetched any URL for any signed-in account, and no page called it.
 - `/api/account/*` (forgot-password, reset-password, confirm-email) spends the login budget of its client; 429 past it.
@@ -126,11 +134,10 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 **Tests**
 - `AuditLogAppender` still handles binary properties, but no entity has one since task 131 (its test went with
   `Report.PdfData`).
-- Gaps left after 128: `CalotesNotificationBackgroundService` has no test; `TreasuryService`, `TreasuryRecordsService`,
-  `ProductShopService`, `ShopPromotionService` and `FinanceManagementService` are tested only through the API; 14
-  `*Authorization` helpers have no direct rule test (Treasury and Shop do); no test that every push sender writes the
-  inbox copy. `TreasuryAuthorization`'s role checks do not ask `IsMember` themselves (the services check the sign-in
-  first). About 20 test classes each keep a private `SignedIn(...)` helper that `TestPrincipal` could replace.
+- Gaps left after 136: `TreasuryService`, `TreasuryRecordsService`, `ProductShopService`, `ShopPromotionService` and
+  `FinanceManagementService` are tested only through the API. `TreasuryAuthorization`'s role checks do not ask
+  `IsMember` themselves (the services check the sign-in first). `GovernanceAuthorization.CanViewRgi` asks for a system
+  role, "Member" included: an account with no role does not read the RGI.
 - One host per integration test class (about 68 boots, about 7 s each alone). One shared host for the 28
   `IntegrationTestBase` classes cut the Integration project from about 130 s to 87 s, but 3 tests failed
   (`HomePreviewTests` needs an empty database; `AuthAntiforgeryTests` hit the login rate limit, which is per IP).
@@ -148,8 +155,6 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - No JS test runner: the member shell's browser behaviour is checked by hand; `MemberShellTests` pins source only.
 
 **Security and privacy**
-- Notification links are built from the request Host header while `AllowedHosts` is `*`: a manager forging Host could
-  point push links elsewhere. Fix app-wide (real `AllowedHosts`, or one configured base URL).
 - `www.rtub.pt` serves the app as a second origin with no redirect to `rtub.pt` (second installed-app identity,
   duplicate content): decide a 301 to the apex.
 - Gallery, Naipes and receipt files are public-read R2 objects: members-only means "not listed", not "not reachable".
@@ -166,10 +171,9 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - `public-requests` rate limit partitions on `RemoteIpAddress`: confirm forwarded headers on DEV/PROD.
 
 **Push**
-- Leaderboard comment/like push failures are swallowed with no log; discussion pushes stop at the event start (UTC
-  compare).
-- `PushNotificationService` news up `WebPushClient` (no send tests); no `CancellationToken`; 5xx from a push service is
-  not retried; fan-out runs inline in requests. `WebPush` 1.0.13 sends legacy `aesgcm` (move to RFC 8291/8292 only if
+- Leaderboard comment/like push failures are swallowed with no log.
+- `IPushNotificationService` takes no `CancellationToken`; 5xx from a push service is not retried; fan-out runs inline
+  in requests. `WebPush` 1.0.13 sends legacy `aesgcm` (move to RFC 8291/8292 only if
   an iPhone test push comes back `rejected`).
 - A browser on a push service outside `PushSubscriptionRules.PushServiceHosts` is refused: add its host if one appears.
 - PROD App Service has no persisted application logs; push warnings show only in the live log stream.
@@ -278,17 +282,14 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - Release: the daily backup keeps two generations, needs Always On and alerts nobody on failure; no test restores a
   backup; `release.sh` checks only that VERSION goes up, not the MAJOR bump of a drop release; `AdoptAsync` writes the
   Baseline row before the pre-migration snapshot.
-- Tests: `TestPrincipal` has no name claim (10 private `SignedIn`
-  helpers, not 20); the Push items above are out of date (`PushDeliveryTests`, `NotificationInboxTests` cover sends and
-  the inbox copy); test hosts hash passwords at Identity's default cost; 75 integration classes boot 75 hosts.
+- Tests: test hosts hash passwords at Identity's default cost; 75 integration classes boot 75 hosts.
 - Local: a database that stopped before `20261117191014_AddAprenderViewsAndStars` is refused by `dev`; start commit
   `5d1b9cb9` (or release 2.3.12) against it once.
 - Measured on a local copy (108 users, 17,761 messages): no `/api` GET over 95 ms, every SQL command 0 ms;
   `/api/me/profile` 15 queries, `/api/members` 7, `/api/leaderboard` 7. Every route loads 137 kB gzip first.
 
 ## Next
-Phases the audit proposed, each waiting for the owner's "yes, phase N": 136 rule tests for the 14 `*Authorization` helpers, 137 test speed and a local launch profile, 138 a shared
-portal load hook, 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
+Phases the audit proposed, each waiting for the owner's "yes, phase N": 137 test speed and a local launch profile, 138 a shared portal load hook, 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
 portal intro animation is not to be removed or shortened. The drop release does not go to 3.0.0 (owner, 2026-11-18): the
 "MAJOR bump" wording in the docs changes with phase 142. Not proposed: the CSS merges, backend query work.
 

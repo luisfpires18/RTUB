@@ -196,5 +196,23 @@ public sealed class NotificationInboxTests : IDisposable
         (await MessagingGroups.SyncAsync(db, Now)).Should().Be(0);
     }
 
+    /// <summary>
+    /// Every send keeps its inbox copy because <see cref="PushNotificationService"/> writes it. That holds only while
+    /// it is the one place that can send a push: no other source file may use the WebPush library.
+    /// </summary>
+    [Fact]
+    public void OnlyThePushService_UsesTheWebPushLibrary_SoNoSenderCanSkipTheInbox()
+    {
+        var separator = Path.DirectorySeparatorChar;
+        var users = Directory.EnumerateFiles(Path.Combine(RepoPaths.Root(), "src"), "*.cs", SearchOption.AllDirectories)
+            .Where(file => !file.Contains($"{separator}obj{separator}") && !file.Contains($"{separator}bin{separator}"))
+            .Where(file => System.Text.RegularExpressions.Regex.IsMatch(File.ReadAllText(file), @"using WebPush\b|new WebPushClient|\bWebPush\.\w"))
+            .Select(file => Path.GetFileName(file))
+            .ToList();
+
+        users.Should().NotBeEmpty("the push service itself uses the library")
+            .And.OnlyContain(name => name.StartsWith("PushNotificationService."), "a second sender would not write the inbox copy");
+    }
+
     public void Dispose() => _db.Dispose();
 }
