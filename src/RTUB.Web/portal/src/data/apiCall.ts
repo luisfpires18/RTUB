@@ -16,6 +16,7 @@ export type Outcome<T> =
   /** `unavailable`: the thing exists but its file does not (a Música song without audio). */
   | { kind: 'notfound'; unavailable?: boolean }
   | { kind: 'forbidden' }
+  /** 409 `<area>:in-use`: other records point at the thing, so it cannot be deleted. */
   | { kind: 'inuse' }
   /** 409 from a Logística card saved from an older copy; an archived board or card is 'closed'. */
   | { kind: 'conflict' }
@@ -87,7 +88,7 @@ export async function call<T>(method: string, url: string, body?: unknown, retri
     if (r.status === 401) return { kind: 'signin' };
     if (r.status === 404) return { kind: 'notfound', unavailable: problem.type === 'music:audio-unavailable' };
     if (r.status === 403) return { kind: 'forbidden' };
-    if (r.status === 409) return { kind: problem.type === 'events:in-use' ? 'inuse' : problem.type === 'logistics:conflict' ? 'conflict' : 'closed' };
+    if (r.status === 409) return { kind: problem.type?.endsWith(':in-use') ? 'inuse' : problem.type === 'logistics:conflict' ? 'conflict' : 'closed' };
     return { kind: 'failed', title: problem.title };
   } catch {
     return { kind: 'failed' };

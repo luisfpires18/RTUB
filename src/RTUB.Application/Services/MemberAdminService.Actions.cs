@@ -1,6 +1,7 @@
 // Member admin: instruments, nickname, expel, reminder and delete.
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
@@ -182,6 +183,16 @@ public sealed partial class MemberAdminService
         if (!member.IsLeitao() && !MembersAuthorization.CanDeleteAnyMember(user))
         {
             return EventResult<bool>.Fail(EventResultStatus.Forbidden);
+        }
+
+        // MBWay transfers are RESTRICT in the database and money records are not deleted with a member: refuse before
+        // DeleteMemberWithRelatedDataAsync removes anything.
+        await using (var db = await _contexts.CreateDbContextAsync())
+        {
+            if (await db.MbwayTransfers.AnyAsync(t => t.MemberUserId == id))
+            {
+                return EventResult<bool>.Fail(EventResultStatus.InUse);
+            }
         }
 
         return await _profiles.DeleteMemberWithRelatedDataAsync(id)

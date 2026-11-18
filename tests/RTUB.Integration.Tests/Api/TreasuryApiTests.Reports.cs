@@ -100,6 +100,26 @@ public partial class TreasuryApiTests
             .Should().Be((170.10m, 30.05m, 140.05m), "the card and the page agree");
     }
 
+    [Fact]
+    public async Task DeletingADraftReport_ThatANerbaOrderPointsAt_IsRefused_AndKeepsTheReport()
+    {
+        var (reportId, _, _) = await SeedReportAsync();
+        var (eventId, _) = await AddNerbaAsync();
+        await using (var db = await Db())
+        {
+            db.NerbaOrders.Add(new NerbaOrder { EventId = eventId, ReportId = reportId, Item = "Bifanas", Stock = 1, PricePerUnit = 2m });
+            await db.SaveChangesAsync();
+        }
+
+        var (owner, _) = await SignInAsync(null, "Owner");
+        await AreaHttp.WithTokenAsync(owner);
+        var response = await owner.DeleteAsync($"/api/treasury/reports/{reportId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict, "the order blocks the delete in the database");
+        (await response.Content.ReadAsStringAsync()).Should().Contain("treasury:in-use");
+        (await ReportAsync(reportId)).Should().NotBeNull();
+    }
+
     private async Task AddReceiptTransactionAsync(int reportId)
     {
         await using var db = await Db();

@@ -10,6 +10,25 @@ namespace RTUB.Integration.Tests.Api;
 public partial class ShopApiTests
 {
     [Fact]
+    public async Task ReservingTwiceAtOnce_KeepsOneReservation_AndTheOtherIsToldThereIsOne()
+    {
+        var tee = await AddAsync($"{Tag()} Duplo", "Roupa", stock: 2, isPublic: false);
+        var (member, _) = await SignInAsync("Member");
+        await AreaHttp.WithTokenAsync(member);
+
+        var answers = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ =>
+            member.PostAsJsonAsync($"/api/shop/products/{tee}/reservations", new { hasSizes = false })));
+
+        answers.Select(a => a.StatusCode).Should().OnlyContain(status => status == HttpStatusCode.OK || status == HttpStatusCode.BadRequest,
+            "the unique index is not the member's problem");
+        answers.Count(a => a.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        foreach (var refused in answers.Where(a => a.StatusCode == HttpStatusCode.BadRequest))
+        {
+            (await AreaHttp.Errors(refused))["product"].Single().Should().Be("Já existe uma reserva para este produto");
+        }
+    }
+
+    [Fact]
     public async Task Reservations_FollowTheOldRules_AndNeverChangeTheStock()
     {
         var tag = Tag();

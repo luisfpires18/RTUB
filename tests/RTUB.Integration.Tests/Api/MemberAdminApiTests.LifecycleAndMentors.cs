@@ -3,8 +3,12 @@ using System.Net;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using RTUB.Application.Data;
 using RTUB.Application.DTOs;
+using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
 namespace RTUB.Integration.Tests.Api;
@@ -74,6 +78,61 @@ public partial class MemberAdminApiTests
         (await owner.DeleteAsync($"/api/members/{tuno.Id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await UserAsync(tuno.Id)).Should().BeNull();
         (await owner.DeleteAsync($"/api/members/{tuno.Id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_AMemberNamedOnAnMbwayTransfer_IsRefused_BeforeAnythingOfTheirsIsDeleted()
+    {
+        var (owner, _) = await SignInAsync("Owner");
+        await AreaHttp.WithTokenAsync(owner);
+        var tuno = await AddAsync(MemberCategory.Tuno);
+        int commentId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.MbwayTransfers.Add(new MbwayTransfer { Date = DateTime.Today, Amount = 3m, MemberUserId = tuno.Id, TransferTo = "Tesouraria" });
+            var comment = LeaderboardComment.Create(tuno.Id, tuno.Id, "texto");
+            db.LeaderboardComments.Add(comment);
+            await db.SaveChangesAsync();
+            commentId = comment.Id;
+        }
+
+        var response = await owner.DeleteAsync($"/api/members/{tuno.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict, "the transfer blocks the delete in the database");
+        (await response.Content.ReadAsStringAsync()).Should().Contain("members:in-use");
+        (await UserAsync(tuno.Id)).Should().NotBeNull();
+        using var check = _factory.Services.CreateScope();
+        (await check.ServiceProvider.GetRequiredService<ApplicationDbContext>().LeaderboardComments.AnyAsync(c => c.Id == commentId))
+            .Should().BeTrue("a refused delete removes nothing");
+    }
+
+    [Fact]
+    public async Task Delete_AMemberWhoLikedAnotherMembersComment_RemovesTheLike_AndTheMember()
+    {
+        var (owner, _) = await SignInAsync("Owner");
+        await AreaHttp.WithTokenAsync(owner);
+        var tuno = await AddAsync(MemberCategory.Tuno);
+        var other = await AddAsync(MemberCategory.Tuno);
+        int commentId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var comment = LeaderboardComment.Create(other.Id, other.Id, "texto");
+            db.LeaderboardComments.Add(comment);
+            await db.SaveChangesAsync();
+            db.LeaderboardCommentLikes.Add(LeaderboardCommentLike.Create(comment.Id, tuno.Id));
+            await db.SaveChangesAsync();
+            commentId = comment.Id;
+        }
+
+        (await owner.DeleteAsync($"/api/members/{tuno.Id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await UserAsync(tuno.Id)).Should().BeNull();
+        using var check = _factory.Services.CreateScope();
+        var after = check.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await after.LeaderboardComments.AnyAsync(c => c.Id == commentId)).Should().BeTrue("the comment is another member's");
+        (await after.LeaderboardCommentLikes.AnyAsync(l => l.CommentId == commentId)).Should().BeFalse();
     }
 
     [Fact]

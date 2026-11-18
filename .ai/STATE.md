@@ -10,6 +10,16 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 133 (`fix/133/data-loss`), second phase of the audit round. Each fix has a test that failed first.
+- Member delete: refused with `409 members:in-use`, before anything is deleted, while an MBWay transfer names the
+  member; likes on other members' leaderboard comments are now really deleted (they blocked the delete too).
+- Treasury: deleting a draft report a NERBA order points at answers `409 treasury:in-use`, not 500.
+- Report PDF: the cache key is a hash of the content the PDF prints (report, activities, transactions, calotes total).
+- Profile photo and instrument image: the new file is stored and saved before the old one is deleted.
+- A second submit at the same moment: a shop reservation answers the usual "Já existe uma reserva", a poll vote counts
+  once; neither answers 500.
+- Portal: any `409 <area>:in-use` is the `inuse` outcome; Membros and Tesouraria say why the delete was refused.
+
 Task 132 (`fix/132/release-gate`), first phase of the round the 2026-11-18 audit proposed (133-142 wait for the owner,
 see Next). Deploy • PROD's schema check refused the squashed release: it wants every migration id of the live build,
 2.3.12 lists 180 and a build with the Baseline lists 3. `release.sh` `cmd_schema_gate` now counts every id up to the
@@ -184,12 +194,9 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - Owner Storage Maintenance page not built.
 
 **Bugs and small fixes**
-- Treasury: deleting a draft report still referenced by `NerbaOrders.ReportId` answers 500; should be 409.
-- `ReportPdfService` caches by `Report.UpdatedAt` (transaction edits do not touch it): PDF up to 1 h stale.
 - Shop: a reservation snapshots no product name or price and is deleted with its product; `InFiscalYear` compares UTC
   `CreatedAt` with local-calendar bounds.
 - Deleting an instrument leaves its thumbnail in R2; "Remover imagem" on `/naipes/config` leaves the R2 object.
-- `UserProfileService.UpdateProfilePictureAsync` deletes the old image before the upload succeeds.
 - `NewsEndpoints.cs` 403 title names system roles (API callers only; the portal shows its own message).
 - React `/roles` probes `GET /api/governance/manage`, logging a 403 console error for members without rights.
 - `portal/index.html` `theme-color` is `#000000`; the manifest says `#3F2A86`.
@@ -255,12 +262,12 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 **Found by the 2026-11-18 audit for tasks 132+ (new; not fixed)**
-- Data: `UserProfileService.Delete.cs` deletes a member's data in about 20 steps with no transaction and never looks at
-  `MbwayTransfers` (`MemberUserId` is Restrict): a member with an MBWay transfer loses photos, posts and comments, then
-  the delete fails. `InstrumentInventoryService.Images.cs:41` deletes the old image before the new upload, like the
-  profile picture. A second submit answers 500 on a shop reservation (`ProductReservationService.cs:46`) and a poll vote
-  (unique index). A reservation never lowers stock (owner decision). Meeting atas are last-write-wins (a 409 needs a
-  version column, as `LogisticsCard.Version`).
+- Data: `UserProfileService.Delete.cs` still deletes a member's data in about 20 steps with no transaction (the
+  repositories and `UserManager` each use their own context), so a failure half-way leaves part deleted; task 133
+  removed the two known causes. A member named on an MBWay transfer cannot be deleted until the transfer is changed
+  (owner decision: keep, or clear the member on the transfer). A reservation never lowers stock (owner decision).
+  Meeting atas are last-write-wins (a 409 needs a version column, as `LogisticsCard.Version`). `EnrollmentService.cs:67`
+  was not checked for the same double-submit 500.
 - Dates: `RequestAdminService.cs:82` compares UTC `CreatedAt` with Portugal fiscal-year bounds (as the shop does);
   `CalotesNotificationBackgroundService.cs:99` reads the fiscal year from the system clock, not its injected clock;
   `ApplicationUserExtensions.cs:148` uses `DateTime.Now`.
@@ -285,10 +292,11 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   `/api/me/profile` 15 queries, `/api/members` 7, `/api/leaderboard` 7. Every route loads 137 kB gzip first.
 
 ## Next
-Phases the audit proposed, each waiting for the owner's "yes, phase N": 133 data-loss bugs, 134 Portugal time, 135
+Phases the audit proposed, each waiting for the owner's "yes, phase N": 134 Portugal time, 135
 security, 136 rule tests for the 14 `*Authorization` helpers, 137 test speed and a local launch profile, 138 a shared
 portal load hook, 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
-portal intro animation is not to be removed or shortened. Not proposed: the CSS merges, backend query work.
+portal intro animation is not to be removed or shortened. The drop release does not go to 3.0.0 (owner, 2026-11-18): the
+"MAJOR bump" wording in the docs changes with phase 142. Not proposed: the CSS merges, backend query work.
 
 After the release with tasks 130-131 is live on PROD: the hand-written drop of the five columns (MAJOR bump,
 `docs/db-cleanup-inventory.md`). Other owner decisions left by the audit: the empty 401 of `PushEndpoints` /

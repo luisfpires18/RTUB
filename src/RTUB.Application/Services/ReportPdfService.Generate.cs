@@ -1,4 +1,7 @@
 // Report PDF: builds the QuestPDF document and caches it.
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -14,9 +17,20 @@ public partial class ReportPdfService
 {
     public byte[] GenerateReportPdf(Report report, List<Activity> activities, List<(Activity activity, List<Transaction> transactions)> allTransactions, decimal calotesTotal = 0)
     {
-        // Generate cache key based on report content (use current time if UpdatedAt is null)
-        var timestamp = report.UpdatedAt?.ToString("yyyyMMddHHmmss") ?? DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-        var cacheKey = $"report-pdf-{report.Id}-{timestamp}";
+        // The key is the content: every value the PDF prints, in the order it prints it, so an edit, an addition or a
+        // deletion is a new PDF (saving a transaction does not stamp the report). A value this document starts to print
+        // goes here too; the row stamps are the net for one that is forgotten.
+        var content = JsonSerializer.Serialize(new
+        {
+            report.Id, report.Title, report.Year, report.Summary, report.PublishedAt, report.UpdatedAt, calotesTotal,
+            Activities = activities.Select(a => new { a.Name, a.StartDate, a.EndDate, a.Description, a.UpdatedAt }),
+            Transactions = allTransactions.Select(group => new
+            {
+                group.activity.Name,
+                Rows = group.transactions.Select(t => new { t.Date, t.Description, t.Category, t.Amount, t.Type, t.UpdatedAt }),
+            }),
+        });
+        var cacheKey = $"report-pdf-{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(content)))}";
 
         if (_cache.TryGetValue<byte[]>(cacheKey, out var cachedPdf) && cachedPdf != null)
         {

@@ -88,6 +88,8 @@ public static class MemberEndpoints
         EndpointResults.ToResult(result, ok, "Membro não encontrado.", status => status switch
         {
             EventResultStatus.Conflict => Results.Problem(title: "Os dados deste membro mudaram entretanto. Abre de novo.", statusCode: StatusCodes.Status409Conflict, type: "members:conflict"),
+            EventResultStatus.InUse => Results.Problem(title: "Este membro tem transferências MBWay em seu nome e não pode ser eliminado.",
+                statusCode: StatusCodes.Status409Conflict, type: "members:in-use"),
             _ => null,
         });
 }

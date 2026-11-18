@@ -58,22 +58,23 @@ public partial class UserProfileService : IUserProfileService
         if (user == null)
             throw new EntityNotFoundException(nameof(ApplicationUser), userId);
 
-        // Delete old image if it exists
-        if (!string.IsNullOrEmpty(user.ImageUrl))
-        {
-            await _imageStorageService.DeleteImageAsync(user.ImageUrl);
-        }
-
         // Use username for the profile folder (avoids special characters)
         var profileIdentifier = user.UserName ?? userId;
 
-        // Upload new image to Cloudflare R2
+        // Upload first: a failed upload must leave the member with the picture they had.
+        var oldImageUrl = user.ImageUrl;
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "profile", profileIdentifier);
         user.ImageUrl = imageUrl;
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
             throw new InvalidOperationException("Failed to update profile picture");
+
+        // The object name carries the time to the second: two uploads in one second share it, and it must stay.
+        if (!string.IsNullOrEmpty(oldImageUrl) && oldImageUrl != imageUrl)
+        {
+            await _imageStorageService.DeleteImageAsync(oldImageUrl);
+        }
     }
 
 }

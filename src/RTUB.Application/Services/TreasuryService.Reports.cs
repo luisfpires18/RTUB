@@ -115,6 +115,15 @@ public sealed partial class TreasuryService
             return EventResult<bool>.Fail(EventResultStatus.Closed);
         }
 
+        // NERBA orders are RESTRICT in the database: refuse with an answer instead of a database error.
+        await using (var db = await _contexts.CreateDbContextAsync())
+        {
+            if (await db.NerbaOrders.AnyAsync(o => o.ReportId == id))
+            {
+                return EventResult<bool>.Fail(EventResultStatus.InUse);
+            }
+        }
+
         await DeleteWithTransactionsAsync(db => db.Transactions.Where(t => t.Activity!.ReportId == id), async db =>
             (await db.Activities.Where(a => a.ReportId == id).ToListAsync()).Cast<object>().Concat(await db.Reports.Where(r => r.Id == id).ToListAsync()));
         return EventResult<bool>.Ok(true);

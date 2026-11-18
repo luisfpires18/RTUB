@@ -15,7 +15,11 @@ export const MIN_YEAR = 1990;
 export const LOCKED_HINT = 'Data fechada: só o Magister deste ano a corrige.';
 
 export const problem = (o: Outcome<unknown>, what: string) =>
-  outcomeText(o, what, { forbidden: 'Não tem permissão para esta ação.', notfound: 'Este membro já não existe.' });
+  outcomeText(o, what, {
+    forbidden: 'Não tem permissão para esta ação.',
+    notfound: 'Este membro já não existe.',
+    inuse: 'Este membro tem transferências MBWay em seu nome. Trata delas na Tesouraria antes de o eliminar.',
+  });
 
 /** As UsernameHelper.NormalizeUsername: lower case, no accents, letters and digits only. */
 export const username = (nickname: string) =>

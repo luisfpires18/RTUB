@@ -60,8 +60,9 @@ role).
 - Amounts are `decimal` euros, at most 2 decimals, no rounding; shown as `1234,56 €` (pt-PT).
 - History ("Histórico de Transações", Admin/Owner) reads the `Transaction` audit log of the report's activities (bank/cash
   rows only as "modified").
-- PDF: QuestPDF summary + activities and transactions. `ReportPdfService` caches by `Report.UpdatedAt`, which
-  transaction changes do not touch, so a PDF can be up to an hour stale.
+- PDF: QuestPDF summary + activities and transactions. `ReportPdfService` caches it for up to an hour under a key
+  made from the content it prints (the report, its activities, its transactions and the calotes total), so an edit, an
+  addition or a deletion gives a new PDF. A value the PDF starts to print must be added to that key.
 - Deleting an activity (or a draft report) with transactions: `Transactions.ActivityId` has no ON DELETE action, so the
   service deletes the activity (or report and activities) and its transactions in one database transaction (rows and
   audit log commit or roll back together). Their receipts are deleted from storage after the commit, best effort.
@@ -104,7 +105,7 @@ the refreshed page data.
 | Endpoint | Does |
 | --- | --- |
 | `GET /` | `{ reports, canCreate, canPublish, availableYears }` |
-| `POST /reports`, `POST /reports/{id}/publish`, `DELETE /reports/{id}` | `{ year }`; publish; delete a draft |
+| `POST /reports`, `POST /reports/{id}/publish`, `DELETE /reports/{id}` | `{ year }`; publish; delete a draft (`409 treasury:in-use` while a NERBA order points at it) |
 | `GET /reports/{id}`, `GET /reports/{id}/pdf`, `GET /reports/{id}/history?page=&pageSize=` | report, PDF file, history |
 | `PUT /reports/{id}/balance` | `{ kind: "bank" \| "cash", value }` |
 | `POST /reports/{id}/activities`, `PUT`/`DELETE /activities/{id}`, `POST /activities/{id}/lock` | activities, `{ locked }` |
@@ -126,4 +127,3 @@ link (managers, draft reports only); the query is removed from the address once 
 ## Follow-ups
 
 - Receipts are public by URL; private objects with pre-signed links need a storage change.
-- Report PDF cache can be stale (see Data and money model).
