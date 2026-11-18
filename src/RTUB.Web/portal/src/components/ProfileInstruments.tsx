@@ -2,7 +2,7 @@
 import { FieldError } from './ui/FieldError';
 import { EmptyNote } from './ui/EmptyNote';
 import { useId, useState } from 'react';
-import type { Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { memberAreaApi, type MyProfile } from '../data/memberAreaApi';
 import { type MemberInstrument } from '../data/membersApi';

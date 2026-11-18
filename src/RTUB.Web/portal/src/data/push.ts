@@ -1,4 +1,4 @@
-import { call, type Outcome } from './eventsApi';
+import { call, type Outcome } from './api';
 
 // Web Push for the React /profile (docs/react-push-v2.md): /api/push (Endpoints/PushEndpoints.cs) plus the
 // browser's own state. Capability detection only, no user-agent checks. Nothing is stored in the browser: the server

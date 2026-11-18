@@ -2,12 +2,13 @@
 import { useEffect, useId, useState } from 'react';
 import { EmptyNote } from './ui/EmptyNote';
 import { FieldError } from './ui/FieldError';
-import type { Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
-import { memberAdminApi, type MemberInstrument, type Mentor, type Option } from '../data/membersApi';
+import { memberAdminApi, type MemberInstrument, type Mentor } from '../data/membersApi';
 import { MemberBadge } from './MemberBadge';
 import { LOCKED_HINT, MIN_YEAR, MONTHS, problem } from '../data/memberFormState';
 import { Avatar } from './ui/Avatar';
+import type { Option } from '../data/sharedTypes';
 
 export function MonthYear({
   label,

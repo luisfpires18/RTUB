@@ -40,8 +40,8 @@ let token: Promise<string> | null = null;
 export function antiforgeryToken(refresh = false): Promise<string> {
   if (!token || refresh) {
     token = fetch('/api/public/antiforgery-token', { credentials: 'same-origin' })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((t: { token: string }) => t.token)
+      .then(json<{ token: string }>)
+      .then((t) => t.token)
       .catch((e) => {
         token = null;
         throw e;
@@ -50,10 +50,10 @@ export function antiforgeryToken(refresh = false): Promise<string> {
   return token;
 }
 
-/** { q: 'ana', page: '' } → "?q=ana" (empty values left out); "" when nothing is left. */
-export const queryString = (params: Record<string, string>) => {
+/** { q: 'ana', page: '', all: false } → "?q=ana" (empty, null and false values left out; 0 stays); "" when nothing is left. */
+export const queryString = (params: Record<string, string | number | boolean | null | undefined>) => {
   const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v) p.set(k, v);
+  for (const [k, v] of Object.entries(params)) if (v !== null && v !== undefined && v !== '' && v !== false) p.set(k, String(v));
   const s = p.toString();
   return s ? `?${s}` : '';
 };

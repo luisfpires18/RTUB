@@ -15,6 +15,10 @@ Task 123 (`chore/123/dead-code-docs`): members with no production caller deleted
 `ReportService.DeleteReportAsync`, `Activity.LatestDate`, `Report.FinalBalance`, `Album.CoverImageSrc`,
 `MimeTypeHelper.GetImageMimeType`, `SearchHelper.IsSearching`; 4,038 → 4,023 tests); stale lines fixed in
 `docs/performance-gate.md`, `docs/pwa-practices.md`, the ADR README and here.
+Task 124 (`chore/124/portal-data`, on top of 123): the portal's request helper (`call`, `Outcome`, `antiforgeryToken`)
+is imported from `data/api` everywhere (50 files went through `eventsApi`); one `queryString` (three hand-built copies
+gone; it now also takes numbers, booleans and null), `json` used by its three hand-written copies, one `Option` type in
+`data/sharedTypes.ts` (six copies), `fold` from `data/format.ts` (three copies). Same requests.
 
 Last: tasks 120-122 (PRs #326-#328, merged into `dev`): test hosts without the background workers and one copy of the
 test helpers (full suite 3 m 28 s → 2 m 11 s); report history in one query and seven push loops batched;
@@ -52,6 +56,17 @@ one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree
 **Portal (left after phase 3)**
 - `EventManage`, `GalleryManage` and `MeetingDialogs` keep their own error sentences (formal "Tente"/"Entre", other
   rules); 17 notices with their own buttons stay hand-written. Tabs (4) and avatar images differ in class and size.
+
+**Portal data layer (left after 124)**
+- No shared load hook: pages turn an `Outcome` into state in nine shapes (`null`, `[]`, `'signin'`, `'forbidden'`,
+  `'missing'`, `'failed'`, objects), 26 with a hand-written `live` guard; `useOwnerLoad` (`components/OwnerUi.tsx`)
+  serves the Owner pages only. Converting them cannot be checked without a JS test runner.
+- Still copied: the antiforgery token fetch (`signInApi.ts` ×2 and `publicRequestApi.ts` need the field name and a fresh
+  token), the XHR upload (`galleryUploadApi.ts`, `logisticsApi.ts`), the sign-in status mapping (`passkey.ts`,
+  `signInApi.ts`), `fold` variants (`hierarchyTree.ts` null-safe, `treasuryApi.ts` with `\p{M}`, `musicFormHelpers.ts`
+  trims). `shopApi.ts` and `requestsApi.ts` build their own query on purpose (an empty `fiscalYear=` means every year).
+- Same type name, different meaning: `PushResult` (`ownerApi.ts`, `push.ts`), `MemberDetail` (`leaderboardApi.ts`,
+  `membersApi.ts`), `NoticeAudience` (`eventsTypes.ts`, `rehearsalsApi.ts`); the person shape is declared nine times.
 
 **UI kit (left after 119)**
 - Kept hand-written on purpose (different look or attributes): `lx-tabs`/`lx-views`/`news-tabs`/`playalong__group`
@@ -185,6 +200,5 @@ one function each (`components/MeetingAta.tsx`, `MessageThread.tsx`, `FamilyTree
 - GitGuardian: historical incidents stay historical; mark them by hand.
 
 ## Next
-Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 124 portal data
-layer (one load hook, shared types), 125 UI kit leftovers, 126 portal lazy loading, 127 CSS merges, 128 tests for money,
-permissions and push gaps.
+Second cleanup round, one stacked branch and PR per phase; the owner starts each one ("yes, phase N"): 125 UI kit
+leftovers, 126 portal lazy loading, 127 CSS merges, 128 tests for money, permissions and push gaps.

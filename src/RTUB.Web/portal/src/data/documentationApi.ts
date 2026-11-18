@@ -1,11 +1,10 @@
 // Documentation types, API client and small helpers.
-import { call, type Outcome } from './eventsApi';
-import { outcomeText } from './api';
+import { call, type Outcome, outcomeText } from './api';
+import type { Option } from './sharedTypes';
 
 // /api/documentation (Endpoints/DocumentationEndpoints.cs). Signed-in members only, Leitões refused;
 // Owner manages. The server decides every rule (DocumentationService); hiding a button here is only a convenience.
 
-type Option = { value: string; label: string };
 export type Doc = { name: string; extension: string; sizeBytes: number };
 export type Folder = { name: string; label: string; documents: Doc[] };
 export type Docs = {

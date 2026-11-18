@@ -1,4 +1,4 @@
-import { call } from './eventsApi';
+import { call } from './api';
 
 // /api/account/forgot-password, /reset-password and /confirm-email (Endpoints/AccountRecoveryEndpoints.cs).
 // Public; every call is a POST with the X-CSRF-TOKEN header (call()). Tokens go in the body, never in a URL we build.

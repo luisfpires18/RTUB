@@ -1,6 +1,5 @@
 // Gallery upload/edit types, the /api/gallery calls and the XHR upload with progress.
-import { GalleryItem, GalleryPerson } from './api';
-import { antiforgeryToken, call, type Outcome } from './eventsApi';
+import { GalleryItem, GalleryPerson, antiforgeryToken, call, type Outcome } from './api';
 
 export const MAX_IMAGE = 10 * 1024 * 1024;
 export const MAX_VIDEO = 100 * 1024 * 1024;

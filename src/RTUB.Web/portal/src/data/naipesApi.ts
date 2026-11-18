@@ -1,5 +1,5 @@
-import { call } from './eventsApi';
-import type { Option } from './membersApi';
+import { call, queryString } from './api';
+import type { Option } from './sharedTypes';
 
 // /api/naipes (Endpoints/NaipeEndpoints.cs). Signed-in members only; the settings are Admin / Owner. The
 // server decides every rule (NaipeBoardService); hiding a button here is only a convenience.
@@ -34,16 +34,8 @@ export type NaipeComment = { id: number; authorName: string; authorAvatarUrl: st
 export type NaipeSetting = { id: number; instrument: string; label: string; pictureUrl: string | null; isVisible: boolean; sortOrder: number };
 type NaipeUploadForm = { file: File; instrument: string; isVideo: boolean; title: string; description: string; sortOrder: string };
 
-const query = (instrument: string, q: string) => {
-  const p = new URLSearchParams();
-  if (instrument) p.set('instrument', instrument);
-  if (q) p.set('q', q);
-  const s = p.toString();
-  return s ? `?${s}` : '';
-};
-
 export const naipesApi = {
-  board: (instrument: string, q: string) => call<NaipeBoard>('GET', `/api/naipes${query(instrument, q)}`),
+  board: (instrument: string, q: string) => call<NaipeBoard>('GET', `/api/naipes${queryString({ instrument, q })}`),
   create: (f: NaipeUploadForm) => {
     const form = new FormData();
     form.set('file', f.file);

@@ -3,7 +3,7 @@ import { DialogFooter } from './ui/DialogFooter';
 import { FieldError } from './ui/FieldError';
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Dialog } from './Dialog';
-import type { Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { memberAdminApi } from '../data/membersApi';
 import { problem, username } from '../data/memberFormState';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';

@@ -1,7 +1,8 @@
 // Typed client for /api/rehearsals (Endpoints/RehearsalEndpoints.cs). Rehearsals speak of
 // presença (attendance); events keep their own answer word. The server decides what the caller may see and do.
 // Dates are local "yyyy-MM-dd" / "HH:mm" text, never parsed as UTC.
-import { call, type EventAuthor, type MemberOption } from './eventsApi';
+import { type EventAuthor, type MemberOption } from './eventsApi';
+import { call } from './api';
 
 /** The caller's own presença: "pending" (vou, not approved yet), "approved" or "notGoing". */
 type PresenceStatus = 'pending' | 'approved' | 'notGoing';

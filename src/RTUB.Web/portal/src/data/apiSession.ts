@@ -1,5 +1,6 @@
 // The signed-in state (GET /api/account/me), the member-shell hint and the system announcement.
 
+import { json } from './apiCall';
 
 /**
  * Which member-menu groups the caller sees (MemberMenuAccess): the navbar rules, decided by the
@@ -33,7 +34,7 @@ let session: Promise<CurrentUser> | null = null;
 export function getCurrentUser(refresh = false): Promise<CurrentUser> {
   if (!session || refresh) {
     session = fetch('/api/account/me', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
-      .then((r) => (r.ok ? (r.json() as Promise<CurrentUser>) : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(json<CurrentUser>)
       .then((user) => {
         rememberMemberShell(user.authenticated);
         return user;

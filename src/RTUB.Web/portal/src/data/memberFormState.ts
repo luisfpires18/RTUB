@@ -1,7 +1,6 @@
 // Member form constants, form type and blank/from-edit builders shared by the member admin dialogs.
-import type { Outcome } from './eventsApi';
+import { type Outcome, outcomeText } from './api';
 import { type MemberEdit, type MemberInput } from './membersApi';
-import { outcomeText } from './api';
 
 export const CATEGORIES = [
   { value: 'Leitao', label: 'Leitão' },

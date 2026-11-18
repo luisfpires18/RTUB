@@ -1,7 +1,8 @@
 import { rehearsalActivity, CalendarOfferDialog } from '../components/CalendarOffer';
 import { useEffect, useState } from 'react';
 import { Notice, SignInNotice } from '../components/Notice';
-import { weekday, dateLabel, type Outcome } from '../data/eventsApi';
+import { weekday, dateLabel } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from '../components/icons';
 import { rehearsalsApi, type RehearsalDetail as Detail } from '../data/rehearsalsApi';
 import { CancelDialog, NoticeDialog } from '../components/RehearsalCancelNotice';

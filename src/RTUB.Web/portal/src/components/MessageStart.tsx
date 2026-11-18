@@ -7,6 +7,7 @@ import { type Draft, type Person, api, problem } from '../data/messagesApi';
 import { Loading } from './ui/Loading';
 import { Avatar } from './ui/Avatar';
 import { FormField } from './ui/FormField';
+import { fold } from '../data/format';
 
 export function DraftThread({ draft, onBack, onStarted }: { draft: Draft; onBack: () => void; onStarted: (id: number) => void }) {
   const [error, setError] = useState<string>();
@@ -73,7 +74,6 @@ export function StartDialog({ onClose, onPicked }: { onClose: () => void; onPick
 
   const shown = useMemo(() => {
     if (!Array.isArray(people)) return [];
-    const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     const term = fold(q.trim());
     return people.filter((p) => !term || fold(`${p.displayName} ${p.fullName ?? ''}`).includes(term));
   }, [people, q]);

@@ -4,10 +4,11 @@ import { DialogFooter } from './ui/DialogFooter';
 import { Banner } from './ui/Banner';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
-import { memberAdminApi, type MemberInfo, type MemberInfoInput, type MemberInstrument, type Option } from '../data/membersApi';
+import { memberAdminApi, type MemberInfo, type MemberInfoInput, type MemberInstrument } from '../data/membersApi';
 import { Instruments, MentorPicker, MonthYear } from './MemberFormFields';
 import { problem } from '../data/memberFormState';
 import { Loading } from './ui/Loading';
+import type { Option } from '../data/sharedTypes';
 
 /**
  * "Completar informação" - the limited edit Mod, Admin and Owner share: Cidade, Contacto, instruments, the

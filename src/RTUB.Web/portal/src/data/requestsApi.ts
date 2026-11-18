@@ -1,11 +1,9 @@
 // Types, API calls and display helpers for the /requests page.
-import { call, type Outcome } from './eventsApi';
-import { outcomeText } from './api';
+import { call, type Outcome, outcomeText } from './api';
+import type { Option } from './sharedTypes';
 
 // /api/requests (Endpoints/RequestAdminEndpoints.cs). Dates are yyyy-MM-dd; createdAt is UTC.
 type Status = 'pending' | 'analysing' | 'confirmed' | 'rejected';
-
-type Option = { value: string; label: string };
 
 export type RequestItem = {
   id: number;

@@ -1,5 +1,4 @@
-import type { SignInOutcome } from './api';
-import { antiforgeryToken, call } from './eventsApi';
+import { type SignInOutcome, antiforgeryToken, call } from './api';
 
 /**
  * Face ID / fingerprint sign-in: WebAuthn passkeys on ASP.NET Core Identity. The server hands out the

@@ -1,8 +1,8 @@
 // Pieces shared by the rehearsal dialogs: the notes limit, error text, the rehearsal line and the presença pill.
 
-import { dateLabel, type Outcome } from '../data/eventsApi';
+import { dateLabel } from '../data/eventsApi';
+import { type Outcome, outcomeText } from '../data/api';
 import { Icon } from './icons';
-import { outcomeText } from '../data/api';
 import { presenceLabel, type RehearsalSummary } from '../data/rehearsalsApi';
 
 export const NOTES_MAX = 500;

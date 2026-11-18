@@ -1,9 +1,9 @@
 // Helpers shared by the event discussion pieces: limits, time label, text with mentions, author line.
 
 import type { KeyboardEvent, ReactNode } from 'react';
-import type { EventAuthor, EventPost, Outcome } from '../data/eventsApi';
+import type { EventAuthor, EventPost } from '../data/eventsApi';
+import { type Outcome, outcomeText } from '../data/api';
 import { MemberBadge, badgeKind } from './MemberBadge';
-import { outcomeText } from '../data/api';
 import { Avatar } from './ui/Avatar';
 
 export const BODY_MAX = 5000;

@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useState } from 'react';
 import { Dialog } from './Dialog';
-import { eventsApi, type EnrollmentList, type MemberOption, type EventSummary, type Outcome } from '../data/eventsApi';
+import { eventsApi, type EnrollmentList, type MemberOption, type EventSummary } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
 import { Loading } from './ui/Loading';

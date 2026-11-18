@@ -1,10 +1,9 @@
 // Inventory types, API client and small helpers.
-import { call, type Outcome } from './eventsApi';
-import { queryString, outcomeText } from './api';
+import { call, type Outcome, queryString, outcomeText } from './api';
+import type { Option } from './sharedTypes';
 
 // /api/inventory (Endpoints/InventoryEndpoints.cs). Signed-in members only; Mod, Admin and Owner
 
-export type Option = { value: string; label: string };
 export type Card = {
   id: number;
   name: string;

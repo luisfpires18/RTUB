@@ -1,4 +1,5 @@
-import { call } from './eventsApi';
+import { call, queryString } from './api';
+import type { Option } from './sharedTypes';
 
 // /api/members (Endpoints/MemberEndpoints.cs). Signed-in members only; the writes are
 // Admin/Owner and the server decides every rule (MemberAdminService).
@@ -17,7 +18,6 @@ export type MemberCard = {
   inactive: boolean;
   expelled: boolean;
 };
-export type Option = { value: string; label: string };
 export type Directory = {
   members: MemberCard[];
   leitoes: MemberCard[];
@@ -88,13 +88,6 @@ export type Birthday = {
 };
 export type TreeNode = { id: string; displayName: string; fullName: string | null; avatarUrl: string | null; children: TreeNode[] };
 
-const query = (params: Record<string, string | boolean>) => {
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v) p.set(k, String(v));
-  const s = p.toString();
-  return s ? `?${s}` : '';
-};
-
 // ---------- member admin (Admin/Owner) ----------
 
 export type MemberInstrument = { id: number; instrument: string; label: string; primary: boolean };
@@ -156,7 +149,7 @@ export const memberAdminApi = {
   info: (id: string) => call<MemberInfo>('GET', `${at(id)}/info`),
   saveInfo: (id: string, input: MemberInfoInput) => call<MemberInfo>('PUT', `${at(id)}/info`, input),
   edit: (id: string) => call<MemberEdit>('GET', `${at(id)}/edit`),
-  mentors: (q: string, exclude?: string) => call<Mentor[]>('GET', `/api/members/mentors${query({ q, exclude: exclude ?? '' })}`),
+  mentors: (q: string, exclude?: string) => call<Mentor[]>('GET', `/api/members/mentors${queryString({ q, exclude: exclude ?? '' })}`),
   create: (input: MemberInput) => call<{ id: string }>('POST', '/api/members', input),
   update: (id: string, input: MemberInput) => call<MemberEdit>('PUT', at(id), input),
   remove: (id: string) => call<void>('DELETE', at(id)),
@@ -170,10 +163,10 @@ export const memberAdminApi = {
 };
 
 export const membersApi = {
-  directory: (f: DirectoryFilters) => call<Directory>('GET', `/api/members${query(f)}`),
+  directory: (f: DirectoryFilters) => call<Directory>('GET', `/api/members${queryString(f)}`),
   member: (id: string) => call<MemberDetail>('GET', `/api/members/${encodeURIComponent(id)}`),
-  active: (status: string, q: string) => call<ActiveMember[]>('GET', `/api/members/active${query({ status, q })}`),
-  birthdays: (q: string) => call<Birthday[]>('GET', `/api/members/birthdays${query({ q })}`),
+  active: (status: string, q: string) => call<ActiveMember[]>('GET', `/api/members/active${queryString({ status, q })}`),
+  birthdays: (q: string) => call<Birthday[]>('GET', `/api/members/birthdays${queryString({ q })}`),
   hierarchy: () => call<TreeNode[]>('GET', '/api/members/hierarchy'),
 };
 

@@ -3,12 +3,13 @@ import { PersonLine } from './ui/PersonLine';
 import { useId, useMemo, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import { MAX_CONTENT, MAX_TITLE, MIN_CONTENT, type Recipient, api, fold, problem } from '../data/questionsApi';
+import { MAX_CONTENT, MAX_TITLE, MIN_CONTENT, type Recipient, api, problem } from '../data/questionsApi';
 import { Avatar } from './ui/Avatar';
 import { Banner } from './ui/Banner';
 import { FieldError } from './ui/FieldError';
 import { FormField, fieldProps } from './ui/FormField';
 import { Spinner } from './ui/Spinner';
+import { fold } from '../data/format';
 
 export function AskDialog({ recipients, onClose, onAsked }: { recipients: Recipient[]; onClose: () => void; onAsked: (id: number) => void }) {
   const id = useId();

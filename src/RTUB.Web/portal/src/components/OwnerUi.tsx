@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import type { Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon, type IconName } from './icons';
 import { portal } from '../data/content';
 import { Notice, SignInNotice } from './Notice';
@@ -7,6 +7,7 @@ import { Loading } from './ui/Loading';
 import { EmptyState } from './ui/EmptyState';
 import { PageHead } from './ui/PageHead';
 import { IconAction } from './ui/IconAction';
+import { fold } from '../data/format';
 
 /** What an Owner page shows: the data, a sign-in prompt, the refusal, or a failure (null). */
 type Loaded<T> = T | 'signin' | 'forbidden' | null | undefined;
@@ -137,7 +138,6 @@ export function SearchBox({ label, placeholder, value, onChange }: { label: stri
 
 /** "texto" contains the search, ignoring case and accents. */
 export const matches = (q: string, ...fields: (string | null | undefined)[]) => {
-  const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const needle = fold(q.trim());
   return !needle || fields.some((f) => f && fold(f).includes(needle));
 };

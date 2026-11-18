@@ -3,7 +3,7 @@ import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { Section } from './LogisticsPanel';
-import type { Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { logisticsApi, PRIORITY, problem, STATUS, type Board, type Card, type CardDetail } from '../data/logisticsApi';
 import { day } from '../data/format';
 import { deadline } from '../data/logisticsDates';

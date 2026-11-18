@@ -2,8 +2,7 @@
 import { Spinner } from './ui/Spinner';
 import { FieldError } from './ui/FieldError';
 import { useState, type ReactNode, type Ref } from 'react';
-import { outcomeText } from '../data/api';
-import type { Outcome } from '../data/eventsApi';
+import { outcomeText, type Outcome } from '../data/api';
 import { Icon, type IconName } from './icons';
 
 export const problem = (o: Outcome<unknown>, what: string) =>

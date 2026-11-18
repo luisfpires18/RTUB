@@ -1,7 +1,8 @@
 // Pieces shared by the event management dialogs: the failure banner, the event line, member counts, the audience hook.
 
 import { useEffect, useState } from 'react';
-import { dateLabel, eventsApi, timeLabel, type EventSummary, type NoticeAudience, type Outcome } from '../data/eventsApi';
+import { dateLabel, eventsApi, timeLabel, type EventSummary, type NoticeAudience } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 
 /** The banner for a refused or failed call; `what` names the action ("guardar", "cancelar"...). */
 export const failure = (o: Outcome<unknown>, what: string) =>

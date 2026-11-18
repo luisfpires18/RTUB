@@ -1,7 +1,6 @@
 // Naipes limits, accepted formats and error text.
-import { type Outcome } from './eventsApi';
+import { type Outcome, outcomeText } from './api';
 import { type NaipeItem } from './naipesApi';
-import { outcomeText } from './api';
 
 export const PAGE_SIZES = [10, 20, 30, 40, 50];
 export const MAX_VIDEO = 100 * 1024 * 1024;

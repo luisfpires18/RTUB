@@ -1,5 +1,4 @@
-import { call, type Outcome } from './eventsApi';
-import { outcomeText } from './api';
+import { call, type Outcome, outcomeText } from './api';
 
 // /api/treasury (Endpoints/TreasuryEndpoints.cs). Signed-in members; the server decides every rule
 // (TreasuryAuthorization): treasury members read, Caloiros and Leitões see only their own calotes.

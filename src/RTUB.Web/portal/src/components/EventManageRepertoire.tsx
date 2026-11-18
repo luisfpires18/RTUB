@@ -2,7 +2,8 @@
 
 import { useEffect, useId, useState } from 'react';
 import { Dialog } from './Dialog';
-import { dayOf, monthShort, eventsApi, type RepertoireManage, type RepertoireSong, type EventSummary, type Outcome } from '../data/eventsApi';
+import { dayOf, monthShort, eventsApi, type RepertoireManage, type RepertoireSong, type EventSummary } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon } from './icons';
 import { failure, EventLine } from './EventManageShared';
 import { Loading } from './ui/Loading';

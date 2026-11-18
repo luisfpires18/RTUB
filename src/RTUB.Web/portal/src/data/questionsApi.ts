@@ -1,6 +1,5 @@
 // Types, API calls and display helpers for the /questions page.
-import { call, type Outcome } from './eventsApi';
-import { outcomeText } from './api';
+import { call, type Outcome, outcomeText } from './api';
 
 // /api/questions (Endpoints/QuestionEndpoints.cs). Dates are UTC.
 type Status = 'unanswered' | 'answered' | 'inDiscussion' | 'closed';
@@ -70,8 +69,6 @@ export const statusPill: Record<Status, string> = {
 
 export const stamp = (iso: string) =>
   new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : `${iso}Z`).toLocaleString('pt-PT', { dateStyle: 'medium', timeStyle: 'short' });
-
-export const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export const problem = (o: Outcome<unknown>, what: string) =>
   outcomeText(o, what, { forbidden: 'Não tem permissão para esta ação.', notfound: 'Esta pergunta já não existe.' });

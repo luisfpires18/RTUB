@@ -2,7 +2,7 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
-import type { Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { logisticsApi, problem, STATUS, STATUSES, type List, type MemberOption, type Status } from '../data/logisticsApi';
 import { MemberPicker } from './LogisticsFields';
 import { FieldError } from './ui/FieldError';

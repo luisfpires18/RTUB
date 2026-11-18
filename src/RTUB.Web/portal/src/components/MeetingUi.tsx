@@ -1,6 +1,6 @@
 // Shared pieces of the /meetings dialogs: field limits, error text, pills, avatars, ConfirmDialog and summary blocks.
 import { useId, type ReactNode } from 'react';
-import type { Outcome } from '../data/eventsApi';
+import type { Outcome } from '../data/api';
 import { Icon, type IconName } from './icons';
 import type { MeetingCard, MeetingPerson } from '../data/meetingsTypes';
 import { longDateTime } from '../data/meetingsDates';

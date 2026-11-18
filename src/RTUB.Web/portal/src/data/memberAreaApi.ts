@@ -1,5 +1,6 @@
-import { call } from './eventsApi';
-import type { MemberDetail, MemberInstrument, Mentor, Option } from './membersApi';
+import { call } from './api';
+import type { MemberDetail, MemberInstrument, Mentor } from './membersApi';
+import type { Option } from './sharedTypes';
 
 // /api/me, /api/members/map and /api/hall-of-fame (Endpoints/MemberAreaEndpoints.cs). Signed-in members
 // only; the server decides every rule (MyProfileService, MemberMapService, HallOfFameService).
