@@ -29,8 +29,6 @@ public class Report : BaseEntity
         .Where(t => t.Type == "Expense")
         .Sum(t => t.Amount);
 
-    public decimal FinalBalance => TotalIncome - TotalExpenses;
-
     // Private constructor for EF Core
     public Report() { }
 

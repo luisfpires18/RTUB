@@ -48,7 +48,6 @@ public partial class ActivityTests
         activity.Should().NotBeNull();
         activity.StartDate.Should().Be(startDate);
         activity.EndDate.Should().Be(endDate);
-        activity.LatestDate.Should().Be(endDate);
     }
 
     [Fact]

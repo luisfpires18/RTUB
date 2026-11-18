@@ -58,20 +58,4 @@ public class ReportService : IReportService
         report.Publish();
         await _reportRepository.UpdateAsync(report);
     }
-
-    /// <summary>
-    /// Deletes a report and all its associated activities and transactions
-    /// </summary>
-    /// <param name="reportId">The ID of the report to delete</param>
-    /// <exception cref="EntityNotFoundException">Thrown when the report is not found</exception>
-    public async Task DeleteReportAsync(int reportId)
-    {
-        var report = await _reportRepository.GetByIdWithActivitiesAsync(reportId);
-
-        if (report == null)
-            throw new EntityNotFoundException(nameof(Report), reportId);
-
-        // Repository will handle cascading deletes through EF Core relationships
-        await _reportRepository.DeleteAsync(report);
-    }
 }

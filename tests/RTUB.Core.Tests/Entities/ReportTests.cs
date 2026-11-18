@@ -64,22 +64,6 @@ public partial class ReportTests
         // Assert - computed properties calculate from transactions
         report.TotalIncome.Should().Be(5000m);
         report.TotalExpenses.Should().Be(3000m);
-        report.FinalBalance.Should().Be(2000m);
-    }
-
-    [Fact]
-    public void ComputedFinancials_WithNegativeBalance_CalculatesCorrectly()
-    {
-        // Arrange
-        var report = Report.Create("Test Report", 2023);
-        var testDate = new DateTime(2023, 6, 15);
-        var activity = Activity.Create(1, "Activity", testDate);
-        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 2000m, "Income", 1));
-        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
-        report.Activities.Add(activity);
-
-        // Assert - computed property calculates negative balance
-        report.FinalBalance.Should().Be(-1000m);
     }
 
     [Fact]

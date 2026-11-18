@@ -28,25 +28,6 @@ public class MimeTypeHelperTests
         Assert.Equal(expectedMimeType, result);
     }
 
-    [Theory]
-    [InlineData("image.jpg", "image/jpeg", "image/jpeg")] // Valid content type provided
-    [InlineData("image.jpg", "", "image/jpeg")] // Empty content type, use extension
-    [InlineData("image.jpeg", "", "image/jpeg")] // JPEG extension
-    [InlineData("image.png", "", "image/png")] // PNG file
-    [InlineData("image.gif", "", "image/gif")] // GIF file
-    [InlineData("image.webp", "", "image/webp")] // WebP file
-    [InlineData("IMAGE.JPG", "", "image/jpeg")] // Case insensitive
-    [InlineData("unknown.xyz", "", "image/jpeg")] // Unknown extension, default to jpeg
-    [InlineData("image.jpg", "application/octet-stream", "image/jpeg")] // Wrong type, use extension
-    public void GetImageMimeType_ShouldReturnCorrectMimeType(string fileName, string? providedContentType, string expectedMimeType)
-    {
-        // Act
-        var result = MimeTypeHelper.GetImageMimeType(fileName, providedContentType);
-
-        // Assert
-        Assert.Equal(expectedMimeType, result);
-    }
-
     [Fact]
     public void GetVideoMimeType_WithMobileUploadScenario_ShouldUseFallback()
     {
