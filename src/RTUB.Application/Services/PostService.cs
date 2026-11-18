@@ -93,10 +93,7 @@ public class PostService : IPostService
                             .Select(e => e.UserId)
                             .ToListAsync());
 
-                        foreach (var userId in enrolledUserIds)
-                        {
-                            await _pushNotificationService.SendToUserAsync(userId, notification);
-                        }
+                        await _pushNotificationService.SendToSelectedUsersAsync(enrolledUserIds, notification);
                     }
 
                     // Send mention notifications (always, regardless of event date)

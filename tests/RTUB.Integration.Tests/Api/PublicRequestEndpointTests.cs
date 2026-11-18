@@ -76,7 +76,7 @@ public class PublicRequestEndpointTests : IClassFixture<PublicRequestFactory>
         stored[0].IsDateRange.Should().BeFalse();
         _factory.Email.Verify(e => e.SendNewRequestNotificationAsync(stored[0].Id, "Ana", email, It.IsAny<string>(),
             It.IsAny<string>(), It.IsAny<DateTime>(), null, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>()), Times.Once);
-        _factory.Push.Verify(p => p.SendToUserAsync(It.IsAny<string>(), It.IsAny<SendPushNotificationDto>()), Times.AtLeastOnce,
+        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<SendPushNotificationDto>()), Times.AtLeastOnce,
             "the admin/owner push from RequestService still fires");
     }
 

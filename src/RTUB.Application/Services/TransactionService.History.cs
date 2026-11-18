@@ -26,6 +26,10 @@ public partial class TransactionService
         // Get all Transaction audit logs - simple SELECT * FROM AuditLogs WHERE EntityType = 'Transaction'
         var allLogs = await _auditLogService.GetAllForExportAsync(entityType: "Transaction");
 
+        // The report's transactions in one query (not one query per audit log)
+        var reportTransactions = (await _transactionRepository.GetTransactionsByActivityIdsAsync(activityIds))
+            .ToDictionary(t => t.Id);
+
         // Process each log and check if transaction belongs to report
         var historyEntries = new List<TransactionHistoryEntryDto>();
 
@@ -36,16 +40,12 @@ public partial class TransactionService
             string activityName = "N/A";
             string? description = null;
 
-            // Strategy 1: If EntityId exists, try to load transaction from database
-            if (transactionId.HasValue)
+            // Strategy 1: If EntityId exists, the transaction is one of the report's
+            if (transactionId.HasValue && reportTransactions.TryGetValue(transactionId.Value, out var transaction))
             {
-                var transaction = await _transactionRepository.GetByIdAsync(transactionId.Value);
-                if (transaction != null && transaction.ActivityId.HasValue && activityIds.Contains(transaction.ActivityId.Value))
-                {
-                    belongsToReport = true;
-                    activityName = activityNameMap.GetValueOrDefault(transaction.ActivityId.Value, "N/A");
-                    description = transaction.Description;
-                }
+                belongsToReport = true;
+                activityName = activityNameMap.GetValueOrDefault(transaction.ActivityId!.Value, "N/A");
+                description = transaction.Description;
             }
 
             // Strategy 2: Check Changes JSON (handles older Created logs with null EntityId, and Deleted transactions)

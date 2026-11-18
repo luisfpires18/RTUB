@@ -58,10 +58,7 @@ public class RequestService : IRequestService
             var adminUserIds = adminUsers.Union(ownerUsers).Select(u => u.Id).Distinct().ToList();
 
             // Send to each admin
-            foreach (var userId in adminUserIds)
-            {
-                await _pushNotificationService.SendToUserAsync(userId, notification);
-            }
+            await _pushNotificationService.SendToSelectedUsersAsync(adminUserIds, notification);
         }
         catch
         {

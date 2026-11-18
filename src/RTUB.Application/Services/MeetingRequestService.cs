@@ -109,10 +109,7 @@ public class MeetingRequestService : IMeetingRequestService
                 .ToList();
 
             // 5) Send notifications
-            foreach (var userId in recipientUserIds)
-            {
-                await _pushNotificationService.SendToUserAsync(userId, notification);
-            }
+            await _pushNotificationService.SendToSelectedUsersAsync(recipientUserIds, notification);
         }
         catch (Exception ex)
         {

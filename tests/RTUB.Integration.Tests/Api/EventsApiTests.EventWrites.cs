@@ -230,7 +230,7 @@ public partial class EventsApiTests
         var push = await admin.PostAsJsonAsync($"/api/events/{id}/notices", new { channel = "push", kind = (string?)null, message = "Concentração às 20h", onlyLeitoesAndCaloiros = false });
         push.StatusCode.Should().Be(HttpStatusCode.OK);
         (await push.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("sent").GetInt32().Should().Be(1);
-        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.Is<IEnumerable<string>>(ids => ids.Single() == adminUser.Id),
+        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { adminUser.Id })),
             It.Is<RTUB.Application.DTOs.SendPushNotificationDto>(n => n.Title == "Arraial com aviso" && n.Body == "Concentração às 20h")), Times.Once);
 
         var empty = await admin.PostAsJsonAsync($"/api/events/{id}/notices", new { channel = "push", kind = (string?)null, message = "", onlyLeitoesAndCaloiros = false });

@@ -80,10 +80,7 @@ public class MeetingService : IMeetingService
             var eligibleUserIds = await GetEligibleUsersForMeeting(createdMeeting.Type);
 
             // Send to each eligible user
-            foreach (var userId in eligibleUserIds)
-            {
-                await _pushNotificationService.SendToUserAsync(userId, notification);
-            }
+            await _pushNotificationService.SendToSelectedUsersAsync(eligibleUserIds, notification);
         }
         catch
         {
