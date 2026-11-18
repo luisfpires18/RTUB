@@ -7,14 +7,14 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /naipes and /naipes/config pages (task 033, docs/react-naipes.md). Same data and
+/// The React /naipes and /naipes/config pages (docs/react-naipes.md). Same data and
 /// behaviour through <see cref="INaipeService"/> (which keeps the R2 storage, the audit log and the push to everyone on
-/// a new item), rules now enforced here (<see cref="NaipesAuthorization"/>; the old pages only hid buttons):
-/// - the picker lists the visible instruments in their display order (the settings are created on first use, as before);
+/// a new item), rules now enforced here (<see cref="NaipesAuthorization"/>):
+/// - the picker lists the visible instruments in their display order (the settings are created on first use);
 /// - the chosen instrument's items, searched over title and description, by display order then creation
 ///   (<see cref="INaipeContentFilterService"/>);
 /// - add: a video (MP4, MOV, WebM or 3GP, ≤100 MB) or an image (JPEG, PNG, WebP or GIF, ≤10 MB), each checked by its
-///   bytes and stored with the type the server decided; a title (≤200; blank gets the old "Guitarra_Video_3" default), an
+///   bytes and stored with the type the server decided; a title (≤200; blank gets the "Guitarra_Video_3" default), an
 ///   optional description (≤1000) and a display order (0.1-999.9); edit (title, description, order) and delete: the
 ///   member who added it, or Admin / Owner;
 /// - comments (≤1000), newest first; delete: the author, or Admin / Owner; one play counted per video opening;
@@ -90,7 +90,7 @@ public sealed partial class NaipeBoardService : INaipeBoardService
             .ToList();
         if (selected is { } picked && instruments.All(i => i.Value != picked.ToString()))
         {
-            selected = null; // a hidden instrument is off the board, as the old picker never offered it
+            selected = null; // a hidden instrument is off the board, never offered
         }
 
         var all = await _naipes.GetAllContentAsync();
@@ -143,7 +143,7 @@ public sealed partial class NaipeBoardService : INaipeBoardService
             return Invalid<NaipeItemDto>(errors);
         }
 
-        // As the old page: an untitled item is "<Instrumento>_<Video|Imagem>_<n>".
+        // An untitled item is "<Instrumento>_<Video|Imagem>_<n>".
         var all = await _naipes.GetAllContentAsync();
         var title = Clean(upload.Title)
             ?? $"{StatusHelper.GetInstrumentDisplay(type)}_{(upload.IsVideo ? "Video" : "Imagem")}_{all.Count(c => c.InstrumentType == type && c.IsVideo == upload.IsVideo) + 1}";
@@ -193,7 +193,7 @@ public sealed partial class NaipeBoardService : INaipeBoardService
             return refused;
         }
 
-        // The old path: the file leaves R2, and the item goes with its comments and plays.
+        // The file leaves R2, and the item goes with its comments and plays.
         await _naipes.DeleteContentAsync(id, NaipesAuthorization.UserId(user)!, NaipesAuthorization.CanManage(user));
         return EventResult<bool>.Ok(true);
     }

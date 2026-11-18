@@ -48,7 +48,7 @@ public partial class TransactionService
                 }
             }
 
-            // Strategy 2: Check Changes JSON (handles old Created logs with null EntityId, and Deleted transactions)
+            // Strategy 2: Check Changes JSON (handles older Created logs with null EntityId, and Deleted transactions)
             if (!belongsToReport && !string.IsNullOrEmpty(log.Changes))
             {
                 try

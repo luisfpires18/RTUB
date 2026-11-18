@@ -1,7 +1,7 @@
 namespace RTUB.Application.DTOs;
 
 /// <summary>
-/// What happened to one push send (#230). <see cref="Sent"/> means the push service accepted it (2xx), not that the
+/// What happened to one push send. <see cref="Sent"/> means the push service accepted it (2xx), not that the
 /// device showed it: nothing reports the display back to the server.
 /// </summary>
 public enum PushDeliveryOutcome
@@ -29,5 +29,5 @@ public enum PushDeliveryOutcome
 /// <summary>One push send's outcome and the push service's HTTP status when there was one.</summary>
 public sealed record PushSendResult(PushDeliveryOutcome Outcome, int? StatusCode = null);
 
-/// <summary>POST /api/push/test: what the server knows about the test push to this browser (#230).</summary>
+/// <summary>POST /api/push/test: what the server knows about the test push to this browser.</summary>
 public sealed record PushTestResultDto(string Outcome, int? Status);

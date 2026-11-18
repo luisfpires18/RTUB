@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React /naipes and /naipes/config (task 033, docs/react-naipes.md): each instrument's
+/// The React /naipes and /naipes/config (docs/react-naipes.md): each instrument's
 /// teaching videos and images, their comments and play counts, and the instrument settings. Every rule is decided here.
 /// </summary>
 public interface INaipeBoardService
@@ -17,7 +17,7 @@ public interface INaipeBoardService
 
     Task<EventResult<bool>> DeleteAsync(int id, ClaimsPrincipal user);
 
-    /// <summary>A video was played (the old page counted one play per opening of the video).</summary>
+    /// <summary>A video was played (one play per opening of the video).</summary>
     Task<EventResult<bool>> PlayedAsync(int id, ClaimsPrincipal user);
 
     Task<EventResult<IReadOnlyList<NaipeCommentItemDto>>> GetCommentsAsync(int id, ClaimsPrincipal user);

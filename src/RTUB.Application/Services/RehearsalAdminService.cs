@@ -9,15 +9,15 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The management side of the React /rehearsals pages (React track 014, docs/react-rehearsals.md).
-/// Same rules, now server-side and for Admin or Owner (was IsInRole("Admin") only, in the UI):
+/// The management side of the React /rehearsals pages (docs/react-rehearsals.md).
+/// Rules enforced server-side, for Admin or Owner:
 /// - create one rehearsal (a date already taken is refused) or every Tuesday and Thursday of a range (≤90 days,
 ///   not starting in the past; taken dates skipped); 21:30-00:00 as always;
 /// - edit location, theme, description and notes; delete (presenças cascade);
 /// - cancel with a reason (presenças deleted, no email) and reactivate an upcoming one;
 /// - push a notice about an upcoming rehearsal to subscribed members (optionally Leitões and Caloiros), audited;
 /// - once a rehearsal can be approved: approve a pending presença, remove one, add a member (approved).
-/// Changed on purpose: description and notes typed when creating are now saved (the old form dropped them).
+/// Description and notes typed when creating are saved.
 /// </summary>
 public sealed partial class RehearsalAdminService : IRehearsalAdminService
 {

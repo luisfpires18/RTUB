@@ -15,7 +15,7 @@ public sealed partial class EventAdminService
 
     private sealed record Recipients(List<string> Emails, Dictionary<string, (string nickname, string fullName)> Data);
 
-    /// <summary>The old page's email audience: confirmed addresses with "Notificações por email" on.</summary>
+    /// <summary>The email audience: confirmed addresses with "Notificações por email" on.</summary>
     private async Task<Recipients> EmailRecipientsAsync()
     {
         var people = (await UsersAsync())
@@ -43,7 +43,7 @@ public sealed partial class EventAdminService
         }
     }
 
-    // ponytail: whole Users table in memory, as the old page did (~100 rows); filter in SQL if it grows.
+    // ponytail: whole Users table in memory (~100 rows); filter in SQL if it grows.
     private async Task<List<ApplicationUser>> UsersAsync()
     {
         await using var db = await _contexts.CreateDbContextAsync();
@@ -57,12 +57,12 @@ public sealed partial class EventAdminService
     }
 
     /// <summary>The same "past" as the agenda: the last day (EndDate, else Date) is before today.</summary>
-    // Past = its last day is before today in Portugal (#226 F02; was the server's DateTime.Today).
+    // Past = its last day is before today in Portugal.
     private static bool IsPast(Event e, DateTime today) => (e.EndDate ?? e.Date).Date < today;
 
     private DateTime Today => PortugalTime.Today(_time);
 
-    /// <summary>Where the old emails pointed: the agenda.</summary>
+    /// <summary>Where the emails point: the agenda.</summary>
     private static string EventsLink(string baseUrl) => $"{baseUrl.TrimEnd('/')}/events";
 
     /// <summary>The event image belongs to editing the event: Mod and above.</summary>

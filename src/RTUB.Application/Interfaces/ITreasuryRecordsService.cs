@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React /treasury/calotes, /treasury/mbway and /treasury/nerba[/{eventId}] ("Tesouraria", React track 024).
+/// The React /treasury/calotes, /treasury/mbway and /treasury/nerba[/{eventId}] ("Tesouraria").
 /// </summary>
 public interface ITreasuryRecordsService
 {

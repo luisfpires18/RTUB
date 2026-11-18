@@ -10,21 +10,20 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /documentation (React track 022,
-/// docs/react-documentation.md). Same storage and rules, through <see cref="IDocumentStorageService"/>, now enforced
-/// server-side (<see cref="DocumentationAuthorization"/>; the old page filtered and hid buttons in the circuit):
+/// The React /documentation
+/// (docs/react-documentation.md). Storage through <see cref="IDocumentStorageService"/>; rules enforced
+/// server-side (<see cref="DocumentationAuthorization"/>):
 /// - folders of one fiscal year (the current one by default) under docs/{environment}/{year}/, in storage order, the
 ///   Logistics folder shown as one folder per board; documents by file name;
 /// - download: a pre-signed attachment URL, only for a document listed in a folder the caller sees;
 /// - create folder (Owner): letters, digits, spaces and hyphens, at most 50, in the current fiscal year, not existing;
 /// - upload (any member who sees the folder): PDF, TXT, DOC(X), XLS(X), CSV, PPT(X), at most 50 MB; a name already in
 ///   the folder replaces that document, for Owner only;
-/// - delete document / folder (Owner): removed from storage (the folder with everything in it), as before.
-/// Every key is rebuilt from a listed year, folder and name, never from raw input. Audit log rows as before (the
-/// storage service writes them). No notifications, no schema change.
-/// #226 F01: a year's folders, boards and documents all come from ONE storage listing of docs/{environment}/{year}/
-/// (<see cref="DocumentTreeCache"/>, kept 30 s and dropped on every write), instead of the year listing, then the
-/// Logistics listing, then one listing per folder - and the download no longer lists three times before signing.
+/// - delete document / folder (Owner): removed from storage (the folder with everything in it).
+/// Every key is rebuilt from a listed year, folder and name, never from raw input. Audit log rows come from the
+/// storage service. No notifications, no schema change.
+/// A year's folders, boards and documents all come from ONE storage listing of docs/{environment}/{year}/
+/// (<see cref="DocumentTreeCache"/>, kept 30 s and dropped on every write); the download signs without listing again.
 /// </summary>
 public sealed partial class DocumentationService : IDocumentationService
 {

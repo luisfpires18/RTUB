@@ -9,14 +9,14 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /profile (task 032, docs/react-member-area.md). The member edits
-/// only their own profile, with the old page's fields and rules, now enforced here (the old page only hid inputs):
+/// The React /profile (docs/react-member-area.md). The member edits
+/// only their own profile, with the rules enforced here:
 /// - Pessoal: names, nickname, email, phone, birth date, city, degree, with the entity's own checks; a member who is
 ///   only a Leitão cannot change the nickname (it comes at Caloiro); an email another account uses is refused;
 /// - Tuna: the padrinho (a Tuno or above, never yourself; none for a Leitão, a Fundador or a Tuno Honorário) and the
 ///   Leitão / Caloiro / Tuno dates (none for a Fundador); a complete date pair is locked (the Magister corrects it);
 /// - instruments one by one (the first is the primary; removing the primary promotes the next);
-/// - the photo: WebP, JPEG or PNG up to 10 MB, stored by <see cref="IUserProfileService"/> as before (the old photo
+/// - the photo: WebP, JPEG or PNG up to 10 MB, stored by <see cref="IUserProfileService"/> (the previous photo
 ///   is deleted, the new one goes to the member's profile folder);
 /// - email notifications on / off; the password (at least 8 characters, confirmed), which clears
 ///   RequirePasswordChange.

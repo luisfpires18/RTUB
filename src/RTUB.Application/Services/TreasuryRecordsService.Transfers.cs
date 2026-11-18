@@ -84,7 +84,7 @@ public sealed partial class TreasuryRecordsService
             edit);
     }
 
-    /// <summary>Validates and saves through the old service; returns the refusal, or null when saved.</summary>
+    /// <summary>Validates and saves through the transfer service; returns the refusal, or null when saved.</summary>
     private async Task<EventResult<TreasuryTransfersDto>?> TransferAsync(TreasuryTransferInput input, MbwayTransfer transfer)
     {
         static EventResult<TreasuryTransfersDto> Invalid(string field, string message) => EventResult<TreasuryTransfersDto>.Invalid(field, message);
@@ -123,7 +123,7 @@ public sealed partial class TreasuryRecordsService
         transfer.Date = input.Date.Value.Date;
         transfer.Amount = amount;
         transfer.MemberUserId = member.Id;
-        transfer.TransferTo = string.IsNullOrWhiteSpace(member.Nickname) ? member.UserName ?? "" : member.Nickname; // as the old picker
+        transfer.TransferTo = string.IsNullOrWhiteSpace(member.Nickname) ? member.UserName ?? "" : member.Nickname; // as the picker shows it
         transfer.TransferFrom = Text(input.TransferFrom);
         transfer.Phone = Text(input.Phone);
         transfer.Description = Text(input.Description);

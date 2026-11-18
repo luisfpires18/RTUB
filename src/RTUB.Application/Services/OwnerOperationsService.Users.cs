@@ -69,7 +69,7 @@ public partial class OwnerOperationsService
             return EventResult<OwnerUserDetail>.Ok(await DetailAsync(user));
         }
 
-        // As before: the account keeps one role; Owner also gets Admin for the admin features.
+        // The account keeps one role; Owner also gets Admin for the admin features.
         if (current.Count > 0)
         {
             var removed = await _users.RemoveFromRolesAsync(user, current);
@@ -141,7 +141,7 @@ public partial class OwnerOperationsService
 
     private static string PrimaryRole(IList<string> roles) => Roles.FirstOrDefault(roles.Contains) ?? NoRole;
 
-    /// <summary>Signed in within the last hour, as the old card showed it.</summary>
+    /// <summary>Signed in within the last hour.</summary>
     private static bool IsOnline(ApplicationUser user) =>
         user.LastLoginDate.HasValue && (DateTime.UtcNow - user.LastLoginDate.Value).TotalHours < 1;
 

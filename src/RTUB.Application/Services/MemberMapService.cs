@@ -9,11 +9,11 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /members/map (task 032, docs/react-member-area.md). Same data and rules:
-/// - every account, as before (expelled accounts included; a follow-up decides whether they should be);
+/// The React /members/map (docs/react-member-area.md). Same data and rules:
+/// - every account (expelled accounts included; a follow-up decides whether they should be);
 /// - grouped by the profile's city text, trimmed and case-insensitive;
 /// - a city's coordinates come only from the geocoding cache (<see cref="IGeocodingService"/>): a city not cached yet
-///   is queued for the background worker and listed as pending, as before;
+///   is queued for the background worker and listed as pending;
 /// - City-level only: names and avatars, never an email, a phone, an address or a member's own coordinates.
 /// Signed-in members only (Leitões included), as the [Authorize] page was. No schema change.
 /// </summary>

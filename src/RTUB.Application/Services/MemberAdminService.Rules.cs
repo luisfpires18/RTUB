@@ -32,7 +32,7 @@ public sealed partial class MemberAdminService
 
     private static EventResult<T> Invalid<T>(Dictionary<string, string[]> errors) => new(EventResultStatus.Invalid, Errors: errors);
 
-    /// <summary>The old form's checks: the entity's own annotations, the category, and the month/year pickers' range.</summary>
+    /// <summary>The form's checks: the entity's own annotations, the category, and the month/year pickers' range.</summary>
     private static Dictionary<string, string[]> Validate(MemberInput input)
     {
         var errors = new Dictionary<string, string[]>();
@@ -70,7 +70,7 @@ public sealed partial class MemberAdminService
             errors.TryAdd("dateOfBirth", new[] { "Data de nascimento inválida." });
         }
 
-        // Incomplete pairs exist in old data and stay allowed; only impossible values are refused.
+        // Incomplete pairs exist in older data and stay allowed; only impossible values are refused.
         foreach (var (key, year, month) in new[] { ("leitao", input.YearLeitao, input.MonthLeitao),
                      ("caloiro", input.YearCaloiro, input.MonthCaloiro), ("tuno", input.YearTuno, input.MonthTuno) })
         {
@@ -83,7 +83,7 @@ public sealed partial class MemberAdminService
         return errors;
     }
 
-    /// <summary>A padrinho that is kept must exist and be Tuno or above (the old list only offered those).</summary>
+    /// <summary>A padrinho that is kept must exist and be Tuno or above.</summary>
     private async Task<bool> MentorIsValidAsync(MemberInput input)
     {
         if (string.IsNullOrEmpty(input.MentorId) || (input.Category == "Tuno" && (input.Fundador || input.Honorario)))
@@ -136,7 +136,7 @@ public sealed partial class MemberAdminService
     private static bool Complete(int? year, int? month) => year.HasValue && month.HasValue;
 
     /// <summary>
-    /// Owner, or an Admin who is this fiscal year's Magister. The Admin check matters since task 076: a Mod reaches the
+    /// Owner, or an Admin who is this fiscal year's Magister. The Admin check matters: a Mod reaches the
     /// limited edit, and a Magister who is a Caloiro holds Mod, not Admin - holding the position alone is not enough.
     /// </summary>
     private async Task<bool> CanEditDatesAsync(ClaimsPrincipal user)

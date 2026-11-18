@@ -10,7 +10,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 // Pending action: presidents' meetings and atas.
-// "As minhas ações pendentes" (task 075): the presidents' meetings and atas, and the Ensaiador / Magister's presenças and
+// "As minhas ações pendentes": the presidents' meetings and atas, and the Ensaiador / Magister's presenças and
 // repertoire. Shown by the current position (ApplicationUser.Positions); the writes are the modules' own, which check
 // the same positions (MeetingAccess, RehearsalsAuthorization.CanApprove, EventRepertoireAdminService).
 

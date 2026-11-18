@@ -64,7 +64,7 @@ public sealed partial class EventAgendaService
         var created = await _events.CreateEventAsync(valid.Name, valid.Start, valid.Location, valid.Type, valid.Description, valid.End,
             isPublic: input.MembersOnly != true);
 
-        // The old form announced every new event to everyone; a failed push never fails the create.
+        // Every new event is announced to everyone; a failed push never fails the create.
         // Every push subscription belongs to a signed-in member (/api/push needs one), so a
         // members-only event announced this way reaches no visitor.
         try
@@ -116,7 +116,7 @@ public sealed partial class EventAgendaService
                 return EventResult<bool>.Fail(EventResultStatus.NotFound);
             }
 
-            // NERBA orders are RESTRICT in the database: the old page crashed here; answer it instead.
+            // NERBA orders are RESTRICT in the database: refuse with an answer instead of a database error.
             if (await db.NerbaOrders.AnyAsync(o => o.EventId == id))
             {
                 return EventResult<bool>.Fail(EventResultStatus.InUse);
@@ -148,7 +148,7 @@ public sealed partial class EventAgendaService
     private sealed record ValidEvent(string Name, DateTime Start, DateTime? End, string Location, EventType Type, string Description);
 
     /// <summary>
-    /// The old form's values: a multi-day event (an end after the start) starts at midnight with no
+    /// The form's values: a multi-day event (an end after the start) starts at midnight with no
     /// time; a one-day event takes its time, or none. Only called once <see cref="Errors"/> is empty.
     /// </summary>
     private static ValidEvent Parse(EventInput input)
@@ -164,7 +164,7 @@ public sealed partial class EventAgendaService
             input.Description?.Trim() ?? string.Empty);
     }
 
-    /// <summary>The Event entity's rules (the old form's annotations), as field errors.</summary>
+    /// <summary>The Event entity's rules, as field errors.</summary>
     private static Dictionary<string, string[]> Errors(EventInput input)
     {
         var errors = new Dictionary<string, string[]>();

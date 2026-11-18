@@ -64,7 +64,7 @@ public partial class PushNotificationFactory
     }
 
     /// <summary>
-    /// Messaging v2 (task 041): a new chat message. Never carries the message text: the title is generic (it is the
+    /// Messaging v2: a new chat message. Never carries the message text: the title is generic (it is the
     /// only part push logging records) and the body names the sender and, for a group, the group. The link is
     /// relative, so it never depends on the request's Host header.
     /// </summary>
@@ -87,7 +87,7 @@ public partial class PushNotificationFactory
         };
     }
 
-    /// <summary>The /profile test push (#230). No member input reaches it.</summary>
+    /// <summary>The /profile test push. No member input reaches it.</summary>
     public SendPushNotificationDto CreatePushTestNotification() => new()
     {
         Title = "RTUB: notificação de teste",

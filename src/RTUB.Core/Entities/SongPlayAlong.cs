@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// The play-along chart of a song (task 094, docs/react-music.md → Tocar junto): the timed chords, lyric
+/// The play-along chart of a song (docs/react-music.md → Tocar junto): the timed chords, lyric
 /// lines and beats of the song's recording, as validated JSON. One per song, in its own table so the
 /// song queries never carry it.
 /// </summary>
@@ -16,7 +16,7 @@ public class SongPlayAlong : BaseEntity
     [Required]
     public string Chart { get; set; } = string.Empty;
 
-    /// <summary>How many times members opened the Aprender page of the song (098).</summary>
+    /// <summary>How many times members opened the Aprender page of the song.</summary>
     public int Views { get; set; }
 
     public virtual Song Song { get; set; } = null!;

@@ -24,7 +24,7 @@ public sealed partial class MeetingBoardService
     private static IEnumerable<ApplicationUser> ByName(IEnumerable<ApplicationUser> users) => users.OrderBy(u => u.Nickname ?? u.FirstName);
 
     /// <summary>
-    /// The old email / cancellation audiences. CV: Veterano / Tunossauro / Magister with email on (not receiving: the plain
+    /// The email / cancellation audiences. CV: Veterano / Tunossauro / Magister with email on (not receiving: the plain
     /// Tunos). Direção: Direção positions and Admins with the Tuno category. AG: everyone but Leitões with email on (not
     /// receiving: confirmed addresses with email off; the cancel form also leaves Leitões out of that list).
     /// </summary>
@@ -51,7 +51,7 @@ public sealed partial class MeetingBoardService
         }
     }
 
-    /// <summary>The old push audience: the meeting type's members, split by an active push subscription.</summary>
+    /// <summary>The push audience: the meeting type's members, split by an active push subscription.</summary>
     private async Task<Audience> PushAudienceAsync(Meeting meeting, List<ApplicationUser> users)
     {
         var subscribed = (await _push.GetSubscribedUserIdsAsync()).ToHashSet();
@@ -98,7 +98,7 @@ public sealed partial class MeetingBoardService
         return ids.ToHashSet();
     }
 
-    // ponytail: whole Users table in memory, as the old page did (~100 rows); filter in SQL if it grows.
+    // ponytail: whole Users table in memory (~100 rows); filter in SQL if it grows.
     private async Task<List<ApplicationUser>> UsersAsync()
     {
         await using var db = await _contexts.CreateDbContextAsync();
@@ -137,7 +137,7 @@ public sealed partial class MeetingBoardService
         }
     }
 
-    /// <summary>The old sender: for a CV the Presidente do CV (when there is one), otherwise whoever sends, with their first position.</summary>
+    /// <summary>The sender: for a CV the Presidente do CV (when there is one), otherwise whoever sends, with their first position.</summary>
     private static (string Name, string? Position) Sender(Meeting meeting, ApplicationUser me, IEnumerable<ApplicationUser> users)
     {
         if (meeting.Type == MeetingType.ConselhoVeteranos
@@ -153,7 +153,7 @@ public sealed partial class MeetingBoardService
 
     private string SenderCity() => $"Bragança, {PortugalTime.Today(_time).ToString("dd 'de' MMMM 'de' yyyy", Portuguese)}";
 
-    // Meeting days are Portugal's calendar (#226 F02; was the server's DateTime.Today).
+    // Meeting days are Portugal's calendar.
     private DateTime Today => PortugalTime.Today(_time);
 
     private static string LongDate(DateTime date) => date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", Portuguese);

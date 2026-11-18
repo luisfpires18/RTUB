@@ -3,11 +3,11 @@ using System.Security.Claims;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The instruments inventory rules (React track 020, docs/react-inventory.md), enforced server-side by
+/// The instruments inventory rules (docs/react-inventory.md), enforced server-side by
 /// <c>InstrumentInventoryService</c>, with
 /// Owner inheriting Admin:
 ///
-/// - Visitors: nothing (401); the page sends them to sign in.
+/// - Visitors: nothing; the page sends them to sign in.
 /// - Any signed-in member: the list, the counters and every instrument's details.
 /// - Mod, Admin, Owner: create, edit, set the image and delete instruments.
 /// - Leitões too (their job is to keep the inventory up to date): checked by category in the service, since it needs the

@@ -58,7 +58,7 @@ public sealed partial class LogisticsKanbanService
             return EventResult<LogisticsCardDetailDto>.Fail(EventResultStatus.NotFound);
         }
 
-        // 067: a card of a board the caller may not see is not disclosed; archived work is read-only.
+        // A card of a board the caller may not see is not disclosed; archived work is read-only.
         var access = await AccessAsync(db, card, user);
         if (!access.Viewer)
         {
@@ -86,7 +86,7 @@ public sealed partial class LogisticsKanbanService
         return EventResult<LogisticsCardDetailDto>.Ok(await DetailAsync(db, id, user));
     }
 
-    /// <summary>Task 069: the change's pushes, after the commit, never to the member who made it.</summary>
+    /// <summary>The change's pushes, after the commit, never to the member who made it.</summary>
     private async Task NotifyAsync(ApplicationDbContext db, LogisticsCard card, CardAccess access)
     {
         if (_notifier is null || access.Notices.Count == 0)
@@ -180,7 +180,7 @@ public sealed partial class LogisticsKanbanService
             Links(c.AttachmentsJson).Count, mine, c.Priority.ToString(), comments, attachments);
     }
 
-    /// <summary>JSON labels, or the oldest comma-separated text (purple), as the old page read them.</summary>
+    /// <summary>JSON labels, or the oldest comma-separated text (purple).</summary>
     private static IReadOnlyList<LogisticsLabelDto> Labels(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
@@ -224,7 +224,7 @@ public sealed partial class LogisticsKanbanService
 
     /// <summary>
     /// The board name as one folder name: no "..", no separator or other unsafe character, "unnamed" when nothing is
-    /// left. Moved unchanged from the old LogisticsCardService (removed in 042, no caller).
+    /// left.
     /// </summary>
     internal static string SanitizePathComponent(string input)
     {

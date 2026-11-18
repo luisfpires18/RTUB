@@ -136,7 +136,7 @@ public partial class PushNotificationFactory
     }
 
     /// <summary>
-    /// A song is new in Aprender (task 097): the Owner sends it from /music/learn; it opens the song's Aprender page.
+    /// A song is new in Aprender: the Owner sends it from /music/learn; it opens the song's Aprender page.
     /// </summary>
     public SendPushNotificationDto CreateSongLearnNotification(int songId, string songTitle, string? message)
     {

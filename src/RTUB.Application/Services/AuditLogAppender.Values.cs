@@ -19,8 +19,8 @@ public partial class AuditLogAppender
     }
 
     /// <summary>
-    /// #226 F04: entries written before a property joined <see cref="AuditConfiguration.RedactedProperties"/> (push
-    /// subscriptions before #220) still hold its value. This hides it whenever an entry is shown or exported - the stored
+    /// Entries written before a property joined <see cref="AuditConfiguration.RedactedProperties"/> (push
+    /// subscriptions included) still hold its value. This hides it whenever an entry is shown or exported - the stored
     /// row is never rewritten. The key stays, so the reader sees that it was set or changed. Text that is not a JSON
     /// object, or holds nothing to hide, comes back exactly as stored.
     /// </summary>

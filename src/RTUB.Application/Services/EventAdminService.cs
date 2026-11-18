@@ -8,11 +8,11 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old /member/events image, cancel / reactivate and notice actions behind the React agenda
-/// (React track 012A, docs/react-events.md). Same rules as the old page, now enforced here:
+/// The image, cancel / reactivate and notice actions behind the React agenda
+/// (docs/react-events.md). Rules enforced here:
 /// Admin or Owner only; cancel, reactivate and notices only for an event whose last day has not
-/// passed (the old page showed them only there); notices never for a cancelled event. Audiences
-/// are the old page's: email to confirmed addresses with "Notificações por email" on, push to
+/// passed; notices never for a cancelled event. Audiences
+/// are: email to confirmed addresses with "Notificações por email" on, push to
 /// members with an active subscription (optionally Leitões and Caloiros only). No schema change.
 /// </summary>
 public sealed partial class EventAdminService : IEventAdminService
@@ -89,7 +89,7 @@ public sealed partial class EventAdminService : IEventAdminService
             return EventResult<bool>.Invalid("image", "A imagem não pode exceder 5 MB.");
         }
 
-        // The old crop-and-save path: the previous image is deleted and the new one stored under the
+        // Crop and save: the previous image is deleted and the new one stored under the
         // existing images/{env}/events/{name}_{timestamp}.webp key.
         await _events.SetEventImageAsync(id, image.Content, image.FileName, image.ContentType);
         return EventResult<bool>.Ok(true);
@@ -159,7 +159,7 @@ public sealed partial class EventAdminService : IEventAdminService
             return EventResult<EventNoticeResultDto>.Invalid("reason", $"O motivo não pode exceder {MaxReasonLength} caracteres.");
         }
 
-        // As before: cancelling deletes every enrollment of the event.
+        // Cancelling deletes every enrollment of the event.
         await _events.CancelEventAsync(id, reason);
 
         if (!input.NotifyByEmail)

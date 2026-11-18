@@ -11,7 +11,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// "As minhas ações pendentes" (task 071, docs/react-pending-actions.md). Composes the registered
+/// "As minhas ações pendentes" (docs/react-pending-actions.md). Composes the registered
 /// <see cref="IPendingActionSource"/>s: each panel is one module's own query, filtered for the member and paged in SQL.
 /// No inbox table: the only thing stored is a member's own dismissal of an optional action
 /// (<see cref="PendingActionDismissal"/>).
@@ -47,7 +47,7 @@ public sealed partial class PendingActionsService : IPendingActionsService
 
         if (member.IsRetired)
         {
-            // Task 087: the page is not for a Reformado at all (no entry in the menu either); the client goes to the agenda.
+            // The page is not for a Reformado at all (no entry in the menu either); the client goes to the agenda.
             return EventResult<PendingActionsPageDto>.Fail(EventResultStatus.NotFound);
         }
 
@@ -133,7 +133,7 @@ public sealed partial class PendingActionsService : IPendingActionsService
     }
 
     /// <summary>
-    /// Task 087 (owner decision, 2026-11-07): a Reformado has no pending action at all - no participation, no own work,
+    /// Owner decision: a Reformado has no pending action at all - no participation, no own work,
     /// no responsibility - whatever the source would say. Everyone else is up to the source's own rule.
     /// </summary>
     private static bool Applies(IPendingActionSource source, PendingActionMember member) => !member.IsRetired && source.AppliesTo(member);

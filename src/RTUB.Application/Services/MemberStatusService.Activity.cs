@@ -15,7 +15,7 @@ public partial class MemberStatusService
         var rehearsals = await RehearsalActivityAsync(db, ids, now);
         var performances = await PerformanceActivityAsync(db, ids, now);
 
-        // Grouped once (task 054): the Where-per-member version walked every row again for each member.
+        // Grouped once: the Where-per-member version walked every row again for each member.
         var byRehearsal = rehearsals.ToLookup(r => r.UserId, r => r.Date);
         var byPerformance = performances.ToLookup(e => e.UserId, e => e.Date);
         return byRehearsal.Select(g => g.Key).Concat(byPerformance.Select(g => g.Key)).Distinct()
@@ -107,7 +107,7 @@ public partial class MemberStatusService
             }
 
             // Only to the member about to lose the active status, once, when they enter the last month - not on every
-            // run while in it. A stored 0 is the old countdown's final partial month (now 1), already warned when it
+            // run while in it. A stored 0 is a legacy final partial month (now 1), already warned when it
             // passed 1: no second warning. A trigger (an answer to an event) can store the 1 first on the day it starts;
             // a countdown that was still 2+ a day ago is that day, so the daily run warns all the same.
             if (!result.IsRetired && result.ProgressMonths == 1

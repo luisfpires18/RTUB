@@ -1,12 +1,12 @@
 namespace RTUB.Application.DTOs;
 
-// ---------- discussion (members, React track 013) ----------
+// ---------- discussion (members) ----------
 
 /// <summary>Who wrote something: nickname (or name), full name, avatar and category badge. Never an id, email or phone.</summary>
 public sealed record EventAuthorDto(string Name, string? FullName, string AvatarUrl, string? Badge);
 
 /// <summary>
-/// An event's conversation for a signed-in member: posts pinned first, then by latest activity (as before),
+/// An event's conversation for a signed-in member: posts pinned first, then by latest activity,
 /// each with its comments oldest first. The <c>Can*</c> flags are the server's rules for the caller.
 /// </summary>
 public sealed record EventDiscussionDto(bool CanModerate, IReadOnlyList<EventPostDto> Posts);
@@ -49,7 +49,7 @@ public sealed record EventTransportInput(string? Vehicle, int Seats, string? Not
 
 public sealed record EventPassengerInput(string? UserId);
 
-// ---------- contacts (Mod and above, React track 013) ----------
+// ---------- contacts (Mod and above) ----------
 
 /// <summary>Who was called about an event and what they said; members not contacted yet follow.</summary>
 public sealed record EventContactsDto(IReadOnlyList<EventContactRowDto> Contacted, IReadOnlyList<EventContactRowDto> NotContacted);

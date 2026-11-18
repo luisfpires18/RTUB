@@ -30,7 +30,7 @@ public sealed partial class MemberAdminService
             return refused;
         }
 
-        // As the old padrinho search: Tunos and above, by first name, matched on name or nickname, the member edited left out.
+        // The padrinho search: Tunos and above, by first name, matched on name or nickname, the member edited left out.
         var eligible = (await AllUsersAsync()).Where(u => u.CanBeMentor()).OrderBy(u => u.FirstName).ThenBy(u => u.LastName);
         return EventResult<IReadOnlyList<MentorCandidateDto>>.Ok(_mentors.FilterMentors(eligible, query?.Trim() ?? "", excludeId)
             .Take(MentorLimit)
@@ -44,7 +44,7 @@ public sealed partial class MemberAdminService
 
     public async Task<EventResult<MemberCreatedDto>> CreateAsync(MemberInput input, ClaimsPrincipal user)
     {
-        // Hotfix 098: Mod creates members too; the account is always a plain Member, so nothing escalates.
+        // Mod creates members too; the account is always a plain Member, so nothing escalates.
         if (InfoRefusal<MemberCreatedDto>(user) is { } refused)
         {
             return refused;

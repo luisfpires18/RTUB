@@ -34,7 +34,7 @@ public class MemberHierarchyService : IMemberHierarchyService
         var mentorToAfilhados = new Dictionary<string, List<ApplicationUser>>();
         foreach (var member in effectiveMembers)
         {
-            // #223: a member recorded as their own padrinho is shown as a root (the link is not a padrinho relation).
+            // A member recorded as their own padrinho is shown as a root (the link is not a padrinho relation).
             if (!string.IsNullOrEmpty(member.MentorId) && member.MentorId != member.Id)
             {
                 // Get the mentor using dictionary lookup (O(1) instead of O(n))
@@ -74,10 +74,10 @@ public class MemberHierarchyService : IMemberHierarchyService
     }
 
     /// <summary>
-    /// #223 defensive guard: members in a padrinho loop (A → B → A, all Tunos) have a valid padrinho each, so none is a
+    /// Defensive guard: members in a padrinho loop (A → B → A, all Tunos) have a valid padrinho each, so none is a
     /// root and the whole loop would silently vanish from the tree. Each loop is cut at its first member by name, who
     /// becomes a root; the rest stay under their padrinhos. Only the returned tree changes - the stored MentorId does
-    /// not. Valid data (no loops) is untouched. Real data had none (#223 audit).
+    /// not. Valid data (no loops) is untouched.
     /// </summary>
     private static void BreakLoops(List<ApplicationUser> members, List<ApplicationUser> roots, Dictionary<string, List<ApplicationUser>> afilhados)
     {

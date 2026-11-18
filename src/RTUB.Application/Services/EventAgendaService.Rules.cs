@@ -23,7 +23,7 @@ public sealed partial class EventAgendaService
     private bool IsPast(Event e) => LastDay(e) < Today;
 
     /// <summary>
-    /// The one visibility rule (#227): a signed-in member sees every event, anyone else only public
+    /// The one visibility rule: a signed-in member sees every event, anyone else only public
     /// ones. Applied in the query, so a members-only event never leaves the database for a visitor.
     /// </summary>
     internal static IQueryable<Event> VisibleTo(IQueryable<Event> events, ClaimsPrincipal user) =>
@@ -32,7 +32,7 @@ public sealed partial class EventAgendaService
     private IEnumerable<Event> Upcoming(IEnumerable<Event> events) =>
         events.Where(e => !IsPast(e)).OrderBy(e => e.Date).ThenBy(e => e.Id);
 
-    /// <summary>September to August, as the old fiscal-year filter.</summary>
+    /// <summary>September to August.</summary>
     private static string Season(DateTime date)
     {
         var start = date.Month >= 9 ? date.Year : date.Year - 1;
@@ -75,7 +75,7 @@ public sealed partial class EventAgendaService
         return new Extras(true, trophies, videos, going, repertoire, discussion, mine);
     }
 
-    /// <summary>Rows per event, counted by SQL (<c>GROUP BY</c>): only the ids and their counts travel (task 054).</summary>
+    /// <summary>Rows per event, counted by SQL (<c>GROUP BY</c>): only the ids and their counts travel.</summary>
     private static async Task<IReadOnlyDictionary<int, int>> CountAsync(IQueryable<int> eventIds) =>
         await eventIds.GroupBy(id => id).Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Key, g => g.Count);
 
@@ -137,7 +137,7 @@ public sealed partial class EventAgendaService
     }
 
     /// <summary>
-    /// The rules of the old enrolment buttons: an upcoming event that is not cancelled is open
+    /// The enrolment rules: an upcoming event that is not cancelled is open
     /// (going / not going, instrument, note); a past one only lets someone who went withdraw;
     /// a cancelled one takes no answers. Null when the event does not exist.
     /// </summary>
@@ -160,7 +160,7 @@ public sealed partial class EventAgendaService
             .Select(i => i.InstrumentType)
             .ToListAsync();
 
-        // The old form offered the member's own instruments; a Leitão with none could pick any.
+        // The form offers the member's own instruments; a Leitão with none could pick any.
         var options = registered.Count > 0 ? registered : isLeitao ? Enum.GetValues<InstrumentType>().ToList() : new List<InstrumentType>();
         var state = e.IsCancelled ? "cancelled" : IsPast(e) ? "past" : "open";
 

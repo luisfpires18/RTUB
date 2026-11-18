@@ -1,7 +1,7 @@
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// One line of a Logística card's history (task 066): who did what, when, already in pt-PT ("Estado: TODO → WIP").
+/// One line of a Logística card's history: who did what, when, already in pt-PT ("Estado: TODO → WIP").
 /// Not a <see cref="BaseEntity"/> on purpose: the card history is itself a log, so it is not copied into the global audit
 /// log a second time.
 /// </summary>

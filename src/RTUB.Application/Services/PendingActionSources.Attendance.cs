@@ -9,7 +9,7 @@ using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
-// "As minhas ações pendentes" (tasks 071 / 072): the Atuações and Ensaios panels. An action here is an activity the member
+// "As minhas ações pendentes": the Atuações and Ensaios panels. An action here is an activity the member
 // has not answered at all (no Enrollment / RehearsalAttendance row of theirs, whatever its answer), not cancelled:
 // - "Próximas": every upcoming one (no seven-day or other window), answered Vou / Não vou;
 // - "Passadas": past ones from PendingActionMember.PastFrom (1 September of the current fiscal year, or the member's

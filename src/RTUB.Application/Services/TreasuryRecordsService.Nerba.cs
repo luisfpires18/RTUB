@@ -165,7 +165,7 @@ public sealed partial class TreasuryRecordsService
             return Invalid("pricePerUnit", "O preço por unidade não pode ser negativo e tem até duas casas decimais.");
         }
 
-        // A multi-day event files each item under one of its days (the first by default, as the old form); one day: none.
+        // A multi-day event files each item under one of its days (the first by default); one day: none.
         var days = Days(e);
         DateTime? day = days.Count == 0 ? null : input.OrderDate?.Date ?? days[0];
         if (day is { } d && !days.Contains(d))

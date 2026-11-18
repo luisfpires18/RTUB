@@ -88,7 +88,7 @@ public sealed partial class PendingActionsService
             return EventResult<bool>.Fail(EventResultStatus.SignInRequired);
         }
 
-        // Task 073: commands (Concluir, Fechar questão, 074: Tesouraria, Secretaria) go to their own source; the rest are the
+        // Commands (Concluir, Fechar questão, Tesouraria, Secretaria) go to their own source; the rest are the
         // attendance answers below. A command of a panel that does not apply to the member (no position, no longer in
         // office) is a 404, like the panel itself.
         if (_sources.OfType<IPendingActionCommand>().FirstOrDefault(c => c.Kind == kind) is { } command)
@@ -140,7 +140,7 @@ public sealed partial class PendingActionsService
             }
 
             instrument = offered;
-            // As the old pages did: the member's other instruments, by display name.
+            // The member's other instruments, by display name.
             others = string.Join(", ", (await RegisteredAsync(db, member.UserId)).Where(i => i != offered).Select(StatusHelper.GetInstrumentDisplay));
             others = others.Length == 0 ? null : others;
         }

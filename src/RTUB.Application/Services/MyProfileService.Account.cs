@@ -32,7 +32,7 @@ public sealed partial class MyProfileService
 
         try
         {
-            // The first instrument becomes the primary, as before.
+            // The first instrument becomes the primary.
             await _instruments.AddInstrumentAsync(me.Id, type, current.Count == 0);
         }
         catch (InvalidOperationException)
@@ -107,7 +107,7 @@ public sealed partial class MyProfileService
             "image/png" => "png",
             _ => "webp",
         };
-        // The old path: the previous photo is deleted and the new one stored in the member's profile folder.
+        // The previous photo is deleted and the new one stored in the member's profile folder.
         await _profiles.UpdateProfilePictureAsync(me.Id, photo.Content, $"profile-picture.{extension}", photo.ContentType.ToLowerInvariant());
         var stored = await _users.FindByIdAsync(me.Id);
         return EventResult<MyPhotoDto>.Ok(new MyPhotoDto(stored?.ProfilePictureSrc ?? me.ProfilePictureSrc));

@@ -7,12 +7,12 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The read side of the React /members (React track 017,
-/// docs/react-members.md). Same data and rules, delegated to the services the old page used:
+/// The read side of the React /members
+/// (docs/react-members.md). Delegates to the services:
 /// <see cref="IMemberFilterService"/> (search over name, nickname, email, phone and city; category, Tuno sub-category,
 /// instrument and "só ativos"; Tunos Honorários only when asked for or searched), <see cref="IActiveMemberFilterService"/>,
 /// <see cref="IMemberAnniversaryService"/>, <see cref="IMemberHierarchyService"/>, <see cref="IMemberStatusService"/> and
-/// <see cref="IMemberStatisticsService"/>. Like the old page load, a Leitão with no cached status gets it computed.
+/// <see cref="IMemberStatisticsService"/>. A Leitão with no cached status gets it computed.
 /// Signed-in members only (<see cref="MembersAuthorization"/>). No schema change.
 /// </summary>
 public sealed partial class MemberDirectoryService : IMemberDirectoryService

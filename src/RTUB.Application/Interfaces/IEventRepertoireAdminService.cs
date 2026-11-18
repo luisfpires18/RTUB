@@ -4,8 +4,8 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// Admin/Owner repertoire management behind the React event page (React track 012D,
-/// docs/react-events.md). Writes go through <see cref="IEventRepertoireService"/>, as the old
+/// Admin/Owner repertoire management behind the React event page
+/// (docs/react-events.md). Writes go through <see cref="IEventRepertoireService"/>, as the old
 /// /member/events modal did; every write answers the whole repertoire.
 /// </summary>
 public interface IEventRepertoireAdminService
@@ -19,7 +19,7 @@ public interface IEventRepertoireAdminService
 
     Task<EventResult<EventRepertoireManageDto>> RemoveAsync(int id, int itemId, ClaimsPrincipal user);
 
-    /// <summary>Removes every song of one day, as the old modal's "apagar dia" did.</summary>
+    /// <summary>Removes every song of one day.</summary>
     Task<EventResult<EventRepertoireManageDto>> RemoveDayAsync(int id, string? date, ClaimsPrincipal user);
 
     Task<EventResult<EventRepertoireManageDto>> ReorderAsync(int id, EventRepertoireOrderInput input, ClaimsPrincipal user);

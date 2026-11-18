@@ -41,7 +41,7 @@ public partial class ApplicationDbContext
         // Collect IDs during change tracking, then resolve names asynchronously after save
         var pendingRoleAudits = new List<(string Action, string TargetUserId, string RoleId, string? CachedUsername, string? CachedRoleName)>();
 
-        // #220: names the audited rows need (members, events, ...) and the tracker lacks, in at most one batched query
+        // Names the audited rows need (members, events, ...) and the tracker lacks, in at most one batched query
         // per table and only when needed; before the save, so deleted rows are still there to be named.
         await LoadAuditNamesAsync(ChangeTracker.Entries<BaseEntity>().Where(WillBeAudited).ToList(), cancellationToken);
 

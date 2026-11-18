@@ -68,7 +68,7 @@ public sealed partial class RehearsalAdminService
         }
         catch (Exception ex)
         {
-            // As before: the notice went out even if its audit row could not be written.
+            // The notice goes out even if its audit row could not be written.
             _logger.LogError(ex, "Failed to audit a push notice for rehearsal {RehearsalId}", r.Id);
         }
 

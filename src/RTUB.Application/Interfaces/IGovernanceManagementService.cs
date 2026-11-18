@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>Members' side of the Órgãos Sociais (React track 016): the RGI, fiscal years and position assignments.</summary>
+/// <summary>Members' side of the Órgãos Sociais: the RGI, fiscal years and position assignments.</summary>
 public interface IGovernanceManagementService
 {
     /// <summary><paramref name="fiscalYear"/> when it exists; else the current one when created; else the newest.</summary>

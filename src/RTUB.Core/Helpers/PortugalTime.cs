@@ -3,7 +3,7 @@ namespace RTUB.Core.Helpers;
 /// <summary>
 /// The business calendar is Portugal's, whatever the server's own time zone is (Azure runs on UTC).
 /// Use this for "today" boundaries on stored local dates; stored dates are never reinterpreted as UTC.
-/// #226 F02: also the local clock for presentation (<see cref="Now"/>) and for the hosted jobs' daily times
+/// Also the local clock for presentation (<see cref="Now"/>) and for the hosted jobs' daily times
 /// (<see cref="NextUtc"/>). Persisted technical timestamps stay UTC (DateTime.UtcNow).
 /// </summary>
 public static class PortugalTime
@@ -61,7 +61,7 @@ public static class PortugalTime
         return TimeZoneInfo.ConvertTimeToUtc(local, Zone);
     }
 
-    /// <summary>A stored UTC timestamp on Portugal's clock (Kind Unspecified); task 050 buckets by Portugal day.</summary>
+    /// <summary>A stored UTC timestamp on Portugal's clock (Kind Unspecified); the dashboard buckets by Portugal day.</summary>
     public static DateTime FromUtc(DateTime utc) =>
         TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Zone);
 }

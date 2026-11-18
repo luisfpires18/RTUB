@@ -29,7 +29,7 @@ public sealed partial class LogisticsKanbanService
             return EventResult<LogisticsListDto>.Invalid("state", "Estado inválido.");
         }
 
-        // Last, as before.
+        // Last.
         var last = await db.LogisticsLists.Where(l => l.BoardId == boardId).Select(l => (int?)l.Position).MaxAsync() ?? -1;
         var list = LogisticsList.Create(name, boardId, last + 1);
         list.State = state;

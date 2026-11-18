@@ -39,7 +39,7 @@ public sealed partial class LogisticsKanbanService
             return EventResult<IReadOnlyList<LogisticsMemberOptionDto>>.Ok(Array.Empty<LogisticsMemberOptionDto>());
         }
 
-        // ponytail: every member in memory (~100), as the old pages loaded every user; page it if it grows.
+        // ponytail: every member in memory (~100); page it if it grows.
         var members = await db.Users.AsNoTracking().Where(u => !u.IsExpelled).ToListAsync();
         var found = members
             .Select(u => (u, who: GovernanceService.ToMember(u.Nickname, u.FirstName, u.LastName, u.ImageUrl),

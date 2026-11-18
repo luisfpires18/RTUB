@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace RTUB.Application.Services;
 
-/// <summary>Task 069: <c>LogisticsReminders</c> settings. Enabled by default; the integration tests turn it off.</summary>
+/// <summary><c>LogisticsReminders</c> settings. Enabled by default; the integration tests turn it off.</summary>
 public sealed class LogisticsReminderOptions
 {
     public const string SectionName = "LogisticsReminders";
@@ -17,7 +17,7 @@ public sealed class LogisticsReminderOptions
 }
 
 /// <summary>
-/// Task 069: runs <see cref="LogisticsReminderDelivery"/> every minute (a fresh scope each run). Safe across restarts and
+/// Runs <see cref="LogisticsReminderDelivery"/> every minute (a fresh scope each run). Safe across restarts and
 /// across instances: each occurrence is claimed in the database before it is sent (see the delivery class).
 /// </summary>
 public sealed class LogisticsReminderBackgroundService : BackgroundService

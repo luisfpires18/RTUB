@@ -8,7 +8,7 @@ using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
-// "As minhas ações pendentes" (task 074): responsibilities of the current Órgãos Sociais mandate. Who sees a panel is the
+// "As minhas ações pendentes": responsibilities of the current Órgãos Sociais mandate. Who sees a panel is the
 // position held now (ApplicationUser.Positions, synced to the mandate in office); a role alone shows nothing. What may be
 // written is still the module's own rule, run as the member with the roles read from the database (holding the position
 // grants Admin, or Mod for a Caloiro, on its own - RoleManagementService), so a treasurer whose role was taken away is

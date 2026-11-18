@@ -9,7 +9,7 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// The work behind the React Owner tools /emails, /notifications, /users, /owner/tracing and /owner/db
-/// (task 035, docs/react-owner-operations.md). The same services do the work (email sender, push sender, audit log,
+/// (docs/react-owner-operations.md). The same services do the work (email sender, push sender, audit log,
 /// database viewer, member status sync); what was only checked in the browser before (lengths, required fields, the SQL
 /// rules, the "DELETE ALL" confirmation) is checked here. Owner only: the endpoints refuse everyone else first.
 /// </summary>
@@ -23,7 +23,7 @@ public partial class OwnerOperationsService : IOwnerOperationsService
     public const int PushBodyMax = 500;
     public const string TruncateConfirmation = "DELETE ALL";
 
-    /// <summary>The roles the old dialog offered, highest first.</summary>
+    /// <summary>The roles offered, highest first.</summary>
     public static readonly string[] Roles = ["Owner", "Admin", "Mod", "Member"];
 
     private static readonly int[] UserPageSizes = [20, 40, 60, 80, 100];

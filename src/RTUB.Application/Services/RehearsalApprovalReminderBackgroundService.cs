@@ -161,7 +161,7 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
             timeOfDay = new TimeSpan(15, 0, 0);
         }
 
-        // The configured time is Portugal's clock, summer and winter (#226 F02; was UTC).
+        // The configured time is Portugal's clock, summer and winter.
         return PortugalTime.NextUtc(_time, timeOfDay);
     }
 }

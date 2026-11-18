@@ -31,7 +31,7 @@ public sealed partial class MemberDirectoryService
             return new Dictionary<string, MemberStatusResult?>();
         }
 
-        // A read: computed for display, never reconciled here (044B).
+        // A read: computed for display, never reconciled here.
         return await _status.GetMemberStatusesBatchAsync(ids);
     }
 
@@ -59,7 +59,7 @@ public sealed partial class MemberDirectoryService
             : null;
 
     private static DateTime? NextBirthday(DateTime birth, int year) =>
-        // 29 February has no date in a common year; the old list threw there, here it is just skipped.
+        // 29 February has no date in a common year: it is skipped.
         DateTime.IsLeapYear(year) || birth.Month != 2 || birth.Day != 29 ? new DateTime(year, birth.Month, birth.Day) : null;
 
     private static bool Retired(ActiveMemberData m) => m.StatusData?.IsRetired ?? m.Member.IsRetired;
@@ -141,7 +141,7 @@ public sealed partial class MemberDirectoryService
             (activities ?? new List<AttendedActivityDto>()).Select(a => new MemberActivityDto(a.Date, a.Name, a.Type, a.IsRehearsal)).ToList());
     }
 
-    /// <summary>"Percurso na Tuna", as the old UnifiedTimeline: memberships, sub-categories and positions by year.</summary>
+    /// <summary>"Percurso na Tuna": memberships, sub-categories and positions by year.</summary>
     internal static IReadOnlyList<MemberTimelineItemDto> Timeline(ApplicationUser u, IEnumerable<RoleAssignment> assignments, int currentYear)
     {
         var items = new List<(int Year, int Order, MemberTimelineItemDto Item)>();

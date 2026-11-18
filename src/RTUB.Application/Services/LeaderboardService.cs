@@ -11,18 +11,18 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /leaderboard (React track 019, docs/react-leaderboard.md). Same data and
-/// rules, through the services the old page used, now enforced server-side (<see cref="LeaderboardAuthorization"/>):
-/// - the table: every account (no category, retired or expelled filter, as before), XP from <see cref="IRankingService"/>
+/// The React /leaderboard (docs/react-leaderboard.md). Rules
+/// enforced server-side (<see cref="LeaderboardAuthorization"/>):
+/// - the table: every account (no category, retired or expelled filter), XP from <see cref="IRankingService"/>
 ///   (configured XP per attended past rehearsal and per past event the member answered "vai", by event type), level
 ///   from the configured thresholds; ordered by level then XP (descending), ties in the users table's order; positions
 ///   assigned before the search; one fiscal year (1 September to 31 August, from 2025-2026) or every year;
-/// - the search: nickname, first name, last name or rank name, case-insensitive, as before;
+/// - the search: nickname, first name, last name or rank name, case-insensitive;
 /// - the details: the row's level and progress, the XP origin and the activities of all time;
 /// - comments: <see cref="ILeaderboardCommentService"/> (newest first, 1-1000 characters, likes, soft delete by the
-///   author or Admin/Owner; the member commented on and the liked author get a push, as before);
-/// - the story above the levels: a fixed text in code (<see cref="Story"/>) since 029A removed the Labels admin. It was
-///   the "ranking_story" label, edited by Admin and Owner; nobody edits it now. Temporary: the owner decides the final
+///   author or Admin/Owner; the member commented on and the liked author get a push);
+/// - the story above the levels: a fixed text in code (<see cref="Story"/>); nobody edits it.
+///   Temporary: the owner decides the final
 ///   text and how (if at all) it is edited. No schema change.
 /// </summary>
 public sealed class LeaderboardService : ILeaderboardService
@@ -30,8 +30,8 @@ public sealed class LeaderboardService : ILeaderboardService
     public const int MaxCommentLength = 1000;
 
     /// <summary>
-    /// The story above the levels. Temporary code-backed text (029A): it is the seeded "ranking_story" label's text, so
-    /// the page reads as before; the owner replaces it later.
+    /// The story above the levels. Temporary code-backed text: it is the seeded "ranking_story" label's text, so
+    /// the page reads; the owner replaces it later.
     /// </summary>
     public static readonly LeaderboardStoryDto Story = new(
         "Como Funciona o Sistema de Ranking",
@@ -118,7 +118,7 @@ public sealed class LeaderboardService : ILeaderboardService
 
         var progress = (await ProgressAsync(new[] { id }, selected)).GetValueOrDefault(id)
             ?? new RankProgressInfo { CurrentLevel = 1, CurrentRankName = "Desconhecido" };
-        // As the old modal: the XP origin and the activities are of all time, whatever year the table shows.
+        // The XP origin and the activities are of all time, whatever year the table shows.
         var now = DateTime.UtcNow;
         var breakdown = await _statistics.GetUserXpBreakdownAsync(id, now);
         var activities = await _statistics.GetUserAttendedActivitiesAsync(id, now);
@@ -215,7 +215,7 @@ public sealed class LeaderboardService : ILeaderboardService
 
     private sealed record Row(LeaderboardEntryDto Entry, string DisplayName, string? FirstName, string? LastName);
 
-    /// <summary>The fiscal years the old filter offered: from the year the app was created, newest first.</summary>
+    /// <summary>The fiscal years offered: from the year the app was created, newest first.</summary>
     private async Task<List<string>> FiscalYearsAsync() =>
         (await _fiscalYears.GetAllFiscalYearsAsync())
             .Where(fy => fy.StartYear >= FiscalYearHelper.AppYearCreated)
@@ -233,10 +233,10 @@ public sealed class LeaderboardService : ILeaderboardService
             ? _ranking.GetRankProgressBatchAsync(ids, range.Start, range.End)
             : _ranking.GetRankProgressBatchAsync(ids);
 
-    /// <summary>The old LoadLeaderboard: every user, level then XP descending, positions 1..n.</summary>
+    /// <summary>Every user, level then XP descending, positions 1..n.</summary>
     private async Task<List<Row>> TableAsync(string fiscalYear)
     {
-        // #226 F18: only the five columns the table shows (was every AspNetUsers column, hashes included); same one query.
+        // Only the five columns the table shows (never the hashes); one query.
         List<TableUser> users;
         await using (var db = await _contexts.CreateDbContextAsync())
         {

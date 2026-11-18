@@ -32,7 +32,7 @@ public partial class MemberStatusService
 
         var counts = (await ReconcileAsync(null, notify)).Counts;
 
-        // The premade /messages groups follow the members (NO ATIVO follows the flag just reconciled) - task 058.
+        // The premade /messages groups follow the members (NO ATIVO follows the flag just reconciled) - ).
         try
         {
             await using var db = await _contextFactory.CreateDbContextAsync();

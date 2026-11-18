@@ -84,7 +84,7 @@ public sealed partial class EventRepertoireAdminService
             .ToLowerInvariant();
 
     /// <summary>
-    /// Admin / Owner: any event. Task 075: the current Ensaiador or Magister (positions read from the database) the
+    /// Admin / Owner: any event. The current Ensaiador or Magister (positions read from the database) the
     /// repertoire of an upcoming, not cancelled event - only the repertoire, no other event management.
     /// </summary>
     private async Task<EventResult<T>?> RefusalAsync<T>(int eventId, ClaimsPrincipal user)
@@ -97,7 +97,7 @@ public sealed partial class EventRepertoireAdminService
         return EventsAuthorization.CanManage(user) || await CanPrepareAsync(eventId, user) ? null : EventResult<T>.Fail(EventResultStatus.Forbidden);
     }
 
-    /// <summary>Task 075: an Ensaiador / Magister and an upcoming (last day today or later, Portugal), not cancelled event.</summary>
+    /// <summary>An Ensaiador / Magister and an upcoming (last day today or later, Portugal), not cancelled event.</summary>
     internal async Task<bool> CanPrepareAsync(int eventId, ClaimsPrincipal user)
     {
         if (EventsAuthorization.UserId(user) is not { } me)

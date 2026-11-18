@@ -103,7 +103,7 @@ public sealed partial class MeetingBoardService
             return Invalid<int>(errors);
         }
 
-        // The old service push to Owners and the relevant president comes with it.
+        // The service push to Owners and the relevant president comes with it.
         var created = await _requests.CreateAsync(new MeetingRequest
         {
             RequestedMeetingType = type,
@@ -127,7 +127,7 @@ public sealed partial class MeetingBoardService
 
         await _requests.UpdateStatusAsync(request.Id, RequestStatus.Confirmed);
 
-        // The create form then opens prefilled with the request, as before.
+        // The create form then opens prefilled with the request.
         return EventResult<MeetingDraftDto>.Ok(new MeetingDraftDto(
             request.RequestedMeetingType.ToString(),
             request.Title,
@@ -144,7 +144,7 @@ public sealed partial class MeetingBoardService
             return EventResult<bool>.Fail(refusal);
         }
 
-        // The old service pushes the rejection to the author.
+        // The service pushes the rejection to the author.
         await _requests.UpdateStatusAsync(request.Id, RequestStatus.Rejected);
         return EventResult<bool>.Ok(true);
     }

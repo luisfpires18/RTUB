@@ -10,7 +10,7 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Background service that automatically sends weekly push notifications on Monday at configured time.
 /// Sends a summary of all events, rehearsals, and meetings for the current week (Monday-Sunday), then the
-/// "Novo 1º Lugar no Ranking" push when the all-time leaderboard has a new leader since last week (task 058).
+/// "Novo 1º Lugar no Ranking" push when the all-time leaderboard has a new leader since last week.
 /// </summary>
 public partial class WeeklyNotificationBackgroundService : BackgroundService
 {
@@ -81,7 +81,7 @@ public partial class WeeklyNotificationBackgroundService : BackgroundService
             timeOfDay = new TimeSpan(9, 0, 0); // Default to 9 AM
         }
 
-        // The configured time is Portugal's clock, summer and winter (#226 F02; was UTC).
+        // The configured time is Portugal's clock, summer and winter.
         return PortugalTime.NextUtc(_time, timeOfDay, DayOfWeek.Monday);
     }
 }

@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>The public "Novidades" feed (/news, React track 025). Every rule is decided here, from the session.</summary>
+/// <summary>The public "Novidades" feed (/news). Every rule is decided here, from the session.</summary>
 public interface INewsService
 {
     /// <summary>Published posts, newest first, <paramref name="pageSize"/> (1-20) per page; drafts too for Admin/Owner.

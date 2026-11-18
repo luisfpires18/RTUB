@@ -8,7 +8,7 @@ using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
-// "As minhas ações pendentes" (task 073): the Logística and Questões panels, for every signed-in member (Leitões and
+// "As minhas ações pendentes": the Logística and Questões panels, for every signed-in member (Leitões and
 // Reformados included: it is their own work). Each panel is the module's own data and rules; each command is the
 // module's own service call, as the member, with the roles read from the database for this call.
 
@@ -147,7 +147,7 @@ public sealed class QuestionsPendingActionSource : IPendingActionSource, IPendin
     public string Category => "tasks";
     public IReadOnlyList<(string Key, string Label)> Filters => [];
 
-    /// <summary>Task 087: only a member of the Direção in office (owner decision); the rows stay their own open questions.</summary>
+    /// <summary>Only a member of the Direção in office (owner decision); the rows stay their own open questions.</summary>
     public bool AppliesTo(PendingActionMember member) => member.HoldsDirecao;
 
     public Task<int> CountAsync(ApplicationDbContext db, PendingActionMember member, string? filter) => Query(db, member).CountAsync();

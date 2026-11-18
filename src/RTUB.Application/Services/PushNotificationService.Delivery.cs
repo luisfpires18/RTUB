@@ -10,7 +10,7 @@ namespace RTUB.Application.Services;
 public partial class PushNotificationService
 {
     /// <summary>
-    /// One line per fan-out (#230): a warning when anything failed, so a delivery problem shows in the logs without a
+    /// One line per fan-out: a warning when anything failed, so a delivery problem shows in the logs without a
     /// line per successful send.
     /// </summary>
     private void LogSummary(SendPushNotificationDto notification, IReadOnlyCollection<PushSendResult> results)
@@ -24,7 +24,7 @@ public partial class PushNotificationService
     }
 
     /// <summary>
-    /// Sends a push notification to one subscription and says what the push service answered (#230). Success is a 2xx
+    /// Sends a push notification to one subscription and says what the push service answered. Success is a 2xx
     /// from the push service, nothing more. 404 / 410 remove the subscription; every other failure keeps it. Retries
     /// transient network errors and 429. Sets TTL and Urgency headers for reliable delivery on iOS / Android. Logs the
     /// subscription id and push service host, never the endpoint path or the keys.

@@ -20,7 +20,7 @@ public sealed partial class EventAgendaService
             return EventResult<EventStatsDto>.Fail(EventResultStatus.SignInRequired);
         }
 
-        // The old modal's rules (EnrollmentStatisticsButton): by the event's first day, "vou" answers only;
+        // The rules: by the event's first day, "vou" answers only;
         // past = before today, else still to come; the share is over the range's past, not cancelled events.
         var seasonStart = FiscalYearHelper.GetCurrentFiscalYearStartYear();
         var start = (from ?? new DateOnly(seasonStart, 9, 1)).ToDateTime(TimeOnly.MinValue);
@@ -113,7 +113,7 @@ public sealed partial class EventAgendaService
             people.Where(p => p.WillAttend && p.Leitao).Select(p => p.Dto).ToList(),
             people.Where(p => !p.WillAttend).Select(p => p.Dto).ToList());
 
-    /// <summary>One answer as "Quem vai" shows it, with its row id (only the Admin/Owner manager sends that, 012E).</summary>
+    /// <summary>One answer as "Quem vai" shows it, with its row id (only the Admin/Owner manager sends that).</summary>
     internal sealed record Person(int EnrollmentId, bool WillAttend, bool Leitao, EventParticipantDto Dto);
 
     /// <summary>Every answer of an event, newest first, in the shape "Quem vai" shows.</summary>
@@ -140,7 +140,7 @@ public sealed partial class EventAgendaService
 
         return rows.Select(r =>
         {
-            // The category at the event when it was recorded, else the member's current one (as before).
+            // The category at the event when it was recorded, else the member's current one.
             var category = r.CategoryAtEvent
                 ?? new ApplicationUser { Categories = r.Categories ?? new List<MemberCategory>() }.GetPrimaryCategory();
             var fullName = $"{r.FirstName} {r.LastName}".Trim();

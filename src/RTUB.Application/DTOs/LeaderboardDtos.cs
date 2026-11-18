@@ -1,14 +1,14 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /leaderboard (React track 019). Signed-in members
-// only, as before. What the old page showed: nickname, name, avatar, level, XP and attendance counts; no contact field,
+// Contracts of the React /leaderboard. Signed-in members
+// only. What is shown: nickname, name, avatar, level, XP and attendance counts; no contact field,
 // role or audit field leaves the server.
 
 /// <summary>
-/// The table for one fiscal year ("" = every year), positions assigned before the search, as the old page did.
-/// <c>Story</c> is the text shown above the levels when active: fixed in code since 029A (no Labels, no editing).
+/// The table for one fiscal year ("" = every year), positions assigned before the search.
+/// <c>Story</c> is the text shown above the levels when active: fixed in code (no Labels, no editing).
 /// <c>Me</c> is the signed-in member's own row of that table whatever the search (null when not listed): it marks
-/// their current level on the levels list (#225).
+/// their current level on the levels list.
 /// </summary>
 public sealed record LeaderboardDto(
     IReadOnlyList<MemberOptionDto> FiscalYears,
@@ -37,7 +37,7 @@ public sealed record LeaderboardStoryDto(string Title, string Content, bool IsAc
 
 /// <summary>
 /// "Detalhes da Classificação": the level and progress for the selected fiscal year (as the row), the XP origin and the
-/// activities of all time (as the old modal).
+/// activities of all time.
 /// </summary>
 public sealed record LeaderboardMemberDto(
     string Id,
@@ -69,7 +69,7 @@ public sealed record LeaderboardEventXpDto(string Type, int Count, int XpPerUnit
 /// <summary><c>Date</c> yyyy-MM-dd.</summary>
 public sealed record LeaderboardActivityDto(string Date, string Name, string Type, int XpEarned, bool IsRehearsal);
 
-/// <summary>A comment on a member's classification, newest first. No author id: only what the old card showed.</summary>
+/// <summary>A comment on a member's classification, newest first. No author id: only what the card shows.</summary>
 public sealed record LeaderboardCommentViewDto(
     int Id,
     string AuthorName,

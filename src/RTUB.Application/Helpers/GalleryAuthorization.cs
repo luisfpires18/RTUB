@@ -3,12 +3,12 @@ using System.Security.Claims;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The Gallery rules (React tracks 009 and 015, docs/react-gallery.md), enforced server-side by
+/// The Gallery rules (docs/react-gallery.md), enforced server-side by
 /// <c>GalleryTimelineService</c> and <c>GalleryManagementService</c>. Roles inherit: Owner includes Admin.
 ///
 /// - Visitors: public items only, no person tags.
 /// - Any signed-in member: every item and its tags; uploads (and tags people while doing it).
-/// - The uploader, Admin or Owner (was IsInRole("Admin") only): edit and delete an item. Mod: no extra rights.
+/// - The uploader, Admin or Owner: edit and delete an item. Mod: no extra rights.
 /// </summary>
 public static class GalleryAuthorization
 {

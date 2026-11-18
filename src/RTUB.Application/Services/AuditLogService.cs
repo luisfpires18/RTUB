@@ -70,7 +70,7 @@ public class AuditLogService : IAuditLogService
             .WhereIf(!string.IsNullOrWhiteSpace(search), Matches(search!));
     }
 
-    /// <summary>#220: the stored changes or the stored entity name (what the card shows when it was recorded).</summary>
+    /// <summary>The stored changes or the stored entity name (what the card shows when it was recorded).</summary>
     private static System.Linq.Expressions.Expression<Func<AuditLog, bool>> Matches(string search) =>
         a => (a.Changes != null && a.Changes.Contains(search)) || (a.EntityDisplayName != null && a.EntityDisplayName.Contains(search));
 

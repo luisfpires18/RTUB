@@ -24,7 +24,7 @@ public sealed partial class RehearsalAdminService
     }
 
     /// <summary>
-    /// Task 075: "Recusar" a pending presença. Durable, not a deletion (which would let the member's "Fui / Não fui" prompt
+    /// "Recusar" a pending presença. Durable, not a deletion (which would let the member's "Fui / Não fui" prompt
     /// come back): <see cref="IRehearsalAttendanceService.CancelAttendanceAsync"/> records it as not attended
     /// (<c>WillAttend = false</c>, audited with the presença) and sends the member the "Presença recusada" push.
     /// </summary>
@@ -66,7 +66,7 @@ public sealed partial class RehearsalAdminService
             return (null, EventResult<bool>.Fail(EventResultStatus.NotFound));
         }
 
-        // A position holder never decides their own presença (no self-granted XP / activity); Admin / Owner as before.
+        // A position holder never decides their own presença (no self-granted XP / activity); Admin / Owner.
         if (a.UserId == me && !RehearsalsAuthorization.CanManage(user))
         {
             return (null, EventResult<bool>.Fail(EventResultStatus.Forbidden));

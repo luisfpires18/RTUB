@@ -6,17 +6,16 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /treasury and /treasury/reports/{id} (React track 024,
-/// docs/react-treasury.md). Same tables, same totals, and the writes still go through the old services (reports,
-/// activities, transactions with their receipts and audit log, bank / cash), so nothing is computed or stored differently.
-/// Every rule is now checked here (<see cref="TreasuryAuthorization"/>); the old pages only hid buttons.
-/// - a published report is read-only (activities can still be locked / unlocked, as before); a locked activity takes no
-///   new transaction, but its transactions can still be edited or deleted (as before);
-/// - amounts are euros &gt; 0 with at most two decimals; receipts are an image or a PDF ≤ 10 MB (the old page checked the
-///   size only in the browser);
+/// The React /treasury and /treasury/reports/{id}
+/// (docs/react-treasury.md). The writes go through the domain services (reports,
+/// activities, transactions with their receipts and audit log, bank / cash).
+/// Every rule is checked here (<see cref="TreasuryAuthorization"/>).
+/// - a published report is read-only (activities can still be locked / unlocked); a locked activity takes no
+///   new transaction, but its transactions can still be edited or deleted;
+/// - amounts are euros &gt; 0 with at most two decimals; receipts are an image or a PDF ≤ 10 MB;
 /// - deleting an activity or a draft report deletes it with its transactions in one database transaction (rows and their
-///   audit log commit together or not at all): <c>Transactions.ActivityId</c> has no ON DELETE action, so the old delete
-///   failed with a foreign-key error whenever an activity had transactions. Their receipts are removed from storage after
+///   audit log commit together or not at all): <c>Transactions.ActivityId</c> has no ON DELETE action, so a plain delete
+///   would fail with a foreign-key error whenever an activity has transactions. Their receipts are removed from storage after
 ///   the commit, best-effort.
 /// No notifications, no schema change.
 /// </summary>

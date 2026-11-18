@@ -22,7 +22,7 @@ public sealed partial class ProductShopService
             .Select(fy => fy.GetFiscalYearString())
             .OrderByDescending(y => y)
             .ToList();
-        // No parameter: the current year, as the old page opened; "" (Todos os anos): every year.
+        // No parameter: the current year; "" (Todos os anos): every year.
         var selected = fiscalYear ?? current;
         if (selected != "" && selected != current && !years.Contains(selected))
         {
@@ -180,7 +180,7 @@ public sealed partial class ProductShopService
             return EventResult<ShopProductDetailDto>.Fail(EventResultStatus.NotFound);
         }
 
-        // Mod and above change any image (059; a Mod used to give only a new product its first one).
+        // Mod and above change any image .
         if (!ShopAuthorization.CanCreate(user))
         {
             return EventResult<ShopProductDetailDto>.Fail(EventResultStatus.Forbidden);

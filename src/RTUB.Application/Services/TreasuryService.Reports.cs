@@ -53,7 +53,7 @@ public sealed partial class TreasuryService
             return EventResult<TreasuryReportSummaryDto>.Invalid("year", "Escolha um ano letivo válido (entre 1991 e o ano atual).");
         }
 
-        // Task 074: the check and the insert under one lock, so two treasurers (this page and "As minhas ações pendentes")
+        // The check and the insert under one lock, so two treasurers (this page and "As minhas ações pendentes")
         // clicking at once make one report; the loser gets the "already exists" answer.
         // ponytail: process-wide lock, single App Service instance; a unique index on Reports.Year if it ever scales out.
         await ReportCreation.WaitAsync();
@@ -146,7 +146,7 @@ public sealed partial class TreasuryService
             return EventResult<TreasuryFileDto>.Fail(EventResultStatus.NotFound);
         }
 
-        // As the old download: activities by name, each with its transactions newest first, plus the year's calotes.
+        // Activities by name, each with its transactions newest first, plus the year's calotes.
         var activities = report.Activities.OrderBy(a => a.Name).ToList();
         var transactions = activities.Select(a => (a, a.Transactions.OrderByDescending(t => t.Date).ToList())).ToList();
         await using var db = await _contexts.CreateDbContextAsync();
@@ -183,13 +183,13 @@ public sealed partial class TreasuryService
             return null;
         }
 
-        // The old page's order for the bank / cash lookup: latest date first.
+        // Order for the bank / cash lookup: latest date first.
         var activities = (await db.Activities.AsNoTracking().Include(a => a.Transactions).Where(a => a.ReportId == id).ToListAsync())
             .OrderByDescending(a => a.EndDate ?? a.StartDate).ToList();
         var counted = activities.Where(a => !a.IsHiddenFromCalculations()).ToList();
         var income = counted.Sum(a => a.TotalIncome);
         var expenses = counted.Sum(a => a.TotalExpenses);
-        // Task 074: the events this report's activities may account for (not cancelled, starting in its fiscal year).
+        // The events this report's activities may account for (not cancelled, starting in its fiscal year).
         var (fyFrom, fyTo) = (new DateTime(report.Year, 9, 1), new DateTime(report.Year + 1, 9, 1));
         var events = (await db.Events.AsNoTracking().Where(e => !e.IsCancelled && e.Date >= fyFrom && e.Date < fyTo)
                 .OrderBy(e => e.Date).ThenBy(e => e.Id)

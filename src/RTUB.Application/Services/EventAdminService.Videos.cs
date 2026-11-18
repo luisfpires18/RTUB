@@ -1,4 +1,4 @@
-// Event admin: videos (012C).
+// Event admin: videos.
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.DTOs;
@@ -8,7 +8,7 @@ namespace RTUB.Application.Services;
 
 public sealed partial class EventAdminService
 {
-    // ---------- videos (012C) ----------
+    // ---------- videos ----------
 
     public const long MaxVideoBytes = 100 * 1024 * 1024;
 
@@ -41,7 +41,7 @@ public sealed partial class EventAdminService
             return EventResult<IReadOnlyList<EventManagedVideoDto>>.Fail(EventResultStatus.NotFound);
         }
 
-        // The old page offered uploads only on past events (the videos button of the archive cards).
+        // Uploads only on past events (the videos button of the archive cards).
         if (!IsPast(e, Today))
         {
             return EventResult<IReadOnlyList<EventManagedVideoDto>>.Fail(EventResultStatus.Closed);
@@ -59,7 +59,7 @@ public sealed partial class EventAdminService
             return EventResult<IReadOnlyList<EventManagedVideoDto>>.Invalid("file", "O vídeo não pode exceder 100 MB.");
         }
 
-        // The old form required a title before it would send.
+        // A title is required.
         var title = upload.Title?.Trim();
         if (string.IsNullOrEmpty(title))
         {
@@ -72,7 +72,7 @@ public sealed partial class EventAdminService
         }
 
         // Storage key events/{env}/videos/{eventId}_{timestamp}_{file}, the next sort position and the
-        // push to the other members all come from the existing EventService, as on the old page.
+        // push to the other members all come from the existing EventService.
         await _events.AddVideoAsync(id, upload.Content, upload.FileName!, upload.ContentType, EventsAuthorization.UserId(user)!, title);
         return EventResult<IReadOnlyList<EventManagedVideoDto>>.Ok(await VideosAsync(id));
     }

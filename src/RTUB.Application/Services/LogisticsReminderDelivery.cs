@@ -9,13 +9,13 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Task 069: sends the Logística reminders that are due (docs/react-logistics.md → Reminders).
+/// Sends the Logística reminders that are due (docs/react-logistics.md → Reminders).
 ///
 /// Time: <see cref="LogisticsCardReminder.NextReminderDate"/> is Portugal wall-clock time; it is due at
 /// <see cref="PortugalTime.ToUtc"/> of it (a time skipped by the spring change fires an hour later, a repeated autumn
 /// hour fires once). Daily / weekly reminders step in wall-clock days, so 10:00 stays 10:00 across DST.
 ///
-/// One run: activate pre-069 rows (never replayed), then for each due reminder: claim it (one atomic UPDATE, so
+/// One run: activate legacy rows (never replayed), then for each due reminder: claim it (one atomic UPDATE, so
 /// overlapping runs or instances never take the same occurrence), re-check everything, send, move on.
 /// - Stops (inactive): card or board gone or archived, card done, nobody left to receive it, a one-time reminder sent.
 /// - Recipients, re-read now: not expelled, still see the board; a personal reminder only while its member still works
@@ -192,7 +192,7 @@ public sealed class LogisticsReminderDelivery
     public sealed record ActivationReport(int Activated, int ExpiredOneTime, int MovedForward, int AlreadyInactive);
 
     /// <summary>
-    /// Pre-069 reminders were saved but never sent. Each is taken on once (ActivatedAt set), without a flood: a one-time
+    /// Legacy reminders (no ActivatedAt) were saved but never sent. Each is taken on once (ActivatedAt set), without a flood: a one-time
     /// reminder already in the past stops; a daily / weekly one moves to its next occurrence after now; a future one
     /// stays as it is and is sent when due. Idempotent; logged as a report.
     /// </summary>

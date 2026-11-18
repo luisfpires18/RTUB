@@ -24,7 +24,7 @@ public sealed partial class MeetingBoardService
             return EventResult<MeetingCardDto>.Fail(EventResultStatus.NotFound);
         }
 
-        // "Vou / Não vou" only before the day of a meeting that is not cancelled, as on the old card.
+        // "Vou / Não vou" only before the day of a meeting that is not cancelled.
         if (meeting.IsCancelled || meeting.Date.Date <= Today)
         {
             return EventResult<MeetingCardDto>.Fail(EventResultStatus.Closed);
@@ -155,7 +155,7 @@ public sealed partial class MeetingBoardService
             return EventResult<MeetingParticipantsDto>.Invalid("userId", "Escolha um membro da lista.");
         }
 
-        // The old search never offered someone who had already answered ("Vou" or "Não vou"), so their answer and note
+        // The search never offers someone who had already answered ("Vou" or "Não vou"), so their answer and note
         // are never overwritten from here.
         if (await _participations.GetParticipationByMeetingAndUserAsync(meeting.Id, target.Id) is not null)
         {

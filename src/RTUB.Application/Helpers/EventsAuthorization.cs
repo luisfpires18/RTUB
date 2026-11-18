@@ -6,7 +6,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// The Events rules (React track 011, docs/react-events.md), enforced server-side by
+/// The Events rules (docs/react-events.md), enforced server-side by
 /// <c>EventAgendaService</c>. Roles inherit:
 /// Owner includes Admin, Admin includes Mod.
 ///
@@ -33,7 +33,7 @@ public static class EventsAuthorization
         CanTrackContacts(user)
         || (UserId(user) is { } id && await db.Users.AnyAsync(u => u.Id == id && u.Categories.Contains(MemberCategory.Leitao)));
 
-    /// <summary>The Owner only (not inherited by Admin): deletes anyone's discussion posts and comments (013).</summary>
+    /// <summary>The Owner only (not inherited by Admin): deletes anyone's discussion posts and comments.</summary>
     public static bool IsOwner(ClaimsPrincipal user) => IsMember(user) && user.IsInRole("Owner");
 
     public static string? UserId(ClaimsPrincipal user) =>

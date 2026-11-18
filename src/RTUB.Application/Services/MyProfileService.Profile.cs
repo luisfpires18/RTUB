@@ -165,7 +165,7 @@ public sealed partial class MyProfileService
             users = await db.Users.AsNoTracking().ToListAsync();
         }
 
-        // As the old padrinho search: Tunos and above by first name, matched on name or nickname, never yourself.
+        // The padrinho search: Tunos and above by first name, matched on name or nickname, never yourself.
         var eligible = users.Where(u => u.CanBeMentor() && u.Id != me.Id).OrderBy(u => u.FirstName).ThenBy(u => u.LastName);
         return EventResult<IReadOnlyList<MentorCandidateDto>>.Ok(_mentors.FilterMentors(eligible, query?.Trim() ?? "", me.Id)
             .Take(MentorLimit)
@@ -180,7 +180,7 @@ public sealed partial class MyProfileService
     private sealed record TunaRules(bool ShowMentor, bool ShowLeitao, bool ShowCaloiro, bool ShowTuno);
 
     /// <summary>
-    /// What the "Tuna" form shows and saves, as the old page: no dates for a Fundador; Caloiro once past Leitão; Tuno
+    /// What the "Tuna" form shows and saves: no dates for a Fundador; Caloiro once past Leitão; Tuno
     /// once Tuno; a padrinho except for a Leitão, a Fundador or (as the member admin already did) a Tuno Honorário.
     /// </summary>
     private static TunaRules Rules(ApplicationUser me)

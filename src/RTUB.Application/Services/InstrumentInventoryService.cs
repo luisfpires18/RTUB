@@ -11,18 +11,18 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /inventory (React track 020, docs/react-inventory.md).
+/// The React /inventory (docs/react-inventory.md).
 /// Same data and rules, through <see cref="IInstrumentService"/>, now enforced server-side
-/// (<see cref="InventoryAuthorization"/>; the old page only hid buttons):
+/// (<see cref="InventoryAuthorization"/>):
 /// - who manages: Mod, Admin, Owner and every Leitão; everyone else reads;
 /// - the list: every instrument by name; search over name, type (as stored) and brand, case-insensitive; type and
 ///   condition filters; the counters over every instrument (total, then the first three conditions present);
 /// - create: name (≤ 100) and type (an <see cref="InstrumentType"/>) required, brand and serial number ≤ 100, location
 ///   ≤ 200, maintenance notes ≤ 500, condition one of <see cref="InstrumentCondition"/> (default Bom);
-/// - edit: the same fields except the type, which the old edit never changed;
+/// - edit: the same fields except the type, which an edit never changes;
 /// - image: the original (images/…/instruments) and its cropped 1:1 thumbnail (…/instruments/thumbnails) together;
 ///   a new image deletes the previous image and thumbnail first;
-/// - delete: the old hard delete, which also deletes the image (not the thumbnail, as before).
+/// - delete: a hard delete, which also deletes the image (not the thumbnail).
 /// No schema change.
 /// </summary>
 public sealed partial class InstrumentInventoryService : IInstrumentInventoryService

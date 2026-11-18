@@ -4,7 +4,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// A reminder for a logistics card, delivered by <c>LogisticsReminderDelivery</c> (task 069) as a push plus the
+/// A reminder for a logistics card, delivered by <c>LogisticsReminderDelivery</c> as a push plus the
 /// "Notificações RTUB" inbox copy. <see cref="NextReminderDate"/> is Portugal wall-clock time (Europe/Lisbon): a daily
 /// reminder at 10:00 stays at 10:00 across the DST changes.
 /// </summary>
@@ -38,14 +38,14 @@ public class LogisticsCardReminder : BaseEntity
     /// </summary>
     public DateTime? LastSentAt { get; set; }
 
-    /// <summary>Who created it (task 069); null on reminders saved before 069.</summary>
+    /// <summary>Who created it; null on legacy reminders.</summary>
     public string? CreatedByUserId { get; set; }
 
-    /// <summary>A member's own reminder (069): only for themselves, only while they work on the card.</summary>
+    /// <summary>A member's own reminder: only for themselves, only while they work on the card.</summary>
     public bool Personal { get; set; }
 
     /// <summary>
-    /// When delivery took this reminder on (UTC). Null = saved before 069 and never sent: the first delivery run
+    /// When delivery took this reminder on (UTC). Null = a legacy reminder never sent: the first delivery run
     /// activates it without replaying the past (see LogisticsReminderDelivery.ActivateLegacyAsync).
     /// </summary>
     public DateTime? ActivatedAt { get; set; }

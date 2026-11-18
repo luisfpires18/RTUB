@@ -5,7 +5,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The startup "Ativa as notificações" reminder (task 080, issue #261; docs/react-push-v2.md → Startup reminder).
+/// The startup "Ativa as notificações" reminder (docs/react-push-v2.md → Startup reminder).
 /// The device's push state is the browser's; the server only says whether the member is Reformado
 /// (<see cref="ApplicationUser.IsRetired"/>, the canonical flag) and whether that member already acknowledged the
 /// once-per-account reminder. The acknowledgement is a <see cref="PendingActionDismissal"/> row of

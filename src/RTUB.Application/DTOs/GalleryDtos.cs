@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /gallery timeline (React track 009, docs/react-gallery.md). Built for the
+// Contracts of the React /gallery timeline (docs/react-gallery.md). Built for the
 // browser and the caller: a visitor never receives a members-only item, its URL or a person tag;
 // no uploader, user id of an uploader, audit field or EF entity leaves the server.
 
@@ -39,7 +39,7 @@ public sealed record GalleryPersonDto(string Id, string Name);
 /// </summary>
 public sealed record GalleryQuery(int Page = 1, int PageSize = 24, int? Year = null, string? Search = null, string? PersonId = null, bool PublicOnly = false);
 
-// ---------- management (members, React track 015) ----------
+// ---------- management (members) ----------
 
 /// <summary>An item as its edit form needs it (the uploader, Admin or Owner only). <c>Date</c> is "yyyy-MM-dd".</summary>
 public sealed record GalleryEditDto(int Id, string Title, string Type, string? Url, string Date, bool MembersOnly, IReadOnlyList<GalleryPersonDto> People);
@@ -49,8 +49,8 @@ public sealed record GalleryTaggableDto(string Id, string Name, string? FullName
 
 /// <summary>
 /// A file as the browser sends it, with its details. <c>Date</c> "yyyy-MM-dd": the 1st of January keeps only the
-/// year, the 1st of another month the year and month (the old form's rule). <c>PersonIds</c>: who appears.
-/// <c>EventId</c> (task 077): the event it was taken at, when the upload names one (it must exist and not be cancelled).
+/// year, the 1st of another month the year and month . <c>PersonIds</c>: who appears.
+/// <c>EventId</c>: the event it was taken at, when the upload names one (it must exist and not be cancelled).
 /// </summary>
 public sealed record GalleryUpload(Stream Content, string FileName, string ContentType, long Length, string? Title, string? Date, bool MembersOnly, IReadOnlyList<string> PersonIds,
     int? EventId = null);

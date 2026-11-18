@@ -6,7 +6,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Task 067: brings pre-067 boards onto the workflow rules, once, at startup (idempotent: only rows not mapped yet).
+/// Brings boards not yet mapped onto the workflow rules, once, at startup (idempotent: only rows not mapped yet).
 ///
 /// Columns (State null): every card keeps its status, so a column gets the status most of its cards have (ties: TODO,
 /// WIP, BLOQUEADO, DONE, in that order); cards with another status move, in their order, to a new column "Name (STATE)"
@@ -15,8 +15,8 @@ namespace RTUB.Application.Services;
 /// status.
 ///
 /// Board files (LegacyFolder null): the board's sanitised name, the folder its files had under
-/// docs/{env}/{year}/Logistics/ before 067 - or "" when another board has the same folder name (the files cannot be told
-/// apart; they stay in Documentação, as before). Nothing is moved or deleted in storage.
+/// docs/{env}/{year}/Logistics/ (the per-year folder) - or "" when another board has the same folder name (the files cannot be told
+/// apart; they stay in Documentação). Nothing is moved or deleted in storage.
 /// </summary>
 public static class LogisticsWorkflow
 {

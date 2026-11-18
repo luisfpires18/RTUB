@@ -1,7 +1,7 @@
 namespace RTUB.Application.Configuration;
 
 /// <summary>
-/// Task 078: the daily "As minhas ações pendentes" push (docs/react-pending-actions.md → Daily push).
+/// The daily "As minhas ações pendentes" push (docs/react-pending-actions.md → Daily push).
 /// </summary>
 public class PendingActionsReminderOptions
 {

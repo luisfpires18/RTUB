@@ -228,7 +228,7 @@ public sealed partial class MeetingBoardService
         _logger.LogInformation("Sent push notification for meeting {MeetingId} to {SentCount}/{TotalCount} recipients",
             meeting.Id, sentCount, recipients.Count);
 
-        // Audited as the old page did; an audit failure never turns a sent notice into an error.
+        // Audited; an audit failure never turns a sent notice into an error.
         var userName = user.Identity?.Name;
         if (!string.IsNullOrEmpty(userName))
         {

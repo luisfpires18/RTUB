@@ -52,7 +52,7 @@ public sealed partial class NaipeBoardService
             return EventResult<IReadOnlyList<NaipeTypeSettingDto>>.Invalid("picture", "A imagem não pode exceder 5 MB.");
         }
 
-        // The old path: stored under the instrument's typeconfig folder; the previous picture is deleted.
+        // Stored under the instrument's typeconfig folder; the previous picture is deleted.
         await _naipes.UploadTypeConfigPictureAsync(id, picture.Content,
             string.IsNullOrWhiteSpace(picture.FileName) ? "naipe.jpg" : picture.FileName, picture.ContentType.ToLowerInvariant());
         return EventResult<IReadOnlyList<NaipeTypeSettingDto>>.Ok(await SettingsAsync());
@@ -66,7 +66,7 @@ public sealed partial class NaipeBoardService
             return refused;
         }
 
-        // As before, "Remover imagem" clears the reference only (the stored file stays).
+        // "Remover imagem" clears the reference only (the stored file stays).
         await _naipes.UpdateTypeConfigAsync(id, null, setting.IsVisible, setting.SortOrder);
         return EventResult<IReadOnlyList<NaipeTypeSettingDto>>.Ok(await SettingsAsync());
     }

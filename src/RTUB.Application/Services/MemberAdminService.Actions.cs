@@ -135,7 +135,7 @@ public sealed partial class MemberAdminService
             return refused;
         }
 
-        // The old page offered expel / reactivate on Leitões only.
+        // Expel / reactivate on Leitões only.
         if (!member.IsLeitao())
         {
             return EventResult<bool>.Fail(EventResultStatus.Forbidden);

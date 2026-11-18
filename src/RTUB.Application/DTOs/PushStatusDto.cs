@@ -1,7 +1,7 @@
 namespace RTUB.Application.DTOs;
 
 /// <summary>
-/// GET /api/push/status and the answer of every push write (task 038, docs/react-push-v2.md): the server's side of the
+/// GET /api/push/status and the answer of every push write (docs/react-push-v2.md): the server's side of the
 /// signed-in member's push state. <see cref="Reason"/> says why push is off ("disabled": WebPush:Enabled is false and
 /// the member is not Owner; "not-configured": no VAPID keys), null when it is available. Only the VAPID public key
 /// ever leaves the server. <see cref="Subscriptions"/> counts the member's own subscribed devices / browsers.

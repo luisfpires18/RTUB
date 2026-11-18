@@ -14,15 +14,14 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /roles (React track 016, docs/react-governance.md). Same behaviour,
+/// The React /roles (docs/react-governance.md). Same behaviour,
 /// rules now server-side (<see cref="GovernanceAuthorization"/>):
-/// - fiscal years: create one from 1991 up to the current one, never twice, never in the future; no edit or delete
-///   (the old page had neither);
+/// - fiscal years: create one from 1991 up to the current one, never twice, never in the future; no edit or delete;
 /// - positions: the fixed 13 of <see cref="GovernanceService.Structure"/>; assign one member to a position of an
 ///   existing fiscal year under the existing <see cref="IRoleAssignmentValidationService"/> rules (no Leitão, no Caloiro
 ///   president, a Tuno Veterano for the Conselho de Veteranos, one holder per position, one position per member except
 ///   Ensaiador), or remove an assignment; in the current fiscal year both update the member's role and positions through
-///   <see cref="IRoleManagementService"/>, as before. Expelled members are no longer offered or accepted;
+///   <see cref="IRoleManagementService"/>. Expelled members are never offered or accepted;
 /// - the RGI: a pre-signed URL of docs/rtub_rgi.pdf. No schema change.
 /// </summary>
 public sealed partial class GovernanceManagementService : IGovernanceManagementService
@@ -109,14 +108,14 @@ public sealed partial class GovernanceManagementService : IGovernanceManagementS
         }
 
         await using var db = await _contexts.CreateDbContextAsync();
-        // ponytail: every member in memory (~100), as the old page did (Categories is a JSON column); page it if it grows.
+        // ponytail: every member in memory (~100) (Categories is a JSON column); page it if it grows.
         var members = await db.Users.AsNoTracking().Where(u => !u.IsExpelled).ToListAsync();
 
         return EventResult<IReadOnlyList<GovernanceCandidateDto>>.Ok(members
             .Where(u => !u.IsLeitao())
             .Select(u => (u, who: GovernanceService.ToMember(u.Nickname, u.FirstName, u.LastName, u.ImageUrl),
                 text: EventParticipantsAdminService.Fold($"{u.Nickname} {u.FirstName} {u.LastName} {u.Email}")))
-            // Every word somewhere in the nickname, name or email, as the old multi-word search. The email is
+            // Every word somewhere in the nickname, name or email. The email is
             // matched, never returned.
             .Where(x => words.All(w => x.text.Contains(w)))
             .OrderBy(x => x.who.DisplayName, StringComparer.Create(CultureInfo.GetCultureInfo("pt-PT"), true))

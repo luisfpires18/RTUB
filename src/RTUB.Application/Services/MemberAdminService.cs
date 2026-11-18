@@ -10,19 +10,19 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The member admin tools of the React /members (React track 018, docs/react-members.md). Same
-/// behaviour, rules now server-side (<see cref="MembersAuthorization"/>; the old page only hid buttons):
+/// The member admin tools of the React /members (docs/react-members.md). Rules
+/// enforced server-side (<see cref="MembersAuthorization"/>):
 /// - create: username from the nickname (or, for a Leitão "sem alcunha", the email's local part), a generated password
 ///   the member must change, role Member, the categories, the instruments, and the welcome email;
 /// - edit: everything but the username; a complete Leitão / Caloiro / Tuno date pair changes only for Owner or the
-///   current Magister (others' changes to it are ignored, as before); Fundador = Tuno since December 1991, Fundador and
+///   current Magister (others' changes to it are ignored); Fundador = Tuno since December 1991, Fundador and
 ///   Tuno Honorário have no Leitão / Caloiro dates and no padrinho; nobody is their own padrinho;
 /// - instruments one by one (the first is the primary; removing the primary promotes the next);
 /// - Leitões: "Definir alcunha" (new nickname and username, email to the member), expel and reactivate;
-/// - the push reminder, under the old list's conditions ("Tornar ativo" and its permanent override removed in 044B);
+/// - the push reminder, under the list's conditions (the activity rules alone decide the state);
 /// - a new member starts active only as a Leitão, whose Leitão date defaults to the creation month
 ///   (<see cref="MemberActivityStatusEvaluator.ApplyInitialState"/>);
-/// - delete: the old hard delete with related data; Owner any member, Admin Leitões only.
+/// - delete: a hard delete with related data; Owner any member, Admin Leitões only.
 /// No schema change.
 /// </summary>
 public sealed partial class MemberAdminService : IMemberAdminService

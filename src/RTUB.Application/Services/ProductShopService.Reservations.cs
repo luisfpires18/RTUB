@@ -20,7 +20,7 @@ public sealed partial class ProductShopService
             return EventResult<ShopReservationDto>.Fail(EventResultStatus.NotFound);
         }
 
-        // The old page offered "Reservar" only on members-only products in stock.
+        // "Reservar" only on members-only products in stock.
         if (!Reservable(product))
         {
             return EventResult<ShopReservationDto>.Invalid("product",
@@ -114,7 +114,7 @@ public sealed partial class ProductShopService
 
     /// <summary>
     /// The one fiscal-year rule of the shop: "" (Todos os anos) shows every product; a year shows the products
-    /// available in all years (#221) and those created in it. Stock, availability and visibility rules are separate.
+    /// available in all years and those created in it. Stock, availability and visibility rules are separate.
     /// </summary>
     private static bool InFiscalYear(Product p, string fiscalYear) =>
         fiscalYear == "" || p.AvailableAllYears || fiscalYear.Split('-') is not [var start, _] || !int.TryParse(start, out var year)
@@ -159,7 +159,7 @@ public sealed partial class ProductShopService
         return errors;
     }
 
-    /// <summary>As the old save: availability follows the stock.</summary>
+    /// <summary>Availability follows the stock.</summary>
     private static void Apply(Product product, ShopProductInput input)
     {
         product.Name = input.Name!;
@@ -168,7 +168,7 @@ public sealed partial class ProductShopService
         product.Stock = input.Stock;
         product.IsPublic = input.IsPublic;
         product.Description = string.IsNullOrEmpty(input.Description) ? null : input.Description;
-        // Absent keeps the current value (false on a new product: year-specific, as before #221).
+        // Absent keeps the current value (false on a new product: year-specific).
         product.AvailableAllYears = input.AvailableAllYears ?? product.AvailableAllYears;
         product.SetAvailability(input.Stock > 0);
     }

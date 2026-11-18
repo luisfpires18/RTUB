@@ -27,7 +27,7 @@ public sealed partial class MeetingBoardService
             .GroupBy(p => p.MeetingId)
             .ToDictionary(g => g.Key, g => g.First());
 
-        // The old page looked atas up for its "past" list only (before today).
+        // Atas are looked up for the "past" list only (before today).
         var pastIds = meetings.Where(m => m.Date.Date < today).Select(m => m.Id).ToList();
         var atas = pastIds.Count == 0 ? new Dictionary<int, MeetingAta>() : await _atas.GetByMeetingIdsAsync(pastIds);
 

@@ -21,8 +21,8 @@ public sealed record ConfirmEmailInput(string? UserId, string? Code);
 public sealed record AccountRecoveryResult(bool Succeeded, string Message);
 
 /// <summary>
-/// The public account-recovery flows of the React /forgot-password, /reset-password and /confirm-email (task 036).
-/// The same Identity calls as before, with the same token handling and the same messages; nothing
+/// The public account-recovery flows of the React /forgot-password, /reset-password and /confirm-email.
+/// The same Identity calls, with the same token handling and the same messages; nothing
 /// says whether an address has an account, nothing signs anyone in, and no token is logged or returned.
 /// </summary>
 public class AccountRecoveryService
@@ -49,7 +49,7 @@ public class AccountRecoveryService
 
     /// <summary>
     /// Sends the reset link to a confirmed account; answers the same neutral sentence whether or not there is one.
-    /// The link is {baseUrl}/reset-password?code={url-encoded token}&amp;email={url-encoded email}, as before.
+    /// The link is {baseUrl}/reset-password?code={url-encoded token}&amp;email={url-encoded email}.
     /// </summary>
     public async Task<EventResult<AccountRecoveryResult>> ForgotAsync(ForgotPasswordInput input, string baseUrl)
     {
@@ -85,7 +85,7 @@ public class AccountRecoveryService
     }
 
     /// <summary>
-    /// Resets the password with the link's token, as before: the code is used as the browser decoded it (never decoded
+    /// Resets the password with the link's token: the code is used as the browser decoded it (never decoded
     /// again), an unknown address answers the same neutral success, and Identity's own errors are shown as they come
     /// (except an invalid or expired token, said in Portuguese).
     /// </summary>
@@ -136,7 +136,7 @@ public class AccountRecoveryService
         if (result.Succeeded)
         {
             // A reset is how a member takes back a lost or taken-over account: the Face ID / fingerprint passkeys go
-            // with the old password, so none planted by someone else survives it (task 057).
+            // with the old password, so none planted by someone else survives it.
             foreach (var passkey in await _users.GetPasskeysAsync(user))
             {
                 await _users.RemovePasskeyAsync(user, passkey.CredentialId);
@@ -152,8 +152,8 @@ public class AccountRecoveryService
     }
 
     /// <summary>
-    /// Confirms the address with the link's token, as before: the code is URL-decoded once more on top of the browser's
-    /// decoding (the old page did the same), and nobody is signed in.
+    /// Confirms the address with the link's token: the code is URL-decoded once more on top of the browser's
+    /// decoding, and nobody is signed in.
     /// </summary>
     public async Task<AccountRecoveryResult> ConfirmAsync(ConfirmEmailInput input)
     {

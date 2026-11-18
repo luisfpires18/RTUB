@@ -9,7 +9,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Task 067 (Logística 3/5): boards with a responsible member and an access list, workflow columns, stable board files,
+/// Boards with a responsible member and an access list, workflow columns, stable board files,
 /// archive, duplicates and templates.
 ///
 /// - Access: <see cref="CanSeeBoardAsync"/> is the one board rule (members-visible, or private to its access list; Mod,

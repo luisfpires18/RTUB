@@ -62,7 +62,7 @@ public sealed partial class MeetingBoardService
         IReadOnlyList<string> Present);
 
     /// <summary>
-    /// The old ata form's people: the president is the current holder of the position (CV: Presidente do CV; AG:
+    /// The ata form's people: the president is the current holder of the position (CV: Presidente do CV; AG:
     /// Presidente da Mesa), else whoever is saved (a new ata: the writer). CV secretaries come from those who said
     /// "Vou"; AG secretaries are the Mesa's current holders. A secretary already saved stays selectable.
     /// </summary>
