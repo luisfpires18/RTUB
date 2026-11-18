@@ -63,7 +63,10 @@ audit fields, `TakenAt`, thumbnails or entities.
 
 ## Upload and edit
 
-- **Upload:** file `image/*` or `video/*`, by its type. Images ≤10 MB; videos ≤100 MB (`GalleryMedia:MaxVideoSize`). Title required, ≤200.
+- **Upload:** JPEG, PNG, WebP or GIF photos and MP4, MOV or WebM videos (`Helpers/GalleryUploadTypes.cs`). The file is
+  public-read, so the declared type must be on that list and the first bytes must agree with it
+  (`Helpers/MediaSignature.cs`); SVG, HEIC and anything else is refused with a `file` error. The stored name takes its
+  extension from the type, not from the browser's file name. Images ≤10 MB; videos ≤100 MB (`GalleryMedia:MaxVideoSize`). Title required, ≤200.
   Date. "Visível apenas para membros" (on by default). Who appears (tags). No crop, no thumbnail. The server checks the same rules again.
   Preview; title suggested from the file name; progress bar from the upload.
 - **Date rule** (`GalleryManagementService.ParseDate`, explained under the field): 1 January keeps only the year; the 1st of another month keeps year and month;

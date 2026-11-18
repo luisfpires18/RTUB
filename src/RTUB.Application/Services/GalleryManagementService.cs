@@ -104,13 +104,11 @@ public sealed class GalleryManagementService : IGalleryManagementService
         }
 
         var errors = new Dictionary<string, string[]>();
-        var contentType = upload.ContentType ?? string.Empty;
-        MediaType? type = contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? MediaType.Image
-            : contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ? MediaType.Video
-            : null;
+        var accepted = GalleryUploadTypes.Find(upload.ContentType, upload.Content);
+        var type = accepted?.Type;
         if (type is null)
         {
-            errors["file"] = new[] { "Formato de ficheiro não suportado. Apenas imagens e vídeos são aceites." };
+            errors["file"] = new[] { GalleryUploadTypes.Refused };
         }
         else if (upload.Length <= 0)
         {
@@ -139,7 +137,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
 
         var (year, month, day) = details.Date!.Value;
         var title = upload.Title!.Trim();
-        var url = await _storage.UploadMediaAsync(upload.Content, upload.FileName, contentType, type!.Value, title, year, month, day);
+        var url = await _storage.UploadMediaAsync(upload.Content, "upload" + accepted!.Extension, upload.ContentType, type!.Value, title, year, month, day);
         var media = await _media.CreateAsync(GalleryMedia.Create(me, title, type.Value, url, year, month, day, null, null, upload.MembersOnly, upload.EventId));
         var tagged = upload.PersonIds.Distinct().ToList();
         if (tagged.Count > 0)

@@ -130,6 +130,48 @@ public partial class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
         (await CountAsync()).Should().Be(before);
     }
 
+    /// <summary>
+    /// Task 135: a gallery file is public-read, so the type is one of a short list and the first bytes must agree
+    /// with it. An SVG can carry script; the browser's Content-Type is the caller's word.
+    /// </summary>
+    [Fact]
+    public async Task AnUpload_MustBeAListedType_AndLookLikeIt()
+    {
+        var (member, _) = await SignInAsync();
+        await AreaHttp.WithTokenAsync(member);
+        var before = await CountAsync();
+        var svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>"u8.ToArray();
+
+        foreach (var (bytes, type) in new[] { (svg, "image/svg+xml"), (svg, "image/png"), (svg, "video/mp4"), (Jpeg, "image/heic"), (Jpeg, "image/png") })
+        {
+            var refused = await member.PostAsync("/api/gallery", Upload("Recusado", "2024-01-02", false, contentType: type, bytes: bytes));
+            (await AreaHttp.Errors(refused)).Keys.Should().Equal(new[] { "file" }, $"{type} with these bytes is refused");
+        }
+
+        (await CountAsync()).Should().Be(before);
+    }
+
+    [Theory]
+    [InlineData("image/jpeg", ".jpg", MediaType.Image, new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 })]
+    [InlineData("image/png", ".png", MediaType.Image, new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A })]
+    [InlineData("image/gif", ".gif", MediaType.Image, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 })]
+    [InlineData("image/webp", ".webp", MediaType.Image, new byte[] { 0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50 })]
+    [InlineData("video/mp4", ".mp4", MediaType.Video, new byte[] { 0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D })]
+    [InlineData("video/quicktime", ".mov", MediaType.Video, new byte[] { 0, 0, 0, 0x14, 0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20 })]
+    [InlineData("video/webm", ".webm", MediaType.Video, new byte[] { 0x1A, 0x45, 0xDF, 0xA3, 1, 2, 3, 4 })]
+    public async Task AnAcceptedUpload_IsStoredUnderTheExtensionOfItsType_WhateverTheFileIsCalled(string type, string extension, MediaType media, byte[] bytes)
+    {
+        var (member, _) = await SignInAsync();
+        await AreaHttp.WithTokenAsync(member);
+        var title = "Tipo " + Guid.NewGuid().ToString("N")[..8];
+
+        var response = await member.PostAsync("/api/gallery", Upload(title, "2024-01-02", false, contentType: type, bytes: bytes, fileName: "foto.svg"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        _factory.GalleryStorage.Verify(s => s.UploadMediaAsync(It.IsAny<Stream>(), It.Is<string>(name => Path.GetExtension(name) == extension), type, media,
+            title, 2024, (byte)1, (byte)2), Times.Once);
+    }
+
     [Fact]
     public async Task Writes_AreForSignedInMembers_WithTheAntiforgeryHeader()
     {
@@ -159,12 +201,15 @@ public partial class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
 
     // ---------- helpers ----------
 
-    private static MultipartFormDataContent Upload(string title, string date, bool membersOnly, string? personId = null, string contentType = "image/jpeg")
+    private static readonly byte[] Jpeg = { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4 };
+
+    private static MultipartFormDataContent Upload(string title, string date, bool membersOnly, string? personId = null, string contentType = "image/jpeg",
+        byte[]? bytes = null, string fileName = "foto.jpg")
     {
         var form = new MultipartFormDataContent();
-        var file = new ByteArrayContent(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4 });
+        var file = new ByteArrayContent(bytes ?? Jpeg);
         file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-        form.Add(file, "file", "foto.jpg");
+        form.Add(file, "file", fileName);
         form.Add(new StringContent(title), "title");
         form.Add(new StringContent(date), "date");
         form.Add(new StringContent(membersOnly ? "true" : "false"), "membersOnly");

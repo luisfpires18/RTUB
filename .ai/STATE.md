@@ -10,6 +10,15 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 135 (`fix/135/security`), fourth phase of the audit round. Each fix has a test that failed first.
+- `DownloadMediaController` is deleted: it fetched any URL for any signed-in account, and no page called it.
+- `/api/account/*` (forgot-password, reset-password, confirm-email) spends the login budget of its client; 429 past it.
+- Email links (password reset, event cancellation, event notice) carry the configured `App:BaseUrl`
+  (`Endpoints/SiteAddress.cs`), not the request's Host header. PROD `https://www.rtub.pt` and DEV
+  `https://rtub-dev.azurewebsites.net` (owner, 2026-11-18), in `appsettings.Production.json` / `appsettings.Staging.json`.
+- Gallery uploads: a short list of types, checked against the file's first bytes (`GalleryUploadTypes`,
+  `MediaSignature`); the stored extension comes from the type.
+
 Task 134 (`fix/134/portugal-time`), third phase of the audit round. Each fix has a test; those that could fail first did.
 - Fiscal year of a stored UTC `CreatedAt`: one rule, `FiscalYearHelper.GetFiscalYearStartYearOfUtc` (the year turns at
   00:00 on 1 September in Portugal). The shop filter and product details use it; the requests filter converts
@@ -20,23 +29,11 @@ Task 134 (`fix/134/portugal-time`), third phase of the audit round. Each fix has
 - `GetYearsAsTuno` reads Portugal's clock, not `DateTime.Now`.
 - Tests: one clock, `tests/Shared/TestClock.cs`, replaces the 9 private `FixedClock` / `Clock` classes.
 
-Task 133 (`fix/133/data-loss`), second phase of the audit round. Each fix has a test that failed first.
-- Member delete: refused with `409 members:in-use`, before anything is deleted, while an MBWay transfer names the
-  member; likes on other members' leaderboard comments are now really deleted (they blocked the delete too).
-- Treasury: deleting a draft report a NERBA order points at answers `409 treasury:in-use`, not 500.
-- Report PDF: the cache key is a hash of the content the PDF prints (report, activities, transactions, calotes total).
-- Profile photo and instrument image: the new file is stored and saved before the old one is deleted.
-- A second submit at the same moment: a shop reservation answers the usual "Já existe uma reserva", a poll vote counts
-  once; neither answers 500.
-- Portal: any `409 <area>:in-use` is the `inuse` outcome; Membros and Tesouraria say why the delete was refused.
-
-Task 132 (`fix/132/release-gate`), first phase of the round the 2026-11-18 audit proposed (133-142 wait for the owner,
-see Next). Deploy • PROD's schema check refused the squashed release: it wants every migration id of the live build,
-2.3.12 lists 180 and a build with the Baseline lists 3. `release.sh` `cmd_schema_gate` now counts every id up to the
-squash point as known to a build that has the Baseline (same two ids as `MigrationBaseline`, pinned by
-`ReleaseWorkflowTests`). Checked on the real id lists: refused before, passes after; a rollback to 2.3.12 is still
-refused without `allow_newer_schema`. Also: the refusal text and the runbook name 2.3.12 (not 2.3.13) as the last
-release with the old chain; the runbook says how to keep a backup outside the app's rotation before a drop.
+Merged and not released yet (they matter at the next release): task 130 squashed the 180 migrations into
+`20261118134743_Baseline` (`Data/MigrationBaseline.cs`; Rollback • PROD to 2.3.12 or older needs `allow_newer_schema`);
+task 131 stopped using five columns, which stay until the drop release (`docs/db-cleanup-inventory.md` → *Pending
+drop*); task 132 taught `release.sh` `cmd_schema_gate` the squash; task 133 fixed five data-loss bugs
+(`docs/react-members.md`, `docs/react-treasury.md`, `docs/react-member-area.md`).
 
 Before it: the second cleanup round, tasks 120-129 (PRs #326-#334, merged into `dev`; audit of 2026-11-18). No
 behaviour change except where noted.
@@ -269,11 +266,11 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   (`MemberAdminService.Info.cs:68`, `.Rules.cs:68,77`, `MyProfileService.Profile.cs:51,122`), "not in the past" on a
   public request (`RequestValidationService.cs:23,37`), `Album.cs:41,59`. `FiscalYearHelperService` ends the year at
   23:59:59, so the last second of 31 August is in no year (requests filter only).
-- Security: `DownloadMediaController` fetches any URL for any signed-in account and the portal never calls it; the
-  password-reset link is built from the request Host (`AccountRecoveryEndpoints.cs:20`), as the event links are;
-  `GalleryManagementService.cs:107` trusts the browser's `image/` / `video/` prefix (the profile photo checks the type
-  list and the first bytes); every API group is `AllowAnonymous()` and the checks live only in the services; member
-  emails are logged at Information level (`EmailNotificationService.*`).
+- Security: `AllowedHosts` is still `*` (owner chose the base URL setting, 2026-11-18); forgot-password answers a real
+  account more slowly and has no per-email cooldown; seven email models hard-code `rtub.azurewebsites.net/profile`
+  (`PreferencesLink`); five services keep a private `LooksLikeImage` that `MediaSignature` could replace; the portal's
+  gallery input still offers every `image/*` / `video/*`; every API group is `AllowAnonymous()` and the checks live
+  only in the services; member emails are logged at Information level (`EmailNotificationService.*`).
 - Portal: nine loads have no late-answer guard (`MemberListDialogs.tsx:105`, `Documentation.tsx:34`,
   `TreasuryTransactionDialogs.tsx:126`, `Governance.tsx:43,55`, `TreasuryCalotes.tsx:31`, `News.tsx:42`,
   `MusicLearnDialogs.tsx:24`, `OwnerLoginsDialog.tsx:25`, `MusicPlayAlongField.tsx:19`); `sw-register.js` gets the 30-day
@@ -290,7 +287,7 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   `/api/me/profile` 15 queries, `/api/members` 7, `/api/leaderboard` 7. Every route loads 137 kB gzip first.
 
 ## Next
-Phases the audit proposed, each waiting for the owner's "yes, phase N": 135 security, 136 rule tests for the 14 `*Authorization` helpers, 137 test speed and a local launch profile, 138 a shared
+Phases the audit proposed, each waiting for the owner's "yes, phase N": 136 rule tests for the 14 `*Authorization` helpers, 137 test speed and a local launch profile, 138 a shared
 portal load hook, 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
 portal intro animation is not to be removed or shortened. The drop release does not go to 3.0.0 (owner, 2026-11-18): the
 "MAJOR bump" wording in the docs changes with phase 142. Not proposed: the CSS merges, backend query work.
