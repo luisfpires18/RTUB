@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// Read side of the React /gallery (React track 009). Visibility is decided here from the caller:
+/// Read side of the React /gallery. Visibility is decided here from the caller:
 /// visitors get public items only, signed-in members also get members-only items and person tags.
 /// </summary>
 public interface IGalleryTimelineService

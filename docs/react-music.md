@@ -10,7 +10,7 @@ Tests: `MusicApiTests`, `MusicServiceCooldownTests`, `PortalRouteTests`.
 | --- | --- |
 | `/music` | Album grid. Visitors: public albums; members: + private + their exclusive albums; Owner: all. |
 | `/music/albums/{id}` | One album: songs, search, player, lyrics, links, videos (members), management. |
-| `/music/learn` | Aprender Músicas, members only: songs that have a chart, one grid per album; a card opens `/music/play/{songId}`, whose back link returns here. In the member menu. The Owner adds, replaces, removes a chart here ("Incluir dedilhado" toggle) and sends the "new song" push (bell). |
+| `/music/learn` | Aprender Músicas, members only: songs that have a chart, one grid per album; a card opens `/music/play/{songId}`, whose back link returns here. In the member menu. The Owner adds, replaces, removes a chart here ("Incluir dedilhado" toggle); in the add dialog a picked chart waits for "Enviar" ("Cancelar" drops it, nothing saved) and sends the "new song" push (bell). |
 | `/music/play/{songId}` | Aprender (below). Members only; a visitor is sent to sign in. |
 | `/music/songs/{id}` | `302` to `/music/albums/{id}`, query kept, GET/HEAD only. |
 | `/api/music/...` | API (below). |

@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.Deployment;
 
@@ -21,7 +20,7 @@ namespace RTUB.Web.Tests.Deployment;
 /// </summary>
 public class RefreshDevDatabaseWorkflowTests
 {
-    private static readonly string Root = FindRepositoryRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string WorkflowPath = Path.Combine(Root, ".github", "workflows", "refresh-dev-database.yml");
     private static readonly string ResolverPath = Path.Combine(Root, "scripts", "resolve-dev-db-path.sh");
 
@@ -206,16 +205,5 @@ public class RefreshDevDatabaseWorkflowTests
         var start = headers[index].Index;
         var end = index + 1 < headers.Count ? headers[index + 1].Index : code.Length;
         return code[start..end];
-    }
-
-    private static string FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, ".github")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

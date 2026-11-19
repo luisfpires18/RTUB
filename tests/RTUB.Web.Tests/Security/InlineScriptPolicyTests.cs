@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.Security;
 
@@ -136,7 +135,7 @@ public class InlineScriptPolicyTests
     /// </summary>
     private static List<Violation> ScanAllMarkup(Regex pattern)
     {
-        var root = GetProjectRoot();
+        var root = RepoPaths.Root();
         var violations = new List<Violation>();
 
         foreach (var file in EnumerateApplicationMarkup())
@@ -186,7 +185,7 @@ public class InlineScriptPolicyTests
     /// </summary>
     private static IEnumerable<string> EnumerateApplicationMarkup()
     {
-        var src = Path.Combine(GetProjectRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
         var extensions = new[] { "*.razor", "*.cshtml", "*.html" };
 
         return extensions
@@ -196,21 +195,5 @@ public class InlineScriptPolicyTests
     }
 
     private static string ReadRepoFile(params string[] segments) =>
-        File.ReadAllText(Path.Combine(new[] { GetProjectRoot() }.Concat(segments).ToArray()));
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        if (directory == null)
-        {
-            throw new InvalidOperationException("Could not find project root directory");
-        }
-
-        return directory.FullName;
-    }
+        File.ReadAllText(Path.Combine(new[] { RepoPaths.Root() }.Concat(segments).ToArray()));
 }

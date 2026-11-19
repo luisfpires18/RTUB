@@ -25,6 +25,10 @@ Pinned by `tests/RTUB.Web.Tests/ReactPortal/PerformanceGateSourceTests.cs`.
 - No layout shift on mount: `.boot` uses padding (a margin collapses through `<body>`); `main { min-height:
   calc(100vh - var(--header-h)) }` keeps the footer below the fold; `/members` actions render while the list loads
   (only "Adicionar membro" waits for `canManage`); the event hero has `aspect-ratio: 3 / 2`.
+- Code needed only later is its own chunk (task 139, gzip from the build): the startup dialogs (`App.tsx` lazy
+  `StartupModals`; `resetStartup` lives in `data/startupRules.ts`) left the entry chunk, 33.4 → 30.9 KB; the board's
+  dialogs load on the first open (`LogisticsBoard.tsx` lazy `LogisticsBoardDialogs`), board chunk 19.5 → 9.7 KB.
+  `/js/sw-register.js` is `no-cache` like `service-worker.js` (it is loaded unversioned).
 - Logistics: board changes reload the board only (`?files=false`); the R2 folder listing (the slowest call in the
   app) loads on open, on "Tentar novamente" and after a file upload or delete (`/file-list`).
 - Cookie validation (`OnValidatePrincipal`) asks the database about the Admin role only when the cookie claims it. The
@@ -36,6 +40,9 @@ Pinned by `tests/RTUB.Web.Tests/ReactPortal/PerformanceGateSourceTests.cs`.
   `/health`, non-GET and non-http requests; registered on `load`.
 - Hero logo: 512 px for 1x and the 1024 px for 2x with `fetchpriority="high"`; default avatar is 256 px.
 - The linux-x64 publish uses `-p:PublishReadyToRun=true` (cold start on a one-core B1).
+- The endpoints are built once per start (`app.BuildEndpointsOnce()`, `Extensions/EndpointsBuiltOnceExtensions.cs`).
+  ASP.NET reads the endpoint sources twice (authorization policy cache, then the router) and a minimal-API source
+  compiles every handler on each read. Pinned by `ApiEndpointsTests.TheEndpoints_AreBuiltOnce_HoweverManyTimesTheSourcesAreRead`.
 - Intro (`.splash*`, `:root.intro`, `revealApp`, the italic face it uses) is by owner decision shown on every session.
 - Owner decisions: cookie validation is gated but not cached; no client router until measurements justify it.
 
@@ -64,10 +71,10 @@ Severity: H every request / page / unbounded growth, M one main page or write, L
 | C5 | M | Bulk email inside the admin request; SMTP serialised; a new `SmtpClient` per message. | `EmailNotificationService.cs` | second lane on the C2 channel, or accept |
 | C6 | L | `AddMemoryCache` without `SizeLimit`; ata / report PDFs cached 1 h unbounded on a 1.75 GB B1. | `ServiceCollectionExtensions.cs`, `AtaPdfService.cs`, `ReportPdfService.cs` | `SizeLimit` + `Size` |
 | D1 | H | Gallery tiles (24 / page) and the Home preview (5) load R2 originals (up to 10 MB); `ThumbnailUrl` never generated; no dimensions, so masonry reflows. *verified* | `Gallery.tsx`, `Home.tsx`, `GalleryManage.tsx` | client-side resize at upload (reuse `Cropper.tsx`): main up to 1600 px + 480 px thumb + width / height (schema) |
-| D8 | M | One 184 KB / 14,377-line stylesheet on every page. *verified* | `styles.css` | coverage pass, then per-area CSS imported by the lazy chunks (splash / intro rules stay in the main sheet) |
+| D8 | M | One built stylesheet (215 KB, 38 KB gzip; 95 source files under `styles/`) on every page. *verified* | `styles.css` | coverage pass, then per-area CSS imported by the lazy chunks (splash / intro rules stay in the main sheet) |
 | D9 | M | Route waterfall: HTML, entry, `import()` chunk, mount, first API call. | `main.tsx`, `Program.cs` | `modulepreload` for the route's chunk from Vite's manifest |
 | D11 | M | Avatars 600 px shown at 24-72 px everywhere (`/members` loads about 60). *verified* | `membersApi.ts`, `MemberShell.tsx` | 128 px variant at crop time + DTOs (storage change) |
-| D13-15 | L | `icons.tsx` ships all 89 paths; `musicApi.ts` duplicates `call()`; management dialogs in public chunks; `rtub-logo-maskable-512.png` 254 KB (manifest only); Fraunces italic (80 KB) loads on Home for one `<em>`. | | when touched |
+| D13-15 | L | `icons.tsx` ships all 89 paths; management dialogs in public chunks; `rtub-logo-maskable-512.png` 254 KB (manifest only); Fraunces italic (80 KB) loads on Home for one `<em>`. | | when touched |
 | E1 | H | PROD Always On off: cold start after 20 min idle. | Azure | owner action (also needed by the daily backup) |
 | E3 | L | HTTP/2 state of both App Services undocumented. | Azure | `az webapp config show --query http20Enabled` |
 | F3 | L | `.Date.Date` filters bypass the date indexes; `PushSubscriptions.Endpoint`, `AuditLogs.Action` unindexed. | repositories, reminder jobs | range compares; two indexes |

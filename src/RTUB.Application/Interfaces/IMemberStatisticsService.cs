@@ -1,12 +1,11 @@
 using RTUB.Application.DTOs;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
 /// Service interface for member statistics operations
 /// Provides aggregated data for leaderboard and member analytics
-/// Extracts complex queries from Blazor pages following SOLID principles
+/// Member statistics queries
 /// </summary>
 public interface IMemberStatisticsService
 {

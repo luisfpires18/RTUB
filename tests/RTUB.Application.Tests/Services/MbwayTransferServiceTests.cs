@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
@@ -11,7 +10,7 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for MbwayTransferService
 /// Tests MBWAY transfer CRUD operations and member guard clauses
 /// </summary>
-public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDisposable
+public partial class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
@@ -28,7 +27,6 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
         _service = new MbwayTransferService(_fixture.CreateContextFactory());
     }
 
-    #region Helper Methods
 
     private async Task<ApplicationUser> CreateTestUser(string id = "test-user-1", string nickname = "TestUser")
     {
@@ -79,9 +77,7 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
         return transfer;
     }
 
-    #endregion
 
-    #region GetAllAsync Tests
 
     [Fact]
     public async Task GetAllAsync_WithNoTransfers_ReturnsEmptyList()
@@ -137,48 +133,9 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
         result.Last().Amount.Should().Be(10.00m);
     }
 
-    #endregion
 
-    #region GetByFiscalYearAsync Tests
 
-    [Fact]
-    public async Task GetByFiscalYearAsync_ReturnsOnlyMatchingTransfers()
-    {
-        // Arrange
-        var user = await CreateTestUser();
-        var fy = FiscalYear.Create(2025, 2026);
-        _context.FiscalYears.Add(fy);
-        await _context.SaveChangesAsync();
 
-        var withFy = new MbwayTransfer
-        {
-            Date = DateTime.UtcNow,
-            Amount = 50.00m,
-            MemberUserId = user.Id,
-            TransferTo = "FY Recipient",
-            FiscalYearId = fy.Id
-        };
-        var withoutFy = new MbwayTransfer
-        {
-            Date = DateTime.UtcNow,
-            Amount = 30.00m,
-            MemberUserId = user.Id,
-            TransferTo = "No FY Recipient"
-        };
-        _context.MbwayTransfers.AddRange(withFy, withoutFy);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _service.GetByFiscalYearAsync(fy.Id);
-
-        // Assert
-        result.Should().HaveCount(1);
-        result.First().Amount.Should().Be(50.00m);
-    }
-
-    #endregion
-
-    #region AddTransferAsync Tests
 
     [Fact]
     public async Task AddTransferAsync_WithValidTransfer_ReturnsSuccess()
@@ -236,9 +193,7 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
         success.Should().BeFalse();
     }
 
-    #endregion
 
-    #region UpdateTransferAsync Tests
 
     [Fact]
     public async Task UpdateTransferAsync_WithExistingTransfer_UpdatesAndReturnsSuccess()
@@ -306,9 +261,7 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
         success.Should().BeFalse();
     }
 
-    #endregion
 
-    #region DeleteTransferAsync Tests
 
     [Fact]
     public async Task DeleteTransferAsync_WithExistingTransfer_DeletesAndReturnsSuccess()
@@ -337,7 +290,6 @@ public class MbwayTransferServiceTests : IClassFixture<DatabaseFixture>, IDispos
         message.Should().Contain("não encontrada");
     }
 
-    #endregion
 
     public void Dispose()
     {

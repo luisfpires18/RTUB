@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React /members/map (task 032, docs/react-member-area.md; was the Blazor /member/map): members grouped by the
+/// The React /members/map (docs/react-member-area.md): members grouped by the
 /// city on their profile, placed by the geocoding cache. City-level only. Signed-in members only.
 /// </summary>
 public interface IMemberMapService

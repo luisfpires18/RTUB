@@ -55,14 +55,6 @@ public class CloudflareLyricStorageService : BaseCloudflareStorageService<Cloudf
             objectKey, _urlExpirationMinutes, contentType: "application/pdf");
     }
 
-    public async Task<bool> LyricPdfExistsAsync(string albumTitle, string songTitle)
-    {
-        var objectKey = GetObjectKey(albumTitle, songTitle);
-
-        return await ObjectExistsAsync(objectKey)
-            || (_referenceStorage != null && await _referenceStorage.ObjectExistsAsync(objectKey));
-    }
-
     private string GetObjectKey(string albumTitle, string songTitle)
     {
         // Normalize names to match bucket structure

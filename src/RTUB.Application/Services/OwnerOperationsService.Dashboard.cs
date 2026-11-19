@@ -6,9 +6,9 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// /owner/dashboard (task 050, docs/react-owner-operations.md → Dashboard): counts per Portugal day from what is
+/// /owner/dashboard (docs/react-owner-operations.md → Dashboard): counts per Portugal day from what is
 /// already stored (audit log, play counts, upload rows, enrollments) plus the LoginEvents history (sign-ins and hours
-/// seen, written since 050). Read only. Messaging is never counted.
+/// seen). Read only. Messaging is never counted.
 /// </summary>
 public partial class OwnerOperationsService
 {
@@ -16,7 +16,7 @@ public partial class OwnerOperationsService
     public const int DashboardDefaultDays = 30;
     private const int DashboardTop = 10;
 
-    /// <summary>Entity type → area of the app, for the "Áreas com mais movimentos" ranking (088).</summary>
+    /// <summary>Entity type → area of the app, for the "Áreas com mais movimentos" ranking.</summary>
     private static readonly IReadOnlyDictionary<string, string> DashboardAreas = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["Event"] = "Atuações", ["Enrollment"] = "Atuações", ["EventRepertoire"] = "Atuações", ["EventVideo"] = "Atuações",
@@ -86,7 +86,7 @@ public partial class OwnerOperationsService
             .Where(p => p.PlayedAt >= since && p.PlayedAt < until).Select(p => p.PlayedAt).ToListAsync();
         var enrollments = await db.Enrollments.AsNoTracking()
             .Where(e => e.EnrolledAt >= since && e.EnrolledAt < until).Select(e => e.EnrolledAt).ToListAsync();
-        // Task 089: already per Portugal day (PageViewCounter), so no bucketing; the previous period starts at previousFirst.
+        // Already per Portugal day (PageViewCounter), so no bucketing; the previous period starts at previousFirst.
         var pageViews = await db.PageViews.AsNoTracking()
             .Where(v => v.Day >= previousFirst && v.Day <= last)
             .Select(v => new { v.Day, v.Path, v.Count })
@@ -175,7 +175,7 @@ public partial class OwnerOperationsService
         }
 
         var current = audit.Where(a => a.Timestamp >= start).ToList();
-        // Task 088 (owner request): movements are ranked by the area of the app a row belongs to (Atuações, Logística…),
+        // Owner request: movements are ranked by the area of the app a row belongs to (Atuações, Logística…),
         // not by entity type, so "Inscrição em atuação" and "Atuação" count as one area. Unknown types keep their name.
         static string? DashboardArea(string? entityType) =>
             string.IsNullOrWhiteSpace(entityType) ? null : DashboardAreas.TryGetValue(entityType, out var area) ? area : entityType;

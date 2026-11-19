@@ -10,12 +10,11 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /events/{id}/contacts behind the React page (React track 013, docs/react-events.md).
-/// Same behaviour, rules now server-side: Mod and above (and any Leitão, since 049) record a call (Vai / Não vai / Indeciso, notes ≤500)
+/// The React event contacts page (docs/react-events.md).
+/// Rules enforced server-side: Mod and above (and any Leitão) record a call (Vai / Não vai / Indeciso, notes ≤500)
 /// through <see cref="IEventContactService"/>; an answer creates the member's enrollment (primary instrument,
-/// no notification) or flips an existing one, and "repor" clears the call and removes the enrollment, exactly
-/// as the old page did. Changed on purpose: reading the list (every member's phone) is Mod and above too (plus Leitões, 049)
-/// (any signed-in member could open the old page), and expelled members are not listed. No schema change.
+/// no notification) or flips an existing one, and "repor" clears the call and removes the enrollment.
+/// Reading the list (every member's phone) is Mod and above too (plus Leitões), and expelled members are not listed. No schema change.
 /// </summary>
 public sealed class EventContactsAdminService : IEventContactsAdminService
 {
@@ -62,7 +61,7 @@ public sealed class EventContactsAdminService : IEventContactsAdminService
             return EventResult<EventContactsDto>.Invalid("notes", $"As notas não podem exceder {NotesMax} caracteres.");
         }
 
-        await _contacts.MarkAsContactedAsync(eventId, userId, input.WillAttend, notes, EventsAuthorization.UserId(user)!);
+        await _contacts.MarkAsContactedAsync(eventId, userId, input.WillAttend, notes, user.UserId()!);
 
         if (input.WillAttend is { } willAttend)
         {
@@ -82,7 +81,7 @@ public sealed class EventContactsAdminService : IEventContactsAdminService
             }
             catch (Exception ex)
             {
-                // As before: the call is recorded even when its enrollment could not be synced.
+                // The call is recorded even when its enrollment could not be synced.
                 _logger.LogWarning(ex, "Failed to sync enrollment for user {UserId} on event {EventId}", userId, eventId);
             }
         }
@@ -120,7 +119,7 @@ public sealed class EventContactsAdminService : IEventContactsAdminService
 
     private async Task<EventResult<EventContactsDto>?> RefusalAsync(int eventId, ClaimsPrincipal user)
     {
-        if (!EventsAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<EventContactsDto>.Fail(EventResultStatus.SignInRequired);
         }

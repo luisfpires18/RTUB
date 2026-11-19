@@ -1,0 +1,114 @@
+/* ---------- request + members ---------- */
+
+.doors {
+  display: grid;
+  gap: 16px;
+}
+
+.door {
+  --door-pad: clamp(28px, 5vw, 56px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  padding: var(--door-pad);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.door--request {
+  background:
+    radial-gradient(80% 70% at 100% 0%, rgba(185, 160, 238, 0.28), transparent 60%),
+    linear-gradient(150deg, #4a2f9a, var(--royal) 45%, #1c1236);
+  color: var(--ink);
+}
+
+.door--request .eyebrow {
+  color: #e2d6ff;
+}
+
+.door--members {
+  border: 1px solid var(--line-strong);
+  background:
+    radial-gradient(90% 60% at 50% 100%, rgba(111, 66, 193, 0.22), transparent 70%),
+    var(--bg-raise);
+}
+
+.door .skyline {
+  /* An SVG keeps its intrinsic ratio, so flex stretch does not widen it: size it explicitly. */
+  flex: none;
+  width: calc(100% + 2 * var(--door-pad));
+  max-width: none;
+  height: 104px;
+  margin: auto calc(-1 * var(--door-pad)) calc(-1 * var(--door-pad));
+  color: #2c2536;
+}
+
+.door__title {
+  font-size: clamp(2rem, 2.5vw + 1rem, 3rem);
+}
+
+.door__lead {
+  max-width: 34rem;
+  font-size: 1.0625rem;
+}
+
+.steps {
+  display: grid;
+  gap: 14px;
+  counter-reset: step;
+}
+
+.steps li {
+  position: relative;
+  min-height: 36px;
+  padding: 5px 0 0 52px;
+  counter-increment: step;
+  color: var(--ink-soft);
+}
+
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(243, 238, 231, 0.45);
+  border-radius: 50%;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.steps strong {
+  color: var(--ink);
+}
+
+.door__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  margin-top: 8px;
+}
+
+.door__mail {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  text-underline-offset: 3px;
+}
+
+@media (min-width: 900px) {
+  .doors {
+    grid-template-columns: 1.5fr 1fr;
+  }
+
+}
+
+/* ---------- news teaser (placeholder) ---------- */

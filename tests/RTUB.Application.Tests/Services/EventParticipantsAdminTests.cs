@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -13,7 +12,6 @@ using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -25,10 +23,10 @@ namespace RTUB.Application.Tests.Services;
 public class EventParticipantsAdminTests
 {
     private static readonly ClaimsPrincipal Visitor = new(new ClaimsIdentity());
-    private static readonly ClaimsPrincipal Member = SignedIn("Member");
-    private static readonly ClaimsPrincipal Mod = SignedIn("Mod");
-    private static readonly ClaimsPrincipal Admin = SignedIn("Admin");
-    private static readonly ClaimsPrincipal Owner = SignedIn("Owner");
+    private static readonly ClaimsPrincipal Member = TestPrincipal.WithRole("Member");
+    private static readonly ClaimsPrincipal Mod = TestPrincipal.WithRole("Mod");
+    private static readonly ClaimsPrincipal Admin = TestPrincipal.WithRole("Admin");
+    private static readonly ClaimsPrincipal Owner = TestPrincipal.WithRole("Owner");
 
     private readonly DatabaseFixture _db = new();
     private readonly Mock<IPushNotificationService> _push = new();
@@ -210,14 +208,6 @@ public class EventParticipantsAdminTests
     // ---------- helpers ----------
 
     private static string StatusHelperDisplay(InstrumentType i) => RTUB.Application.Helpers.StatusHelper.GetInstrumentDisplay(i);
-
-    private static ClaimsPrincipal SignedIn(string role) =>
-        new(new ClaimsIdentity(new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, "user-" + role),
-            new Claim(ClaimTypes.Name, "u-" + role),
-            new Claim(ClaimTypes.Role, role),
-        }, "test"));
 
     private int AddEvent(DateTime date, bool cancelled = false)
     {

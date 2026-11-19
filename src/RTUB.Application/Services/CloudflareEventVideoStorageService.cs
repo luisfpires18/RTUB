@@ -1,5 +1,4 @@
 ﻿using Amazon.S3;
-using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -80,15 +79,4 @@ public class CloudflareEventVideoStorageService : BaseCloudflareStorageService<C
         }
     }
 
-    public async Task<bool> VideoExistsAsync(string videoUrl)
-    {
-        if (string.IsNullOrEmpty(videoUrl))
-            return false;
-
-        var objectKey = ExtractObjectKeyFromUrl(videoUrl);
-        if (string.IsNullOrEmpty(objectKey))
-            return false;
-
-        return await ObjectExistsAsync(objectKey);
-    }
 }

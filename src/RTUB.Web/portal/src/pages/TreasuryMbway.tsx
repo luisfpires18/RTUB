@@ -1,0 +1,258 @@
+import { useEffect, useId, useState, type FormEvent } from 'react';
+import { LoadMore } from '../components/ui/LoadMore';
+import { portal } from '../data/content';
+import { Dialog } from '../components/Dialog';
+import { Icon } from '../components/icons';
+import { isoDay, matches, problem, treasuryApi, type Person, type Transfer, type Transfers } from '../data/treasuryApi';
+import { MemberPicker, Refusal, TreasuryTabs } from '../components/TreasuryUi';
+
+import { day, euros, today } from '../data/format';
+import { Loading } from '../components/ui/Loading';
+import { PersonChip } from '../components/ui/PersonChip';
+import { FormField } from '../components/ui/FormField';
+import { DialogFooter } from '../components/ui/DialogFooter';
+import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
+import { PageHead } from '../components/ui/PageHead';
+import { BackLink } from '../components/ui/BackLink';
+import { Banner } from '../components/ui/Banner';
+import { FieldError } from '../components/ui/FieldError';
+import { IconAction } from '../components/ui/IconAction';
+import { SearchField, ToolsBar } from '../components/ui/SearchTools';
+import { EmptyNote } from '../components/ui/EmptyNote';
+const PAGE = 12;
+
+/**
+ * /treasury/mbway - MBWAY. Treasury members: every
+ * transfer, newest first, totals per recipient, search. Mod, Admin and Owner add; the Owner edits and deletes.
+ * MBWay transfers never count in the report totals.
+ */
+export default function TreasuryMbway() {
+  const [data, setData] = useState<Transfers | 'signin' | 'forbidden' | 'failed'>();
+  const [search, setSearch] = useState('');
+  const [limit, setLimit] = useState(PAGE);
+  const [form, setForm] = useState<{ transfer?: Transfer }>();
+  const [deleting, setDeleting] = useState<Transfer>();
+  const id = useId();
+
+  useEffect(() => {
+    document.title = 'MBWAY · Tesouraria · RTUB';
+  }, []);
+
+  const load = () =>
+    treasuryApi.transfers().then((o) => setData(o.kind === 'ok' ? o.data : o.kind === 'signin' || o.kind === 'forbidden' ? o.kind : 'failed'));
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const t = data && typeof data === 'object' ? data : null;
+  const shown = t?.transfers.filter((x) => matches(search, x.transferTo, x.transferFrom, x.phone, x.description)) ?? [];
+
+  return (
+    <section className="page wrap events-page tr-page" aria-labelledby="tr-title">
+      <BackLink href={portal.treasury}>Tesouraria</BackLink>
+      <PageHead
+        eyebrow="Área de membros"
+        title="MBWAY"
+        titleId="tr-title"
+        lead="Registo das transferências MBWAY. Não entram nos totais dos relatórios."
+      >
+        {t?.canAdd && (
+          <div className="events-page__actions">
+            <button type="button" className="btn btn--primary btn--sm" onClick={() => setForm({})}>
+              <Icon name="plus" />
+              Adicionar transferência
+            </button>
+          </div>
+        )}
+      </PageHead>
+
+      {typeof data === 'string' ? (
+        <Refusal state={data} path={portal.treasuryMbway} onRetry={load} />
+      ) : !t ? (
+        <Loading label="A carregar as transferências…" />
+      ) : (
+        <>
+          <TreasuryTabs current="mbway" />
+          {t.transfers.length === 0 ? (
+            <EmptyNote>Não há transferências MBWAY registadas.</EmptyNote>
+          ) : (
+            <>
+              <dl className="tr-tiles">
+                {t.totals.map((x) => (
+                  <div key={x.name} className="tr-tile">
+                    <dt>{x.name}</dt>
+                    <dd className="tr-in">{euros(x.amount)}</dd>
+                  </div>
+                ))}
+              </dl>
+              <ToolsBar>
+                <SearchField
+                  id={id}
+                  label="Procurar transferência"
+                  placeholder="Procurar por nome, telefone ou descrição"
+                  value={search}
+                  onChange={(v) => {
+                    setSearch(v);
+                    setLimit(PAGE);
+                  }}
+                />
+              </ToolsBar>
+              {shown.length === 0 ? (
+                <EmptyNote>Nenhuma transferência corresponde à pesquisa.</EmptyNote>
+              ) : (
+                <ul className="tr-cards">
+                  {shown.slice(0, limit).map((x) => (
+                    <li key={x.id} className="tr-card">
+                      <div className="tr-card__head">
+                        <strong className="tr-in">+{euros(x.amount)}</strong>
+                        <span className="tr-muted">{day(x.date)}</span>
+                        {t.canEdit && (
+                          <span className="tr-card__tools">
+                            <IconAction icon="pencil" label="Editar transferência" onClick={() => setForm({ transfer: x })} />
+                            <IconAction icon="trash" label="Eliminar transferência" onClick={() => setDeleting(x)} danger />
+                          </span>
+                        )}
+                      </div>
+                      <dl className="tr-facts">
+                        <dt>Para</dt>
+                        <dd>{x.transferTo || '—'}</dd>
+                        {x.transferFrom && (
+                          <>
+                            <dt>De</dt>
+                            <dd>{x.transferFrom}</dd>
+                          </>
+                        )}
+                        {x.phone && (
+                          <>
+                            <dt>Telefone</dt>
+                            <dd>{x.phone}</dd>
+                          </>
+                        )}
+                        {x.description && (
+                          <>
+                            <dt>Descrição</dt>
+                            <dd className="tr-pre">{x.description}</dd>
+                          </>
+                        )}
+                        <dt>Criado por</dt>
+                        <dd>{x.createdBy || '—'}</dd>
+                        {x.updatedBy && (
+                          <>
+                            <dt>Editado por</dt>
+                            <dd>
+                              {x.updatedBy}
+                              {x.updatedAt && ` · ${new Date(x.updatedAt).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}`}
+                            </dd>
+                          </>
+                        )}
+                      </dl>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <LoadMore className="tr-more" remaining={shown.length - limit} onMore={() => setLimit(limit + PAGE)} />
+            </>
+          )}
+
+          {form && <TransferDialog transfer={form.transfer} onClose={() => setForm(undefined)} onSaved={setData} />}
+          {deleting && (
+            <AsyncConfirmDialog danger
+              title="Eliminar transferência"
+              confirmLabel="Eliminar"
+              onClose={() => setDeleting(undefined)}
+              onConfirm={async () => {
+                const o = await treasuryApi.removeTransfer(deleting.id);
+                if (o.kind !== 'ok') return problem(o, 'eliminar a transferência');
+                setData(o.data);
+              }}
+            >
+              <p>
+                Eliminar a transferência de {euros(deleting.amount)} para <strong>{deleting.transferTo}</strong> ({day(deleting.date)})?
+              </p>
+              <p className="warning">
+                <Icon name="warning" />
+                Não dá para desfazer.
+              </p>
+            </AsyncConfirmDialog>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+/** "Adicionar transferência" / "Editar": date, amount, the member who received it (required), sender, phone, notes. */
+function TransferDialog({ transfer, onClose, onSaved }: { transfer?: Transfer; onClose: () => void; onSaved: (t: Transfers) => void }) {
+  const [date, setDate] = useState(isoDay(transfer?.date ?? null) || today());
+  const [amount, setAmount] = useState(transfer ? String(transfer.amount) : '');
+  const [member, setMember] = useState<Person | null>(transfer?.member ?? null);
+  const [from, setFrom] = useState(transfer?.transferFrom ?? '');
+  const [phone, setPhone] = useState(transfer?.phone ?? '');
+  const [description, setDescription] = useState(transfer?.description ?? '');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const fid = useId();
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    const input = {
+      date,
+      amount: amount.trim() === '' ? null : Number(amount.replace(',', '.')),
+      memberUserId: member?.id ?? null,
+      transferFrom: from,
+      phone,
+      description,
+    };
+    const o = transfer ? await treasuryApi.updateTransfer(transfer.id, input) : await treasuryApi.addTransfer(input);
+    setBusy(false);
+    if (o.kind === 'invalid') return setErrors(o.errors);
+    if (o.kind !== 'ok') return setErrors({ form: problem(o, 'guardar a transferência') });
+    onSaved(o.data);
+    onClose();
+  };
+
+  return (
+    <Dialog
+      title={transfer ? 'Editar transferência MBWAY' : 'Adicionar transferência MBWAY'}
+      onClose={onClose}
+      footer={<DialogFooter form={`${fid}-form`} busy={busy} disabled={!member || !amount || !date} onClose={onClose} />}
+    >
+      <form id={`${fid}-form`} className="form" onSubmit={submit} noValidate>
+        <Banner text={errors.form} />
+        <div className="form__row">
+          <FormField alert id={`${fid}-date`} label="Data" error={errors.date}>
+            <input id={`${fid}-date`} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </FormField>
+          <FormField alert id={`${fid}-amount`} label="Montante (€)" error={errors.amount}>
+            <input id={`${fid}-amount`} type="number" inputMode="decimal" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </FormField>
+        </div>
+        <div className={errors.memberUserId ? 'form__field form__field--error' : 'form__field'}>
+          <span className="form__label">Transferido para (membro da tuna)</span>
+          {member ? (
+            <PersonChip name={member.displayName} avatar={member.avatarUrl} onRemove={() => setMember(null)} />
+          ) : (
+            <>
+              {transfer && <p className="note">Atual: {transfer.transferTo}</p>}
+              <MemberPicker forDebts={false} label="Procurar membro" onPick={setMember} />
+            </>
+          )}
+          <FieldError text={errors.memberUserId} />
+        </div>
+        <div className="form__row">
+          <FormField alert id={`${fid}-from`} label="Transferido por (opcional)" error={errors.transferFrom}>
+            <input id={`${fid}-from`} type="text" maxLength={200} value={from} onChange={(e) => setFrom(e.target.value)} />
+          </FormField>
+          <FormField alert id={`${fid}-phone`} label="Telefone (opcional)" error={errors.phone}>
+            <input id={`${fid}-phone`} type="tel" maxLength={20} value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </FormField>
+        </div>
+        <FormField alert id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description}>
+          <textarea id={`${fid}-desc`} rows={3} maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
+        </FormField>
+      </form>
+    </Dialog>
+  );
+}

@@ -1,5 +1,4 @@
 ﻿using Amazon.S3;
-using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -93,18 +92,6 @@ public class CloudflareNaipeMediaStorageService : BaseCloudflareStorageService<C
         {
             // Don't throw - deletion failure shouldn't block operations
         }
-    }
-
-    public async Task<bool> MediaExistsAsync(string mediaUrl)
-    {
-        if (string.IsNullOrEmpty(mediaUrl))
-            return false;
-
-        var objectKey = ExtractObjectKeyFromUrl(mediaUrl);
-        if (string.IsNullOrEmpty(objectKey))
-            return false;
-
-        return await ObjectExistsAsync(objectKey);
     }
 
 }

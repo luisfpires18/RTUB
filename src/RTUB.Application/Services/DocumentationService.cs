@@ -6,41 +6,47 @@ using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /documentation ("Documentação") behind the React /documentation (React track 022,
-/// docs/react-documentation.md). Same storage and rules, through <see cref="IDocumentStorageService"/>, now enforced
-/// server-side (<see cref="DocumentationAuthorization"/>; the old page filtered and hid buttons in the circuit):
+/// The React /documentation
+/// (docs/react-documentation.md). Storage through <see cref="IDocumentStorageService"/>; rules enforced
+/// server-side (<see cref="DocumentationAuthorization"/>):
 /// - folders of one fiscal year (the current one by default) under docs/{environment}/{year}/, in storage order, the
 ///   Logistics folder shown as one folder per board; documents by file name;
 /// - download: a pre-signed attachment URL, only for a document listed in a folder the caller sees;
 /// - create folder (Owner): letters, digits, spaces and hyphens, at most 50, in the current fiscal year, not existing;
 /// - upload (any member who sees the folder): PDF, TXT, DOC(X), XLS(X), CSV, PPT(X), at most 50 MB; a name already in
 ///   the folder replaces that document, for Owner only;
-/// - delete document / folder (Owner): removed from storage (the folder with everything in it), as before.
-/// Every key is rebuilt from a listed year, folder and name, never from raw input. Audit log rows as before (the
-/// storage service writes them). No notifications, no schema change.
-/// #226 F01: a year's folders, boards and documents all come from ONE storage listing of docs/{environment}/{year}/
-/// (<see cref="DocumentTreeCache"/>, kept 30 s and dropped on every write), instead of the year listing, then the
-/// Logistics listing, then one listing per folder - and the download no longer lists three times before signing.
+/// - delete document / folder (Owner): removed from storage (the folder with everything in it).
+/// Every key is rebuilt from a listed year, folder and name, never from raw input. Audit log rows come from the
+/// storage service. No notifications, no schema change.
+/// A year's folders, boards and documents all come from ONE storage listing of docs/{environment}/{year}/
+/// (<see cref="DocumentTreeCache"/>, kept 30 s and dropped on every write); the download signs without listing again.
 /// </summary>
-public sealed class DocumentationService : IDocumentationService
+public sealed partial class DocumentationService : IDocumentationService
 {
     public const long MaxFileBytes = 50 * 1024 * 1024;
+
     public const int MaxFolderName = 50;
+
     public static readonly IReadOnlyList<string> Extensions = new[] { ".pdf", ".txt", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".ppt", ".pptx" };
+
     private static readonly Regex FolderPattern = new(@"^[a-zA-Z0-9\s\-]+$");
+
     private const string Logistics = "Logistics";
 
     private readonly IDocumentStorageService _storage;
+
     private readonly IFiscalYearService _fiscalYears;
+
     private readonly IDbContextFactory<ApplicationDbContext> _contexts;
+
     private readonly IHostEnvironment _environment;
+
     private readonly AuditContext _audit;
+
     private readonly DocumentTreeCache _trees;
 
     public DocumentationService(IDocumentStorageService storage, IFiscalYearService fiscalYears, IDbContextFactory<ApplicationDbContext> contexts,
@@ -97,280 +103,4 @@ public sealed class DocumentationService : IDocumentationService
             ? EventResult<DocumentLinkDto>.Ok(new DocumentLinkDto(url))
             : EventResult<DocumentLinkDto>.Fail(EventResultStatus.NotFound);
     }
-
-    public async Task<EventResult<DocumentFolderDto>> CreateFolderAsync(DocumentFolderInput input, ClaimsPrincipal user)
-    {
-        // Folders are always created in the current fiscal year, whatever year the page shows.
-        var (refusal, viewer) = await ViewerAsync(null, user);
-        if (viewer is null)
-        {
-            return new EventResult<DocumentFolderDto>(refusal!.Status, Errors: refusal.Errors);
-        }
-
-        if (!viewer.CanManage)
-        {
-            return EventResult<DocumentFolderDto>.Fail(EventResultStatus.Forbidden);
-        }
-
-        var name = input.Name?.Trim() ?? "";
-        if (name == "")
-        {
-            return EventResult<DocumentFolderDto>.Invalid("name", "O nome da pasta não pode estar vazio.");
-        }
-
-        if (name.Length > MaxFolderName || !FolderPattern.IsMatch(name))
-        {
-            return EventResult<DocumentFolderDto>.Invalid("name",
-                $"O nome da pasta só pode conter letras, números, espaços e hífens (máx. {MaxFolderName} caracteres).");
-        }
-
-        if (Subfolders(viewer.Tree, YearPath(viewer.FiscalYear)).Contains(name, StringComparer.OrdinalIgnoreCase))
-        {
-            return EventResult<DocumentFolderDto>.Invalid("name", "Uma pasta com este nome já existe.");
-        }
-
-        SetAudit(user);
-        await _storage.CreateFolderAsync(FolderPath(viewer.FiscalYear, name));
-        _trees.Forget(YearPath(viewer.FiscalYear));
-        return EventResult<DocumentFolderDto>.Ok(new DocumentFolderDto(name, name, Array.Empty<DocumentFileDto>()));
-    }
-
-    public async Task<EventResult<bool>> DeleteFolderAsync(string? fiscalYear, string? folder, ClaimsPrincipal user)
-    {
-        var (refusal, viewer) = await ViewerAsync(fiscalYear, user);
-        if (viewer is null)
-        {
-            return new EventResult<bool>(refusal!.Status, Errors: refusal.Errors);
-        }
-
-        if (!viewer.CanManage)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.Forbidden);
-        }
-
-        if (Folder(viewer, folder) is not { } found)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.NotFound);
-        }
-
-        SetAudit(user);
-        var path = FolderPath(viewer.FiscalYear, found);
-        await DropCardFilesAsync(user, path.EndsWith('/') ? path : path + "/", folder: true); // rows first, as for a document
-        await _storage.DeleteFolderAsync(path);
-        _trees.Forget(YearPath(viewer.FiscalYear));
-        return EventResult<bool>.Ok(true);
-    }
-
-    public async Task<EventResult<DocumentFileDto>> UploadAsync(string? fiscalYear, string? folder, DocumentUpload upload, ClaimsPrincipal user)
-    {
-        var (refusal, viewer) = await ViewerAsync(fiscalYear, user);
-        if (viewer is null)
-        {
-            return new EventResult<DocumentFileDto>(refusal!.Status, Errors: refusal.Errors);
-        }
-
-        if (Folder(viewer, folder) is not { } found)
-        {
-            return EventResult<DocumentFileDto>.Fail(EventResultStatus.NotFound);
-        }
-
-        // The browser's name without any path: a document never lands outside its folder.
-        var name = upload.FileName.Split('/', '\\')[^1].Trim();
-        var extension = Path.GetExtension(name).ToLowerInvariant();
-        if (name == "" || name.StartsWith('.') || !Extensions.Contains(extension))
-        {
-            return EventResult<DocumentFileDto>.Invalid("file", $"Tipo de ficheiro não permitido. Tipos permitidos: {string.Join(", ", Extensions)}");
-        }
-
-        if (upload.Length <= 0 || upload.Length > MaxFileBytes)
-        {
-            return EventResult<DocumentFileDto>.Invalid("file", "O ficheiro tem de ter até 50 MB.");
-        }
-
-        var path = FolderPath(viewer.FiscalYear, found);
-        if (!viewer.CanManage && Documents(viewer.Tree, path).Any(d => d.FileName == name))
-        {
-            return EventResult<DocumentFileDto>.Invalid("file", "Já existe um documento com este nome nesta pasta.");
-        }
-
-        SetAudit(user);
-        await _storage.UploadDocumentAsync(path, name, upload.Content,
-            string.IsNullOrWhiteSpace(upload.ContentType) ? "application/octet-stream" : upload.ContentType);
-        _trees.Forget(YearPath(viewer.FiscalYear));
-        return EventResult<DocumentFileDto>.Ok(new DocumentFileDto(name, Path.GetExtension(name), upload.Length));
-    }
-
-    public async Task<EventResult<bool>> DeleteDocumentAsync(string? fiscalYear, string? folder, string? name, ClaimsPrincipal user)
-    {
-        var (refusal, viewer) = await ViewerAsync(fiscalYear, user);
-        if (viewer is null)
-        {
-            return new EventResult<bool>(refusal!.Status, Errors: refusal.Errors);
-        }
-
-        if (!viewer.CanManage)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.Forbidden);
-        }
-
-        if (DocumentPath(viewer, folder, name) is not { } path)
-        {
-            return EventResult<bool>.Fail(EventResultStatus.NotFound);
-        }
-
-        // The card rows go first: a storage failure then leaves a document no card points at (delete again), never a card
-        // pointing at a deleted file; a failed save deletes nothing.
-        SetAudit(user);
-        await DropCardFilesAsync(user, path, folder: false);
-        await _storage.DeleteDocumentAsync(path);
-        _trees.Forget(YearPath(viewer.FiscalYear));
-        return EventResult<bool>.Ok(true);
-    }
-
-    /// <summary>
-    /// A Logística card file is the same object as its Documentação document (docs/react-logistics.md → Files): deleting it
-    /// here removes it from its card too, with a line in the card's history.
-    /// </summary>
-    private async Task DropCardFilesAsync(ClaimsPrincipal user, string path, bool folder)
-    {
-        await using var db = await _contexts.CreateDbContextAsync();
-        var rows = await (folder
-            ? db.LogisticsCardAttachments.Where(a => a.StoragePath != null && a.StoragePath.StartsWith(path))
-            : db.LogisticsCardAttachments.Where(a => a.StoragePath == path)).ToListAsync();
-        if (rows.Count == 0)
-        {
-            return;
-        }
-
-        var actor = DocumentationAuthorization.UserId(user);
-        foreach (var row in rows)
-        {
-            db.LogisticsCardAttachments.Remove(row);
-            db.LogisticsCardActivities.Add(new LogisticsCardActivity
-            {
-                CardId = row.CardId, ActorId = actor, Action = "attachment", Detail = $"Anexo removido em Documentação: {row.Name}",
-            });
-        }
-
-        await db.SaveChangesAsync();
-    }
-
-    /// <summary>Who is asking, the year asked for (validated) and the folders of that year they may see.</summary>
-    private async Task<(EventResult<bool>? Refusal, Viewer? Viewer)> ViewerAsync(string? fiscalYear, ClaimsPrincipal user)
-    {
-        if (DocumentationAuthorization.UserId(user) is not { } id)
-        {
-            return (EventResult<bool>.Fail(EventResultStatus.SignInRequired), null);
-        }
-
-        await using var db = await _contexts.CreateDbContextAsync();
-        if (await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id) is not { } member)
-        {
-            return (EventResult<bool>.Fail(EventResultStatus.SignInRequired), null);
-        }
-
-        var isOwner = DocumentationAuthorization.IsOwner(user);
-        if (!DocumentationAuthorization.CanOpen(member, isOwner))
-        {
-            return (EventResult<bool>.Fail(EventResultStatus.Forbidden), null);
-        }
-
-        var current = FiscalYearHelper.GetCurrentFiscalYearString();
-        var years = (await _fiscalYears.GetAllFiscalYearsAsync())
-            .Where(fy => fy.StartYear >= FiscalYearHelper.AppYearCreated)
-            .Select(fy => fy.GetFiscalYearString())
-            .Distinct()
-            .OrderByDescending(y => y)
-            .ToList();
-        var selected = string.IsNullOrEmpty(fiscalYear) ? current : fiscalYear;
-        if (selected != current && !years.Contains(selected))
-        {
-            return (EventResult<bool>.Invalid("fiscalYear", "Ano inválido."), null);
-        }
-
-        // One listing for the whole year (shared for 30 s). A storage failure shows no folders and finds no document, as
-        // the per-folder listings did, and is not kept.
-        var tree = await _trees.GetAsync(_storage, YearPath(selected)) ?? [];
-        var folders = new List<(string Name, string Label)>();
-        foreach (var folder in Subfolders(tree, YearPath(selected)))
-        {
-            if (folder.Equals(Logistics, StringComparison.OrdinalIgnoreCase))
-            {
-                folders.AddRange(Subfolders(tree, $"{YearPath(selected)}{folder}/").Select(board => ($"{folder}/{board}", board)));
-            }
-            else
-            {
-                folders.Add((folder, folder));
-            }
-        }
-
-        // Logística 3/5 (067): a private board's pre-067 file folder is only for those who see the board (its access list,
-        // Mod, Admin, Owner), here as on the board - listing, download and delete all go through the visible folders.
-        // Fail closed: a folder is hidden if any private board the caller may not see could own it - by its resolved
-        // LegacyFolder or by its current sanitised name (unresolved boards, and boards that share a folder name with
-        // another board, whose LegacyFolder is ""), compared case-insensitively.
-        // 104: a Logistics folder no board owns (a deleted board's, a name two old boards shared, a folder a rename has
-        // not finished moving) is for Mod, Admin and Owner only: it may hold a private board's files.
-        var hidden = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        HashSet<string>? open = null;
-        if (!LogisticsAuthorization.CanManage(user))
-        {
-            var boards = await db.LogisticsBoards.AsNoTracking()
-                .Select(b => new { b.Name, b.LegacyFolder, Open = b.Visibility != BoardVisibility.Private || b.Members.Any(m => m.UserId == id) })
-                .ToListAsync();
-            open = boards.Where(b => b.Open && !string.IsNullOrEmpty(b.LegacyFolder))
-                .Select(b => $"{Logistics}/{b.LegacyFolder}").ToHashSet(StringComparer.OrdinalIgnoreCase);
-            foreach (var b in boards.Where(b => !b.Open))
-            {
-                foreach (var folder in new[] { b.LegacyFolder, LogisticsKanbanService.SanitizePathComponent(b.Name) }.Where(f => !string.IsNullOrEmpty(f)))
-                {
-                    hidden.Add($"{Logistics}/{folder}");
-                }
-            }
-        }
-
-        bool Visible(string folder) => !folder.StartsWith($"{Logistics}/", StringComparison.OrdinalIgnoreCase)
-            || open is null || (open.Contains(folder) && !hidden.Contains(folder));
-
-        return (null, new Viewer(isOwner, DocumentationAuthorization.CanManage(user), years, selected,
-            folders.Where(f => DocumentationAuthorization.CanSeeFolder(member, isOwner, f.Name) && Visible(f.Name)).ToList(), tree));
-    }
-
-    private static string? Folder(Viewer viewer, string? folder) =>
-        viewer.Folders.Select(f => f.Name).FirstOrDefault(f => f == folder);
-
-    /// <summary>
-    /// The key of a document the caller may download or delete: the folder must be one of the caller's visible folders and
-    /// the name a document listed directly in it, so the key is always one storage itself listed - never built from input.
-    /// </summary>
-    private string? DocumentPath(Viewer viewer, string? folder, string? name) =>
-        Folder(viewer, folder) is { } found
-            ? Documents(viewer.Tree, FolderPath(viewer.FiscalYear, found)).FirstOrDefault(d => d.FileName == name)?.FilePath
-            : null;
-
-    /// <summary>The direct subfolders of a prefix in the listing, as the delimiter listing named them (key order).</summary>
-    internal static List<string> Subfolders(IReadOnlyList<DocumentMetadata> tree, string prefix) =>
-        tree.Select(o => o.FilePath)
-            .Where(k => k.StartsWith(prefix, StringComparison.Ordinal))
-            .Select(k => k.IndexOf('/', prefix.Length) is var end && end > prefix.Length ? k[prefix.Length..end] : null)
-            .OfType<string>()
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(f => f + "/")
-            .ToList();
-
-    /// <summary>The documents directly in a folder (no folder marker, nothing in a subfolder), by file name.</summary>
-    internal static List<DocumentMetadata> Documents(IReadOnlyList<DocumentMetadata> tree, string folderPath)
-    {
-        var prefix = folderPath.EndsWith('/') ? folderPath : folderPath + "/";
-        return tree.Where(o => o.FilePath.StartsWith(prefix, StringComparison.Ordinal)
-                && o.FilePath.Length > prefix.Length && o.FilePath.IndexOf('/', prefix.Length) < 0)
-            .OrderBy(o => o.FileName)
-            .ToList();
-    }
-
-    private string YearPath(string fiscalYear) => $"docs/{_environment.EnvironmentName}/{fiscalYear}/";
-
-    private string FolderPath(string fiscalYear, string folder) => $"{YearPath(fiscalYear)}{folder}";
-
-    private void SetAudit(ClaimsPrincipal user) => _audit.SetUser(user.Identity?.Name, DocumentationAuthorization.UserId(user));
 }

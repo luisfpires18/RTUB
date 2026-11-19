@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.Security;
 
@@ -170,7 +169,7 @@ public class InlineStylePolicyTests
     /// </summary>
     private static List<Violation> Scan(Regex pattern, IEnumerable<string> files)
     {
-        var root = GetProjectRoot();
+        var root = RepoPaths.Root();
         var violations = new List<Violation>();
 
         foreach (var file in files)
@@ -220,7 +219,7 @@ public class InlineStylePolicyTests
     /// <summary>All .razor/.cshtml/.html under src/, excluding third-party bundles and build output.</summary>
     private static IEnumerable<string> EnumerateAllMarkup()
     {
-        var src = Path.Combine(GetProjectRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
         var extensions = new[] { "*.razor", "*.cshtml", "*.html" };
 
         return extensions
@@ -236,7 +235,7 @@ public class InlineStylePolicyTests
     /// <summary>Application-owned JavaScript under wwwroot, excluding vendored libraries.</summary>
     private static IEnumerable<string> EnumerateApplicationScripts()
     {
-        var wwwroot = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot");
+        var wwwroot = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "wwwroot");
 
         return Directory.EnumerateFiles(wwwroot, "*.js", SearchOption.AllDirectories)
             .Where(f => !IsExcludedPath(f))
@@ -258,21 +257,5 @@ public class InlineStylePolicyTests
     }
 
     private static string ReadRepoFile(params string[] segments) =>
-        File.ReadAllText(Path.Combine(new[] { GetProjectRoot() }.Concat(segments).ToArray()));
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        if (directory == null)
-        {
-            throw new InvalidOperationException("Could not find project root directory");
-        }
-
-        return directory.FullName;
-    }
+        File.ReadAllText(Path.Combine(new[] { RepoPaths.Root() }.Concat(segments).ToArray()));
 }

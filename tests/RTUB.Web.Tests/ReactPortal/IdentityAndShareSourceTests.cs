@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.ReactPortal;
 
@@ -12,11 +11,15 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class IdentityAndShareSourceTests
 {
-    private static readonly string Root = GetProjectRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Web = Path.Combine(Root, "src", "RTUB.Web");
     private static readonly string Portal = Path.Combine(Web, "portal", "src");
 
     private static string Read(params string[] path) => File.ReadAllText(Path.Combine(path)).Replace("\r\n", "\n");
+
+    // Startup is split across Program.cs and Extensions/*.cs; checks read all of it.
+    private static string ReadStartup() => string.Concat(new[] { Path.Combine(Web, "Program.cs") }
+        .Concat(Directory.GetFiles(Path.Combine(Web, "Extensions"), "*.cs").OrderBy(f => f)).Select(f => Read(f)));
 
     [Fact]
     public void NoBlazorPage_IsLeft()
@@ -31,11 +34,11 @@ public class IdentityAndShareSourceTests
     public void TheIdentityAndSharePages_AreReact_AndErrorIsServerOwned()
     {
         var main = Read(Portal, "main.tsx");
-        var program = Read(Web, "Program.cs");
+        var program = ReadStartup();
 
         foreach (var (route, page) in new[] { ("/forgot-password", "ForgotPassword"), ("/reset-password", "ResetPassword"), ("/confirm-email", "ConfirmEmail"), ("/share", "Share") })
         {
-            main.Should().Contain($"'{route}': lazy(() => import('./{page}')),");
+            main.Should().Contain($"'{route}': lazy(() => import('./pages/{page}')),");
         }
 
         program.Should().Contain("new[] { \"/forgot-password\", \"/reset-password\", \"/confirm-email\" }")
@@ -54,24 +57,25 @@ public class IdentityAndShareSourceTests
     {
         var endpoints = Read(Web, "Endpoints", "AccountRecoveryEndpoints.cs");
 
-        endpoints.Should().Contain(".AddEndpointFilter(EventEndpoints.NoStore)").And.Contain(".AddEndpointFilter(EventEndpoints.RequireAntiforgery);");
+        endpoints.Should().Contain(".AddEndpointFilter(EventEndpoints.NoStore)").And.Contain(".AddEndpointFilter(EventEndpoints.RequireAntiforgery)")
+            .And.Contain(".RequireRateLimiting(RTUB.Web.Extensions.ServiceCollectionExtensions.LoginRateLimitPolicy);", "the whole group is limited (135)");
         Regex.Matches(endpoints, @"account\.Map(Get|Put|Delete)\(").Should().BeEmpty("only POSTs: tokens travel in the body");
     }
 
     [Fact]
     public void TheTokenPages_KeepTokensOutOfStorageTheAddressBarAndTheLogs()
     {
-        foreach (var file in new[] { "ForgotPassword.tsx", "ResetPassword.tsx", "ConfirmEmail.tsx", "accountApi.ts", "Share.tsx" })
+        foreach (var file in new[] { "pages/ForgotPassword.tsx", "pages/ResetPassword.tsx", "pages/ConfirmEmail.tsx", "data/accountApi.ts", "pages/Share.tsx" })
         {
             var source = Read(Portal, file);
             source.Should().NotContain("localStorage").And.NotContain("sessionStorage").And.NotContain("console.");
         }
 
-        Read(Portal, "accountApi.ts").Should().Contain("history.replaceState(null, '', location.pathname)");
-        Read(Portal, "ResetPassword.tsx").Should().Contain("let link = takeLinkQuery('code', 'email');")
+        Read(Portal, "data/accountApi.ts").Should().Contain("history.replaceState(null, '', location.pathname)");
+        Read(Portal, "pages/ResetPassword.tsx").Should().Contain("let link = takeLinkQuery('code', 'email');")
             .And.Contain("link = { code: null, email: null };", "forgotten once used")
             .And.NotContain("useState(link", "never in React state");
-        Read(Portal, "ConfirmEmail.tsx").Should().Contain("const link = takeLinkQuery('userId', 'code');");
+        Read(Portal, "pages/ConfirmEmail.tsx").Should().Contain("const link = takeLinkQuery('userId', 'code');");
 
         var service = Read(Root, "src", "RTUB.Application", "Services", "AccountRecoveryService.cs");
         Regex.Matches(service, @"_logger\.Log\w+\([^;]*\b(token|callbackUrl|Code)\b", RegexOptions.Singleline).Should().BeEmpty("no token is logged");
@@ -91,11 +95,11 @@ public class IdentityAndShareSourceTests
         share.GetProperty("params").EnumerateObject().Select(p => (p.Name, p.Value.GetString()))
             .Should().BeEquivalentTo([("title", "title"), ("text", "text"), ("url", "url")]);
 
-        var page = Read(Portal, "Share.tsx");
+        var page = Read(Portal, "pages/Share.tsx");
         page.Should().Contain("new URLSearchParams(location.search)", "the shared values come from the share_target query")
             .And.NotContain("takeLinkQuery", "the query stays, so a reload keeps the shared content")
             .And.NotContain("fetch(", "nothing shared is sent anywhere");
-        Read(Portal, "content.ts").Should().Contain("share: '/share',");
+        Read(Portal, "data/content.ts").Should().Contain("share: '/share',");
 
         Read(Web, "wwwroot", "service-worker.js").Should().NotContain("share");
         File.Exists(Path.Combine(Web, "Pages", "Share.razor")).Should().BeFalse();
@@ -104,7 +108,7 @@ public class IdentityAndShareSourceTests
     [Fact]
     public void TheNewPages_SayNothingAboutTheMove_AndLinkNoRemovedModule()
     {
-        foreach (var file in new[] { "ForgotPassword.tsx", "ResetPassword.tsx", "ConfirmEmail.tsx", "accountApi.ts", "Share.tsx" }.Select(f => Path.Combine(Portal, f))
+        foreach (var file in new[] { "pages/ForgotPassword.tsx", "pages/ResetPassword.tsx", "pages/ConfirmEmail.tsx", "data/accountApi.ts", "pages/Share.tsx" }.Select(f => Path.Combine(Portal, f))
                      .Append(Path.Combine(Web, "wwwroot", "error.html")))
         {
             var text = File.ReadAllText(file);
@@ -116,17 +120,6 @@ public class IdentityAndShareSourceTests
             }
         }
 
-        Read(Portal, "content.ts").Should().NotContain("legacy", "no Blazor page is left to link out to");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
+        Read(Portal, "data/content.ts").Should().NotContain("legacy", "no Blazor page is left to link out to");
     }
 }

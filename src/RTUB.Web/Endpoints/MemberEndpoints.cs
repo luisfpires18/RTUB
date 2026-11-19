@@ -5,10 +5,9 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React members area (React tracks 017 and 018, docs/react-members.md; was the Blazor /members, /hierarchy and
-/// /members/manage). Thin: the read side lives in <see cref="IMemberDirectoryService"/>, the Admin/Owner tools in
-/// <see cref="IMemberAdminService"/>, every rule decided from the session. Signed-in members only, as the Blazor pages
-/// were. Every write needs the antiforgery token in the X-CSRF-TOKEN header.
+/// The React members area: /members, /members/hierarchy and the member admin tools (docs/react-members.md). Thin: the read side lives in <see cref="IMemberDirectoryService"/>, the Admin/Owner tools in
+/// <see cref="IMemberAdminService"/>, every rule decided from the session. Signed-in members only.
+/// Every write needs the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class MemberEndpoints
 {
@@ -33,14 +32,14 @@ public static class MemberEndpoints
         members.MapGet("/{id}", async (string id, HttpContext http, IMemberDirectoryService directory) =>
             ToResult(await directory.GetMemberAsync(id, http.User)));
 
-        // Admin and Owner from here on (018).
+        // Admin and Owner from here on.
         members.MapGet("/mentors", async (string? q, string? exclude, HttpContext http, IMemberAdminService admin) =>
             ToResult(await admin.SearchMentorsAsync(q, exclude, http.User)));
 
         members.MapGet("/{id}/edit", async (string id, HttpContext http, IMemberAdminService admin) =>
             ToResult(await admin.GetForEditAsync(id, http.User)));
 
-        // Task 076: the limited member-information edit - Mod, Admin, Owner (mentors and instruments are open to Mod too).
+        // The limited member-information edit - Mod, Admin, Owner (mentors and instruments are open to Mod too).
         members.MapGet("/{id}/info", async (string id, HttpContext http, IMemberAdminService admin) =>
             ToResult(await admin.GetInfoAsync(id, http.User)));
 
@@ -85,16 +84,12 @@ public static class MemberEndpoints
             ToResult(await admin.SendReminderAsync(id, http.User), _ => Results.NoContent()));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        EventResultStatus.Conflict => Results.Problem(title: "Os dados deste membro mudaram entretanto. Abre de novo.", statusCode: StatusCodes.Status409Conflict,
-            type: "members:conflict"),
-        _ => Results.Problem(title: "Membro não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Membro não encontrado.", status => status switch
+        {
+            EventResultStatus.Conflict => Results.Problem(title: "Os dados deste membro mudaram entretanto. Abre de novo.", statusCode: StatusCodes.Status409Conflict, type: "members:conflict"),
+            EventResultStatus.InUse => Results.Problem(title: "Este membro tem transferências MBWay em seu nome e não pode ser eliminado.",
+                statusCode: StatusCodes.Status409Conflict, type: "members:in-use"),
+            _ => null,
+        });
 }

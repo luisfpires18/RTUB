@@ -12,8 +12,8 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The member's own Web Push subscriptions, for the React /profile (task 038, docs/react-push-v2.md; replaces
-/// PushController), plus a test push to the caller's own device (#230). Signed-in members only (401 otherwise), every answer no-store, every POST needs the antiforgery
+/// The member's own Web Push subscriptions, for the React /profile (docs/react-push-v2.md; replaces
+/// PushController), plus a test push to the caller's own device. Signed-in members only (401 otherwise), every answer no-store, every POST needs the antiforgery
 /// token in X-CSRF-TOKEN. A member only ever reads, adds or removes their own subscriptions. Push is available to the
 /// Owner always and to everyone else when WebPush:Enabled; sending needs the VAPID keys. Sending to members is not
 /// here: the domain services and the Owner's /notifications (OwnerEndpoints) do it.
@@ -23,21 +23,21 @@ public static class PushEndpoints
     public static void MapPushEndpoints(this IEndpointRouteBuilder app)
     {
         var push = app.MapGroup("/api/push").AllowAnonymous()
-            .AddEndpointFilter(EventEndpoints.NoStore).AddEndpointFilter(RequireMember);
+            .AddEndpointFilter(EventEndpoints.NoStore).AddEndpointFilter(EventEndpoints.RequireMember);
 
         push.MapGet("/status", async (HttpContext http, IPushNotificationService service, IOptions<WebPushOptions> options) =>
             Results.Ok(await StatusAsync(http.User, service, options.Value)));
 
-        // Task 080 (#261): the startup reminder's account side. Always the caller's own account (no id in the request).
+        // The startup reminder's account side. Always the caller's own account (no id in the request).
         push.MapGet("/reminder", async (HttpContext http, PushReminderService reminder) =>
             await reminder.GetAsync(UserId(http.User)) is { } state
                 ? Results.Ok(new { reformed = state.Reformed, acknowledged = state.Acknowledged })
-                : Results.Unauthorized());
+                : EndpointResults.SignInRequired());
 
-        // Task 082 (#263): the member's own account-wide push preferences; the catalogue (keys, labels, the mandatory
+        // The member's own account-wide push preferences; the catalogue (keys, labels, the mandatory
         // key) is the server's. Independent of the device subscription above: saving here never touches it.
         push.MapGet("/preferences", async (HttpContext http, PushPreferenceService preferences) =>
-            await preferences.GetAsync(UserId(http.User)) is { } items ? Results.Ok(new { items }) : Results.Unauthorized());
+            await preferences.GetAsync(UserId(http.User)) is { } items ? Results.Ok(new { items }) : EndpointResults.SignInRequired());
 
         var writes = push.MapGroup(string.Empty).AddEndpointFilter(EventEndpoints.RequireAntiforgery);
 
@@ -51,7 +51,7 @@ public static class PushEndpoints
 
                     if (result.Items is null)
                     {
-                        return Results.Unauthorized();
+                        return EndpointResults.SignInRequired();
                     }
 
                     logs.CreateLogger(typeof(PushEndpoints)).LogInformation("User {UserName} saved push preferences ({Off} off)",
@@ -61,11 +61,11 @@ public static class PushEndpoints
             .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
 
         writes.MapPost("/reminder/ack", async (HttpContext http, PushReminderService reminder) =>
-            await reminder.AcknowledgeAsync(UserId(http.User)) ? Results.NoContent() : Results.Unauthorized());
+            await reminder.AcknowledgeAsync(UserId(http.User)) ? Results.NoContent() : EndpointResults.SignInRequired());
 
         writes.MapPost("/check", async (PushEndpointInput input, HttpContext http, IPushNotificationService service) =>
                 string.IsNullOrWhiteSpace(input.Endpoint)
-                    ? Invalid("endpoint", "Falta o endereço da subscrição.")
+                    ? EndpointResults.Invalid("endpoint", "Falta o endereço da subscrição.")
                     : Results.Ok(new { registered = await service.IsRegisteredAsync(UserId(http.User), input.Endpoint) }))
             .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
 
@@ -119,7 +119,7 @@ public static class PushEndpoints
                 })
             .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
 
-        // #230: a fixed test push to this browser's own subscription, so a member can see the whole path work on the
+        // A fixed test push to this browser's own subscription, so a member can see the whole path work on the
         // device. Only the caller's subscription with this endpoint (another member's endpoint is "not-registered"),
         // fixed text, one per member every TestCooldown. The answer is what the push service said (accepted ≠ shown).
         writes.MapPost("/test", async (PushEndpointInput input, HttpContext http, IPushNotificationService service,
@@ -138,7 +138,7 @@ public static class PushEndpoints
 
                     if (string.IsNullOrWhiteSpace(input.Endpoint))
                     {
-                        return Invalid("endpoint", "Falta o endereço da subscrição.");
+                        return EndpointResults.Invalid("endpoint", "Falta o endereço da subscrição.");
                     }
 
                     var userId = UserId(http.User);
@@ -165,7 +165,7 @@ public static class PushEndpoints
                 {
                     if (!input.All && string.IsNullOrWhiteSpace(input.Endpoint))
                     {
-                        return Invalid("endpoint", "Falta o endereço da subscrição.");
+                        return EndpointResults.Invalid("endpoint", "Falta o endereço da subscrição.");
                     }
 
                     var userId = UserId(http.User);
@@ -209,15 +209,7 @@ public static class PushEndpoints
     private static bool HasAccess(ClaimsPrincipal user, WebPushOptions options) => user.IsInRole("Owner") || options.Enabled;
 
     private static string UserId(ClaimsPrincipal user) => user.FindFirstValue(ClaimTypes.NameIdentifier)!;
-
-    private static IResult Invalid(string field, string message) =>
-        Results.ValidationProblem(new Dictionary<string, string[]> { [field] = [message] }, title: "Há campos por corrigir.");
-
-    private static async ValueTask<object?> RequireMember(EndpointFilterInvocationContext context, EndpointFilterDelegate next) =>
-        string.IsNullOrEmpty(context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier))
-            ? Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.", statusCode: StatusCodes.Status401Unauthorized)
-            : await next(context);
 }
 
-/// <summary>PUT /api/push/preferences: the full list of keys the member wants off (task 082).</summary>
+/// <summary>PUT /api/push/preferences: the full list of keys the member wants off.</summary>
 public sealed record PushPreferencesInput(string[]? Disabled);

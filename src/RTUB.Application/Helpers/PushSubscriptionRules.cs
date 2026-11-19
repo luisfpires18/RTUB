@@ -3,7 +3,7 @@ using System.Buffers.Text;
 namespace RTUB.Application.Helpers;
 
 /// <summary>
-/// What a browser push subscription must look like before it is stored (task 038, docs/react-push-v2.md). The server
+/// What a browser push subscription must look like before it is stored (docs/react-push-v2.md). The server
 /// later POSTs every notification to the endpoint, so it must be an https URL on a known browser push service (no
 /// arbitrary host, no IP address: the server would otherwise make requests wherever a member pointed it). The keys
 /// are the browser's P-256 public key (65 bytes, uncompressed) and its 16-byte auth secret, base64url (standard

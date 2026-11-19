@@ -27,13 +27,4 @@ public class SongYouTubeUrl : BaseEntity
             Description = description
         };
     }
-
-    public void UpdateUrl(string url, string? description)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-            throw new ArgumentException("O URL não pode estar vazio", nameof(url));
-
-        Url = url;
-        Description = description;
-    }
 }

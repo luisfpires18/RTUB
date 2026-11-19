@@ -1,7 +1,7 @@
 # React Naipes (`/naipes`) and settings (`/naipes/config`)
 
 Per-instrument videos and images with search, comments and play counts; Admin / Owner configure the instruments.
-Code: `portal/src/Naipes.tsx`, `NaipesConfig.tsx`, `naipesApi.ts`; `Endpoints/NaipeEndpoints.cs` > `INaipeBoardService` (`NaipeBoardService`, rules in `Helpers/NaipesAuthorization.cs`) over `INaipeService` (R2 media, audit log, push to everyone on a new item) and `INaipeContentFilterService`.
+Code: `portal/src/pages/Naipes.tsx`, `NaipesConfig.tsx`, `naipesApi.ts`; `Endpoints/NaipeEndpoints.cs` > `INaipeBoardService` (`NaipeBoardService`, rules in `Helpers/NaipesAuthorization.cs`) over `INaipeService` (R2 media, audit log, push to everyone on a new item) and `INaipeContentFilterService`.
 Tests: `Integration.Tests/Api/NaipesApiTests.cs` (fake media storage and push), `PortalRouteTests`, `MemberPagesTests`, `MemberShellTests`.
 
 ## Routes

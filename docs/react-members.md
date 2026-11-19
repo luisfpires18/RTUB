@@ -1,6 +1,6 @@
 # React Members (`/members`, `/members/hierarchy`)
 
-React: `portal/src/Members.tsx`, `MemberDialogs.tsx`, `MemberManage.tsx`, `MembersHierarchy.tsx` over `/api/members`.
+React: `portal/src/pages/Members.tsx`, `MembersHierarchy.tsx`, `components/MemberDialogs.tsx`, the admin dialogs `components/Member{FormDialog,FormFields,InfoDialog,ActionDialogs}.tsx` over `/api/members`.
 Code: `Endpoints/MemberEndpoints.cs`, `Helpers/MembersAuthorization.cs`, `MemberInfoRules`, `IMemberDirectoryService`
 (reads), `IMemberAdminService` (tools), `MemberHierarchyService`. Related: Classificação in
 [react-leaderboard](react-leaderboard.md); profile, map and Hall of Fame in [react-member-area](react-member-area.md).
@@ -72,7 +72,7 @@ Writes need `X-CSRF-TOKEN`. Rules are enforced by the API, not only by hidden bu
 | `POST /api/members/{id}/instruments`, `PUT .../instruments/{iid}/primary`, `DELETE .../instruments/{iid}` | instruments; answer the new list |
 | `PUT /api/members/{id}/nickname`, `POST .../expel`, `POST .../reactivate` | Leitões only (403 otherwise) |
 | `POST /api/members/{id}/reminder` | push reminder, 403 unless the member is retired 2 of 3 months back with nothing this month |
-| `DELETE /api/members/{id}` | 204; Admin: Leitões only |
+| `DELETE /api/members/{id}` | 204; Admin: Leitões only; `409 members:in-use` while an MBWay transfer names the member |
 
 - Create ("Adicionar membro"): first/last name, nome de tuna, contacto, email (required; 80 max each, entity
   annotations), birth date, curso, cidade (100 max), categoria (Leitão / Caloiro / Tuno), Fundador / Tuno Honorário (Tuno
@@ -88,7 +88,9 @@ Writes need `X-CSRF-TOKEN`. Rules are enforced by the API, not only by hidden bu
 - Expel / reactivate set `IsExpelled`; refused on non-Leitões.
 - Activity state is decided only by the rules in [member-activity-status](member-activity-status.md); there is no
   manual "make active" (the `OverrideRetired` flag is dead). A new member starts active only as a Leitão.
-- Delete is a hard delete with related data (`IUserProfileService.DeleteMemberWithRelatedDataAsync`).
+- Delete is a hard delete with related data (`IUserProfileService.DeleteMemberWithRelatedDataAsync`). It is refused,
+  before anything is deleted, while an MBWay transfer names the member (money records do not go with a member). The
+  delete itself is still many steps and not one database transaction.
 
 ### Mod: "Completar informação"
 

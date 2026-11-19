@@ -19,7 +19,7 @@ user-secrets and GitHub.
 
 | Source | Holds | Never holds |
 | --- | --- | --- |
-| Committed `appsettings.json` / `appsettings.Production.json` | non-secret defaults: schedulers, rate limits, `WebPush:Enabled`, `Cloudflare:R2:Bucket` / `ProductionBucket`, `DatabaseBackup:Enabled` (`false`; `true` in Production) | any secret |
+| Committed `appsettings.json` / `appsettings.Staging.json` (DEV) / `appsettings.Production.json` | non-secret defaults: `App:BaseUrl` (the site address in email links, one per environment), schedulers, rate limits, `WebPush:Enabled`, `Cloudflare:R2:Bucket` / `ProductionBucket`, `DatabaseBackup:Enabled` (`false`; `true` in Production) | any secret |
 | user-secrets (local, `UserSecretsId` of `src/RTUB.Web/RTUB.csproj`) | local secrets and overrides | (outside the repo) |
 | Azure App Settings (`rtub-dev`, `rtub`) | every DEV / PROD secret and environment value | (names in docs, values in Azure only) |
 | GitHub environment variables / secrets | deploy identity (`AZURE_*`), `RELEASE_STORAGE_ACCOUNT`, the DEV-refresh secrets | app settings (no workflow sets them) |
@@ -80,6 +80,27 @@ Why:
 - Deprecated names (no code reads them; both audits flag them for deletion if they appear): `Toggles__MapEnabled`
   (the members map is always on), `LoginPopup__*`, `UseSqlServer`, `ImageCaching__*`, `Gallery__MaxVideoSizeMB` (the
   gallery limit the code reads is `GalleryMedia__MaxVideoSize`, bytes).
+
+## Local run
+
+`src/RTUB.Web/Properties/launchSettings.json` has two profiles. `RTUB` is the plain one. `Local` is the safe one:
+
+```powershell
+dotnet run --project src/RTUB.Web/RTUB.csproj --launch-profile Local
+```
+
+| `Local` sets | To | Why |
+| --- | --- | --- |
+| address | `http://localhost:5178` | the `RTUB` profile's ports (58869 / 58870) are in the range Windows reserves on some days |
+| `ConnectionStrings__SqliteConnection` | `.local/app.db` at the repository root (git-ignored) | the run does not write to `src/RTUB.Web/app.db` |
+| `Cloudflare__R2__Bucket` | `rtub-local-unused` (does not exist) | the production-bucket guard lets the app start, and nothing can be written to a real bucket; storage routes answer 500 |
+| `EmailSettings__SmtpServer` | `disabled.invalid` | no mail leaves the machine |
+| `DatabaseBackup__Enabled` | `false` | no backup job |
+
+A profile's environment variables win over user-secrets. An empty `.local/app.db` is created on the first run: the
+Owner account then needs `AdminUser:Password` in user-secrets (below). To work on real-looking data, copy a database
+there first. A database that stopped before the migration squash of task 130 is refused at startup: see
+[release-and-rollback](release-and-rollback.md).
 
 ## Local user-secrets
 

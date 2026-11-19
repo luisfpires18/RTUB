@@ -10,11 +10,11 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The React /gallery timeline (React track 009). Reads the existing GalleryMedia and
-/// GalleryMediaPersonTags; no schema change. Same rule as the Blazor gallery: IsPrivate items are
+/// The React /gallery timeline. Reads the existing GalleryMedia and
+/// GalleryMediaPersonTags; no schema change. Rule: IsPrivate items are
 /// for signed-in members only (expelled members arrive anonymous: the cookie validator drops them).
 /// Person tags are member-only here, a tightening: visitors never learn who is in a photo.
-/// Writes: <see cref="IGalleryManagementService"/> (React track 015).
+/// Writes: <see cref="IGalleryManagementService"/>.
 /// </summary>
 public sealed class GalleryTimelineService : IGalleryTimelineService
 {
@@ -29,7 +29,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
 
     public async Task<GalleryTimelineDto> GetTimelineAsync(ClaimsPrincipal user, GalleryQuery query)
     {
-        var isMember = IsMember(user) && !query.PublicOnly;
+        var isMember = user.IsMember() && !query.PublicOnly;
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
 
@@ -37,7 +37,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
         var visible = Visible(db, isMember);
 
         // The facets (years, tagged people) come with the first page only; the client keeps them while it loads more
-        // (task 054: three queries fewer per "Mostrar mais").
+        // (three queries fewer per "Mostrar mais").
         var years = page == 1
             ? await visible.Select(m => m.Year).Distinct().OrderByDescending(y => y).ToListAsync()
             : new List<int>();
@@ -89,7 +89,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
 
     public async Task<GalleryItemDto?> GetItemAsync(int id, ClaimsPrincipal user)
     {
-        var isMember = IsMember(user);
+        var isMember = user.IsMember();
         await using var db = await _contexts.CreateDbContextAsync();
 
         var row = await Visible(db, isMember)
@@ -105,8 +105,6 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
         var tags = isMember ? await TagsAsync(db, new List<int> { id }) : null;
         return ToItem(row, tags, isMember ? user : null);
     }
-
-    private static bool IsMember(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
 
     private static IQueryable<GalleryMedia> Visible(ApplicationDbContext db, bool isMember) =>
         isMember ? db.GalleryMedia : db.GalleryMedia.Where(m => !m.IsPrivate);
@@ -142,7 +140,7 @@ public sealed class GalleryTimelineService : IGalleryTimelineService
             .ToList();
     }
 
-    /// <summary><c>CanEdit</c> only for a signed-in caller who may edit it (the uploader, Admin or Owner; 015).</summary>
+    /// <summary><c>CanEdit</c> only for a signed-in caller who may edit it (the uploader, Admin or Owner).</summary>
     private static GalleryItemDto ToItem(MediaRow m, Dictionary<int, List<GalleryPersonDto>>? tags, ClaimsPrincipal? user) => new(
         m.Id,
         m.Title,

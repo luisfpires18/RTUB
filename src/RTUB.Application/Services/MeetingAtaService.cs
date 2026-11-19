@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
-using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -11,7 +10,7 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Meeting Ata service implementation
 /// Contains business logic for meeting ata operations including authorization
-/// Uses IDbContextFactory to create fresh DbContext per operation to avoid EF tracking conflicts in Blazor Server.
+/// Uses IDbContextFactory: one DbContext per operation.
 /// </summary>
 public class MeetingAtaService : IMeetingAtaService
 {

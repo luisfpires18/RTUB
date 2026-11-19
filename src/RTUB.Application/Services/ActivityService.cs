@@ -27,29 +27,6 @@ public class ActivityService : IActivityService
     }
 
     /// <summary>
-    /// Gets an activity by its ID with all transactions included
-    /// </summary>
-    /// <param name="id">The ID of the activity to retrieve</param>
-    /// <returns>The activity if found, null otherwise</returns>
-    public async Task<Activity?> GetActivityByIdAsync(int id)
-    {
-        // Get activity with transactions for computed properties
-        return await _activityRepository.GetWithTransactionsAsync(id);
-    }
-
-    /// <summary>
-    /// Gets all activities with their transactions included
-    /// </summary>
-    /// <returns>Collection of all activities with transactions</returns>
-    public async Task<IEnumerable<Activity>> GetAllActivitiesAsync()
-    {
-        // Use query to include Transactions for computed properties
-        return await _activityRepository.QueryAsync(q => q
-            .Include(a => a.Transactions)
-            .ToListAsync());
-    }
-
-    /// <summary>
     /// Gets all activities for a specific report, ordered by date descending
     /// </summary>
     /// <param name="reportId">The ID of the report</param>

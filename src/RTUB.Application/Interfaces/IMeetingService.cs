@@ -18,14 +18,6 @@ public interface IMeetingService
     Task<IEnumerable<Meeting>> GetAllMeetingsAsync(string? searchTerm, int pageNumber, int pageSize, string userId);
 
     /// <summary>
-    /// Gets a meeting by ID if user has permission to view it
-    /// </summary>
-    /// <param name="id">Meeting ID</param>
-    /// <param name="userId">Current user ID for visibility check</param>
-    /// <returns>Meeting if found and user has permission, null otherwise</returns>
-    Task<Meeting?> GetMeetingByIdAsync(int id, string userId);
-
-    /// <summary>
     /// Creates a new meeting
     /// </summary>
     /// <param name="meeting">Meeting to create</param>
@@ -46,11 +38,4 @@ public interface IMeetingService
     /// <returns>Task</returns>
     Task DeleteMeetingAsync(int id);
 
-    /// <summary>
-    /// Gets total count of meetings with visibility filtering
-    /// </summary>
-    /// <param name="searchTerm">Optional search term</param>
-    /// <param name="userId">Current user ID for visibility filtering</param>
-    /// <returns>Total count</returns>
-    Task<int> GetTotalCountAsync(string? searchTerm, string userId);
 }

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
@@ -8,7 +7,7 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React Music area's API (React track 006, docs/react-music.md). Thin by design: every rule -
+/// The React Music area's API (docs/react-music.md). Thin by design: every rule -
 /// visibility, roles, the play cooldown, validation - lives in <see cref="IMusicService"/>.
 /// Reads are open to anonymous callers and show them public albums only. Every write, plays
 /// included, needs the antiforgery token in the X-CSRF-TOKEN header (from
@@ -21,7 +20,7 @@ public static class MusicEndpoints
 
     public static void MapMusicEndpoints(this IEndpointRouteBuilder app)
     {
-        var music = app.MapGroup("/api/music").AddEndpointFilter(NoStore);
+        var music = app.MapGroup("/api/music").AddEndpointFilter(EventEndpoints.NoStore);
 
         music.MapGet("/albums", async (HttpContext http, IMusicService service) =>
             Results.Ok(await service.GetAlbumsAsync(http.User)));
@@ -50,14 +49,14 @@ public static class MusicEndpoints
         music.MapGet("/songs/{id:int}/edit", async (int id, HttpContext http, IMusicService service) =>
             ToResult(await service.GetSongForEditAsync(id, http.User)));
 
-        // Aprender (094): members read; the chart is made offline (tools/playalong) and uploaded as JSON by the Owner.
+        // Aprender: members read; the chart is made offline (tools/playalong) and uploaded as JSON by the Owner.
         music.MapGet("/playalongs", async (HttpContext http, IMusicService service) =>
             ToResult(await service.GetPlayAlongSongsAsync(http.User)));
 
         music.MapGet("/songs/{id:int}/playalong", async (int id, HttpContext http, IMusicService service) =>
             ToResult(await service.GetPlayAlongAsync(id, http.User)));
 
-        var writes = music.MapGroup(string.Empty).AddEndpointFilter(RequireAntiforgery);
+        var writes = music.MapGroup(string.Empty).AddEndpointFilter(EventEndpoints.RequireAntiforgery);
 
         writes.MapPut("/songs/{id:int}/playalong", async (int id, PlayAlongChartDto? chart, HttpContext http, IMusicService service) =>
                 ToResult(await service.SavePlayAlongAsync(id, chart, http.User), _ => Results.NoContent()))
@@ -135,43 +134,6 @@ public static class MusicEndpoints
 
         writes.MapDelete("/videos/{id:int}", async (int id, HttpContext http, IMusicService service) =>
             ToResult(await service.DeleteVideoAsync(id, http.User), _ => Results.NoContent()));
-    }
-
-    /// <summary>No caching, and storage or database failures answer as a JSON problem, never a page or a stack trace.</summary>
-    private static async ValueTask<object?> NoStore(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
-    {
-        context.HttpContext.Response.Headers.CacheControl = "no-store";
-        try
-        {
-            return await next(context);
-        }
-        catch (Exception ex) when (!context.HttpContext.RequestAborted.IsCancellationRequested)
-        {
-            context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(MusicEndpoints))
-                .LogError(ex, "Music API {Method} {Path} failed", context.HttpContext.Request.Method, context.HttpContext.Request.Path);
-            return Results.Problem(title: "Não foi possível concluir. Tente novamente daqui a pouco.",
-                statusCode: StatusCodes.Status500InternalServerError);
-        }
-    }
-
-    /// <summary>
-    /// Explicit CSRF check for every Music write, JSON and multipart alike: the token travels in the
-    /// X-CSRF-TOKEN header (AddAntiforgery), bound to the caller's antiforgery cookie.
-    /// </summary>
-    private static async ValueTask<object?> RequireAntiforgery(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
-    {
-        var antiforgery = context.HttpContext.RequestServices.GetRequiredService<IAntiforgery>();
-        try
-        {
-            await antiforgery.ValidateRequestAsync(context.HttpContext);
-        }
-        catch (AntiforgeryValidationException)
-        {
-            return Results.Problem(title: "A sessão desta página expirou. Recarregue a página e tente de novo.",
-                statusCode: StatusCodes.Status400BadRequest);
-        }
-
-        return await next(context);
     }
 
     private static (MusicAlbumInput Input, MusicCoverUpload? Cover, Dictionary<string, string[]> Errors) ReadAlbumForm(IFormCollection form)

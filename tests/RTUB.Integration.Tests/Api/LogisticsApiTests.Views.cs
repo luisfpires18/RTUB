@@ -1,8 +1,6 @@
 using System.Net;
-using System.Net.Http.Json;
 using FluentAssertions;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 
@@ -23,14 +21,14 @@ public partial class LogisticsApiTests
         var (outsider, _) = await SignInAsync();
         foreach (var c in new[] { worker, viewer, outsider })
         {
-            await WithTokenAsync(c);
+            await AreaHttp.WithTokenAsync(c);
         }
 
         await UpdateCardAsync(cards[0], c => c.AssignToUser(workerUser.Id));
         await UpdateCardAsync(cards[2], c => c.ArchivedAt = DateTime.UtcNow);
 
         // One source: the active cards in the lists, the archived one apart (no view counts it).
-        var board = await Json(viewer, $"/api/logistics/boards/{boardId}");
+        var board = await AreaHttp.Json(viewer, $"/api/logistics/boards/{boardId}");
         board.GetProperty("lists").EnumerateArray().SelectMany(l => l.GetProperty("cards").EnumerateArray()).Select(c => c.GetProperty("id").GetInt32())
             .Should().BeEquivalentTo(new[] { cards[0], cards[1] });
         board.GetProperty("archivedCards").EnumerateArray().Select(c => c.GetProperty("id").GetInt32()).Should().Equal(cards[2]);

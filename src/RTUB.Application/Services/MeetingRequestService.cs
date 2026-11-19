@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using RTUB.Application.Data;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -45,11 +43,6 @@ public class MeetingRequestService : IMeetingRequestService
     public async Task<IEnumerable<MeetingRequest>> GetPagedAsync(int page, int pageSize, RequestStatus? status = null)
     {
         return await _meetingRequestRepository.GetPagedWithAuthorAsync(page, pageSize, status);
-    }
-
-    public async Task<int> GetTotalCountAsync(RequestStatus? status = null)
-    {
-        return await _meetingRequestRepository.GetCountAsync(status);
     }
 
     public async Task<MeetingRequest?> GetByIdAsync(int id)
@@ -116,10 +109,7 @@ public class MeetingRequestService : IMeetingRequestService
                 .ToList();
 
             // 5) Send notifications
-            foreach (var userId in recipientUserIds)
-            {
-                await _pushNotificationService.SendToUserAsync(userId, notification);
-            }
+            await _pushNotificationService.SendToSelectedUsersAsync(recipientUserIds, notification);
         }
         catch (Exception ex)
         {

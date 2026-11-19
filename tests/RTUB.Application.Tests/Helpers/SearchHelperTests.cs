@@ -165,26 +165,5 @@ public class SearchHelperTests
 
         // Assert
         helper.SearchTerm.Should().BeEmpty();
-        helper.IsSearching.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsSearching_WithEmptyTerm_ReturnsFalse()
-    {
-        // Arrange
-        var helper = new SearchHelper<TestItem> { SearchTerm = "" };
-
-        // Act & Assert
-        helper.IsSearching.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsSearching_WithTerm_ReturnsTrue()
-    {
-        // Arrange
-        var helper = new SearchHelper<TestItem> { SearchTerm = "test" };
-
-        // Act & Assert
-        helper.IsSearching.Should().BeTrue();
     }
 }

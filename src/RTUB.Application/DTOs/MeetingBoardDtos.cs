@@ -1,7 +1,7 @@
 namespace RTUB.Application.DTOs;
 
-// The React /meetings (task 034, docs/react-meetings.md; was the Blazor page): meetings, participations, atas and meeting
-// requests. Built per caller by MeetingBoardService: a member only receives meetings they may see and fields the old page
+// The React /meetings (docs/react-meetings.md): meetings, participations, atas and meeting
+// requests. Built per caller by MeetingBoardService: a member only receives meetings they may see and fields the page
 // showed them. No email address, EF entity or audit field leaves the server. Dates are the stored local (Portugal)
 // values as plain "yyyy-MM-ddTHH:mm" text, so no time zone can shift them. Meeting types travel as the MeetingType name.
 
@@ -78,7 +78,7 @@ public sealed record MeetingCardAccessDto(
 /// <summary>Create / edit form choices: the types this member may give a meeting, and the Tunos who may represent the Tunos at a CV.</summary>
 public sealed record MeetingFormDto(IReadOnlyList<MeetingTypeOptionDto> Types, IReadOnlyList<MeetingPersonOptionDto> TunoRepresentatives);
 
-/// <summary>A person to pick (id + what the old select showed).</summary>
+/// <summary>A person to pick (id + the name shown).</summary>
 public sealed record MeetingPersonOptionDto(string Id, string Label);
 
 /// <summary>Create / edit. <c>Date</c> "yyyy-MM-ddTHH:mm"; <c>TunoRepresentativeId</c> only for a CV meeting.</summary>
@@ -89,10 +89,10 @@ public sealed record MeetingSavedDto(int Id, MeetingCardDto? Card);
 
 // ---------- notices (managers) ----------
 
-/// <summary>A person in a "who receives" list, as the old preview showed them: name, picture and, for a CV, years as Tuno.</summary>
+/// <summary>A person in a "who receives" list: name, picture and, for a CV, years as Tuno.</summary>
 public sealed record MeetingPersonDto(string Name, string AvatarUrl, string? Detail);
 
-/// <summary>The email form: the old prefill (subject and the statement), who receives it and who does not, and for a CV the Tunos who may be added.</summary>
+/// <summary>The email form: the prefill (subject and the statement), who receives it and who does not, and for a CV the Tunos who may be added.</summary>
 public sealed record MeetingEmailDraftDto(
     string Subject,
     string Body,
@@ -133,7 +133,7 @@ public sealed record MeetingParticipantsDto(
     IReadOnlyList<MeetingParticipantDto> NotGoing,
     bool CanAdd);
 
-/// <summary>One answer. <c>Badge</c>: "Magister", "Tuno", "Caloiro" or null, as the old card showed.</summary>
+/// <summary>One answer. <c>Badge</c>: "Magister", "Tuno", "Caloiro" or null.</summary>
 public sealed record MeetingParticipantDto(int Id, string Nickname, string FullName, string AvatarUrl, string? Notes, string? Badge, bool CanRemove);
 
 public sealed record MeetingParticipationInput(bool WillAttend, string? Notes);
@@ -157,7 +157,7 @@ public sealed record MeetingAgendaPointDto(
     string? Result);
 
 /// <summary>
-/// The ata editor. <c>Id</c> null = not saved yet (the old defaults). <c>Kind</c>: "cv", "ag" or "direcao" (which
+/// The ata editor. <c>Id</c> null = not saved yet (the defaults). <c>Kind</c>: "cv", "ag" or "direcao" (which
 /// secretariat block the form shows). <c>PresidentName</c>: who will be saved as president.
 /// </summary>
 public sealed record MeetingAtaEditorDto(

@@ -1,10 +1,10 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /questions (task 031; was the Blazor "Perguntas aos Órgãos Sociais"). Signed-in members only.
+// Contracts of the React /questions. Signed-in members only.
 // People are shown by name and avatar only (GovernanceMemberDto); no contact field leaves the server.
 
 /// <summary>
-/// One page of open or closed questions, by latest activity (newest first), as the old page listed them.
+/// One page of open or closed questions, by latest activity (newest first).
 /// </summary>
 public sealed record QuestionPageDto(IReadOnlyList<QuestionSummaryDto> Items, int Total, int Page, int PageSize);
 

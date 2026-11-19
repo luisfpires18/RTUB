@@ -7,11 +7,10 @@ using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 namespace RTUB.Controllers;
 
 /// <summary>
-/// Session state for the React portal (React track 002, docs/react-portal-pilot.md).
+/// Session state for the React portal (docs/react-portal-pilot.md).
 /// Read-only and about the caller only: never another user, never contact details, dates of
 /// birth or anything else a member's own profile page does not already show them. Roles are not
-/// listed; <c>menu</c> (task 030) says only which member-menu groups to show the caller, as the
-/// Blazor navbar already did (<see cref="MemberMenuAccess"/>).
+/// listed; <c>menu</c> says only which member-menu groups to show the caller (<see cref="MemberMenuAccess"/>).
 /// Signing in and out stay with the antiforgery-protected /auth endpoints (React /login posts there).
 /// </summary>
 [ApiController]
@@ -37,7 +36,7 @@ public class AccountController : ControllerBase
         Response.Headers.CacheControl = "no-store";
 
 
-        // The build, as /api/version reports it: the footer reads it from here, one request fewer per page load (task 054).
+        // The build, as /api/version reports it: the footer reads it from here, one request fewer per page load.
         var version = RTUB.Web.Services.BuildInfo.Current.Version;
         var user = User.Identity?.IsAuthenticated == true ? await _userManager.GetUserAsync(User) : null;
 
@@ -48,7 +47,7 @@ public class AccountController : ControllerBase
             return Ok(new { authenticated = false, version });
         }
 
-        // Task 089: every React page asks here once per load; the Referer is the page. Members only (a visitor cannot
+        // Every React page asks here once per load; the Referer is the page. Members only (a visitor cannot
         // grow the buffer), counted in memory, path only.
         _pageViews.Record(Request.Headers.Referer.ToString(), Request.Host.Value);
 
@@ -63,9 +62,9 @@ public class AccountController : ControllerBase
             avatarUrl = user.ProfilePictureSrc,
             categories = user.Categories.Select(StatusHelper.GetCategoryDisplay).ToArray(),
             menu = MemberMenuAccess.For(User, user),
-            // Task 087: a Reformado has no "As minhas ações pendentes" (no menu entry, no page, no reminder push).
+            // A Reformado has no "As minhas ações pendentes" (no menu entry, no page, no reminder push).
             retired = user.IsRetired,
-            // Task 079: the configured public origin for links that leave RTUB (Google Calendar). Never the request's host.
+            // The configured public origin for links that leave RTUB (Google Calendar). Never the request's host.
             publicOrigin = _publicOrigin
         });
     }

@@ -37,18 +37,10 @@ public class CloudflareAudioStorageService : BaseCloudflareStorageService<Cloudf
     // the read-only production reference is the fallback, and is unconfigured in production.
     public async Task<string?> GetAudioUrlAsync(string albumTitle, int? trackNumber, string songTitle)
     {
-        var objectKey = GetObjectKey(albumTitle, trackNumber, songTitle);
+        var objectKey = GetObjectKey(albumTitle, songTitle);
 
         return await GeneratePreSignedUrlAsync(objectKey, _urlExpirationMinutes)
             ?? await ReferencePreSignAsync(objectKey);
-    }
-
-    public async Task<bool> AudioFileExistsAsync(string albumTitle, int? trackNumber, string songTitle)
-    {
-        var objectKey = GetObjectKey(albumTitle, trackNumber, songTitle);
-
-        return await ObjectExistsAsync(objectKey)
-            || (_referenceStorage != null && await _referenceStorage.ObjectExistsAsync(objectKey));
     }
 
     private Task<string?> ReferencePreSignAsync(string objectKey) =>
@@ -56,7 +48,7 @@ public class CloudflareAudioStorageService : BaseCloudflareStorageService<Cloudf
             ? Task.FromResult<string?>(null)
             : _referenceStorage.GetPreSignedUrlAsync(objectKey, _urlExpirationMinutes);
 
-    private string GetObjectKey(string albumTitle, int? trackNumber, string songTitle)
+    private string GetObjectKey(string albumTitle, string songTitle)
     {
         // Normalize names to match bucket structure
         // Example: "Boémios e Trovadores" -> "boemios_e_trovadores"

@@ -28,19 +28,19 @@ public class LogisticsBoard : BaseEntity
     /// </summary>
     public DateTime? CompletedAt { get; set; }
 
-    /// <summary>Task 067: the member responsible for the board (accountability only: no staff rights, no access rights).</summary>
+    /// <summary>The member responsible for the board (accountability only: no staff rights, no access rights).</summary>
     public string? OwnerUserId { get; set; }
 
-    /// <summary>Task 067: every member (default, as before) or only its access list.</summary>
+    /// <summary>Every member (default) or only its access list.</summary>
     public RTUB.Core.Enums.BoardVisibility Visibility { get; set; } = RTUB.Core.Enums.BoardVisibility.Members;
 
-    /// <summary>Task 067: archived boards are read-only until a manager restores them.</summary>
+    /// <summary>Archived boards are read-only until a manager restores them.</summary>
     public DateTime? ArchivedAt { get; set; }
 
     /// <summary>
-    /// Task 067: the board's pre-067 file folder name under docs/{env}/{year}/Logistics/ (its sanitised name then), read
-    /// from every year so old files stay on the board after a rename or the 1 September rollover. "" = none (a new board,
-    /// or two old boards sharing one folder); null = not resolved yet (resolved at startup).
+    /// The board's per-year file folder name under docs/{env}/{year}/Logistics/ (its first sanitised name), read
+    /// from every year so older files stay on the board after a rename or the 1 September rollover. "" = none (a new board,
+    /// or two boards sharing one folder); null = not resolved yet (resolved at startup).
     /// </summary>
     public string? LegacyFolder { get; set; }
 

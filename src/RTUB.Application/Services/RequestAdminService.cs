@@ -6,19 +6,20 @@ using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /requests ("Gestão de Pedidos") behind the React /requests (task 031, docs/react-requests-questions.md).
-/// Same data and rules, through <see cref="IRequestService"/> and <see cref="IRequestToEventService"/>, now enforced
-/// server-side (<see cref="RequestsAuthorization"/>; the old page only hid buttons):
+/// The React /requests (docs/react-requests-questions.md).
+/// Data through <see cref="IRequestService"/> and <see cref="IRequestToEventService"/>, rules enforced
+/// server-side (<see cref="RequestsAuthorization"/>):
 /// - the list: every request created in one fiscal year (the current one by default, or every year), newest first,
 ///   searched over name, email, event type, location and phone (case and accents ignored), filtered by status, split
 ///   into still to answer and answered;
 /// - approve and reject (Admin, Owner): only a request still to answer; approving returns the agenda's create-form link
-///   prefilled from the request, as the old "Criar Evento" step did;
-/// - delete (Admin, Owner): hard delete, as before.
+///   prefilled from the request;
+/// - delete (Admin, Owner): hard delete.
 /// No email or push is sent on approve, reject or delete (none was). No schema change.
 /// </summary>
 public sealed class RequestAdminService : IRequestAdminService
@@ -65,7 +66,7 @@ public sealed class RequestAdminService : IRequestAdminService
             .OrderByDescending(y => y)
             .ToList();
 
-        // No parameter: the current year, as the old page opened; "" (Todos os anos): every year.
+        // No parameter: the current year; "" (Todos os anos): every year.
         var selected = fiscalYear ?? current;
         if (selected != "" && selected != current && !years.Contains(selected))
         {
@@ -81,7 +82,11 @@ public sealed class RequestAdminService : IRequestAdminService
         IEnumerable<Request> shown = (await _requests.GetAllRequestsAsync()).ToList();
         if (selected != "" && _fiscalYearRanges.GetFiscalYearDateRange(selected) is { } range)
         {
-            shown = shown.Where(r => r.CreatedAt >= range.startDate && r.CreatedAt <= range.endDate);
+            shown = shown.Where(r =>
+            {
+                var created = PortugalTime.FromUtc(r.CreatedAt); // stored in UTC; the year's bounds are Portugal's calendar
+                return created >= range.startDate && created <= range.endDate;
+            });
         }
 
         if (statusKey != "")
@@ -159,13 +164,13 @@ public sealed class RequestAdminService : IRequestAdminService
 
     private const string AlreadyAnswered = "Este pedido já foi respondido.";
 
-    /// <summary>Still to answer: pending, or in analysis (only seeded data uses it; the old page showed it nowhere).</summary>
+    /// <summary>Still to answer: pending, or in analysis (only seeded data uses it).</summary>
     private static bool IsOpen(Request r) => r.Status is RequestStatus.Pending or RequestStatus.Analysing;
 
-    /// <summary>Signed in (401) and not a Leitão unless Admin or Owner (403), checked against the stored member.</summary>
+    /// <summary>Signed in and not a Leitão unless Admin or Owner, checked against the stored member.</summary>
     private async Task<EventResultStatus?> RefusalAsync(ClaimsPrincipal user)
     {
-        if (RequestsAuthorization.UserId(user) is not { } id)
+        if (user.UserId() is not { } id)
         {
             return EventResultStatus.SignInRequired;
         }

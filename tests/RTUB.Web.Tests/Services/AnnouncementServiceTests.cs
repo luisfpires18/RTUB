@@ -1,6 +1,5 @@
 using FluentAssertions;
 using RTUB.Web.Services;
-using Xunit;
 
 namespace RTUB.Web.Tests.Services;
 
@@ -10,24 +9,18 @@ namespace RTUB.Web.Tests.Services;
 /// </summary>
 public class AnnouncementServiceTests
 {
-    private sealed class Clock(DateTimeOffset now) : TimeProvider
-    {
-        public DateTimeOffset Now { get; set; } = now;
-        public override DateTimeOffset GetUtcNow() => Now;
-    }
-
     private static readonly DateTimeOffset Start = new(2026, 10, 12, 20, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public void NothingSent_HandsOutNothing()
     {
-        new AnnouncementService(new Clock(Start)).Current.Should().BeNull();
+        new AnnouncementService(new TestClock(Start)).Current.Should().BeNull();
     }
 
     [Fact]
     public void ASentAnnouncement_IsHandedOutUntilItsLifetimeEnds()
     {
-        var clock = new Clock(Start);
+        var clock = new TestClock(Start);
         var service = new AnnouncementService(clock);
 
         service.Broadcast("O servidor vai reiniciar.");
@@ -42,7 +35,7 @@ public class AnnouncementServiceTests
     [Fact]
     public void ANewAnnouncement_ReplacesTheLastOne_WithANewId()
     {
-        var clock = new Clock(Start);
+        var clock = new TestClock(Start);
         var service = new AnnouncementService(clock);
         service.Broadcast("Primeiro.");
         var first = service.Current!;

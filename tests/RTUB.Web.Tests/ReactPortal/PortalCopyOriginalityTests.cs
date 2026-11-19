@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.ReactPortal;
 
@@ -63,7 +62,7 @@ public class PortalCopyOriginalityTests
     {
         // Wording rule (docs/react-portal-pilot.md): "migration" is for EF/database migrations and
         // developer docs only - never in public UI, copy, routes or feature names, in any language.
-        var files = PortalFiles().Append(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src", "Privacy.tsx"));
+        var files = PortalFiles().Append(Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src", "pages/Privacy.tsx"));
 
         files.Where(f => Regex.IsMatch(File.ReadAllText(f), "migra", RegexOptions.IgnoreCase))
             .Select(Path.GetFileName)
@@ -108,7 +107,7 @@ public class PortalCopyOriginalityTests
 
     private static IEnumerable<string> CurrentSiteFiles()
     {
-        var src = Path.Combine(GetProjectRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
 
         return new[]
             {
@@ -121,22 +120,11 @@ public class PortalCopyOriginalityTests
 
     private static IEnumerable<string> PortalFiles()
     {
-        var portal = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal");
+        var portal = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal");
 
-        return Directory.EnumerateFiles(Path.Combine(portal, "src"))
+        return Directory.EnumerateFiles(Path.Combine(portal, "src"), "*", SearchOption.AllDirectories)
             .Where(f => f.EndsWith(".ts", StringComparison.Ordinal) || f.EndsWith(".tsx", StringComparison.Ordinal))
             .Where(f => !f.EndsWith("Privacy.tsx", StringComparison.Ordinal))
             .Append(Path.Combine(portal, "index.html"));
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

@@ -62,7 +62,7 @@ Skipped on purpose, so the report card is not chased again. Add one only with a 
 
 ## RTUB brand assets
 
-One source: the square artwork `wwwroot/images/rtub_new_logo.png` (1254 px, not shipped as such). Everything else is
+One source: the square artwork `rtub_new_logo.png` (1254 px, not in the repository). Everything else is
 resized from it, never cropped or stretched:
 
 | File | Size | Used by |
@@ -81,7 +81,10 @@ resized from it, never cropped or stretched:
   `apple-mobile-web-app-status-bar-style` (`black-translucent`), `theme-color`, the 180x180 `apple-touch-icon`.
   The viewport allows user scaling (accessibility).
 - Android (TWA): Digital Asset Links in `.well-known/assetlinks.json`; its `package_name` equals the manifest's
-  `related_applications` id. Follow Google Play guidelines.
+  `related_applications` id. `sha256_cert_fingerprints` is the **App signing key** SHA-256 from Play Console (Setup →
+  App signing), not the upload key. The file must answer 200 over HTTPS as `application/json`; never delete it while the
+  app is on the Play Store. If the app opens in a browser tab: check those three, wait about 30 minutes, then clear the
+  app data and reinstall.
 - iOS: Safari "Add to Home Screen"; iPhone/iPad offer push only from the installed app.
 - Lock-screen Now Playing: the page supplies only `MediaMetadata` (title, album, artwork; it has no URL) and the
   play/pause/next/previous/seek handlers; no Media Session action fires when the card itself is tapped. With several

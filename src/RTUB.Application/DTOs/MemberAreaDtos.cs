@@ -1,15 +1,15 @@
 namespace RTUB.Application.DTOs;
 
-// The member-area pages React took over in task 032 (docs/react-member-area.md): the Hall of Fame (/hall-of-fame), the
-// members map (/members/map, was /member/map) and the profile editor (/profile, was the Blazor /member/profile).
+// The member-area pages (docs/react-member-area.md): the Hall of Fame (/hall-of-fame), the
+// members map (/members/map) and the profile editor (/profile).
 
 // ---------- Hall of Fame (GET /api/hall-of-fame) ----------
 
-/// <summary>The twelve records, in the old page's order. Every winner of a tie is listed; no winner is "Sem dados".</summary>
+/// <summary>The twelve records, in a fixed order. Every winner of a tie is listed; no winner is "Sem dados".</summary>
 public sealed record HallOfFameDto(IReadOnlyList<HallOfFameCategoryDto> Categories);
 
 /// <summary>
-/// One record: a stable key, the old title, the winners and the value they share ("3 afilhados", "1 ano 2 meses",
+/// One record: a stable key, its title, the winners and the value they share ("3 afilhados", "1 ano 2 meses",
 /// "outubro 2024"); <c>Value</c> is null when nobody qualifies.
 /// </summary>
 public sealed record HallOfFameCategoryDto(string Key, string Title, IReadOnlyList<GovernanceMemberDto> Winners, string? Value);
@@ -18,7 +18,7 @@ public sealed record HallOfFameCategoryDto(string Key, string Title, IReadOnlyLi
 
 /// <summary>
 /// City-level only: a city's coordinates come from the geocoding cache, never from a member. No email, phone or
-/// address. <c>Total</c> counts every account the old page counted.
+/// address. <c>Total</c> counts every account counted.
 /// </summary>
 public sealed record MemberMapDto(
     int Total,
@@ -79,7 +79,7 @@ public sealed record MyTunaDto(
     int? MonthTuno,
     MemberLockedDatesDto LockedDates);
 
-/// <summary>The old rank card: level, its name, XP and the way to the next level (none at the top).</summary>
+/// <summary>The rank card: level, its name, XP and the way to the next level (none at the top).</summary>
 public sealed record MyRankDto(
     int Level,
     string Name,

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
@@ -13,21 +12,22 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /rehearsals for members, behind the React pages (React track 014, docs/react-rehearsals.md).
-/// Reads Rehearsals and RehearsalAttendances; no schema change. Rules, as the old page:
+/// The member side of the React /rehearsals pages (docs/react-rehearsals.md).
+/// Reads Rehearsals and RehearsalAttendances; no schema change. Rules:
 /// - a rehearsal is past once its day is before today; presenças can be approved once it is past, or today
 ///   when it starts at 21:00 or later (every real rehearsal starts at 21:30);
 /// - a member answers Vou / Não vou (instrument and note) on an upcoming, not cancelled rehearsal; a new "vou" is
 ///   pending until Admin/Owner approves it; a member may remove their own presença;
 /// - instruments offered: the member's own, primary first; a Leitão with none may pick any.
 /// </summary>
-public sealed class RehearsalAgendaService : IRehearsalAgendaService
+public sealed partial class RehearsalAgendaService : IRehearsalAgendaService
 {
     private readonly TimeProvider _time;
 
     public const int NotesMax = 500;
 
     private readonly IDbContextFactory<ApplicationDbContext> _contexts;
+
     private readonly IRehearsalAttendanceService _attendance;
 
     public RehearsalAgendaService(IDbContextFactory<ApplicationDbContext> contexts, IRehearsalAttendanceService attendance, TimeProvider? time = null)
@@ -39,7 +39,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalAgendaDto>> GetAgendaAsync(ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<RehearsalAgendaDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -68,7 +68,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalDetailDto>> GetAsync(int id, ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<RehearsalDetailDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -81,7 +81,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
         }
 
         var manage = RehearsalsAuthorization.CanManage(user);
-        // Task 075: the current Ensaiador / Magister approve and refuse too (nothing else of management).
+        // The current Ensaiador / Magister approve and refuse too (nothing else of management).
         var approver = RehearsalsAuthorization.CanApprove(user,
             await db.Users.AsNoTracking().Where(u => u.Id == me).Select(u => u.Positions).FirstOrDefaultAsync());
         var rows = await db.RehearsalAttendances.AsNoTracking()
@@ -90,7 +90,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
             .OrderByDescending(a => a.CheckedInAt).ThenByDescending(a => a.Id)
             .ToListAsync();
 
-        // The old list: Admin approves or removes once the rehearsal can be approved; anyone removes their own.
+        // Admin approves or removes once the rehearsal can be approved; anyone removes their own.
         var approvable = IsApprovable(r, Today);
         RehearsalAttendeeDto Row(RehearsalAttendance a) => new(
             a.Id,
@@ -109,7 +109,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
             going.Where(a => a.EffectiveCategory() == MemberCategory.Leitao).Select(Row).ToList(),
             rows.Where(a => !a.WillAttend).Select(Row).ToList());
 
-        // As the old counters: what the going members play, then the other instruments they listed.
+        // What the going members play, then the other instruments they listed.
         var primary = going.Where(a => a.Instrument.HasValue).GroupBy(a => a.Instrument!.Value)
             .Select(g => (g.Key, g.Count()));
         var others = going.SelectMany(a => (a.OtherInstruments ?? string.Empty)
@@ -132,7 +132,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalAttendanceDto>> GetMyAttendanceAsync(int id, ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<RehearsalAttendanceDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -143,7 +143,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalAttendanceDto>> SaveMyAttendanceAsync(int id, RehearsalAttendanceInput input, ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<RehearsalAttendanceDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -177,7 +177,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
             instrument = offered;
         }
 
-        // As the Blazor page did: the member's other instruments, by display name.
+        // The member's other instruments, by display name.
         var others = instrument is { } chosen
             ? string.Join(", ", context.Registered.Where(i => i != chosen).Select(StatusHelper.GetInstrumentDisplay))
             : null;
@@ -187,7 +187,7 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalAttendanceDto>> RemoveMyAttendanceAsync(int id, ClaimsPrincipal user)
     {
-        if (RehearsalsAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<RehearsalAttendanceDto>.Fail(EventResultStatus.SignInRequired);
         }
@@ -204,12 +204,12 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
 
     public async Task<EventResult<RehearsalStatsDto>> GetStatsAsync(DateOnly? from, DateOnly? to, ClaimsPrincipal user)
     {
-        if (!RehearsalsAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<RehearsalStatsDto>.Fail(EventResultStatus.SignInRequired);
         }
 
-        // The old modal's rules: the current season by default; past, not cancelled rehearsals; "vou" rows only.
+        // The current season by default; past, not cancelled rehearsals; "vou" rows only.
         var seasonStart = FiscalYearHelper.GetCurrentFiscalYearStartYear();
         var start = (from ?? new DateOnly(seasonStart, 9, 1)).ToDateTime(TimeOnly.MinValue);
         var end = (to ?? new DateOnly(seasonStart + 1, 8, 31)).ToDateTime(TimeOnly.MinValue);
@@ -254,105 +254,5 @@ public sealed class RehearsalAgendaService : IRehearsalAgendaService
             .ToList();
 
         return EventResult<RehearsalStatsDto>.Ok(new RehearsalStatsDto(DateText(start), DateText(end), past, members));
-    }
-
-    // ---------- rules and mapping (shared with RehearsalAdminService) ----------
-
-    // "Today" is Portugal's calendar date (#226 F02; was the server's DateTime.Today).
-    private DateTime Today => PortugalTime.Today(_time);
-
-    internal static bool IsPast(Rehearsal r, DateTime today) => r.Date.Date < today;
-
-    internal static bool IsApprovable(Rehearsal r, DateTime today) => IsPast(r, today) || (r.Date.Date == today && r.StartTime.Hours >= 21);
-
-    internal static string Status(RehearsalAttendance a) => !a.WillAttend ? "notGoing" : a.Attended ? "approved" : "pending";
-
-    internal static RehearsalSummaryDto ToSummary(Rehearsal r, int going, int pending, RehearsalAttendance? mine, DateTime today) => new(
-        r.Id,
-        DateText(r.Date),
-        Time(r.StartTime),
-        Time(r.EndTime),
-        r.Location,
-        Blank(r.Theme),
-        Blank(r.Description),
-        r.IsCanceled,
-        r.IsCanceled ? Blank(r.CancellationReason) : null,
-        IsPast(r, today),
-        IsApprovable(r, today),
-        Season(r.Date),
-        going,
-        pending,
-        mine is null ? null : new RehearsalMineDto(Status(mine),
-            mine.WillAttend && mine.Instrument is { } i ? StatusHelper.GetInstrumentDisplay(i) : null, Blank(mine.Notes)));
-
-    /// <summary>Nickname first; Magister, else the category at the rehearsal (else the current one), as the badge.</summary>
-    internal static EventAuthorDto Person(RehearsalAttendance a)
-    {
-        var u = a.User!;
-        var who = EventDiscussionBoardService.Author(u.Nickname, u.FirstName, u.LastName, u.ImageUrl, null, null);
-        var badge = u.Positions?.Contains(Position.Magister) == true ? "MAGISTER"
-            : a.EffectiveCategory() is { } c ? StatusHelper.GetCategoryDisplay(c) : null;
-        return who with { Badge = badge };
-    }
-
-    private static IReadOnlyList<RehearsalInstrumentCountDto> Counts(IEnumerable<(InstrumentType Instrument, int Count)> counts) =>
-        counts.OrderByDescending(c => c.Count).ThenBy(c => c.Instrument)
-            .Select(c => new RehearsalInstrumentCountDto(StatusHelper.GetInstrumentDisplay(c.Instrument), c.Count)).ToList();
-
-    internal static string DateText(DateTime date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-
-    private static string Time(TimeSpan t) => t.ToString(@"hh\:mm", CultureInfo.InvariantCulture);
-
-    internal static string? Blank(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
-
-    /// <summary>September to August, as the old fiscal-year filter.</summary>
-    private static string Season(DateTime date)
-    {
-        var start = date.Month >= 9 ? date.Year : date.Year - 1;
-        return $"{start}-{start + 1}";
-    }
-
-    // ---------- the caller's presença ----------
-
-    private sealed record Context(
-        RehearsalSummaryDto Rehearsal,
-        string State,
-        RehearsalAttendance? Attendance,
-        bool IsLeitao,
-        IReadOnlyList<InstrumentType> Registered,
-        IReadOnlyList<InstrumentType> Options)
-    {
-        public RehearsalAttendanceDto ToDto() => new(
-            Rehearsal,
-            State,
-            Attendance is null ? null : Status(Attendance),
-            Attendance is { WillAttend: true, Instrument: { } i } ? i.ToString() : null,
-            Attendance?.Notes,
-            IsLeitao,
-            Options.Select(i => new EventInstrumentOptionDto(i.ToString(), StatusHelper.GetInstrumentDisplay(i))).ToList(),
-            Registered.Count > 0 ? Registered[0].ToString() : null);
-    }
-
-    private async Task<Context?> LoadAsync(int id, string userId)
-    {
-        await using var db = await _contexts.CreateDbContextAsync();
-        var r = await db.Rehearsals.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
-        if (r is null)
-        {
-            return null;
-        }
-
-        var attendance = await db.RehearsalAttendances.AsNoTracking().FirstOrDefaultAsync(a => a.RehearsalId == id && a.UserId == userId);
-        var going = await db.RehearsalAttendances.CountAsync(a => a.RehearsalId == id && a.WillAttend);
-        var categories = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.Categories).FirstOrDefaultAsync();
-        var isLeitao = categories?.Contains(MemberCategory.Leitao) == true;
-        var registered = await db.MemberInstruments.AsNoTracking()
-            .Where(i => i.MemberId == userId)
-            .OrderByDescending(i => i.IsPrimary).ThenBy(i => i.Id)
-            .Select(i => i.InstrumentType)
-            .ToListAsync();
-        var options = registered.Count > 0 ? registered : isLeitao ? Enum.GetValues<InstrumentType>().ToList() : new List<InstrumentType>();
-        var state = r.IsCanceled ? "cancelled" : IsPast(r, Today) ? "past" : "open";
-        return new Context(ToSummary(r, going, 0, attendance, Today), state, attendance, isLeitao, registered, options);
     }
 }

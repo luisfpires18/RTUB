@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Repositories;
 
@@ -21,15 +20,6 @@ public class RoleAssignmentRepository : Repository<RoleAssignment>, IRoleAssignm
         return await context.Set<RoleAssignment>()
             .AsNoTracking()
             .Where(ra => ra.UserId == userId)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<RoleAssignment>> GetByPositionAsync(Position position)
-    {
-        using var context = CreateContext();
-        return await context.Set<RoleAssignment>()
-            .AsNoTracking()
-            .Where(ra => ra.Position == position)
             .ToListAsync();
     }
 }

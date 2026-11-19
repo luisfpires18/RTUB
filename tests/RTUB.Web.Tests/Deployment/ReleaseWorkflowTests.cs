@@ -1,7 +1,5 @@
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.Deployment;
 
@@ -15,9 +13,9 @@ namespace RTUB.Web.Tests.Deployment;
 /// real bash and run on the Linux CI runner; on Windows they are skipped - run
 /// <c>bash scripts/&lt;script&gt;.sh --self-test</c> by hand.
 /// </summary>
-public class ReleaseWorkflowTests
+public partial class ReleaseWorkflowTests
 {
-    private static readonly string Root = FindRepositoryRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Workflows = Path.Combine(Root, ".github", "workflows");
 
     private static string Ci => Read(".github/workflows/ci.yml");
@@ -231,37 +229,6 @@ public class ReleaseWorkflowTests
         Read("src/RTUB.Web/RTUB.csproj").Should().Contain(@"releases\*.json").And.Contain("CopyToPublishDirectory=\"PreserveNewest\"");
     }
 
-    // ---------- the scripts (bash; Linux CI) ----------
-
-    [Theory]
-    [InlineData("release.sh", "release self-test PASSED")]
-    [InlineData("release-archive.sh", "release-archive self-test PASSED")]
-    [InlineData("smoke-azure.sh", "parser self-test PASSED")]
-    public async Task Script_SelfTestPasses(string script, string expected)
-    {
-        Assert.SkipWhen(OperatingSystem.IsWindows(),
-            $"Runs on the Linux CI runner. By hand: bash scripts/{script} --self-test");
-
-        var startInfo = new ProcessStartInfo("bash")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = Root
-        };
-        startInfo.ArgumentList.Add(Path.Combine(Root, "scripts", script));
-        startInfo.ArgumentList.Add("--self-test");
-
-        using var process = Process.Start(startInfo)!;
-        var stdout = process.StandardOutput.ReadToEndAsync();
-        var stderr = process.StandardError.ReadToEndAsync();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-        await process.WaitForExitAsync(timeout.Token);
-
-        process.ExitCode.Should().Be(0, await stdout + await stderr);
-        (await stdout).Should().Contain(expected);
-    }
-
     // ---------- helpers ----------
 
     private static string Read(string relative) =>
@@ -289,16 +256,5 @@ public class ReleaseWorkflowTests
         var rest = jobs[(start.Index + start.Length)..];
         var next = Regex.Match(rest, @"(?m)^  [A-Za-z0-9_-]+:\n");
         return next.Success ? rest[..next.Index] : rest;
-    }
-
-    private static string FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, ".github")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

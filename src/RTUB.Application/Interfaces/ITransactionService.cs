@@ -9,8 +9,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface ITransactionService
 {
-    Task<Transaction?> GetTransactionByIdAsync(int id);
-    Task<IEnumerable<Transaction>> GetAllTransactionsAsync();
     Task<IEnumerable<Transaction>> GetTransactionsByActivityIdAsync(int activityId);
     Task<IEnumerable<Transaction>> GetTransactionsByActivityIdsAsync(IEnumerable<int> activityIds);
     Task<IEnumerable<Transaction>> GetTransactionsByTypeAsync(string type);

@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.ReactPortal;
 
@@ -11,13 +10,18 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class OwnerOperationsSourceTests
 {
-    private static readonly string Root = GetProjectRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Web = Path.Combine(Root, "src", "RTUB.Web");
     private static readonly string Portal = Path.Combine(Web, "portal", "src");
 
     private static readonly string[] Routes = ["/emails", "/notifications", "/users", "/owner/tracing", "/owner/db"];
 
     private static string Read(params string[] path) => File.ReadAllText(Path.Combine(path)).Replace("\r\n", "\n");
+
+    // Startup is split across Program.cs and Extensions/*.cs; checks read all of it.
+    private static string ReadStartup() => string.Concat(new[] { Path.Combine(Web, "Program.cs") }
+        .Concat(Directory.GetFiles(Path.Combine(Web, "Extensions"), "*.cs").OrderBy(f => f)).Select(f => Read(f)));
+    private static string Css() => PortalCss.Read(Portal).Replace("\r\n", "\n");
 
     [Theory]
     [InlineData("src/RTUB.Web/Pages/Operations/Emails.razor")]
@@ -50,7 +54,7 @@ public class OwnerOperationsSourceTests
     public void TheReactPortal_MapsTheOwnerPages()
     {
         var main = Read(Portal, "main.tsx");
-        var program = Read(Web, "Program.cs");
+        var program = ReadStartup();
 
         foreach (var (route, page) in new[]
                  {
@@ -58,8 +62,8 @@ public class OwnerOperationsSourceTests
                      ("/owner/tracing", "OwnerTracing"), ("/owner/dashboard", "OwnerDashboard"), ("/owner/db", "OwnerDatabase"),
                  })
         {
-            main.Should().Contain($"'{route}': lazy(() => import('./{page}')),");
-            File.Exists(Path.Combine(Portal, page + ".tsx")).Should().BeTrue();
+            main.Should().Contain($"'{route}': lazy(() => import('./pages/{page}')),");
+            File.Exists(Path.Combine(Portal, "pages", page + ".tsx")).Should().BeTrue();
         }
 
         program.Should().Contain("app.MapOwnerEndpoints();")
@@ -81,7 +85,7 @@ public class OwnerOperationsSourceTests
     [Fact]
     public void TheOwnerPages_SayNothingAboutTheMove_AndLinkNoRemovedModule()
     {
-        foreach (var file in Directory.GetFiles(Portal, "Owner*.tsx").Append(Path.Combine(Portal, "ownerApi.ts")))
+        foreach (var file in Directory.GetFiles(Portal, "Owner*.tsx", SearchOption.AllDirectories).Append(Path.Combine(Portal, "data/ownerApi.ts")))
         {
             var text = File.ReadAllText(file);
             var visible = Regex.Replace(text, @"/\*\*.*?\*/|//[^\n]*", string.Empty, RegexOptions.Singleline);
@@ -102,7 +106,7 @@ public class OwnerOperationsSourceTests
     public void Tracing_LabelsEveryAuditedType()
     {
         // Task 050: ENTITY_LABELS lives in ownerApi.ts, shared by /owner/tracing and /owner/dashboard.
-        var tracing = Read(Portal, "ownerApi.ts");
+        var tracing = Read(Portal, "data/ownerApi.ts");
         var audited = typeof(RTUB.Application.Data.ApplicationDbContext).GetProperties()
             .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(Microsoft.EntityFrameworkCore.DbSet<>))
             .Select(p => p.PropertyType.GetGenericArguments()[0])
@@ -125,16 +129,21 @@ public class OwnerOperationsSourceTests
     [Fact]
     public void Tracing_CardLeadsWithTheName_AndDetailsKeepTheRawEvidence()
     {
-        var tracing = Read(Portal, "OwnerTracing.tsx");
-        var card = tracing[tracing.IndexOf("<ul className=\"owner-logs\">", StringComparison.Ordinal)..tracing.IndexOf("<OwnerPager", StringComparison.Ordinal)];
+        // Task 113 split pages/OwnerTracing.tsx into the page, OwnerTracingDialogs, OwnerTracingParts and data/ownerTracingHelpers.ts.
+        var page = Read(Portal, "pages/OwnerTracing.tsx");
+        var dialogs = Read(Portal, "components/OwnerTracingDialogs.tsx");
+        var tracing = string.Join("\n", page, dialogs, Read(Portal, "components/OwnerTracingParts.tsx"), Read(Portal, "data/ownerTracingHelpers.ts"));
+        var card = page[tracing.IndexOf("<ul className=\"owner-logs\">", StringComparison.Ordinal)..page.IndexOf("<Pager", StringComparison.Ordinal)];
 
-        string[] order = ["owner-log__name", "owner-log__type", "owner-action", "Crítica", "owner-log__meta", "name=\"eye\"", "icon-btn--danger"];
+        string[] order = ["owner-log__name", "owner-log__type", "owner-action", "Crítica", "owner-log__meta", "name=\"eye\"", "<IconAction icon=\"trash\""];
         order.Select(m => card.IndexOf(m, StringComparison.Ordinal)).Should().BeInAscendingOrder().And.NotContain(-1);
         card.Should().Contain("owner-log--critical").And.NotContain("ID: ");
+        card.Should().Contain("title=\"Apagar este registo\"").And.Contain(" danger />");
+        Read(Portal, "components/ui/IconAction.tsx").Should().Contain("'icon-btn', !large && 'icon-btn--sm', danger && 'icon-btn--danger'");
         tracing.Should().NotContain("`ID: ${");
-        tracing.Should().Contain("${two(d.getDate())}/${two(d.getMonth() + 1)}/${d.getFullYear()} ${two(d.getHours())}:${two(d.getMinutes())}");
+        tracing.Should().Contain("${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}");
 
-        var details = tracing[tracing.IndexOf("function DetailsDialog", StringComparison.Ordinal)..tracing.IndexOf("function DeleteDialog", StringComparison.Ordinal)];
+        var details = dialogs[dialogs.IndexOf("function DetailsDialog", StringComparison.Ordinal)..dialogs.IndexOf("function DeleteDialog", StringComparison.Ordinal)];
         foreach (var raw in new[] { "entry.entityType}", "entry.entityId ??", "entry.entityDisplayName ||", "entry.currentDisplayName}", "entry.userName ??",
                      "entry.action}", "entry.isCritical ?", "pretty(entry.changes)" })
         {
@@ -142,23 +151,12 @@ public class OwnerOperationsSourceTests
         }
 
         tracing.Should().Contain("<option key={i} value={i}>").And.Contain("text={entityText}", "the type filter shows labels but submits raw types");
-        var css = Read(Web, "portal", "src", "styles.css");
+        var css = Css();
         css.Should().Contain(".owner-log--critical {\n  border-left-color:");
         // Phones: at least a 44 x 44 tap area around the compact delete (36px) and Detalhes (40px tall) buttons.
         // The browser check is the responsive audit's owner-tracing-targets scenario.
         css.Should().Contain("@media (max-width: 767px), (pointer: coarse) {\n  .owner-log__buttons {\n    gap: 10px;\n  }")
             .And.Contain("  .owner-log__buttons .btn::after,\n  .owner-log__buttons .icon-btn::after {\n    position: absolute;\n    inset: -3px;")
             .And.Contain("  .owner-log__buttons .icon-btn::after {\n    inset: -5px;");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

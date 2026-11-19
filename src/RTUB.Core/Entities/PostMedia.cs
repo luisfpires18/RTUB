@@ -32,28 +32,6 @@ public class PostMedia : BaseEntity
     // Private constructor for EF Core
     private PostMedia() { }
 
-    // Factory method for images
-    public static PostMedia CreateImage(int postId, string url, string mimeType, long sizeBytes, int sortOrder = 0)
-    {
-        if (postId <= 0)
-            throw new ArgumentException("Post ID must be positive", nameof(postId));
-        if (string.IsNullOrWhiteSpace(url))
-            throw new ArgumentException("URL is required", nameof(url));
-        if (string.IsNullOrWhiteSpace(mimeType))
-            throw new ArgumentException("MIME type is required", nameof(mimeType));
-
-        return new PostMedia
-        {
-            PostId = postId,
-            Url = url,
-            MediaType = "Image",
-            MimeType = mimeType,
-            SizeBytes = sizeBytes,
-            SortOrder = sortOrder,
-            CreatedAt = DateTime.UtcNow
-        };
-    }
-
     // Factory method for videos
     public static PostMedia CreateVideo(int postId, string url, string mimeType, long sizeBytes, int sortOrder = 0)
     {

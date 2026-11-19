@@ -1,6 +1,6 @@
 # React Documentação (`/documentation`)
 
-`portal/src/Documentation.tsx` over `/api/documentation`.
+`portal/src/pages/Documentation.tsx` over `/api/documentation`.
 Code: `Endpoints/DocumentationEndpoints.cs` -> `IDocumentationService` / `DocumentationService` over
 `IDocumentStorageService`, `DocumentationAuthorization`, `DocumentTreeCache`.
 Tests: `tests/RTUB.Integration.Tests/Api/DocumentationApiTests.cs` (real host; storage is the in-memory

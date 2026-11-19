@@ -8,10 +8,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface INaipeCommentRepository : IRepository<NaipeComment>
 {
-    /// <summary>
-    /// Gets comments for a specific content with author details
-    /// </summary>
-    Task<IEnumerable<NaipeComment>> GetCommentsForContentAsync(int contentId);
 
     /// <summary>
     /// Gets comment by ID with author details

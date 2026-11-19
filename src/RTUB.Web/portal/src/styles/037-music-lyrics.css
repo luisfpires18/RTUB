@@ -1,0 +1,124 @@
+/* ---------- lyrics, links, videos ---------- */
+
+.lyrics {
+  display: grid;
+  gap: 12px;
+}
+
+.lyrics__pdf {
+  width: 100%;
+  height: min(70dvh, 760px);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.lyrics__text {
+  color: var(--ink);
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.lyrics .more {
+  margin-top: 0;
+}
+
+/* Shared by the event notices / repertoire days (labels) and the lyrics format (buttons). */
+.segmented {
+  display: inline-flex;
+  justify-self: start;
+  padding: 4px;
+  gap: 4px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+}
+
+.segmented button {
+  min-height: 38px;
+  padding: 6px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 600 0.875rem/1 var(--font-body);
+  cursor: pointer;
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--purple);
+  color: #fff;
+}
+
+.link-list {
+  display: grid;
+  gap: 10px;
+}
+
+.link-list .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.videos {
+  display: grid;
+  gap: 20px;
+}
+
+.videos__list {
+  display: grid;
+  gap: 8px;
+}
+
+.videos__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.videos__pick {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.videos__item--on .videos__pick {
+  border-color: var(--purple);
+}
+
+.videos__player {
+  width: 100%;
+  max-height: 60dvh;
+  border-radius: 12px;
+  background: #000;
+}
+
+.videos__upload {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.videos__upload .form {
+  width: 100%;
+}
+
+.videos__send {
+  display: flex;
+  gap: 10px;
+}
+
+.videos .state {
+  padding-block: 20px;
+}

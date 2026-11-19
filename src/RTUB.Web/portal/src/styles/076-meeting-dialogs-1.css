@@ -1,0 +1,299 @@
+/* ---------- dialogs ---------- */
+
+.mtg-confirm {
+  display: grid;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.mtg-required {
+  color: #ff8f86;
+}
+
+.mtg-pre {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.mtg-summary {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-deep);
+}
+
+.mtg-summary__heading {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.mtg-summary dl,
+.mtg-kv {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.mtg-summary dl > div,
+.mtg-kv > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  min-width: 0;
+}
+
+.mtg-summary dt,
+.mtg-kv dt {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.mtg-summary dd,
+.mtg-kv dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 640px) {
+  .mtg-kv {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 20px;
+  }
+}
+
+.mtg-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(111, 66, 193, 0.14);
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.mtg-info .icon {
+  margin-top: 3px;
+  color: var(--purple-ink);
+}
+
+.mtg-face {
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-card);
+}
+
+.mtg-people {
+  display: grid;
+  gap: 8px;
+}
+
+.mtg-people__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.mtg-people__count {
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--purple-ink);
+  font-size: 0.75rem;
+}
+
+.mtg-people__list {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.mtg-person {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.mtg-person__name {
+  min-width: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.mtg-person__detail {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.mtg-detail {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.mtg-detail__title {
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.25rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.mtg-detail__list {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  margin: 0;
+}
+
+.mtg-detail__row {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mtg-detail__row dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.mtg-detail__row dt .icon {
+  color: var(--purple-ink);
+}
+
+.mtg-detail__row dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mtg-answer-for {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.mtg-participants {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.mtg-who {
+  display: grid;
+  gap: 10px;
+}
+
+.mtg-who__title {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mtg-who__title--yes {
+  color: var(--purple-ink);
+}
+
+.mtg-who__title--no {
+  color: #ffb3ad;
+}
+
+.mtg-who__person {
+  position: relative;
+}
+
+.mtg-who__person .mtg-face {
+  margin-bottom: 6px;
+  border: 2px solid var(--royal);
+}
+
+.mtg-who__remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.mtg-inline-confirm {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 143, 134, 0.5);
+  border-radius: 12px;
+  background: rgba(255, 143, 134, 0.06);
+  overflow-wrap: anywhere;
+}
+
+.mtg-inline-confirm__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mtg-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+
+.mtg-feedback--ok {
+  background: rgba(64, 192, 120, 0.14);
+  color: #8fe0b0;
+}
+
+.mtg-feedback--no {
+  background: rgba(255, 143, 134, 0.12);
+  color: #ffb3ad;
+}
+
+.mtg-feedback__note {
+  flex-basis: 100%;
+  color: var(--ink-soft);
+}
+
+.mtg-add {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  justify-items: start;
+}
+
+.mtg-add .control {
+  width: 100%;
+}
+
+.mtg-candidates {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  max-height: 40vh;
+  overflow-y: auto;
+}

@@ -13,7 +13,7 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// Schedules the member status reconciliation (<see cref="IMemberStatusService.ReconcileAllMemberStatusesAsync"/>): on
-/// startup only while the MemberStatus table is empty (task 054), then daily at MemberStatusUpdate:ScheduledTime (local
+/// startup only while the MemberStatus table is empty, then daily at MemberStatusUpdate:ScheduledTime (local
 /// time from the injected <see cref="TimeProvider"/>).
 /// Orchestration only - the rules live in <see cref="MemberActivityStatusEvaluator"/>.
 /// </summary>
@@ -47,8 +47,8 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
         _logger.LogInformation("Member Status Update Background Service is starting. Scheduled time: {ScheduledTime}", _options.ScheduledTime);
 
         // The first run on startup only while the table is empty (a fresh database, or the first boot after the
-        // MemberStatus migration): otherwise yesterday's reconciliation is in place and the daily run is enough. A boot
-        // used to pay about two commands per member here, on the cold-start path (task 054).
+        // MemberStatus migration): otherwise yesterday's reconciliation is in place and the daily run is enough. This keeps
+        // the cold-start path from paying about two commands per member.
         if (await MemberStatusesAreEmptyAsync(stoppingToken))
         {
             await RunUpdateAsync();
@@ -58,7 +58,7 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
         {
             try
             {
-                // The scheduled time is Portugal's clock, summer and winter (#226 F02; was the server's local zone = UTC).
+                // The scheduled time is Portugal's clock, summer and winter.
                 var scheduledTime = TimeSpan.Parse(_options.ScheduledTime);
                 var nextRun = PortugalTime.NextUtc(_time, scheduledTime);
                 var delay = nextRun - _time.GetUtcNow().UtcDateTime;

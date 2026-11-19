@@ -1,11 +1,7 @@
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using RTUB.Application.Data;
 
 namespace RTUB.Integration.Tests;
@@ -108,6 +104,15 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 options.UseSqlite(_connectionString);
                 options.EnableSensitiveDataLogging();
             });
+
+            // The application's background workers (reminders, backups, geocoding) do not run in a
+            // test host: a reminder firing mid-test sends pushes the test did not ask for. Tests
+            // call the service they need directly.
+            foreach (var worker in services.Where(d => d.ServiceType == typeof(IHostedService)
+                         && d.ImplementationType?.Assembly == typeof(ApplicationDbContext).Assembly).ToList())
+            {
+                services.Remove(worker);
+            }
 
             // Creates the schema and seeds it. Registered as a hosted service rather than done
             // after the host is built, because WebApplicationFactory's host is deferred: touching

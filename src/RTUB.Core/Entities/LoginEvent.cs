@@ -1,7 +1,7 @@
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// One sign-in, or one hour in which a member was seen signed in (task 050, /owner/dashboard). Written with raw SQL by
+/// One sign-in, or one hour in which a member was seen signed in (/owner/dashboard). Written with raw SQL by
 /// the sign-in endpoint and the cookie validation; read only by the Owner dashboard. Not audited.
 /// </summary>
 public class LoginEvent

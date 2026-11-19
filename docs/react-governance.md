@@ -1,6 +1,6 @@
 # React Órgãos Sociais (`/roles`)
 
-`/roles` is React (`portal/src/Governance.tsx`, `GovernanceManage.tsx`). It shows the public mandate, the RGI for
+`/roles` is React (`portal/src/pages/Governance.tsx`, `GovernanceManage.tsx`). It shows the public mandate, the RGI for
 members, and lets Mod, Admin and Owner add fiscal years and assign or remove positions in modals on the same page.
 Code: `Endpoints/GovernanceEndpoints.cs`, `Helpers/GovernanceAuthorization.cs`, `IGovernanceManagementService`,
 `GovernanceService.Structure`.
@@ -29,7 +29,7 @@ Every write needs the antiforgery token in `X-CSRF-TOKEN`. The API enforces ever
 | --- | --- | --- |
 | `GET /api/public/governance?fiscalYear=` | anyone | public fields only; the selector lists only years with holders |
 | `GET /api/governance/rgi` | Member+ | `{ url }`, `null` when unavailable; `no-store` |
-| `GET /api/governance/manage?fiscalYear=` | Mod+ | every fiscal year, the one shown, start years still creatable, bodies, positions (`position` enum name, `title`), holders (`assignmentId`, display name, full name, avatar) |
+| `GET /api/governance/manage?fiscalYear=` | Mod+ (the page only asks when `/api/account/me` `menu.governance` is true, the same `GovernanceAuthorization.CanManage`, so no 403 for other members) | every fiscal year, the one shown, start years still creatable, bodies, positions (`position` enum name, `title`), holders (`assignmentId`, display name, full name, avatar) |
 | `GET /api/governance/members?q=` | Mod+ | at most 20 `{ id, displayName, fullName, avatarUrl }`; email is matched, never returned; expelled members excluded |
 | `POST /api/governance/years` `{ startYear }` | Mod+ | 400 `startYear` on duplicate, < 1991 or future |
 | `POST /api/governance/assignments` `{ fiscalYear, position, userId }` | Mod+ | 400 `fiscalYear` / `position` / `userId` / `assignment` (validation message) |

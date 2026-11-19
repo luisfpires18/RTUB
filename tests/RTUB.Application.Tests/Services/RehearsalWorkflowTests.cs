@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -102,7 +101,7 @@ public class RehearsalWorkflowTests : IDisposable
 
         // Assert
         _context.ChangeTracker.Clear();
-        var updatedAttendance = await _attendanceService.GetAttendanceByIdAsync(attendance.Id);
+        var updatedAttendance = await _context.RehearsalAttendances.AsNoTracking().Include(a => a.Rehearsal).FirstOrDefaultAsync(a => a.Id == attendance.Id);
         updatedAttendance!.Attended.Should().BeTrue("admin has approved the attendance");
     }
 

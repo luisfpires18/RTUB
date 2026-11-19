@@ -1,7 +1,6 @@
 using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Workflows;
 
@@ -166,48 +165,6 @@ public class NavigationWorkflowTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    #endregion
-
-    #region Performance Tests
-
-    [Fact]
-    public async Task NavigationPerformance_MultiplePageLoads_Complete()
-    {
-        // Arrange
-        var pages = new[] { "/", "/music", "/events" };
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-        // Act - Load multiple pages
-        foreach (var page in pages)
-        {
-            var response = await _client.GetAsync(page);
-            response.EnsureSuccessStatusCode();
-        }
-
-        stopwatch.Stop();
-
-        // Assert - Should complete in reasonable time
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(10000,
-            "multiple page loads should complete within 10 seconds");
-    }
-
-    [Fact(Skip = "Concurrent requests cause SQLite connection conflicts in test environment. This works fine with production databases.")]
-    public async Task ConcurrentPageLoads_HandleMultipleRequests()
-    {
-        // Arrange
-        var pages = new[] { "/", "/music", "/events", "/roles" };
-
-        // Act - Load pages concurrently
-        var tasks = pages.Select(page => _client.GetAsync(page)).ToArray();
-        var responses = await Task.WhenAll(tasks);
-
-        // Assert - All should succeed
-        foreach (var response in responses)
-        {
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-        }
     }
 
     #endregion

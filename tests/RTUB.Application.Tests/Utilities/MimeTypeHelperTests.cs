@@ -1,5 +1,4 @@
 using RTUB.Application.Utilities;
-using Xunit;
 
 namespace RTUB.Application.Tests.Utilities;
 
@@ -24,39 +23,6 @@ public class MimeTypeHelperTests
     {
         // Act
         var result = MimeTypeHelper.GetVideoMimeType(fileName, providedContentType);
-
-        // Assert
-        Assert.Equal(expectedMimeType, result);
-    }
-
-    [Theory]
-    [InlineData("image.jpg", "image/jpeg", "image/jpeg")] // Valid content type provided
-    [InlineData("image.jpg", "", "image/jpeg")] // Empty content type, use extension
-    [InlineData("image.jpeg", "", "image/jpeg")] // JPEG extension
-    [InlineData("image.png", "", "image/png")] // PNG file
-    [InlineData("image.gif", "", "image/gif")] // GIF file
-    [InlineData("image.webp", "", "image/webp")] // WebP file
-    [InlineData("IMAGE.JPG", "", "image/jpeg")] // Case insensitive
-    [InlineData("unknown.xyz", "", "image/jpeg")] // Unknown extension, default to jpeg
-    [InlineData("image.jpg", "application/octet-stream", "image/jpeg")] // Wrong type, use extension
-    public void GetImageMimeType_ShouldReturnCorrectMimeType(string fileName, string? providedContentType, string expectedMimeType)
-    {
-        // Act
-        var result = MimeTypeHelper.GetImageMimeType(fileName, providedContentType);
-
-        // Assert
-        Assert.Equal(expectedMimeType, result);
-    }
-
-    [Theory]
-    [InlineData("video.mp4", "", true, "video/mp4")] // Video file
-    [InlineData("image.jpg", "", false, "image/jpeg")] // Image file
-    [InlineData("file.mp4", "video/quicktime", true, "video/quicktime")] // Video with valid type
-    [InlineData("file.png", "image/png", false, "image/png")] // Image with valid type
-    public void GetMediaMimeType_ShouldReturnCorrectMimeTypeBasedOnFlag(string fileName, string? providedContentType, bool isVideo, string expectedMimeType)
-    {
-        // Act
-        var result = MimeTypeHelper.GetMediaMimeType(fileName, providedContentType, isVideo);
 
         // Assert
         Assert.Equal(expectedMimeType, result);

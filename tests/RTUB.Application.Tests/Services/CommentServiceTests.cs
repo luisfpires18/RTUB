@@ -1,6 +1,4 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -41,7 +39,6 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockDiscussionRepository = new Mock<IDiscussionRepository>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockEnrollmentRepository = new Mock<IEnrollmentRepository>();
         var mockUserProfileService = new Mock<IUserProfileService>();
 
         _service = new CommentService(
@@ -53,7 +50,6 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _postServiceMock.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
-            mockEnrollmentRepository.Object,
             mockUserProfileService.Object);
     }
 

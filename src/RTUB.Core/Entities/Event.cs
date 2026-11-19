@@ -46,7 +46,7 @@ public class Event : BaseEntity
     public bool IsPublic { get; set; } = true;
 
     /// <summary>
-    /// Task 074: a treasurer's shared answer "este evento não teve despesas nem receitas" for "As minhas ações pendentes"
+    /// A treasurer's shared answer "este evento não teve despesas nem receitas" for "As minhas ações pendentes"
     /// (both treasurers, every device). False = not decided; an activity linked to the event also classifies it. Audited
     /// with the event; reopened from the same page.
     /// </summary>
@@ -131,57 +131,4 @@ public class Event : BaseEntity
 
     // Property alias for backward compatibility
     public string ImageSrc => GetImageSource();
-
-    /// <summary>
-    /// Calculate instrument counts for the instruments members are actively playing in this event
-    /// (the selected instrument, regardless of whether it's their primary or not)
-    /// </summary>
-    /// <param name="memberInstruments">Dictionary mapping userId to their list of instruments</param>
-    /// <returns>Dictionary with counts per instrument type</returns>
-    public Dictionary<InstrumentType, int> GetPrimaryInstrumentCounts(Dictionary<string, List<MemberInstrument>> memberInstruments)
-    {
-        var counts = new Dictionary<InstrumentType, int>();
-
-        foreach (var enrollment in Enrollments.Where(e => e.WillAttend && e.Instrument.HasValue && !string.IsNullOrEmpty(e.UserId)))
-        {
-            var instrument = enrollment.Instrument!.Value;
-
-            // Count the selected instrument (what the member is playing)
-            counts[instrument] = counts.GetValueOrDefault(instrument) + 1;
-        }
-
-        return counts;
-    }
-
-    /// <summary>
-    /// Calculate other instrument counts (where the member is using a non-primary instrument)
-    /// </summary>
-    /// <param name="memberInstruments">Dictionary mapping userId to their list of instruments</param>
-    /// <returns>Dictionary with counts per instrument type</returns>
-    public Dictionary<InstrumentType, int> GetOtherInstrumentCounts(Dictionary<string, List<MemberInstrument>> memberInstruments)
-    {
-        var counts = new Dictionary<InstrumentType, int>();
-
-        foreach (var enrollment in Enrollments.Where(e => e.WillAttend && !string.IsNullOrEmpty(e.UserId)))
-        {
-            // Only parse and count instruments from the OtherInstruments field
-            // The selected instrument is already counted in GetPrimaryInstrumentCounts
-            if (!string.IsNullOrWhiteSpace(enrollment.OtherInstruments))
-            {
-                var otherInstruments = enrollment.OtherInstruments.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-                foreach (var instrumentName in otherInstruments)
-                {
-                    // Convert display name back to enum using InstrumentTypeHelper
-                    var instrumentType = RTUB.Core.Helpers.InstrumentTypeHelper.ParseDisplayName(instrumentName.Trim());
-                    if (instrumentType.HasValue)
-                    {
-                        counts[instrumentType.Value] = counts.GetValueOrDefault(instrumentType.Value) + 1;
-                    }
-                }
-            }
-        }
-
-        return counts;
-    }
 }

@@ -46,10 +46,6 @@ public class ApplicationUser : IdentityUser
     public bool RequirePasswordChange { get; set; } = false;
     public DateTime? LastLoginDate { get; set; }
 
-    // Ranking/Level system
-    public int ExperiencePoints { get; set; } = 0;
-    public int Level { get; set; } = 1;
-
     // Email notification preferences
     public bool Subscribed { get; set; } = true;
 
@@ -74,7 +70,7 @@ public class ApplicationUser : IdentityUser
     public List<Position> Positions { get; set; } = new();
     public List<MemberCategory> Categories { get; set; } = new();
 
-    /// <summary>Age today on Portugal's calendar (#226 F02; was the server's DateTime.Today).</summary>
+    /// <summary>Age today on Portugal's calendar.</summary>
     public int? Age => AgeOn(PortugalTime.Today(TimeProvider.System));
 
     /// <summary>Age on a given calendar day.</summary>

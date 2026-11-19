@@ -8,7 +8,6 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 

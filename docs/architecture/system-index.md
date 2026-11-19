@@ -29,7 +29,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | --- | --- |
 | `src/RTUB.Web/Program.cs` | Host bootstrap; DI delegated to extensions. |
 | `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs` | Service registrations. |
-| `src/RTUB.Web/Program.cs` (route section) | Page ownership: every page is the React shell (`wwwroot/portal/index.html`) or the static `/Error` (`wwwroot/error.html`); retired URLs 302 or 404. |
+| `src/RTUB.Web/Program.cs` (route section) | Page ownership: every page is the React shell (`wwwroot/portal/index.html`) or the static `/Error` (`wwwroot/error.html`) (`Extensions/PortalShellExtensions.cs`); any other path is 404. |
 | `src/RTUB.Web/Endpoints/` | Minimal-API endpoint groups behind the React pages (`/api/*`). |
 | `src/RTUB.Web/Controllers/` | React session state (`AccountController`, which also carries the build version). `/images/*` is a plain static file. |
 | `src/RTUB.Web/Services/AnnouncementService.cs` | The Owner's system announcement (in memory, a few minutes); `GET /api/announcement`, polled by the React shell. |
@@ -48,7 +48,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | Path | Responsibility |
 | --- | --- |
 | `src/RTUB.Web/portal/` | React 19 + Vite source of every React page (route list: `Program.cs`, `portal/src/main.tsx`). Not published. |
-| `src/RTUB.Web/portal/src/App.tsx`, `MemberShell.tsx` | The shell: visitors' header (public sections, "Pedir atuação", Login); signed-in members' header (inbox + unread badge, profile chip, menu button) and member menu (right-hand drawer at every width); `unread.ts` polls the header badge. |
+| `src/RTUB.Web/portal/src/components/App.tsx`, `MemberShell.tsx` | The shell: visitors' header (public sections, "Pedir atuação", Login); signed-in members' header (inbox + unread badge, profile chip, menu button) and member menu (right-hand drawer at every width); `unread.ts` polls the header badge. |
 | `src/RTUB.Web/Endpoints/RequestAdminEndpoints.cs`, `src/RTUB.Application/Services/RequestAdminService.cs` | React Pedidos API: the requests list for members but Leitões, approve / reject / delete for Admin and Owner (`RequestsAuthorization`). `docs/react-requests-questions.md`. |
 | `src/RTUB.Web/Endpoints/QuestionEndpoints.cs`, `src/RTUB.Application/Services/QuestionBoardService.cs` | React Perguntas API: ask a holder of an Órgãos Sociais position, replies in turns, close / delete / remind by the author (`QuestionsAuthorization`); push stays in `QuestionService`. `docs/react-requests-questions.md`. |
 | `src/RTUB.Web/Endpoints/MemberAreaEndpoints.cs`, `src/RTUB.Application/Services/MyProfileService.cs`, `MemberMapService.cs`, `HallOfFameService.cs` | React profile editor (`/api/me/*`, own profile only), members map (`/api/members/map`, city-level, geocoding cache) and Hall of Fame (`/api/hall-of-fame`). `docs/react-member-area.md`. |
@@ -56,10 +56,10 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Web/Endpoints/MeetingEndpoints.cs`, `src/RTUB.Application/Services/MeetingBoardService.cs`, `MeetingPollBoardService.cs`, `Helpers/MeetingAccess.cs` | React Reuniões (`/api/meetings*`): meetings, participation, atas, requests, and audience-scoped polls, every rule checked server-side (`MeetingAccess`), over the old meeting / ata services (push, email, Documentação PDF). `docs/react-meetings.md`. |
 | `src/RTUB.Web/Endpoints/PendingActionsEndpoints.cs`, `src/RTUB.Application/Services/PendingActionsService.cs`, `PendingActionSources.*.cs` | React As minhas ações pendentes (`/api/pending-actions*`): one `IPendingActionSource` per panel over its module's own data, paged in SQL; members' own dismissals (`PendingActionDismissals`). `docs/react-pending-actions.md`. |
 | `src/RTUB.Web/Endpoints/OwnerEndpoints.cs`, `src/RTUB.Application/Services/OwnerOperationsService.cs` | React Owner tools (`/api/owner/*`, Owner only, gate `RequireOwner`): announcement emails, custom push (audited), users / roles / unlock / status sync, audit log (filters, export, truncate with `DELETE ALL`), database viewer (SELECT / confirmed DML). `docs/react-owner-operations.md`. |
-| `src/RTUB.Web/Endpoints/AccountRecoveryEndpoints.cs`, `src/RTUB.Application/Services/AccountRecoveryService.cs`, `wwwroot/error.html` | React password recovery / email confirmation (`POST /api/account/{forgot-password,reset-password,confirm-email}`, public, antiforgery, Identity tokens never stored or echoed); the server-owned `/Error` page; `/share`, the Web Share Target (`portal/src/Share.tsx`, manifest `share_target`). `docs/react-identity.md`. |
+| `src/RTUB.Web/Endpoints/AccountRecoveryEndpoints.cs`, `src/RTUB.Application/Services/AccountRecoveryService.cs`, `wwwroot/error.html` | React password recovery / email confirmation (`POST /api/account/{forgot-password,reset-password,confirm-email}`, public, antiforgery, Identity tokens never stored or echoed); the server-owned `/Error` page; `/share`, the Web Share Target (`portal/src/pages/Share.tsx`, manifest `share_target`). `docs/react-identity.md`. |
 | `src/RTUB.Application/Helpers/MemberMenuAccess.cs` | Which member-menu groups a member sees, sent as `menu` by `/api/account/me`. Hides links only. |
 | `src/RTUB.Web/wwwroot/portal/` | Committed build output served by the host. Rebuild with `npm run build:portal`. |
-| `src/RTUB.Web/Program.cs` (React shell mapping) | Route ownership: the only paths React owns, plus the `/portal...` redirects. |
+| `src/RTUB.Web/Program.cs` (React shell mapping) | Route ownership: the only paths React owns. |
 | `src/RTUB.Web/Controllers/AccountController.cs` | `GET /api/account/me`: the caller's own session summary for React (+ `menu` flags). |
 | `src/RTUB.Web/Endpoints/PublicRequestEndpoints.cs` | `POST /api/public/requests` (+ antiforgery token): public request submission for React. |
 | `src/RTUB.Application/Services/PublicRequestService.cs` | The one public request submission path, called only by the API. |
@@ -79,7 +79,7 @@ Access pattern: `IDbContextFactory<ApplicationDbContext>` — one context per op
 | `src/RTUB.Application/Factories/PushNotificationFactory.cs` | Notification titles/bodies/URLs/tags. |
 | `src/RTUB.Application/Repositories/PushSubscriptionRepository.cs`, `src/RTUB.Core/Entities/PushSubscription.cs` | Subscription persistence. |
 | `src/RTUB.Web/Endpoints/PushEndpoints.cs`, `src/RTUB.Application/Helpers/PushSubscriptionRules.cs` | `/api/push/{status,check,subscribe,unsubscribe}`: the member's own subscriptions, validated. Sending to members: domain services, background jobs and the Owner's `/api/owner/notifications`. |
-| `src/RTUB.Web/portal/src/push.ts`, `Profile.tsx` (`PushSection`) | React opt-in / opt-out in `/profile` ("Notificações push"): capability detection, permission only from a click, server ↔ browser reconciliation. `docs/react-push-v2.md`. |
+| `src/RTUB.Web/portal/src/data/push.ts`, `Profile.tsx` (`PushSection`) | React opt-in / opt-out in `/profile` ("Notificações push"): capability detection, permission only from a click, server ↔ browser reconciliation. `docs/react-push-v2.md`. |
 | `src/RTUB.Web/wwwroot/service-worker.js` | `push` / `notificationclick` / `pushsubscriptionchange` handlers. |
 | `src/RTUB.Web/wwwroot/js/sw-register.js` | The only service-worker registration. |
 | `.claude/skills/rtub-push/SKILL.md` | RTUB-specific push behavior and constraints. |
@@ -117,7 +117,7 @@ Games / Bets / MyTuno, the slideshows (`/images`) and the Labels admin (`/labels
 | Path | Responsibility |
 | --- | --- |
 | `src/RTUB.Web/Endpoints/MessagingEndpoints.cs`, `src/RTUB.Application/Services/MessagingService.cs` | `/api/conversations*`, `/api/messages/{id}/reactions`: participants only (Admin / Owner have no special access), text only, replies, fixed-set reactions, mute, read state, push without the text. `docs/react-messages.md`. |
-| `src/RTUB.Web/portal/src/Messages.tsx` | React `/messages` (list + chat, `?c=<id>`). |
+| `src/RTUB.Web/portal/src/pages/Messages.tsx` | React `/messages` (list + chat, `?c=<id>`). |
 | `src/RTUB.Core/Entities/{Conversation,Message,MessageReaction,ConversationUserSettings}.cs` | The v1 model, reused unchanged; never drop the tables (`docs/react-messages.md`). |
 
 The old inbox URLs (`/messages/{id}`, `/hubs/messages`) stay 404. Messaging entities are excluded from and
@@ -148,7 +148,7 @@ redacted in the audit log (`AuditConfiguration`).
 | `docs/release-and-rollback.md` | **Runbook**: branch model, versions, releasing, archive, rollback, hotfix, database rules and restore. |
 | `docs/ci-cd-and-azure-environments.md` | DEV/PROD matrix, workflows, packaging, run-from-package, OIDC identities, setting names, smoke. |
 | `docs/configuration-runbook.md`, `scripts/config/` | Every setting per environment (`required-settings.json`), redacted audits of local user-secrets and the Azure App Settings, placeholder-only `set` templates, VAPID key generation. Outputs go to the git-ignored `.local/config-audit/`. |
-| `.deployment`, `Directory.Build.props`, `Directory.Packages.props` | Deployment hook (inert), central build settings + version stamping, central package versions. |
+| `Directory.Build.props`, `Directory.Packages.props` | Central build settings + version stamping, central package versions. |
 | `global.json` | .NET SDK pin **and** `test.runner: Microsoft.Testing.Platform` — what makes `dotnet test` discover the xUnit v3 suites. |
 | `scripts/release.sh` | version / bump-check / package / zip guards / `release.json` / schema gate. `--self-test`. |
 | `scripts/release-archive.sh` | The release archive: create-only put, verified get, list. `--self-test` against a fake `az`. |
@@ -168,5 +168,3 @@ redacted in the audit log (`AuditConfiguration`).
 | `.ai/STATE.md` | Living execution state — read first. |
 | `.claude/settings.json`, `.claude/settings.local.json` | Permissions and enabled plugins. |
 | `.claude/skills/` | Project-local skills (vendored upstream skills carry `UPSTREAM.md`). |
-| `.github/copilot-instructions.md` | Repository conventions for Copilot. |
-| `.github/agents/` | Role-specific agent guidance. |

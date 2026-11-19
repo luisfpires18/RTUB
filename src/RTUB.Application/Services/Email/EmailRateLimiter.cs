@@ -48,15 +48,4 @@ public class EmailRateLimiter
         _cache.Set(cacheKey, true, duration);
         return false;
     }
-
-    /// <summary>
-    /// Clears the rate limit for a specific cache key (for testing purposes)
-    /// </summary>
-    public void ClearRateLimit(string cacheKey)
-    {
-        if (!string.IsNullOrEmpty(cacheKey))
-        {
-            _cache.Remove(cacheKey);
-        }
-    }
 }

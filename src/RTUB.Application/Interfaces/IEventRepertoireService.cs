@@ -9,11 +9,9 @@ namespace RTUB.Application.Interfaces;
 public interface IEventRepertoireService
 {
     Task<IEnumerable<EventRepertoire>> GetRepertoireByEventIdAsync(int eventId, DateTime? date = null);
-    Task<EventRepertoire?> GetRepertoireItemAsync(int id);
     Task<EventRepertoire> AddSongToRepertoireAsync(int eventId, int songId, int displayOrder, DateTime repertoireDate);
     Task RemoveSongFromRepertoireAsync(int id);
     Task UpdateRepertoireOrderAsync(int eventId, DateTime date, List<int> songIds);
-    Task<bool> IsSongInRepertoireAsync(int eventId, int songId, DateTime date);
     Task RemoveRepertoireDayAsync(int eventId, DateTime date);
     Task<IEnumerable<DateTime>> GetRepertoireDatesAsync(int eventId);
 }

@@ -75,7 +75,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
         }
     }
 
-    private async Task CheckAndSendCalotesNotificationsAsync(CancellationToken cancellationToken)
+    internal async Task CheckAndSendCalotesNotificationsAsync(CancellationToken cancellationToken)
     {
         var today = PortugalTime.Today(_time);
 
@@ -96,8 +96,8 @@ public class CalotesNotificationBackgroundService : BackgroundService
         try
         {
             // 1. Get the current fiscal year
-            var currentFiscalYearString = FiscalYearHelper.GetCurrentFiscalYearString();
-            var fiscalYearStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+            var currentFiscalYearString = FiscalYearHelper.GetCurrentFiscalYearString(_time);
+            var fiscalYearStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear(_time);
 
             var fiscalYear = await fiscalYearRepository.GetByStartYearAsync(fiscalYearStartYear);
 
@@ -160,7 +160,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
             timeOfDay = new TimeSpan(10, 30, 0); // Default to 10:30 AM
         }
 
-        // The configured time is Portugal's clock, summer and winter (#226 F02; was UTC).
+        // The configured time is Portugal's clock, summer and winter.
         return PortugalTime.NextUtc(_time, timeOfDay);
     }
 }

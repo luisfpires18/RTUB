@@ -4,12 +4,10 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using RTUB.Application.Data;
 using RTUB.Application.Helpers;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 
@@ -86,16 +84,14 @@ public class GovernanceTests : IntegrationTestBase
         html.Should().Contain("id=\"root\"").And.NotContain("blazor.web.js");
     }
 
-    /// <summary>016: the RGI and the management are on the React /roles; /member/roles only redirects (keeping ?fy=).</summary>
+    /// <summary>The RGI and the management are on the React /roles; /member/roles answers 404.</summary>
     [Fact]
-    public async Task MembersGovernance_IsRetired_AndRedirectsToTheReactRolesPage()
+    public async Task MembersGovernance_IsRetired_AndManagementIsOnTheReactRolesPage()
     {
         var client = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await client.GetAsync("/member/roles?fy=2024-2025");
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location!.ToString().Should().Be("/roles?fy=2024-2025");
-        (await client.PostAsync("/member/roles", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
+        (await client.GetAsync("/member/roles?fy=2024-2025")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.PostAsync("/member/roles", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         typeof(RTUB.Program).Assembly.GetType("RTUB.Pages.Members.MemberGovernance").Should().BeNull("the Blazor page was retired");
         typeof(RTUB.Program).Assembly.GetTypes()
@@ -103,26 +99,26 @@ public class GovernanceTests : IntegrationTestBase
                 .Any(r => r.Template.StartsWith("/member/roles", StringComparison.OrdinalIgnoreCase) || r.Template.Equals("/roles", StringComparison.OrdinalIgnoreCase)))
             .Should().BeEmpty("no Blazor page owns Órgãos Sociais any more");
 
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        File.ReadAllText(Path.Combine(src, "Governance.tsx")).Should().Contain("<RgiDialog").And.Contain("<AssignDialog")
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
+        File.ReadAllText(Path.Combine(src, "pages/Governance.tsx")).Should().Contain("<RgiDialog").And.Contain("<AssignDialog")
             .And.Contain("<RemoveDialog").And.Contain("<CreateYearDialog");
-        File.ReadAllText(Path.Combine(src, "GovernanceManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
+        File.ReadAllText(Path.Combine(src, "components/GovernanceManage.tsx")).Should().NotContainAny(new[] { "migra", "inscri", "presen" });
     }
 
     [Fact]
     public void PortalLinks_PointAtTheReactRolesPage()
     {
-        var src = Path.Combine(RepoRoot(), "src", "RTUB.Web", "portal", "src");
-        var content = File.ReadAllText(Path.Combine(src, "content.ts"));
+        var src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
+        var content = File.ReadAllText(Path.Combine(src, "data/content.ts"));
 
         content.Should().Contain("roles: '/roles'").And.NotContain("memberGovernance").And.NotContain("/member/roles",
             "nothing links to the retired /member/roles (016)");
-        var home = File.ReadAllText(Path.Combine(src, "Home.tsx"));
+        var home = PortalSource.Home(src);
         home.Should().NotContain("id=\"governance\"").And.NotContain("Órgãos Sociais").And.NotContain("governingBodies",
             "011: the home has no Órgãos Sociais block at all; the top bar, menu and footer open /roles");
-        File.ReadAllText(Path.Combine(src, "App.tsx")).Should().Contain("governance: portal.roles",
+        File.ReadAllText(Path.Combine(src, "data/sections.ts")).Should().Contain("governance: portal.roles",
             "the top bar, menu and footer open /roles, not the home anchor");
-        Directory.GetFiles(src).Select(File.ReadAllText).Should().NotContain(t => t.Contains("legacy.roles"));
+        Directory.GetFiles(src, "*", SearchOption.AllDirectories).Select(File.ReadAllText).Should().NotContain(t => t.Contains("legacy.roles"));
     }
 
     // ---------- helpers ----------
@@ -154,16 +150,5 @@ public class GovernanceTests : IntegrationTestBase
         db.Users.Add(user);
         db.RoleAssignments.Add(RoleAssignment.Create(user.Id, position, startYear, startYear + 1, notes: PrivateNote));
         await db.SaveChangesAsync();
-    }
-
-    private static string RepoRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src", "RTUB.Web")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find the repository root");
     }
 }

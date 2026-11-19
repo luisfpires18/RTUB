@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
@@ -72,7 +70,7 @@ public class AuditLogService : IAuditLogService
             .WhereIf(!string.IsNullOrWhiteSpace(search), Matches(search!));
     }
 
-    /// <summary>#220: the stored changes or the stored entity name (what the card shows when it was recorded).</summary>
+    /// <summary>The stored changes or the stored entity name (what the card shows when it was recorded).</summary>
     private static System.Linq.Expressions.Expression<Func<AuditLog, bool>> Matches(string search) =>
         a => (a.Changes != null && a.Changes.Contains(search)) || (a.EntityDisplayName != null && a.EntityDisplayName.Contains(search));
 
@@ -105,29 +103,6 @@ public class AuditLogService : IAuditLogService
         return await _auditLogRepository.QueryAsync(q =>
             ApplyFilters(q, userName, excludeUserName, entityType, action, fromDate, toDate, criticalOnly)
                 .CountAsync());
-    }
-
-    public async Task<IEnumerable<AuditLog>> GetEntityHistoryAsync(string entityType, int entityId)
-    {
-        return await _auditLogRepository.QueryAsync(q =>
-            ExcludeHiddenEntities(q)
-                .Where(a => a.EntityType == entityType && a.EntityId == entityId)
-                .OrderByDescending(a => a.Timestamp)
-                .ToListAsync());
-    }
-
-    public async Task<IEnumerable<AuditLog>> SearchChangesAsync(string searchTerm, int page = 1, int pageSize = 100)
-    {
-        if (string.IsNullOrWhiteSpace(searchTerm))
-        {
-            return Enumerable.Empty<AuditLog>();
-        }
-
-        return await _auditLogRepository.QueryAsync(q =>
-            ExcludeHiddenEntities(q)
-                .Where(Matches(searchTerm))
-                .OrderByDescending(a => a.Timestamp)
-                .PaginateAsync(page, pageSize));
     }
 
     public async Task<IEnumerable<string>> GetEntityTypesAsync()

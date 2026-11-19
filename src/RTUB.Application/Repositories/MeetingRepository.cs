@@ -3,7 +3,6 @@ using RTUB.Application.Data;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Repositories;
 
@@ -41,30 +40,4 @@ public class MeetingRepository : Repository<Meeting>, IMeetingRepository
             .PaginateAsync(pageNumber, pageSize);
     }
 
-    public async Task<Meeting?> GetMeetingByIdAsync(int id, string userId)
-    {
-        // Note: Veterano visibility check is handled in the service layer
-        using var context = CreateContext();
-        return await context.Set<Meeting>()
-            .AsNoTracking()
-            .Include(m => m.Organizer)
-            .Include(m => m.TunoRepresentative)
-            .FirstOrDefaultAsync(m => m.Id == id);
-    }
-
-    public async Task<int> GetTotalCountAsync(string? searchTerm, string userId)
-    {
-        // Note: Veterano filtering is handled in the service layer
-        using var context = CreateContext();
-        var query = context.Set<Meeting>().AsNoTracking().AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            query = query.Where(m =>
-                m.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                m.Statement.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
-        }
-
-        return await query.CountAsync();
-    }
 }

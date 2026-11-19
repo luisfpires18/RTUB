@@ -27,7 +27,7 @@ public sealed class ShopPromotionService : IShopPromotionService
     {
         await using var db = await _contexts.CreateDbContextAsync();
         var all = await db.ShopPromotions.AsNoTracking().Include(p => p.Items).ThenInclude(i => i.Product).OrderBy(p => p.Name).ToListAsync();
-        var member = ShopAuthorization.IsMember(user);
+        var member = user.IsMember();
         var shown = all
             .Where(p => p.Items.Count > 0 && (member || p.Items.All(i => i.Product is { IsPublic: true })))
             .Select(Map)
@@ -97,7 +97,7 @@ public sealed class ShopPromotionService : IShopPromotionService
     }
 
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        !ShopAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !ShopAuthorization.CanCreate(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 

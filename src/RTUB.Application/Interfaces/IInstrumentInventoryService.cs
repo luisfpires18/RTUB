@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>The React /inventory ("Instrumentos", React track 020; was the Blazor Inventory.razor).</summary>
+/// <summary>The React /inventory ("Instrumentos").</summary>
 public interface IInstrumentInventoryService
 {
     Task<EventResult<InstrumentListDto>> GetAsync(InstrumentQuery query, ClaimsPrincipal user);
@@ -16,6 +16,6 @@ public interface IInstrumentInventoryService
 
     Task<EventResult<bool>> DeleteAsync(int id, ClaimsPrincipal user);
 
-    /// <summary>The original image and its cropped thumbnail, both required, as the old form.</summary>
+    /// <summary>The original image and its cropped thumbnail, both required.</summary>
     Task<EventResult<InstrumentDetailDto>> SetImageAsync(int id, InstrumentImageUpload image, InstrumentImageUpload thumbnail, ClaimsPrincipal user);
 }

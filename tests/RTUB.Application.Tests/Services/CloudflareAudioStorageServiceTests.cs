@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Services;
 using System.Net;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -66,45 +65,6 @@ public class CloudflareAudioStorageServiceTests
 
         // Assert
         service.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task AudioFileExistsAsync_WhenFileExists_ReturnsTrue()
-    {
-        // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
-        var service = new CloudflareAudioStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
-
-        _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
-            .ReturnsAsync(new GetObjectMetadataResponse());
-
-        // Act
-        var result = await service.AudioFileExistsAsync("Test Album", 1, "Test Song");
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task AudioFileExistsAsync_WhenFileDoesNotExist_ReturnsFalse()
-    {
-        // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
-        var service = new CloudflareAudioStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
-
-        var notFoundException = new AmazonS3Exception("Not found")
-        {
-            StatusCode = HttpStatusCode.NotFound
-        };
-
-        _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
-            .ThrowsAsync(notFoundException);
-
-        // Act
-        var result = await service.AudioFileExistsAsync("Test Album", 1, "Nonexistent Song");
-
-        // Assert
-        result.Should().BeFalse();
     }
 
     [Fact]

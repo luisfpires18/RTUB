@@ -1,15 +1,12 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 
@@ -31,7 +28,7 @@ public class QuestionsApiTests : IClassFixture<EventsApiFactory>
     public async Task Visitors_GetNothing()
     {
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         foreach (var path in new[] { "/api/questions", "/api/questions?closed=true", "/api/questions/recipients", "/api/questions/1" })
         {
             (await anonymous.GetAsync(path)).StatusCode.Should().Be(HttpStatusCode.Unauthorized, path);
@@ -53,7 +50,7 @@ public class QuestionsApiTests : IClassFixture<EventsApiFactory>
         var (_, nobody) = await SignInAsync();
         var (member, _) = await SignInAsync();
 
-        var list = (await Json(member, "/api/questions/recipients")).EnumerateArray().ToList();
+        var list = (await AreaHttp.Json(member, "/api/questions/recipients")).EnumerateArray().ToList();
         var mine = list.Where(r => r.GetProperty("id").GetString() == holder.Id).ToList();
         mine.Select(r => r.GetProperty("position").GetString()).Should().BeEquivalentTo("Magister", "PresidenteConselhoFiscal");
         mine.Single(r => r.GetProperty("position").GetString() == "Magister").GetProperty("role").GetString().Should().Be("Direção - Magister");
@@ -71,12 +68,12 @@ public class QuestionsApiTests : IClassFixture<EventsApiFactory>
         await SetPositionsAsync(recipient.Id, Position.Magister);
         var (leitao, leitaoUser) = await SignInAsync();
         await SetCategoryAsync(leitaoUser.Id, MemberCategory.Leitao);
-        await WithTokenAsync(leitao);
+        await AreaHttp.WithTokenAsync(leitao);
 
-        var errors = await Errors(await leitao.PostAsJsonAsync("/api/questions", new { title = "", content = "curta", recipientId = recipient.Id, position = "Secretario" }));
+        var errors = await AreaHttp.Errors(await leitao.PostAsJsonAsync("/api/questions", new { title = "", content = "curta", recipientId = recipient.Id, position = "Secretario" }));
         errors.Keys.Should().BeEquivalentTo("title", "content", "recipientId");
-        (await Errors(await leitao.PostAsJsonAsync("/api/questions", Ask(recipient.Id, title: new string('t', 101))))).Keys.Should().Equal("title");
-        (await Errors(await leitao.PostAsJsonAsync("/api/questions", Ask(leitaoUser.Id)))).Keys.Should().Equal("recipientId");
+        (await AreaHttp.Errors(await leitao.PostAsJsonAsync("/api/questions", Ask(recipient.Id, title: new string('t', 101))))).Keys.Should().Equal("title");
+        (await AreaHttp.Errors(await leitao.PostAsJsonAsync("/api/questions", Ask(leitaoUser.Id)))).Keys.Should().Equal("recipientId");
 
         _factory.Push.Invocations.Clear();
         var created = await leitao.PostAsJsonAsync("/api/questions", Ask(recipient.Id));
@@ -99,9 +96,9 @@ public class QuestionsApiTests : IClassFixture<EventsApiFactory>
         (await author.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "Então?" })).StatusCode
             .Should().Be(HttpStatusCode.Forbidden, "it is the recipient's turn");
         (await stranger.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "Eu sei!" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await Errors(await recipient.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "   " }))).Keys.Should().Equal("content");
+        (await AreaHttp.Errors(await recipient.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "   " }))).Keys.Should().Equal("content");
 
-        var answered = await Json(await recipient.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "Às 21h." }));
+        var answered = await AreaHttp.Json(await recipient.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "Às 21h." }));
         answered.GetProperty("question").GetProperty("status").GetString().Should().Be("answered");
         answered.GetProperty("question").GetProperty("canReply").GetBoolean().Should().BeFalse("now it is the author's turn");
         var reply = answered.GetProperty("replies").EnumerateArray().Single();
@@ -109,11 +106,11 @@ public class QuestionsApiTests : IClassFixture<EventsApiFactory>
         reply.GetProperty("fromRecipient").GetBoolean().Should().BeTrue();
 
         (await recipient.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "Mais uma." })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        var discussed = await Json(await author.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "E no sábado?" }));
+        var discussed = await AreaHttp.Json(await author.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "E no sábado?" }));
         discussed.GetProperty("question").GetProperty("status").GetString().Should().Be("inDiscussion");
         discussed.GetProperty("replies").GetArrayLength().Should().Be(2);
 
-        var seen = await Json(stranger, $"/api/questions/{id}");
+        var seen = await AreaHttp.Json(stranger, $"/api/questions/{id}");
         seen.GetProperty("replies").GetArrayLength().Should().Be(2, "every member reads every question, as before");
         seen.GetProperty("question").GetProperty("canReply").GetBoolean().Should().BeFalse();
         seen.GetProperty("question").GetProperty("isMine").GetBoolean().Should().BeFalse();
@@ -132,14 +129,14 @@ public class QuestionsApiTests : IClassFixture<EventsApiFactory>
         }
 
         (await author.PostAsync($"/api/questions/{id}/remind", null)).StatusCode.Should().Be(HttpStatusCode.NoContent, "the recipient owes an answer");
-        await Json(await recipient.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "Respondido." }));
+        await AreaHttp.Json(await recipient.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "Respondido." }));
         (await author.PostAsync($"/api/questions/{id}/remind", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden, "now the author owes the reply");
 
-        var closed = await Json(await author.PostAsync($"/api/questions/{id}/close", null));
+        var closed = await AreaHttp.Json(await author.PostAsync($"/api/questions/{id}/close", null));
         closed.GetProperty("question").GetProperty("status").GetString().Should().Be("closed");
-        (await Errors(await author.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "Afinal…" }))).Keys.Should().Equal("content");
+        (await AreaHttp.Errors(await author.PostAsJsonAsync($"/api/questions/{id}/replies", new { content = "Afinal…" }))).Keys.Should().Equal("content");
         (await author.PostAsync($"/api/questions/{id}/remind", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await Json(await author.PostAsync($"/api/questions/{id}/close", null))).GetProperty("question").GetProperty("status").GetString()
+        (await AreaHttp.Json(await author.PostAsync($"/api/questions/{id}/close", null))).GetProperty("question").GetProperty("status").GetString()
             .Should().Be("closed", "closing twice is harmless");
 
         (await author.DeleteAsync($"/api/questions/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -153,24 +150,24 @@ public class QuestionsApiTests : IClassFixture<EventsApiFactory>
         var tag = "qst" + Guid.NewGuid().ToString("N")[..8];
         var (author, _, _, first) = await QuestionAsync($"{tag} primeira");
         var recipientId = await RecipientIdAsync(first);
-        var second = (await Json(await author.PostAsJsonAsync("/api/questions", Ask(recipientId, title: $"{tag} segunda")))).GetProperty("question").GetProperty("id").GetInt32();
-        var third = (await Json(await author.PostAsJsonAsync("/api/questions", Ask(recipientId, title: $"{tag} terceira")))).GetProperty("question").GetProperty("id").GetInt32();
-        await Json(await author.PostAsync($"/api/questions/{second}/close", null));
+        var second = (await AreaHttp.Json(await author.PostAsJsonAsync("/api/questions", Ask(recipientId, title: $"{tag} segunda")))).GetProperty("question").GetProperty("id").GetInt32();
+        var third = (await AreaHttp.Json(await author.PostAsJsonAsync("/api/questions", Ask(recipientId, title: $"{tag} terceira")))).GetProperty("question").GetProperty("id").GetInt32();
+        await AreaHttp.Json(await author.PostAsync($"/api/questions/{second}/close", null));
 
-        var open = await Json(author, $"/api/questions?q={tag}");
+        var open = await AreaHttp.Json(author, $"/api/questions?q={tag}");
         Ids(open).Should().Equal(third, first);
         open.GetProperty("total").GetInt32().Should().Be(2);
-        Ids(await Json(author, $"/api/questions?closed=true&q={tag}")).Should().Equal(second);
+        Ids(await AreaHttp.Json(author, $"/api/questions?closed=true&q={tag}")).Should().Equal(second);
 
-        var paged = await Json(author, $"/api/questions?q={tag}&pageSize=1&page=2");
+        var paged = await AreaHttp.Json(author, $"/api/questions?q={tag}&pageSize=1&page=2");
         Ids(paged).Should().Equal(first);
         paged.GetProperty("total").GetInt32().Should().Be(2);
         paged.GetProperty("pageSize").GetInt32().Should().Be(1);
-        (await Json(author, $"/api/questions?q={tag}&pageSize=500")).GetProperty("pageSize").GetInt32().Should().Be(50, "at most 50 a page");
+        (await AreaHttp.Json(author, $"/api/questions?q={tag}&pageSize=500")).GetProperty("pageSize").GetInt32().Should().Be(50, "at most 50 a page");
 
-        var byRecipient = await Json(author, $"/api/questions?q={tag}&recipient={Uri.EscapeDataString(recipientId)}");
+        var byRecipient = await AreaHttp.Json(author, $"/api/questions?q={tag}&recipient={Uri.EscapeDataString(recipientId)}");
         byRecipient.GetProperty("total").GetInt32().Should().Be(2);
-        (await Json(author, $"/api/questions?q={tag}&recipient=nobody")).GetProperty("total").GetInt32().Should().Be(0);
+        (await AreaHttp.Json(author, $"/api/questions?q={tag}&recipient=nobody")).GetProperty("total").GetInt32().Should().Be(0);
     }
 
     [Fact]
@@ -199,7 +196,7 @@ public class QuestionsApiTests : IClassFixture<EventsApiFactory>
         var (stranger, _) = await SignInAsync();
         foreach (var client in new[] { recipient, author, stranger })
         {
-            await WithTokenAsync(client);
+            await AreaHttp.WithTokenAsync(client);
         }
 
         var created = await author.PostAsJsonAsync("/api/questions", Ask(recipientUser.Id, title));
@@ -236,27 +233,6 @@ public class QuestionsApiTests : IClassFixture<EventsApiFactory>
         (await users.UpdateAsync(user)).Succeeded.Should().BeTrue();
     }
 
-    private static async Task<JsonElement> Json(HttpClient client, string path)
-    {
-        var response = await client.GetAsync(path);
-        response.StatusCode.Should().Be(HttpStatusCode.OK, path);
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
-    private static async Task<JsonElement> Json(HttpResponseMessage response)
-    {
-        response.IsSuccessStatusCode.Should().BeTrue(await response.Content.ReadAsStringAsync());
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
-    private static async Task<Dictionary<string, string[]>> Errors(HttpResponseMessage response)
-    {
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return body.GetProperty("errors").EnumerateObject()
-            .ToDictionary(p => p.Name, p => p.Value.EnumerateArray().Select(v => v.GetString()!).ToArray());
-    }
-
     private static int _ip;
 
     private Task<(HttpClient Client, ApplicationUser User)> SignInAsync(string? role = null)
@@ -265,17 +241,5 @@ public class QuestionsApiTests : IClassFixture<EventsApiFactory>
         return CookieTestSession.SignInAsync(_factory, $"qst{Guid.NewGuid():N}"[..20], $"10.43.{n / 250}.{n % 250 + 1}", role);
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.44.0.1");
-        return client;
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.44.0.1");
 }

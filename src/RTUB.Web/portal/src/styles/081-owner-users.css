@@ -1,0 +1,168 @@
+/* /users */
+
+.owner-users {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-user {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px 14px;
+  height: 100%;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raise);
+}
+
+.owner-user__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-card);
+}
+
+.owner-user__body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.owner-user__body > * {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.owner-user__name {
+  color: var(--ink);
+  font-size: 1.0625rem;
+}
+
+.owner-user__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.owner-user__status span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff8f86;
+}
+
+.owner-user__status.is-online span {
+  background: #40c078;
+}
+
+.owner-user__meta {
+  display: grid;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.owner-user__actions {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: 8px;
+}
+
+.owner-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.owner-detail__who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.owner-detail__who .owner-person__avatar {
+  width: 48px;
+  height: 48px;
+}
+
+.owner-detail__who p {
+  margin: 0;
+}
+
+.owner-detail__heading {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.owner-dl {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.owner-dl dt {
+  color: var(--muted);
+}
+
+.owner-dl dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.owner-roles {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.owner-roles legend {
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.owner-role {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.owner-role:has(input:checked) {
+  border-color: var(--purple-ink);
+  background: rgba(111, 66, 193, 0.12);
+}
+
+.owner-role input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--purple);
+}
+
+.owner-role > span {
+  display: grid;
+}
+
+.owner-role strong {
+  color: var(--ink);
+}

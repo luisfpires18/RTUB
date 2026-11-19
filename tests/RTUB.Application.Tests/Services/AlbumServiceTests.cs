@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
@@ -55,46 +54,6 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
-    public async Task GetAlbumByIdAsync_ExistingAlbum_ReturnsAlbum()
-    {
-        // Arrange
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-
-        // Act
-        var result = await _albumService.GetAlbumByIdAsync(album.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(album.Id);
-        result.Title.Should().Be("Test Album");
-    }
-
-    [Fact]
-    public async Task GetAlbumByIdAsync_NonExistingAlbum_ReturnsNull()
-    {
-        // Act
-        var result = await _albumService.GetAlbumByIdAsync(999);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task GetAllAlbumsAsync_WithMultipleAlbums_ReturnsAll()
-    {
-        // Arrange
-        await _albumService.CreateAlbumAsync("Album 1", 2020);
-        await _albumService.CreateAlbumAsync("Album 2", 2021);
-        await _albumService.CreateAlbumAsync("Album 3", 2022);
-
-        // Act
-        var result = await _albumService.GetAllAlbumsAsync();
-
-        // Assert
-        result.Should().HaveCount(3);
-    }
-
-    [Fact]
     public async Task GetAlbumsWithSongsAsync_IncludesSongs()
     {
         // Arrange
@@ -133,7 +92,7 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _albumService.UpdateAlbumAsync(album.Id, newTitle, newYear, newDescription, false);
-        var updated = await _albumService.GetAlbumByIdAsync(album.Id);
+        var updated = await _context.Albums.AsNoTracking().FirstOrDefaultAsync(a => a.Id == album.Id);
 
         // Assert
         updated!.Title.Should().Be(newTitle);
@@ -158,7 +117,7 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _albumService.DeleteAlbumAsync(album.Id);
-        var deleted = await _albumService.GetAlbumByIdAsync(album.Id);
+        var deleted = await _context.Albums.AsNoTracking().FirstOrDefaultAsync(a => a.Id == album.Id);
 
         // Assert
         deleted.Should().BeNull();
@@ -190,7 +149,7 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
         await _albumService.UpdateAlbumWithCoverAsync(album.Id, newTitle, newYear, newDescription, false, imageStream, "test.webp", "image/webp");
-        var updated = await _albumService.GetAlbumByIdAsync(album.Id);
+        var updated = await _context.Albums.AsNoTracking().FirstOrDefaultAsync(a => a.Id == album.Id);
 
         // Assert
         updated!.Title.Should().Be(newTitle);
@@ -305,7 +264,7 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _albumService.UpdateAlbumAsync(album.Id, "Updated Album", 2021, "Updated", true);
-        var updated = await _albumService.GetAlbumByIdAsync(album.Id);
+        var updated = await _context.Albums.AsNoTracking().FirstOrDefaultAsync(a => a.Id == album.Id);
 
         // Assert
         updated!.IsPrivate.Should().BeTrue();
@@ -325,7 +284,7 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
         await _albumService.UpdateAlbumWithCoverAsync(album.Id, "Updated Album", 2021, "Updated", true, imageStream, "test.webp", "image/webp");
-        var updated = await _albumService.GetAlbumByIdAsync(album.Id);
+        var updated = await _context.Albums.AsNoTracking().FirstOrDefaultAsync(a => a.Id == album.Id);
 
         // Assert
         updated!.IsPrivate.Should().BeTrue();

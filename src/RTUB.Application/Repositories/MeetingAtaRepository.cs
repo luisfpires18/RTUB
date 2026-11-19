@@ -8,7 +8,7 @@ namespace RTUB.Application.Repositories;
 
 /// <summary>
 /// Repository implementation for MeetingAta entity.
-/// Uses IDbContextFactory to create fresh DbContext per operation to avoid EF tracking conflicts in Blazor Server.
+/// Uses IDbContextFactory: one DbContext per operation.
 /// </summary>
 public class MeetingAtaRepository : IMeetingAtaRepository
 {

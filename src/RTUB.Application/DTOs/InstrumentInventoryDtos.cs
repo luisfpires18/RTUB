@@ -1,14 +1,14 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React /inventory ("Instrumentos", React track 020; was the Blazor Inventory.razor). Signed-in
-// members only, as before; every field here was shown to any signed-in member on the old page. No EF entity leaves
+// Contracts of the React /inventory ("Instrumentos"). Signed-in
+// members only; every field here is shown to any signed-in member. No EF entity leaves
 // the server.
 
 /// <summary>Filters: <c>Category</c> an <c>InstrumentType</c> name, <c>Condition</c> an <c>InstrumentCondition</c> name.</summary>
 public sealed record InstrumentQuery(string? Search, string? Category, string? Condition);
 
 /// <summary>
-/// The list (by name), the old counters (total and the first three conditions present, in enum order, over every
+/// The list (by name), the counters (total and the first three conditions present, in enum order, over every
 /// instrument), the filter options and whether the caller manages (Mod, Admin, Owner).
 /// </summary>
 public sealed record InstrumentListDto(
@@ -33,7 +33,7 @@ public sealed record InstrumentCardDto(
     string? Location,
     string? ThumbnailUrl);
 
-/// <summary>"Detalhes do Instrumento", every field the old modal showed. <c>LastMaintenanceDate</c> yyyy-MM-dd.</summary>
+/// <summary>"Detalhes do Instrumento", every field of the instrument. <c>LastMaintenanceDate</c> yyyy-MM-dd.</summary>
 public sealed record InstrumentDetailDto(
     int Id,
     string Name,
@@ -49,7 +49,7 @@ public sealed record InstrumentDetailDto(
     string? ImageUrl,
     string? ThumbnailUrl);
 
-/// <summary>Create or edit. <c>Category</c> is only read when creating: the old edit never changed it.</summary>
+/// <summary>Create or edit. <c>Category</c> is only read when creating: an edit never changes it.</summary>
 public sealed record InstrumentInput(
     string? Name,
     string? Category,
@@ -62,5 +62,5 @@ public sealed record InstrumentInput(
 
 public sealed record InstrumentCreatedDto(int Id);
 
-/// <summary>An uploaded image: the original and its cropped 1:1 thumbnail, as the old form required both.</summary>
+/// <summary>An uploaded image: the original and its cropped 1:1 thumbnail.</summary>
 public sealed record InstrumentImageUpload(Stream Content, string FileName, string ContentType, long Length);

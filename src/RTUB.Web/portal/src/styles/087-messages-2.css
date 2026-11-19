@@ -1,0 +1,292 @@
+.bubble__quote {
+  display: grid;
+  gap: 2px;
+  margin: 2px 0 6px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--purple-ink);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 25%);
+  font-size: 0.8125rem;
+}
+
+.bubble__quote span {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink-soft);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.bubble__text {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.bubble__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: var(--purple-ink);
+  font-size: 0.875rem;
+}
+
+.bubble__meta {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  text-align: right;
+}
+
+.bubble-row--mine .bubble__meta {
+  color: var(--ink-soft);
+}
+
+.bubble__reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.reaction {
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.reaction--mine {
+  border-color: var(--purple-ink);
+  background: rgb(111 66 193 / 30%);
+}
+
+.reaction:disabled {
+  cursor: default;
+}
+
+.bubble__actions {
+  display: flex;
+  flex-direction: column;
+  opacity: 0.55;
+}
+
+.bubble-row:hover .bubble__actions,
+.bubble__actions:focus-within {
+  opacity: 1;
+}
+
+.reaction-picker {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--bg-raise);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+
+.bubble-row--mine .reaction-picker {
+  right: 0;
+  left: auto;
+}
+
+.reaction-picker__choice {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.reaction-picker__choice:hover,
+.reaction-picker__choice:focus-visible {
+  background: var(--bg-card);
+}
+
+.composer {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--bg-raise);
+}
+
+.composer__reply {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--purple-ink);
+  border-radius: 8px;
+  background: var(--bg-card);
+  font-size: 0.8125rem;
+}
+
+.composer__reply > div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.composer__reply span {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.composer__row textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 160px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 20px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.4;
+  resize: none;
+}
+
+.composer__row textarea:focus-visible {
+  border-color: var(--purple-ink);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.composer__send {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--purple);
+  color: #fff;
+  cursor: pointer;
+}
+
+.composer__send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.composer__count {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.chat-start {
+  display: grid;
+  gap: 12px;
+}
+
+.chat-start__list {
+  display: grid;
+  max-height: min(55vh, 420px);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.chat-start__person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-start__person:hover,
+.chat-start__person:focus-visible {
+  background: var(--bg-card);
+}
+
+.chat-start__person span {
+  display: grid;
+}
+
+.chat-start__person small {
+  color: var(--muted);
+}
+
+/* /messages: a group's avatar (only Notificações RTUB wears the logo). */
+.chat-face {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-card);
+  color: var(--muted);
+}
+
+.chat-face svg {
+  width: 55%;
+  height: 55%;
+}
+
+/* "Nova": the members picked so far (several = a group). */
+.chat-start__person[aria-pressed='true'] {
+  background: var(--bg-card);
+  box-shadow: inset 3px 0 0 var(--accent, currentColor);
+}
+
+/* /messages is an app screen at every width (the page sets html.app-screen, see Messages.tsx): the document does not
+   scroll and there is no site footer. The RTUB header, a compact heading, then the chat filling what is left, so the
+   list and the message area are the only scroll regions and the composer stays at the bottom. dvh follows the browser
+   chrome (and, with interactive-widget=resizes-content, the keyboard where the browser supports it). */
+html.app-screen,
+html.app-screen body {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+html.app-screen #root,
+html.app-screen .shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+html.app-screen .shell__body,
+html.app-screen main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+html.app-screen .footer {
+  display: none;
+}

@@ -1,17 +1,14 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 
@@ -20,7 +17,7 @@ namespace RTUB.Integration.Tests.Api;
 /// SQLite and GalleryMediaService. Storage and push are the recording fakes of <see cref="EventsApiFactory"/>:
 /// nothing is uploaded to, or deleted from, R2 and nothing is sent.
 /// </summary>
-public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
+public partial class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
 {
     private readonly EventsApiFactory _factory;
 
@@ -34,7 +31,7 @@ public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
     {
         var (member, me) = await SignInAsync();
         var (_, tagged) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var response = await member.PostAsync("/api/gallery", Upload("Serenata no castelo", "2024-05-17", membersOnly: true, tagged.Id));
 
@@ -55,7 +52,7 @@ public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
     public async Task AnUpload_ForAnEvent_StoresTheLink_AndACancelledOrUnknownEventIsRefused()
     {
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var (live, cancelled) = (await AddEventAsync(false), await AddEventAsync(true));
 
         var linked = await member.PostAsync("/api/gallery", WithEvent(Upload("Serenata", "2026-10-03", membersOnly: true), live.ToString()));
@@ -92,7 +89,7 @@ public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
     public async Task TheDate_KeepsOnlyWhatIsKnown_AsTheOldForm(string date, int year, int? month, int? day)
     {
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
 
         var item = await (await member.PostAsync("/api/gallery", Upload("Ensaio", date, membersOnly: false))).Content.ReadFromJsonAsync<JsonElement>();
 
@@ -107,7 +104,7 @@ public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
     public async Task InvalidUploads_AreFieldErrors_AndStoreNothing()
     {
         var (member, _) = await SignInAsync();
-        await WithTokenAsync(member);
+        await AreaHttp.WithTokenAsync(member);
         var before = await CountAsync();
 
         (await member.PostAsync("/api/gallery", Upload("Folha", "2024-01-02", false, contentType: "application/pdf")))
@@ -133,99 +130,60 @@ public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
         (await CountAsync()).Should().Be(before);
     }
 
+    /// <summary>
+    /// Task 135: a gallery file is public-read, so the type is one of a short list and the first bytes must agree
+    /// with it. An SVG can carry script; the browser's Content-Type is the caller's word.
+    /// </summary>
+    [Fact]
+    public async Task AnUpload_MustBeAListedType_AndLookLikeIt()
+    {
+        var (member, _) = await SignInAsync();
+        await AreaHttp.WithTokenAsync(member);
+        var before = await CountAsync();
+        var svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>"u8.ToArray();
+
+        foreach (var (bytes, type) in new[] { (svg, "image/svg+xml"), (svg, "image/png"), (svg, "video/mp4"), (Jpeg, "image/heic"), (Jpeg, "image/png") })
+        {
+            var refused = await member.PostAsync("/api/gallery", Upload("Recusado", "2024-01-02", false, contentType: type, bytes: bytes));
+            (await AreaHttp.Errors(refused)).Keys.Should().Equal(new[] { "file" }, $"{type} with these bytes is refused");
+        }
+
+        (await CountAsync()).Should().Be(before);
+    }
+
+    [Theory]
+    [InlineData("image/jpeg", ".jpg", MediaType.Image, new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 })]
+    [InlineData("image/png", ".png", MediaType.Image, new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A })]
+    [InlineData("image/gif", ".gif", MediaType.Image, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 })]
+    [InlineData("image/webp", ".webp", MediaType.Image, new byte[] { 0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50 })]
+    [InlineData("video/mp4", ".mp4", MediaType.Video, new byte[] { 0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D })]
+    [InlineData("video/quicktime", ".mov", MediaType.Video, new byte[] { 0, 0, 0, 0x14, 0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20 })]
+    [InlineData("video/webm", ".webm", MediaType.Video, new byte[] { 0x1A, 0x45, 0xDF, 0xA3, 1, 2, 3, 4 })]
+    public async Task AnAcceptedUpload_IsStoredUnderTheExtensionOfItsType_WhateverTheFileIsCalled(string type, string extension, MediaType media, byte[] bytes)
+    {
+        var (member, _) = await SignInAsync();
+        await AreaHttp.WithTokenAsync(member);
+        var title = "Tipo " + Guid.NewGuid().ToString("N")[..8];
+
+        var response = await member.PostAsync("/api/gallery", Upload(title, "2024-01-02", false, contentType: type, bytes: bytes, fileName: "foto.svg"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        _factory.GalleryStorage.Verify(s => s.UploadMediaAsync(It.IsAny<Stream>(), It.Is<string>(name => Path.GetExtension(name) == extension), type, media,
+            title, 2024, (byte)1, (byte)2), Times.Once);
+    }
+
     [Fact]
     public async Task Writes_AreForSignedInMembers_WithTheAntiforgeryHeader()
     {
         var (member, _) = await SignInAsync();
         var anonymous = Anonymous();
-        await WithTokenAsync(anonymous);
+        await AreaHttp.WithTokenAsync(anonymous);
         var before = await CountAsync();
 
         (await anonymous.PostAsync("/api/gallery", Upload("Visita", "2024-01-02", false))).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await member.PostAsync("/api/gallery", Upload("Sem token", "2024-01-02", false))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await Anonymous().GetAsync("/api/gallery/people?q=a")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await CountAsync()).Should().Be(before);
-    }
-
-    [Fact]
-    public async Task OnlyTheUploaderAdminOrOwner_EditAndDelete_AndModsAndOtherMembersCannot()
-    {
-        var (uploader, uploaderUser) = await SignInAsync();
-        var (other, _) = await SignInAsync();
-        var (mod, _) = await SignInAsync("Mod");
-        var (owner, _) = await SignInAsync("Owner");
-        foreach (var c in new[] { uploader, other, mod, owner })
-        {
-            await WithTokenAsync(c);
-        }
-
-        var id = await AddMediaAsync(uploaderUser.Id, isPrivate: true);
-        var edit = new { title = "Novo título", date = "2022-11-05", membersOnly = false, personIds = Array.Empty<string>() };
-
-        foreach (var refused in new[] { other, mod })
-        {
-            (await refused.PutAsJsonAsync($"/api/gallery/items/{id}", edit)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-            (await refused.DeleteAsync($"/api/gallery/items/{id}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-            (await refused.GetAsync($"/api/gallery/items/{id}/edit")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        }
-
-        var listed = await other.GetFromJsonAsync<JsonElement>($"/api/gallery/items/{id}");
-        listed.GetProperty("canEdit").GetBoolean().Should().BeFalse();
-
-        (await uploader.PutAsJsonAsync($"/api/gallery/items/{id}", edit)).StatusCode.Should().Be(HttpStatusCode.OK);
-        var saved = await MediaAsync(id);
-        saved!.Title.Should().Be("Novo título");
-        saved.IsPrivate.Should().BeFalse("the members-only flag follows the edit");
-
-        (await owner.PutAsJsonAsync($"/api/gallery/items/{id}", edit)).StatusCode.Should().Be(HttpStatusCode.OK,
-            "the Owner inherits Admin (was Admin only)");
-        (await owner.DeleteAsync($"/api/gallery/items/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await MediaAsync(id)).Should().BeNull();
-        _factory.GalleryStorage.Verify(s => s.DeleteMediaAsync(saved.MediaUrl), Times.Once, "the stored file goes first, through the fake");
-        (await owner.DeleteAsync($"/api/gallery/items/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task WhenStorageFailsToDelete_TheItemAndItsTagsStay()
-    {
-        var (uploader, uploaderUser) = await SignInAsync();
-        var (_, tagged) = await SignInAsync();
-        await WithTokenAsync(uploader);
-        var id = await AddMediaAsync(uploaderUser.Id, isPrivate: true, tagged.Id);
-        var url = (await MediaAsync(id))!.MediaUrl;
-        _factory.GalleryStorage.Setup(s => s.DeleteMediaAsync(url)).ThrowsAsync(new IOException("R2 unavailable"));
-
-        var response = await uploader.DeleteAsync($"/api/gallery/items/{id}");
-
-        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
-        (await MediaAsync(id)).Should().NotBeNull("a failed storage delete must not detach the row from its file");
-        (await TagsAsync(id)).Should().ContainSingle().Which.Should().Be(tagged.Id);
-        (await uploader.GetAsync($"/api/gallery/items/{id}")).StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task Edit_AddsAndRemovesTags_WithoutNotifying()
-    {
-        var (uploader, uploaderUser) = await SignInAsync();
-        var (_, kept) = await SignInAsync();
-        var (_, removed) = await SignInAsync();
-        var (_, added) = await SignInAsync();
-        await WithTokenAsync(uploader);
-        var id = await AddMediaAsync(uploaderUser.Id, isPrivate: true, kept.Id, removed.Id);
-
-        var form = await uploader.GetFromJsonAsync<JsonElement>($"/api/gallery/items/{id}/edit");
-        form.GetProperty("people").GetArrayLength().Should().Be(2);
-
-        var found = await uploader.GetFromJsonAsync<JsonElement>($"/api/gallery/people?q={added.UserName}");
-        found.EnumerateArray().Should().ContainSingle(p => p.GetProperty("id").GetString() == added.Id);
-        found.GetRawText().Should().NotContain("@test.com").And.NotContain("phone");
-
-        var response = await uploader.PutAsJsonAsync($"/api/gallery/items/{id}",
-            new { title = "Foto", date = "2021-03-04", membersOnly = true, personIds = new[] { kept.Id, added.Id } });
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await TagsAsync(id)).Should().BeEquivalentTo(new[] { kept.Id, added.Id });
-        _factory.Push.Verify(p => p.SendToSelectedUsersAsync(It.Is<IEnumerable<string>>(ids => ids.Contains(added.Id)), It.IsAny<SendPushNotificationDto>()),
-            Times.Never, "only tags made on upload notify, as before");
     }
 
     [Fact]
@@ -243,12 +201,15 @@ public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
 
     // ---------- helpers ----------
 
-    private static MultipartFormDataContent Upload(string title, string date, bool membersOnly, string? personId = null, string contentType = "image/jpeg")
+    private static readonly byte[] Jpeg = { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4 };
+
+    private static MultipartFormDataContent Upload(string title, string date, bool membersOnly, string? personId = null, string contentType = "image/jpeg",
+        byte[]? bytes = null, string fileName = "foto.jpg")
     {
         var form = new MultipartFormDataContent();
-        var file = new ByteArrayContent(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4 });
+        var file = new ByteArrayContent(bytes ?? Jpeg);
         file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-        form.Add(file, "file", "foto.jpg");
+        form.Add(file, "file", fileName);
         form.Add(new StringContent(title), "title");
         form.Add(new StringContent(date), "date");
         form.Add(new StringContent(membersOnly ? "true" : "false"), "membersOnly");
@@ -303,17 +264,5 @@ public class GalleryManagementApiTests : IClassFixture<EventsApiFactory>
         return CookieTestSession.SignInAsync(_factory, $"gal{Guid.NewGuid():N}"[..20], $"10.77.{n / 250}.{n % 250 + 1}", role);
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.78.0.1");
-        return client;
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.78.0.1");
 }

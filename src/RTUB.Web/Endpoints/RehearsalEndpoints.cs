@@ -5,9 +5,9 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React Rehearsals API (React track 014, docs/react-rehearsals.md). Thin by design: every rule lives in
+/// The React Rehearsals API (docs/react-rehearsals.md). Thin by design: every rule lives in
 /// <see cref="IRehearsalAgendaService"/> (members) and <see cref="IRehearsalAdminService"/> (Admin/Owner),
-/// decided from the session. Signed-in members only, as the Blazor page was. Every write needs the antiforgery
+/// decided from the session. Signed-in members only. Every write needs the antiforgery
 /// token in the X-CSRF-TOKEN header (GET /api/public/antiforgery-token). Rehearsals speak of presença
 /// (attendance); events keep inscrição (enrollment).
 /// </summary>
@@ -73,7 +73,7 @@ public static class RehearsalEndpoints
         writes.MapPost("/{id:int}/attendances/{attendanceId:int}/approve", async (int id, int attendanceId, HttpContext http, IRehearsalAdminService admin) =>
             ToResult(await admin.ApproveAsync(id, attendanceId, http.User), _ => Results.NoContent()));
 
-        // Task 075: approve / refuse also for the current Ensaiador and Magister (position, not role).
+        // Approve / refuse also for the current Ensaiador and Magister (position, not role).
         writes.MapPost("/{id:int}/attendances/{attendanceId:int}/refuse", async (int id, int attendanceId, HttpContext http, IRehearsalAdminService admin) =>
             ToResult(await admin.RefuseAsync(id, attendanceId, http.User), _ => Results.NoContent()));
 
@@ -88,17 +88,10 @@ public static class RehearsalEndpoints
             .WithMetadata(new RequestSizeLimitAttribute(1024));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Closed => Results.Problem(title: "Este ensaio já não permite esta ação.",
-            statusCode: StatusCodes.Status409Conflict),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.",
-            statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Ensaio não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Ensaio não encontrado.", status => status switch
+        {
+            EventResultStatus.Closed => Results.Problem(title: "Este ensaio já não permite esta ação.", statusCode: StatusCodes.Status409Conflict),
+            _ => null,
+        });
 }

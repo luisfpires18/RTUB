@@ -1,9 +1,5 @@
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
-using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
 using RTUB.Core.Helpers;
 
 
@@ -24,11 +20,6 @@ public class FiscalYearService : IFiscalYearService
     {
         _time = time ?? TimeProvider.System;
         _fiscalYearRepository = fiscalYearRepository;
-    }
-
-    public async Task<FiscalYear?> GetFiscalYearByIdAsync(int id)
-    {
-        return await _fiscalYearRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<FiscalYear>> GetAllFiscalYearsAsync()
@@ -65,35 +56,4 @@ public class FiscalYearService : IFiscalYearService
         return await _fiscalYearRepository.AddAsync(fiscalYear);
     }
 
-    public async Task DeleteFiscalYearAsync(int id)
-    {
-        var fiscalYear = await _fiscalYearRepository.GetByIdOrThrowAsync(id);
-
-        await _fiscalYearRepository.DeleteAsync(id);
-    }
-
-    public async Task<IEnumerable<int>> GetAvailableFiscalYearStartYearsAsync()
-    {
-        // Get current fiscal start year
-        var today = PortugalTime.Today(_time);
-        var currentMonth = today.Month;
-        var currentYear = today.Year;
-        int currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
-
-        // Get all existing fiscal years
-        var existingFiscalYears = await _fiscalYearRepository.GetAllAsync();
-        var existingStartYears = new HashSet<int>(existingFiscalYears.Select(fy => fy.StartYear));
-
-        // Generate list of available years from 1991 to current fiscal year
-        var availableYears = new List<int>();
-        for (int year = 1991; year <= currentFiscalStartYear; year++)
-        {
-            if (!existingStartYears.Contains(year))
-            {
-                availableYears.Add(year);
-            }
-        }
-
-        return availableYears;
-    }
 }

@@ -1,6 +1,6 @@
 namespace RTUB.Core.Entities;
 
-/// <summary>Explicit access to a private Logística board (task 067). Granted and removed by Mod, Admin or Owner only.</summary>
+/// <summary>Explicit access to a private Logística board. Granted and removed by Mod, Admin or Owner only.</summary>
 public class LogisticsBoardMember : BaseEntity
 {
     public int BoardId { get; set; }

@@ -5,9 +5,9 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /meetings (task 034, docs/react-meetings.md; was the Blazor page). Thin: every rule lives in
-/// <see cref="IMeetingBoardService"/>, decided from the session. Signed-in members only, as the Blazor page was
-/// (<c>[Authorize]</c>); a Leitão is refused everything (403) and a meeting the member does not see is a 404. Nothing is
+/// The React /meetings (docs/react-meetings.md). Thin: every rule lives in
+/// <see cref="IMeetingBoardService"/>, decided from the session. Signed-in members only;
+/// a Leitão is refused everything (403) and a meeting the member does not see is a 404. Nothing is
 /// cached (no-store) and every write needs the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class MeetingEndpoints
@@ -149,15 +149,10 @@ public static class MeetingEndpoints
             ToResult(await service.RemindRequestAsync(requestId, http.User), _ => Results.NoContent()));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        EventResultStatus.Closed => Results.Problem(title: "Esta reunião já não permite esta ação.", statusCode: StatusCodes.Status409Conflict),
-        _ => Results.Problem(title: "Não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, special: status => status switch
+        {
+            EventResultStatus.Closed => Results.Problem(title: "Esta reunião já não permite esta ação.", statusCode: StatusCodes.Status409Conflict),
+            _ => null,
+        });
 }

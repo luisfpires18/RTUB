@@ -1,0 +1,67 @@
+/* Phones / touch: the compact Detalhes (40px tall) and delete (36px) buttons keep their look, but an invisible ring
+   makes each one a 46 x 46 target (44 + a pixel each side for sub-pixel layout). The rings stay 2px apart in the 10px
+   gap; the card padding holds them. */
+@media (max-width: 767px), (pointer: coarse) {
+  .owner-log__buttons {
+    gap: 10px;
+  }
+
+  .owner-log__buttons .btn,
+  .owner-log__buttons .icon-btn {
+    position: relative;
+  }
+
+  .owner-log__buttons .btn::after,
+  .owner-log__buttons .icon-btn::after {
+    position: absolute;
+    inset: -3px;
+    content: '';
+  }
+
+  .owner-log__buttons .icon-btn::after {
+    inset: -5px;
+  }
+}
+
+.owner-action {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 0.8125rem;
+}
+
+.owner-action--ok {
+  border-color: rgba(64, 192, 120, 0.5);
+  color: #8fe0b0;
+}
+
+.owner-action--warn {
+  border-color: rgba(245, 196, 107, 0.5);
+  color: #f5c46b;
+}
+
+.owner-action--danger {
+  border-color: rgba(255, 143, 134, 0.5);
+  color: #ffb3ad;
+}
+
+.owner-action--info {
+  border-color: rgba(185, 160, 238, 0.5);
+  color: var(--purple-ink);
+}
+
+.owner-code {
+  max-height: 50vh;
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-deep);
+  color: var(--ink-soft);
+  font: 0.8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

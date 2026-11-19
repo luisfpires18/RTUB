@@ -8,7 +8,7 @@ namespace RTUB.Application.Repositories;
 /// <summary>
 /// Base repository implementation providing common data access operations.
 /// Uses IDbContextFactory to create short-lived DbContext instances per operation,
-/// following Microsoft's recommended "context per operation" pattern for Blazor Server.
+/// following Microsoft's recommended "context per operation" pattern.
 /// Each method creates a fresh DbContext, performs its work, and disposes it.
 /// </summary>
 /// <typeparam name="T">The entity type</typeparam>
@@ -143,7 +143,7 @@ public class Repository<T> : IRepository<T> where T : class
     /// Executes a query with a properly scoped and disposed DbContext.
     /// The <paramref name="queryFunc"/> receives an <see cref="IQueryable{T}"/> (with AsNoTracking)
     /// and must materialize it (e.g., ToListAsync, FirstOrDefaultAsync, CountAsync).
-    /// Replaces the old Query() method that leaked the underlying DbContext.
+    /// Never exposes the underlying DbContext.
     /// </summary>
     public virtual async Task<TResult> QueryAsync<TResult>(Func<IQueryable<T>, Task<TResult>> queryFunc, CancellationToken cancellationToken = default)
     {

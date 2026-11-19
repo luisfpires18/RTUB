@@ -5,9 +5,8 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// Órgãos Sociais for the React /roles. Public and read-only (React track 008): <see cref="IGovernanceService"/>
-/// decides the mandate and maps only public fields. Members' side (React track 016, was the Blazor /member/roles,
-/// docs/react-governance.md): the RGI, fiscal years and position assignments, every rule in
+/// Órgãos Sociais for the React /roles. Public and read-only: <see cref="IGovernanceService"/>
+/// decides the mandate and maps only public fields. Members' side (docs/react-governance.md): the RGI, fiscal years and position assignments, every rule in
 /// <see cref="IGovernanceManagementService"/>, decided from the session. Every write needs the antiforgery token in the
 /// X-CSRF-TOKEN header.
 /// </summary>
@@ -49,14 +48,6 @@ public static class GovernanceEndpoints
             ToResult(await manage.RemoveAsync(id, http.User)));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result) => result.Status switch
-    {
-        EventResultStatus.Ok => Results.Ok(result.Value),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Cargo não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result) =>
+        EndpointResults.ToResult(result, notFound: "Cargo não encontrado.");
 }

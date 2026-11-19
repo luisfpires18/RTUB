@@ -1,6 +1,6 @@
 # Backend Practices
 
-C# / .NET 10 / EF Core 10 / SQLite rules specific to this repo. Layer overview: `.github/copilot-instructions.md`.
+C# / .NET 10 / EF Core 10 / SQLite rules specific to this repo.
 
 ## Layers
 
@@ -14,14 +14,18 @@ RTUB.Web          host, minimal-API endpoints, a few controllers, React portal
 - `RTUB.Application` references no web UI types (`IBrowserFile`, `AuthenticationState`, `IJSRuntime`, `NavigationManager`).
 - Constructor injection only; services are Scoped and registered in `src/RTUB.Web/Extensions/ServiceCollectionExtensions.cs`.
 - Entities inherit `BaseEntity`, are created through static factories (`Entity.Create(...)`) and mutated through named
-  methods; keep the public parameterless constructor for EF.
+  methods; keep the public parameterless constructor for EF. Data annotations carry Portuguese messages; navigation
+  collections are `virtual ICollection<T>` initialized to `new List<T>()`.
 
 ## Data access
 
 - One context per operation via `IDbContextFactory<ApplicationDbContext>`. `Repository<T>` (`Application/Repositories/`)
   saves on every `AddAsync` / `UpdateAsync` / `DeleteAsync`, reads with `AsNoTracking()`, and updates by fetch then `SetValues()`.
   Use `GetByIdOrThrowAsync` (throws `EntityNotFoundException`).
-- `ApplicationDbContext` is a partial class split across files; edit the right partial.
+- One job per file, no file over 300 lines. A big service is a `partial class` split by topic into
+  `<Class>.<Topic>.cs` next to it (fields and constructor stay in `<Class>.cs`); a new method goes in the partial for
+  its topic. `ApplicationDbContext` works the same way; edit the right partial. Startup is `Program.cs` plus the
+  `Extensions/*Extensions.cs` it calls, in order.
 - Read-only queries: `AsNoTracking()`, projections instead of full entities, batch-load related rows (no queries in loops).
 - Never block on async (`.Result`, `.Wait()`).
 - Messaging tables (`Conversations`, `Messages`, `MessageReactions`, `ConversationUserSettings`) are never dropped.
@@ -31,6 +35,8 @@ RTUB.Web          host, minimal-API endpoints, a few controllers, React portal
 - Live in `src/RTUB.Web/Migrations`; the context is wired with `MigrationsAssembly("RTUB")` (the web assembly name), so
   `dotnet ef migrations add <Name> --project src/RTUB.Web`.
 - Commit the `.Designer.cs` with every migration.
+- The chain starts at `Baseline` (task 130); existing databases adopt it at startup. See `docs/release-and-rollback.md`
+  → *The Baseline*.
 - Keep each migration compatible with the previous production release (expand/contract): an app rollback never touches
   the schema. See `docs/release-and-rollback.md` → *Migrations: the N-1 rule*.
 
@@ -46,12 +52,14 @@ PROD runs on UTC. Anything that means a Portuguese day or clock uses `RTUB.Core.
 `TimeProvider`:
 
 - `Today(time)` for "today", past / future, ages and the fiscal year (`FiscalYearHelper.GetCurrentFiscalYearStartYear`).
-- `Now(time)` for times shown to people ("Gerado em").
+- `Now(time)` for times shown to people ("Gerado em") and to compare with a stored Portugal clock time (`Event.Date`).
+- `FromUtc(utc)` to put a stored UTC timestamp on Portugal's calendar. For the fiscal year of a `CreatedAt`, use
+  `FiscalYearHelper.GetFiscalYearStartYearOfUtc`: the year turns at 00:00 on 1 September in Portugal (23:00 UTC on 31 August).
 - `NextUtc(time, localTime, day?)` for a hosted job's next run at a configured Portugal clock time. DST-safe: a time the
   spring change skips runs an hour later, a time the autumn change repeats runs once.
 
 Stored technical timestamps (audit, `CreatedAt`, tokens, expirations) stay `DateTime.UtcNow`. Never `DateTime.Today` /
-`DateTime.Now` in new code. Services take `TimeProvider? time = null` (DI passes `TimeProvider.System`; tests pass a fixed clock).
+`DateTime.Now` in new code. Services take `TimeProvider? time = null` (DI passes `TimeProvider.System`; tests pass `TestClock`, `tests/Shared/TestClock.cs`).
 
 ## Caching
 

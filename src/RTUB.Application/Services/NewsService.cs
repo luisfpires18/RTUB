@@ -10,12 +10,12 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The public "Novidades" feed behind /news (React track 025, docs/react-news.md): text posts written by Admin/Owner.
+/// The public "Novidades" feed behind /news (docs/react-news.md): text posts written by Admin/Owner.
 /// - read: anyone, visitors included, sees published posts, newest <see cref="NewsPost.PublishedAt"/> first; drafts
 ///   (<c>PublishedAt</c> null) only reach Admin/Owner;
 /// - write: Admin/Owner (<see cref="NewsAuthorization"/>) create (as a draft or published), edit title and text,
 ///   publish (now), unpublish (back to draft) and delete (permanent);
-/// - visibility (#222): a members-only post (<c>IsPublic</c> false) is left out of every read by a visitor, in the query;
+/// - visibility: a members-only post (<c>IsPublic</c> false) is left out of every read by a visitor, in the query;
 /// - privacy: the public poster is "RTUB"; the author's display name is returned to Admin/Owner only, and no account id
 ///   or username is ever returned.
 /// Nothing is sent (no push, no email).
@@ -42,7 +42,7 @@ public sealed class NewsService : INewsService
         var size = Math.Clamp(pageSize, 1, MaxPageSize);
         // `manage` = whoever sees drafts and authors (Mod and above); Admin / Owner act on them (`CanManage` below).
         var manage = NewsAuthorization.CanWrite(user);
-        var signedIn = NewsAuthorization.UserId(user) is not null;
+        var signedIn = user.UserId() is not null;
 
         await using var db = await _contexts.CreateDbContextAsync();
         var posts = await VisibleTo(Posts(db, manage), user, visibility)
@@ -81,7 +81,7 @@ public sealed class NewsService : INewsService
         {
             Title = title,
             Body = body,
-            AuthorId = NewsAuthorization.UserId(user),
+            AuthorId = user.UserId(),
             IsPublic = input.MembersOnly != true,
             PublishedAt = input.Publish ? DateTime.UtcNow : null,
         };
@@ -107,7 +107,7 @@ public sealed class NewsService : INewsService
         {
             p.Title = title;
             p.Body = body;
-            // Null keeps the post's visibility (#222): only an explicit choice changes it.
+            // Null keeps the post's visibility: only an explicit choice changes it.
             p.IsPublic = input.MembersOnly is { } membersOnly ? !membersOnly : p.IsPublic;
         });
     }
@@ -142,12 +142,12 @@ public sealed class NewsService : INewsService
         withAuthor ? db.NewsPosts.AsNoTracking().Include(p => p.Author) : db.NewsPosts.AsNoTracking();
 
     /// <summary>
-    /// The one visibility rule (#222): a visitor sees public posts only, whatever <paramref name="visibility"/> asks for;
+    /// The one visibility rule: a visitor sees public posts only, whatever <paramref name="visibility"/> asks for;
     /// a signed-in caller sees everything, or just "public" / "private" when asked.
     /// </summary>
     internal static IQueryable<NewsPost> VisibleTo(IQueryable<NewsPost> posts, ClaimsPrincipal user, string? visibility = null)
     {
-        if (NewsAuthorization.UserId(user) is null)
+        if (user.UserId() is null)
         {
             return posts.Where(p => p.IsPublic);
         }
@@ -195,13 +195,13 @@ public sealed class NewsService : INewsService
 
     /// <summary>401 for visitors, 403 for anyone who is not Mod, Admin or Owner (create, edit, publish, unpublish).</summary>
     private static EventResult<T>? WriteRefusal<T>(ClaimsPrincipal user) =>
-        NewsAuthorization.UserId(user) is null ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        user.UserId() is null ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : NewsAuthorization.CanWrite(user) ? null
         : EventResult<T>.Fail(EventResultStatus.Forbidden);
 
     /// <summary>401 for visitors, 403 for anyone who is not Admin/Owner (delete).</summary>
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        NewsAuthorization.UserId(user) is null ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        user.UserId() is null ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : NewsAuthorization.CanManage(user) ? null
         : EventResult<T>.Fail(EventResultStatus.Forbidden);
 

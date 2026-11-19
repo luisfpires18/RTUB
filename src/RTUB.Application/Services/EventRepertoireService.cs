@@ -22,11 +22,6 @@ public class EventRepertoireService : IEventRepertoireService
         return await _repertoireRepository.GetRepertoireByEventIdAsync(eventId, date);
     }
 
-    public async Task<EventRepertoire?> GetRepertoireItemAsync(int id)
-    {
-        return await _repertoireRepository.GetRepertoireItemWithDetailsAsync(id);
-    }
-
     public async Task<EventRepertoire> AddSongToRepertoireAsync(int eventId, int songId, int displayOrder, DateTime repertoireDate)
     {
         // Check if song already exists in repertoire for this date
@@ -64,11 +59,6 @@ public class EventRepertoireService : IEventRepertoireService
                 await _repertoireRepository.UpdateAsync(item);
             }
         }
-    }
-
-    public async Task<bool> IsSongInRepertoireAsync(int eventId, int songId, DateTime date)
-    {
-        return await _repertoireRepository.SongExistsInRepertoireAsync(eventId, songId, date);
     }
 
     public async Task RemoveRepertoireDayAsync(int eventId, DateTime date)

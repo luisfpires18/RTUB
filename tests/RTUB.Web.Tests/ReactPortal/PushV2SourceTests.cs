@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.ReactPortal;
 
@@ -12,11 +11,16 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class PushV2SourceTests
 {
-    private static readonly string Root = FindRoot();
+    private static readonly string Root = RepoPaths.Root();
     private static readonly string Portal = Path.Combine(Root, "src", "RTUB.Web", "portal", "src");
     private static string Read(params string[] parts) => File.ReadAllText(Path.Combine(parts));
-    private static string Push => Read(Portal, "push.ts");
-    private static string Profile => Read(Portal, "Profile.tsx");
+    private static string Push => Read(Portal, "data/push.ts");
+    // Task 113 split pages/Profile.tsx into components/Profile*.tsx; the page comes first so its own order checks still hold.
+    private static string Profile => string.Join("\n", new[]
+    {
+        "pages/Profile.tsx", "components/ProfileInstruments.tsx", "components/ProfilePersonal.tsx", "components/ProfilePhoto.tsx",
+        "components/ProfilePush.tsx", "components/ProfileSecurity.tsx", "components/ProfileShared.tsx", "components/ProfileTuna.tsx",
+    }.Select(f => Read(Portal, f)));
     private static string Worker => Read(Root, "src", "RTUB.Web", "wwwroot", "service-worker.js");
 
     [Fact]
@@ -82,7 +86,9 @@ public class PushV2SourceTests
         }
 
         Push.Should().NotContainAny("migra", "Migra");
-        var section = Profile[Profile.IndexOf("function PushSection", StringComparison.Ordinal)..Profile.IndexOf("// ---------- Segurança", StringComparison.Ordinal)];
+        // The Segurança marker moved to ProfileSecurity.tsx, so the push section now runs to the end of ProfilePush.tsx.
+        var push = Read(Portal, "components/ProfilePush.tsx");
+        var section = push[push.IndexOf("function PushSection", StringComparison.Ordinal)..];
         section.Should().NotContainAny("migra", "Migra");
     }
 
@@ -165,7 +171,7 @@ public class PushV2SourceTests
     [Fact]
     public void Worker_ReadsEveryFieldTheServerSends_WithFallbacks()
     {
-        var service = Read(Root, "src", "RTUB.Application", "Services", "PushNotificationService.cs");
+        var service = Read(Root, "src", "RTUB.Application", "Services", "PushNotificationService.Delivery.cs");
         var push = Section(Worker, "addEventListener('push'", "function notificationTarget");
 
         foreach (var field in new[] { "title", "body", "icon", "url", "tag" })
@@ -186,7 +192,7 @@ public class PushV2SourceTests
     [Fact]
     public void Profile_OpensThePreferencesDialog_ApartFromTheDeviceSwitch()
     {
-        var prefs = Read(Portal, "PushPreferences.tsx");
+        var prefs = Read(Portal, "components/PushPreferences.tsx");
 
         Profile.Should().Contain("Escolher o que receber").And.Contain("<PushPreferencesDialog");
         Profile.IndexOf("Escolher o que receber", StringComparison.Ordinal).Should()
@@ -205,12 +211,5 @@ public class PushV2SourceTests
         a.Should().BeGreaterThan(-1, start);
         var b = content.IndexOf(end, a, StringComparison.Ordinal);
         return b < 0 ? content[a..] : content[a..b];
-    }
-
-    private static string FindRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "RTUB.sln"))) dir = dir.Parent;
-        return dir?.FullName ?? throw new InvalidOperationException("repository root not found");
     }
 }

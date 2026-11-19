@@ -12,7 +12,7 @@ using RTUB.Core.Helpers;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// "As minhas ações pendentes" daily push (task 078, issue #259; docs/react-pending-actions.md → Daily push). Once a
+/// "As minhas ações pendentes" daily push (docs/react-pending-actions.md → Daily push). Once a
 /// day at <see cref="PendingActionsReminderOptions.ScheduledTime"/> (Portugal time), every account that is not expelled
 /// is counted with the page's own query (<see cref="IPendingActionsService.CountPendingAsync"/>: every panel, every
 /// filter, every page, dismissals excluded); a member with anything pending gets one summary push, a member with
@@ -101,7 +101,7 @@ public sealed class PendingActionsReminderService : BackgroundService
         HashSet<string> claimed;
         await using (var db = await contexts.CreateDbContextAsync(cancellationToken))
         {
-            // 087: a Reformado has no page, so no reminder either (their count would be 0 anyway; not even asked).
+            // A Reformado has no page, so no reminder either (their count would be 0 anyway; not even asked).
             users = (await db.Users.AsNoTracking().Where(u => !u.IsExpelled && !u.IsRetired).OrderBy(u => u.Id)
                     .Select(u => new { u.Id, u.Nickname, u.UserName }).ToListAsync(cancellationToken))
                 .Select(u => (u.Id, u.Nickname ?? u.UserName ?? u.Id)).ToList();

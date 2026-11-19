@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -10,7 +9,6 @@ using RTUB.Application.Services;
 using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 
@@ -22,7 +20,6 @@ public class ImageStorageIntegrationTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
-    private readonly AlbumService _albumService;
     private readonly EventService _eventService;
 
     public ImageStorageIntegrationTests()
@@ -35,7 +32,6 @@ public class ImageStorageIntegrationTests : IDisposable
         _mockImageStorageService = new Mock<IImageStorageService>();
 
         var factory = WrapInFactory(options);
-        _albumService = new AlbumService(new AlbumRepository(factory), _mockImageStorageService.Object);
 
         // Mock dependencies for EventService
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
@@ -59,100 +55,6 @@ public class ImageStorageIntegrationTests : IDisposable
     }
 
     #region Album Image Tests
-
-    [Fact]
-    public async Task AlbumService_SetAlbumCoverAsync_UploadsToR2AndSavesUrl()
-    {
-        // Arrange
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(album.Title);
-        var imageUrl = "https://pub-test.r2.dev/rtub/images/album/1/cover.jpg";
-
-        _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", normalizedName))
-            .ReturnsAsync(imageUrl);
-
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
-
-        // Act
-        await _albumService.SetAlbumCoverAsync(album.Id, imageStream, "cover.jpg", "image/jpeg");
-
-        // Assert
-        _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "cover.jpg", "image/jpeg", "albums", normalizedName),
-            Times.Once);
-
-        var updatedAlbum = await _albumService.GetAlbumByIdAsync(album.Id);
-        updatedAlbum.Should().NotBeNull();
-        updatedAlbum!.ImageUrl.Should().Be(imageUrl);
-    }
-
-    [Fact]
-    public async Task AlbumService_SetAlbumCoverAsync_DeletesOldImageBeforeUploadingNew()
-    {
-        // Arrange
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(album.Title);
-        var oldImageUrl = "https://pub-test.r2.dev/rtub/images/album/1/old-cover.jpg";
-        var newImageUrl = "https://pub-test.r2.dev/rtub/images/album/1/new-cover.jpg";
-
-        // Set initial cover
-        _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", normalizedName))
-            .ReturnsAsync(oldImageUrl);
-
-        using (var oldImageStream = new MemoryStream(new byte[] { 1, 2, 3 }))
-        {
-            await _albumService.SetAlbumCoverAsync(album.Id, oldImageStream, "old-cover.jpg", "image/jpeg");
-        }
-
-        // Setup for new upload
-        _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", normalizedName))
-            .ReturnsAsync(newImageUrl);
-
-        using var newImageStream = new MemoryStream(new byte[] { 4, 5, 6 });
-
-        // Act
-        await _albumService.SetAlbumCoverAsync(album.Id, newImageStream, "new-cover.jpg", "image/jpeg");
-
-        // Assert - Old image should be deleted
-        _mockImageStorageService.Verify(
-            x => x.DeleteImageAsync(oldImageUrl),
-            Times.Once);
-
-        var updatedAlbum = await _albumService.GetAlbumByIdAsync(album.Id);
-        updatedAlbum!.ImageUrl.Should().Be(newImageUrl);
-    }
-
-    [Fact]
-    public async Task AlbumService_DeleteAlbumAsync_DeletesImageFromR2()
-    {
-        // Arrange
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(album.Title);
-        var imageUrl = "https://pub-test.r2.dev/rtub/images/album/1/cover.jpg";
-
-        _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", normalizedName))
-            .ReturnsAsync(imageUrl);
-
-        using (var imageStream = new MemoryStream(new byte[] { 1, 2, 3 }))
-        {
-            await _albumService.SetAlbumCoverAsync(album.Id, imageStream, "cover.jpg", "image/jpeg");
-        }
-
-        // Act
-        await _albumService.DeleteAlbumAsync(album.Id);
-
-        // Assert
-        _mockImageStorageService.Verify(
-            x => x.DeleteImageAsync(imageUrl),
-            Times.Once);
-
-        var deletedAlbum = await _albumService.GetAlbumByIdAsync(album.Id);
-        deletedAlbum.Should().BeNull();
-    }
 
     #endregion
 
@@ -186,7 +88,7 @@ public class ImageStorageIntegrationTests : IDisposable
             x => x.UploadImageAsync(It.IsAny<Stream>(), "event.jpg", "image/jpeg", "events", normalizedName),
             Times.Once);
 
-        var updatedEvent = await _eventService.GetEventByIdAsync(eventEntity.Id);
+        var updatedEvent = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
         updatedEvent.Should().NotBeNull();
         updatedEvent!.ImageUrl.Should().Be(imageUrl);
     }
@@ -222,24 +124,13 @@ public class ImageStorageIntegrationTests : IDisposable
             x => x.DeleteImageAsync(imageUrl),
             Times.Once);
 
-        var deletedEvent = await _eventService.GetEventByIdAsync(eventEntity.Id);
+        var deletedEvent = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
         deletedEvent.Should().BeNull();
     }
 
     #endregion
 
     #region Error Handling Tests
-
-    [Fact]
-    public async Task AlbumService_SetAlbumCoverAsync_WithInvalidId_ThrowsException()
-    {
-        // Arrange
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3 });
-
-        // Act & Assert
-        await Assert.ThrowsAsync<EntityNotFoundException>(
-            () => _albumService.SetAlbumCoverAsync(999, imageStream, "cover.jpg", "image/jpeg"));
-    }
 
     [Fact]
     public async Task EventService_SetEventImageAsync_WithInvalidId_ThrowsException()

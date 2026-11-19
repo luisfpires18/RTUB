@@ -1,6 +1,6 @@
 # React Pedidos (`/requests`) and Perguntas (`/questions`)
 
-Code: `portal/src/Requests.tsx`, `portal/src/Questions.tsx`; `/api/requests` (`Endpoints/RequestAdminEndpoints.cs` →
+Code: `portal/src/pages/Requests.tsx`, `portal/src/pages/Questions.tsx`; `/api/requests` (`Endpoints/RequestAdminEndpoints.cs` →
 `IRequestAdminService`) and `/api/questions` (`Endpoints/QuestionEndpoints.cs` → `IQuestionBoardService`); rules in
 `Helpers/RequestsAuthorization.cs` and `Helpers/QuestionsAuthorization.cs`, enforced in the two services. The public
 form is the separate React `/request` (`POST /api/public/requests`).
@@ -12,7 +12,7 @@ question asked / answered / replied / reminded -> `/questions` (it opens the pag
 ## Pedidos
 
 - List: every request, newest first. Search over name, email, event type, location, phone (case and accents ignored);
-  fiscal year by creation date (current by default, "Todos os anos"); status Pendente / Aprovado / Rejeitado. Sections
+  fiscal year by creation date on Portugal's calendar (current by default, "Todos os anos"); status Pendente / Aprovado / Rejeitado. Sections
   "Pedidos Pendentes" (Pending and Analysing) and "Pedidos Respondidos" (Confirmed, Rejected); "Mostrar mais", 8 at a time.
 - Details: name, email, phone, event type, preferred date (with the end of a range), location, submitted at, message.
 - Approve then offers "Criar Evento?", which opens the agenda's create form prefilled by `RequestToEventService`. Reject.

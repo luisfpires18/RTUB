@@ -1,7 +1,6 @@
 using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Workflows;
 
@@ -111,29 +110,6 @@ public class DataWorkflowTests : IntegrationTestBase
             var response = await _client.GetAsync(url);
             response.StatusCode.Should().Be(HttpStatusCode.OK,
                 $"navigation to {url} should succeed");
-        }
-    }
-
-    [Fact(Skip = "Rapid concurrent requests cause SQLite locking conflicts in test environment. This works fine with production databases.")]
-    public async Task RapidPageRequests_AreHandledCorrectly()
-    {
-        // Test handling of rapid consecutive requests
-        // Arrange
-        var tasks = new List<Task<HttpResponseMessage>>();
-
-        // Act - Send 5 rapid requests
-        for (int i = 0; i < 5; i++)
-        {
-            tasks.Add(_client.GetAsync("/"));
-        }
-
-        var responses = await Task.WhenAll(tasks);
-
-        // Assert - All should succeed
-        foreach (var response in responses)
-        {
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-            response.Dispose();
         }
     }
 }

@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React Music area's single entry point (React track 006, docs/react-music.md). Every method
+/// The React Music area's single entry point (docs/react-music.md). Every method
 /// takes the caller and applies visibility and <see cref="Helpers.MusicAuthorization"/> itself, so
 /// the HTTP endpoints stay thin and nothing trusts the browser.
 /// </summary>
@@ -27,7 +27,7 @@ public interface IMusicService
 
     Task<MusicResult<IReadOnlyList<MusicVideoDto>>> GetVideosAsync(int songId, ClaimsPrincipal user);
 
-    /// <summary>Audit-logs a video being watched (as the retired page did), with the play cooldown.</summary>
+    /// <summary>Audit-logs a video being watched, with the play cooldown.</summary>
     Task<MusicResult<bool>> RecordVideoPlayAsync(int videoId, ClaimsPrincipal user);
 
     Task<MusicResult<MusicStatisticsDto>> GetStatisticsAsync(ClaimsPrincipal user);
@@ -51,13 +51,13 @@ public interface IMusicService
 
     Task<MusicResult<bool>> DeleteSongAsync(int songId, ClaimsPrincipal user);
 
-    /// <summary>Every song with an Aprender chart in the albums the member can see (task 095).</summary>
+    /// <summary>Every song with an Aprender chart in the albums the member can see.</summary>
     Task<MusicResult<MusicLearnListDto>> GetPlayAlongSongsAsync(ClaimsPrincipal user);
 
-    /// <summary>Owner only: a push to the members who can see the song, saying it is new in Aprender (task 097).</summary>
+    /// <summary>Owner only: a push to the members who can see the song, saying it is new in Aprender.</summary>
     Task<MusicResult<bool>> NotifyPlayAlongAsync(int songId, MusicLearnNoticeInput? input, ClaimsPrincipal user);
 
-    /// <summary>The song's play-along chart, for signed-in members who can see its album (task 094).</summary>
+    /// <summary>The song's play-along chart, for signed-in members who can see its album.</summary>
     Task<MusicResult<bool>> RecordPlayAlongViewAsync(int songId, ClaimsPrincipal user);
 
     Task<MusicResult<bool>> SetPlayAlongStarAsync(int songId, bool starred, ClaimsPrincipal user);

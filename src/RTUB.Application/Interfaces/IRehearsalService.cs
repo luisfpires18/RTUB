@@ -8,7 +8,6 @@ namespace RTUB.Application.Interfaces;
 public interface IRehearsalService
 {
     // Rehearsal CRUD
-    Task<Rehearsal?> GetRehearsalByIdAsync(int id);
     Task<Rehearsal?> GetRehearsalByDateAsync(DateTime date);
     Task<IEnumerable<Rehearsal>> GetRehearsalsAsync(DateTime startDate, DateTime endDate);
     Task<Rehearsal> CreateRehearsalAsync(DateTime date, string location, string? theme = null);

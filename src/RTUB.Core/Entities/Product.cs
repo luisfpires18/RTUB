@@ -31,7 +31,7 @@ public class Product : BaseEntity
     public bool IsPublic { get; set; } = true;
 
     /// <summary>
-    /// #221: shown in every fiscal year (permanent stock, e.g. CDs) instead of only the fiscal year of
+    /// Shown in every fiscal year (permanent stock, e.g. CDs) instead of only the fiscal year of
     /// <see cref="BaseEntity.CreatedAt"/>. Stock, availability and visibility rules still apply.
     /// </summary>
     public bool AvailableAllYears { get; set; }
@@ -123,14 +123,6 @@ public class Product : BaseEntity
         Price = price;
         Stock = stock;
         Description = description;
-    }
-
-    public void UpdateStock(int newStock)
-    {
-        if (newStock < 0)
-            throw new ArgumentException("O stock do produto não pode ser negativo", nameof(newStock));
-
-        Stock = newStock;
     }
 
     public void SetAvailability(bool isAvailable)

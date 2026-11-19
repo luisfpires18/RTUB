@@ -1,0 +1,155 @@
+/* ---------- privacy document ---------- */
+
+.doc {
+  display: grid;
+  gap: 32px;
+  padding-block: clamp(40px, 7vw, 88px) var(--section);
+}
+
+.doc__head {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--line);
+}
+
+.doc__title {
+  font-size: clamp(2.125rem, 4vw + 1rem, 4.25rem);
+}
+
+.doc__meta {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.doc__toc summary {
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding-block: 8px;
+}
+
+.doc__toc ol {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+  counter-reset: toc;
+}
+
+.doc__toc li {
+  counter-increment: toc;
+}
+
+.doc__toc a {
+  display: block;
+  padding: 6px 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  text-decoration: none;
+}
+
+.doc__toc a::before {
+  content: counter(toc, decimal-leading-zero);
+  margin-right: 0.6em;
+  color: var(--purple-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.doc__toc a:hover {
+  color: var(--ink);
+}
+
+.doc__body {
+  display: grid;
+  gap: clamp(36px, 5vw, 48px);
+  max-width: 68ch;
+}
+
+.doc__body section {
+  display: grid;
+  gap: 14px;
+}
+
+.doc__body h2 {
+  font-family: var(--font-body);
+  font-size: clamp(1.1875rem, 0.5vw + 1.05rem, 1.375rem);
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+
+.doc__body p,
+.doc__body li {
+  color: #cdc6d4;
+  font-size: clamp(1rem, 0.2vw + 0.95rem, 1.0625rem);
+  line-height: 1.75;
+}
+
+.doc__body ul {
+  display: grid;
+  gap: 10px;
+}
+
+.doc__body li {
+  position: relative;
+  padding-left: 22px;
+}
+
+.doc__body li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0.78em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--purple-ink);
+  opacity: 0.7;
+}
+
+.doc__body strong {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.doc__body a {
+  color: var(--purple-ink);
+  text-underline-offset: 3px;
+}
+
+.doc__contact {
+  padding: 16px 20px;
+  border-left: 3px solid var(--purple);
+  border-radius: 0 12px 12px 0;
+  background: var(--bg-raise);
+}
+
+@media (min-width: 960px) {
+  .doc {
+    grid-template-columns: 240px minmax(0, 1fr);
+    column-gap: 72px;
+  }
+
+  .doc__head {
+    grid-column: 1 / -1;
+  }
+
+  .doc__toc {
+    position: sticky;
+    top: calc(var(--header-h) + 32px);
+    align-self: start;
+  }
+
+  .doc__toc summary {
+    pointer-events: none;
+    list-style: none;
+  }
+
+  .doc__toc summary::-webkit-details-marker {
+    display: none;
+  }
+}

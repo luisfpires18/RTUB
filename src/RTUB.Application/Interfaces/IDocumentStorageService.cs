@@ -23,13 +23,6 @@ public interface IDocumentStorageService
     Task<bool> DocumentExistsAsync(string documentPath);
 
     /// <summary>
-    /// Lists all folders under a given prefix
-    /// </summary>
-    /// <param name="prefix">The prefix path to search (e.g., "docs/")</param>
-    /// <returns>List of folder names (not full paths)</returns>
-    Task<List<string>> ListFoldersAsync(string prefix = "docs/");
-
-    /// <summary>
     /// Lists all subfolders within a given folder path (without adding environment prefix)
     /// </summary>
     /// <param name="folderPath">The full folder path to search (e.g., "docs/Production/Logistics/")</param>
@@ -44,7 +37,7 @@ public interface IDocumentStorageService
     Task<List<DocumentMetadata>> ListDocumentsInFolderAsync(string folderPath);
 
     /// <summary>
-    /// Every object under a prefix at any depth, folder markers ("…/") included, in one listing (#226 F01: one storage
+    /// Every object under a prefix at any depth, folder markers ("…/") included, in one listing (one storage
     /// round trip for a whole fiscal year instead of one per folder).
     /// </summary>
     /// <param name="prefix">The prefix, ending in "/" (e.g., "docs/Production/2025-2026/")</param>

@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// The React /naipes and /naipes/config (task 033, docs/react-naipes.md): each instrument's teaching videos and images,
+// The React /naipes and /naipes/config (docs/react-naipes.md): each instrument's teaching videos and images,
 // their comments, and the Admin / Owner settings for the instrument picker.
 
 /// <summary>
@@ -39,7 +39,7 @@ public sealed record NaipeItemDto(
 /// <summary>A comment, newest first. <c>CanDelete</c>: its author, or Admin / Owner.</summary>
 public sealed record NaipeCommentItemDto(int Id, string AuthorName, string AuthorAvatarUrl, string Text, DateTime CreatedAt, bool CanDelete);
 
-/// <summary>A new video or image as uploaded: the file, and the form's fields (a blank title gets the old default).</summary>
+/// <summary>A new video or image as uploaded: the file, and the form's fields (a blank title gets the default).</summary>
 public sealed record NaipeUpload(
     Stream Content,
     string? FileName,

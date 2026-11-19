@@ -6,7 +6,7 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The public "Novidades" feed on /news (React track 025, docs/react-news.md). Thin: every rule lives in
+/// The public "Novidades" feed on /news (docs/react-news.md). Thin: every rule lives in
 /// <see cref="INewsService"/>, decided from the session. Reading is open to visitors; every write is Admin/Owner and needs
 /// the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
@@ -21,7 +21,7 @@ public static class NewsEndpoints
         var writes = news.MapGroup(string.Empty).AddEndpointFilter(EventEndpoints.RequireAntiforgery);
 
         // ?page=1&pageSize=10 (the home preview asks for 3).
-        // &visibility=public|private narrows a signed-in caller's feed (the tabs); visitors always get public posts only (#222).
+        // &visibility=public|private narrows a signed-in caller's feed (the tabs); visitors always get public posts only.
         news.MapGet("/", async (int? page, int? pageSize, string? visibility, HttpContext http, INewsService service) =>
             ToResult(await service.GetFeedAsync(page ?? 1, pageSize ?? NewsService.DefaultPageSize, http.User, visibility)));
 
@@ -43,13 +43,11 @@ public static class NewsEndpoints
             ToResult(await service.DeleteAsync(id, http.User), _ => Results.NoContent()));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Entre para continuar.", statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Só Admin ou Owner gerem as Novidades.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Publicação não encontrada.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Publicação não encontrada.", status => status switch
+        {
+            EventResultStatus.SignInRequired => Results.Problem(title: "Entre para continuar.", statusCode: StatusCodes.Status401Unauthorized),
+            EventResultStatus.Forbidden => Results.Problem(title: "Só Admin ou Owner gerem as Novidades.", statusCode: StatusCodes.Status403Forbidden),
+            _ => null,
+        });
 }

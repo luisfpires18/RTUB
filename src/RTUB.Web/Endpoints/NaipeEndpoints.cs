@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using static RTUB.Web.Endpoints.EndpointResults;
 
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /naipes and /naipes/config (task 033, docs/react-naipes.md; were the Blazor pages). Thin: every rule lives
-/// in <see cref="INaipeBoardService"/>, decided from the session. Signed-in members only, as the Blazor pages were;
+/// The React /naipes and /naipes/config (docs/react-naipes.md). Thin: every rule lives
+/// in <see cref="INaipeBoardService"/>, decided from the session. Signed-in members only;
 /// the settings are Admin / Owner. Every write needs the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
 public static class NaipeEndpoints
@@ -65,22 +66,10 @@ public static class NaipeEndpoints
                 form.Files.GetFile("picture") is { } picture
                     ? ToResult(await service.SetPictureAsync(id,
                         new NaipePictureUpload(picture.OpenReadStream(), picture.FileName, picture.ContentType ?? string.Empty, picture.Length), http.User))
-                    : Results.ValidationProblem(new Dictionary<string, string[]> { ["picture"] = new[] { "Escolha uma imagem." } },
-                        title: "Há campos por corrigir."))
+                    : EndpointResults.Invalid("picture", "Escolha uma imagem."))
             .WithMetadata(new RequestSizeLimitAttribute(NaipeBoardService.MaxPictureBytes + 64 * 1024));
 
         writes.MapDelete("/config/{id:int}/picture", async (int id, HttpContext http, INaipeBoardService service) =>
             ToResult(await service.RemovePictureAsync(id, http.User)));
     }
-
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
 }

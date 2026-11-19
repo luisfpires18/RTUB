@@ -7,9 +7,9 @@ using RTUB.Web.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React Owner tools (task 035, docs/react-owner-operations.md; were the Blazor /emails, /notifications, /users,
-/// /owner/tracing and /owner/db). Owner only, every call: <see cref="RequireOwner"/> answers 401 to a visitor and 403
-/// to any other member (Admin included, since /emails and /notifications were Admin pages) before anything is read or
+/// The React Owner tools /emails, /notifications, /users, /owner/tracing, /owner/dashboard and /owner/db
+/// (docs/react-owner-operations.md). Owner only, every call: <see cref="RequireOwner"/> answers 401 to a visitor and 403
+/// to any other member (Admin included) before anything is read or
 /// written. Thin: the work is <see cref="IOwnerOperationsService"/>. Nothing is cached (no-store) and every write needs
 /// the antiforgery token in the X-CSRF-TOKEN header.
 /// </summary>
@@ -74,7 +74,7 @@ public static class OwnerEndpoints
         owner.MapGet("/tracing/logins", async (string? from, string? to, IOwnerOperationsService service) =>
             ToResult(await service.GetLoginsAsync(from, to)));
 
-        // ---------- /owner/dashboard (task 050) ----------
+        // ---------- /owner/dashboard ----------
 
         // ?from=yyyy-MM-dd &to=yyyy-MM-dd (Portugal days, both included; the last 30 days when missing)
         owner.MapGet("/dashboard", async (string? from, string? to, IOwnerOperationsService service) =>
@@ -88,7 +88,7 @@ public static class OwnerEndpoints
             .WithMetadata(new RequestSizeLimitAttribute(1024));
 
         // The system announcement: kept in memory (never stored) and shown by the React shell, which polls
-        // GET /api/announcement (task 037; the Blazor banner it used to reach is gone).
+        // GET /api/announcement.
         writes.MapPost("/tracing/announcement", (OwnerAnnouncementInput input, AnnouncementService announcements) =>
             {
                 var message = input.Message?.Trim();

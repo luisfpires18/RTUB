@@ -18,17 +18,6 @@ public class NerbaOrderService : INerbaOrderService
     }
 
     /// <inheritdoc />
-    public async Task<List<NerbaOrder>> GetByReportIdAsync(int reportId, CancellationToken cancellationToken = default)
-    {
-        using var context = _contextFactory.CreateDbContext();
-        return await context.NerbaOrders
-            .Where(no => no.ReportId == reportId)
-            .Include(no => no.Event)
-            .OrderByDescending(no => no.Id)
-            .ToListAsync(cancellationToken);
-    }
-
-    /// <inheritdoc />
     public async Task<List<NerbaOrder>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         using var context = _contextFactory.CreateDbContext();

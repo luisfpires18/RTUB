@@ -1,6 +1,6 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React Music area (React track 006, docs/react-music.md). Built for the browser:
+// Contracts of the React Music area (docs/react-music.md). Built for the browser:
 // no EF entity, storage object key, user id of another member or audit field ever leaves the server.
 
 /// <summary>What the caller may do; the server enforces the same rules on every write.</summary>
@@ -72,7 +72,7 @@ public sealed record MusicSongEditDto(
     string? Lyrics,
     bool HasPlayAlong);
 
-// ---------- Tocar junto (task 094): the play-along chart, version 1. Times are seconds into the recording. ----------
+// ---------- Tocar junto: the play-along chart, version 1. Times are seconds into the recording. ----------
 
 /// <summary>A chord change. <see cref="Label"/> is the name as the songbook writes it (FÁ, RÉm),
 /// <see cref="Name"/> the same chord in letters (F, Dm). In a sung line it sits on a word and a letter.</summary>

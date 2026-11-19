@@ -1,14 +1,10 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
-using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
 
@@ -18,7 +14,7 @@ namespace RTUB.Integration.Tests.Api;
 /// learns who wrote a post. Push and e-mail are the recording mocks of <see cref="EventsApiFactory"/>: nothing is sent.
 /// The class shares one database, so each test tags its own posts and reads only those.
 /// </summary>
-public class NewsApiTests : IClassFixture<EventsApiFactory>
+public partial class NewsApiTests : IClassFixture<EventsApiFactory>
 {
     private readonly EventsApiFactory _factory;
 
@@ -60,353 +56,6 @@ public class NewsApiTests : IClassFixture<EventsApiFactory>
         (await anonymous.PostAsync("/news", null)).StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("Member")]
-    public async Task VisitorsAndMembers_CannotManage(string? role)
-    {
-        var id = await AddAsync($"{Tag()} intocável", "Fica igual.", DateTime.UtcNow, null);
-        var client = role is null ? Anonymous() : (await SignInAsync(role)).Client;
-        await WithTokenAsync(client);
-        var expected = role is null ? HttpStatusCode.Unauthorized : HttpStatusCode.Forbidden;
-
-        (await client.PostAsJsonAsync("/api/news", Input("Novo", "Texto", publish: true))).StatusCode.Should().Be(expected);
-        (await client.PutAsJsonAsync($"/api/news/{id}", Input("Mudado", "Mudado"))).StatusCode.Should().Be(expected);
-        (await client.PostAsync($"/api/news/{id}/unpublish", null)).StatusCode.Should().Be(expected);
-        (await client.PostAsync($"/api/news/{id}/publish", null)).StatusCode.Should().Be(expected);
-        (await client.DeleteAsync($"/api/news/{id}")).StatusCode.Should().Be(expected);
-
-        var post = await PostAsync(id);
-        post!.Body.Should().Be("Fica igual.");
-        post.Title.Should().EndWith("intocável");
-        post.PublishedAt.Should().NotBeNull();
-
-        var feed = await Json(client, "/api/news");
-        feed.GetProperty("canManage").GetBoolean().Should().BeFalse();
-        feed.GetProperty("drafts").GetArrayLength().Should().Be(0);
-    }
-
-    [Fact]
-    public async Task AMod_WritesEditsPublishesAndUnpublishes_ButCannotDelete()
-    {
-        var tag = Tag();
-        var (mod, _) = await SignInAsync("Mod");
-        await WithTokenAsync(mod);
-        var published = await AddAsync($"{tag} no ar", "Fica igual.", DateTime.UtcNow, null);
-        var existingDraft = await AddAsync($"{tag} rascunho do admin", "Rascunho.", null, null);
-
-        var created = await mod.PostAsJsonAsync("/api/news", Input($"{tag} do mod", "Texto do mod.", publish: false));
-        created.StatusCode.Should().Be(HttpStatusCode.Created);
-        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
-
-        var feed = await Json(mod, "/api/news");
-        (feed.GetProperty("canWrite").GetBoolean(), feed.GetProperty("canManage").GetBoolean()).Should().Be((true, false));
-        Tagged(feed.GetProperty("drafts"), tag).Should().HaveCount(2, "a Mod sees every draft");
-
-        (await mod.PutAsJsonAsync($"/api/news/{id}", Input($"{tag} do mod", "Texto corrigido."))).StatusCode.Should().Be(HttpStatusCode.OK);
-        (await mod.PutAsJsonAsync($"/api/news/{published}", Input($"{tag} no ar", "Corrigido."))).StatusCode.Should().Be(HttpStatusCode.OK);
-        (await PublishAsync(mod, id)).Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
-        (await mod.PostAsync($"/api/news/{published}/unpublish", null)).StatusCode.Should().Be(HttpStatusCode.OK);
-        (await PostAsync(published))!.PublishedAt.Should().BeNull();
-
-        var live = await mod.PostAsJsonAsync("/api/news", Input($"{tag} direta", "Publicada pelo Mod.", publish: true));
-        (await live.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("publishedAt").ValueKind.Should().Be(JsonValueKind.String);
-
-        (await mod.DeleteAsync($"/api/news/{existingDraft}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await PostAsync(existingDraft)).Should().NotBeNull();
-    }
-
-    [Theory]
-    [InlineData("Admin")]
-    [InlineData("Owner")]
-    public async Task AdminAndOwner_WriteDrafts_Publish_Unpublish_Republish_Edit_AndDelete(string role)
-    {
-        var tag = Tag();
-        var (manager, me) = await SignInAsync(role);
-        await WithTokenAsync(manager);
-        var anonymous = Anonymous();
-
-        // A draft: only managers see it, with the author's display name.
-        var created = await manager.PostAsJsonAsync("/api/news", Input($"  {tag} anúncio  ", "  Ensaio aberto na sexta.\nTragam capa.  "));
-        created.StatusCode.Should().Be(HttpStatusCode.Created);
-        var draft = await created.Content.ReadFromJsonAsync<JsonElement>();
-        var id = draft.GetProperty("id").GetInt32();
-        created.Headers.Location!.ToString().Should().Be($"/api/news/{id}");
-        draft.GetProperty("title").GetString().Should().Be($"{tag} anúncio", "title and text are trimmed");
-        draft.GetProperty("body").GetString().Should().Be("Ensaio aberto na sexta.\nTragam capa.");
-        draft.GetProperty("publishedAt").ValueKind.Should().Be(JsonValueKind.Null);
-        draft.GetProperty("authorName").GetString().Should().Contain(me.FirstName);
-        (await PostAsync(id))!.AuthorId.Should().Be(me.Id);
-
-        var mine = await Json(manager, "/api/news");
-        mine.GetProperty("canManage").GetBoolean().Should().BeTrue();
-        Tagged(mine.GetProperty("drafts"), tag).Should().ContainSingle();
-        Tagged(mine.GetProperty("posts"), tag).Should().BeEmpty();
-        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag).Should().BeEmpty();
-
-        // Publish: on top of the public feed. Publishing again leaves the date alone.
-        var first = await PublishAsync(manager, id);
-        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag).Should().ContainSingle();
-        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag)[0].GetProperty("id").GetInt32().Should().Be(id);
-        (await PublishAsync(manager, id)).Should().Be(first);
-
-        // Another post goes above it; unpublishing takes it off the feed; re-publishing puts it back on top with a new date.
-        await AddAsync($"{tag} outra", "Outra", DateTime.UtcNow, null);
-        var unpublished = await Json(await manager.PostAsync($"/api/news/{id}/unpublish", null));
-        unpublished.GetProperty("publishedAt").ValueKind.Should().Be(JsonValueKind.Null);
-        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag).Select(p => p.GetProperty("id").GetInt32()).Should().NotContain(id);
-        var again = await PublishAsync(manager, id);
-        again.Should().BeAfter(first);
-        Tagged((await Json(anonymous, "/api/news")).GetProperty("posts"), tag)[0].GetProperty("id").GetInt32().Should().Be(id);
-
-        // Edit keeps the state; a blank title means none.
-        var edited = await Json(await manager.PutAsJsonAsync($"/api/news/{id}", Input("   ", "Texto corrigido", publish: false)));
-        edited.GetProperty("title").ValueKind.Should().Be(JsonValueKind.Null);
-        edited.GetProperty("body").GetString().Should().Be("Texto corrigido");
-        edited.GetProperty("publishedAt").GetDateTime().Should().Be(again, "editing never unpublishes");
-
-        // Delete is permanent.
-        (await manager.DeleteAsync($"/api/news/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await PostAsync(id)).Should().BeNull();
-        (await manager.DeleteAsync($"/api/news/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await manager.PutAsJsonAsync($"/api/news/{id}", Input("x", "y"))).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await manager.PostAsync($"/api/news/{id}/publish", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
-
-        // Created as published straight away ("Publicar" in the form).
-        var live = await manager.PostAsJsonAsync("/api/news", Input($"{tag} direta", "Já publicada", publish: true));
-        live.StatusCode.Should().Be(HttpStatusCode.Created);
-        (await live.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("publishedAt").ValueKind.Should().Be(JsonValueKind.String);
-
-        _factory.Push.Invocations.Should().BeEmpty("publishing sends nothing");
-        _factory.Email.Invocations.Should().BeEmpty("publishing sends nothing");
-    }
-
-    [Fact]
-    public async Task EveryWrite_NeedsTheAntiforgeryToken()
-    {
-        var id = await AddAsync($"{Tag()} protegida", "Sem token não muda.", DateTime.UtcNow, null);
-        var (admin, _) = await SignInAsync("Admin");
-
-        (await admin.PostAsJsonAsync("/api/news", Input("x", "y"))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await admin.PutAsJsonAsync($"/api/news/{id}", Input("x", "y"))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await admin.PostAsync($"/api/news/{id}/unpublish", null)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await admin.PostAsync($"/api/news/{id}/publish", null)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await admin.DeleteAsync($"/api/news/{id}")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-
-        var post = await PostAsync(id);
-        (post!.Body, post.PublishedAt.HasValue).Should().Be(("Sem token não muda.", true));
-    }
-
-    [Fact]
-    public async Task Input_IsValidated_TextRequired_AndBothLengthsCapped()
-    {
-        var (admin, _) = await SignInAsync("Owner");
-        await WithTokenAsync(admin);
-        var before = await CountAsync();
-
-        (await Errors(await admin.PostAsJsonAsync("/api/news", Input("Título", "   ")))).Should().ContainKey("body");
-        (await Errors(await admin.PostAsJsonAsync("/api/news", new { title = "Só título" }))).Should().ContainKey("body");
-        (await Errors(await admin.PostAsJsonAsync("/api/news", Input("Título", new string('a', 5001))))).Should().ContainKey("body");
-        (await Errors(await admin.PostAsJsonAsync("/api/news", Input(new string('t', 151), "Texto")))).Should().ContainKey("title");
-        (await CountAsync()).Should().Be(before, "nothing invalid is stored");
-
-        var longest = await admin.PostAsJsonAsync("/api/news", Input(new string('t', 150), new string('a', 5000)));
-        longest.StatusCode.Should().Be(HttpStatusCode.Created, "150 and 5000 characters are the limits, inclusive");
-
-        (await Anonymous().GetAsync("/api/news?page=0")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task Feed_IsPaged_WithAClampedPageSize()
-    {
-        var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
-        for (var i = 0; i < 3; i++)
-        {
-            await AddAsync($"{Tag()} página", "Texto", DateTime.UtcNow.AddDays(-30 - i), null);
-        }
-
-        var total = await PublishedCountAsync();
-        var first = await Json(Anonymous(), "/api/news?page=1&pageSize=2");
-        first.GetProperty("posts").GetArrayLength().Should().Be(2);
-        first.GetProperty("hasMore").GetBoolean().Should().Be(total > 2);
-
-        var ids = new List<int>();
-        for (var page = 1; ; page++)
-        {
-            var feed = await Json(Anonymous(), $"/api/news?page={page}&pageSize=2");
-            ids.AddRange(feed.GetProperty("posts").EnumerateArray().Select(p => p.GetProperty("id").GetInt32()));
-            if (!feed.GetProperty("hasMore").GetBoolean())
-            {
-                break;
-            }
-        }
-
-        ids.Should().OnlyHaveUniqueItems().And.HaveCount(total, "the pages walk the whole feed once");
-        (await Json(Anonymous(), "/api/news?pageSize=500")).GetProperty("posts").GetArrayLength().Should().BeLessThanOrEqualTo(20);
-        (await Json(admin, "/api/news?page=2&pageSize=1")).GetProperty("drafts").GetArrayLength().Should().Be(0, "drafts come with the first page only");
-    }
-
-    [Fact]
-    public async Task DeletingTheAuthorsAccount_KeepsThePost_WithNoAuthor()
-    {
-        var (_, author) = await SignInAsync("Admin");
-        var id = await AddAsync($"{Tag()} órfã", "Fica.", DateTime.UtcNow, author.Id);
-
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            (await users.DeleteAsync((await users.FindByIdAsync(author.Id))!)).Succeeded.Should().BeTrue();
-        }
-
-        var post = await PostAsync(id);
-        post.Should().NotBeNull("the post survives its author");
-        post!.AuthorId.Should().BeNull();
-
-        var (owner, _) = await SignInAsync("Owner");
-        var feed = await Json(owner, "/api/news?pageSize=20");
-        feed.GetProperty("posts").EnumerateArray().Single(p => p.GetProperty("id").GetInt32() == id)
-            .GetProperty("authorName").ValueKind.Should().Be(JsonValueKind.Null);
-    }
-
-    // ---------- #222: public / members only ----------
-
-    [Fact]
-    public async Task ANewPost_IsPublic_UnlessCreatedMembersOnly_AndOmittingTheFieldNeverMakesAPrivatePostPublic()
-    {
-        var tag = Tag();
-        var (admin, _) = await SignInAsync("Admin");
-        await WithTokenAsync(admin);
-
-        var plain = await (await admin.PostAsJsonAsync("/api/news", Input($"{tag} omitida", "Texto", publish: true))).Content.ReadFromJsonAsync<JsonElement>();
-        plain.GetProperty("membersOnly").GetBoolean().Should().BeFalse();
-        (await PostAsync(plain.GetProperty("id").GetInt32()))!.IsPublic.Should().BeTrue("existing behaviour: no choice = public");
-
-        var explicitPublic = await (await admin.PostAsJsonAsync("/api/news", new { title = $"{tag} pública", body = "Texto", publish = true, membersOnly = false })).Content.ReadFromJsonAsync<JsonElement>();
-        explicitPublic.GetProperty("membersOnly").GetBoolean().Should().BeFalse();
-
-        var created = await admin.PostAsJsonAsync("/api/news", new { title = $"{tag} privada", body = "Texto", publish = true, membersOnly = true });
-        created.StatusCode.Should().Be(HttpStatusCode.Created);
-        var privatePost = await created.Content.ReadFromJsonAsync<JsonElement>();
-        var id = privatePost.GetProperty("id").GetInt32();
-        privatePost.GetProperty("membersOnly").GetBoolean().Should().BeTrue();
-        (await PostAsync(id))!.IsPublic.Should().BeFalse();
-
-        // An update that does not mention the field (an older client) keeps it private.
-        var edited = await Json(await admin.PutAsJsonAsync($"/api/news/{id}", new { title = $"{tag} privada", body = "Texto corrigido", publish = false }));
-        edited.GetProperty("membersOnly").GetBoolean().Should().BeTrue();
-        (await PostAsync(id))!.IsPublic.Should().BeFalse("omission must never declassify");
-        (await PostAsync(id))!.Body.Should().Be("Texto corrigido");
-
-        // Private -> public and back, only on an explicit choice.
-        (await Json(await admin.PutAsJsonAsync($"/api/news/{id}", new { title = $"{tag} privada", body = "Texto", membersOnly = false })))
-            .GetProperty("membersOnly").GetBoolean().Should().BeFalse();
-        (await PostAsync(id))!.IsPublic.Should().BeTrue();
-        (await Json(await admin.PutAsJsonAsync($"/api/news/{id}", new { title = $"{tag} privada", body = "Texto", membersOnly = true })))
-            .GetProperty("membersOnly").GetBoolean().Should().BeTrue();
-        (await PostAsync(id))!.IsPublic.Should().BeFalse();
-
-        // Publish / unpublish leave the visibility alone.
-        await admin.PostAsync($"/api/news/{id}/unpublish", null);
-        await admin.PostAsync($"/api/news/{id}/publish", null);
-        (await PostAsync(id))!.IsPublic.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task Visitors_NeverReceiveAMembersOnlyPost_FromAnyFeedQuery_ButSignedInReadersDo()
-    {
-        var tag = Tag();
-        var publicId = await AddAsync($"{tag} pública", "Texto público", DateTime.UtcNow.AddHours(-2), null);
-        var privateId = await AddAsync($"{tag} privada", "Segredo só para membros", DateTime.UtcNow.AddHours(-1), null, isPublic: false);
-        await AddAsync($"{tag} rascunho privado", "Rascunho secreto de membros", null, null, isPublic: false);
-
-        // Visitors: whatever they ask for (list, page size, filters, the home preview's pageSize=3), the private post is not there.
-        var anonymous = Anonymous();
-        foreach (var path in new[]
-                 {
-                     "/api/news", "/api/news?pageSize=3", "/api/news?pageSize=20", "/api/news?visibility=private", "/api/news?visibility=PRIVATE",
-                     "/api/news?visibility=public", "/api/news?visibility=all", "/api/news?visibility=%27%20OR%201%3D1--", "/api/news?q=Segredo&title=Segredo",
-                 })
-        {
-            var response = await anonymous.GetAsync(path);
-            response.StatusCode.Should().Be(HttpStatusCode.OK, path);
-            var raw = await response.Content.ReadAsStringAsync();
-            raw.Should().NotContain("Segredo só para membros").And.NotContain("Rascunho secreto").And.NotContain($"{tag} privada", path);
-            var feed = JsonDocument.Parse(raw).RootElement;
-            feed.GetProperty("signedIn").GetBoolean().Should().BeFalse("the page shows no tabs to visitors");
-            feed.GetProperty("posts").EnumerateArray().Should().OnlyContain(p => !p.GetProperty("membersOnly").GetBoolean());
-        }
-
-        (await Json(anonymous, "/api/news?pageSize=20")).GetProperty("posts").EnumerateArray()
-            .Select(p => p.GetProperty("id").GetInt32()).Should().Contain(publicId, "public posts are unchanged");
-
-        // A visitor asking for the private tab gets the public feed, so nothing reveals that hidden posts exist.
-        (await Json(anonymous, "/api/news?visibility=private&pageSize=20")).GetProperty("posts").EnumerateArray()
-            .Select(p => p.GetProperty("id").GetInt32()).Should().Contain(publicId);
-
-        // A signed-in member sees both, with the private badge data; no management data.
-        var (member, _) = await SignInAsync("Member");
-        var all = await Json(member, "/api/news?pageSize=20");
-        all.GetProperty("signedIn").GetBoolean().Should().BeTrue();
-        all.GetProperty("canManage").GetBoolean().Should().BeFalse();
-        var mine = Tagged(all.GetProperty("posts"), tag);
-        mine.Select(p => p.GetProperty("id").GetInt32()).Should().Contain(new[] { publicId, privateId });
-        mine.Single(p => p.GetProperty("id").GetInt32() == privateId).GetProperty("membersOnly").GetBoolean().Should().BeTrue();
-        mine.Single(p => p.GetProperty("id").GetInt32() == publicId).GetProperty("membersOnly").GetBoolean().Should().BeFalse();
-        mine.Should().OnlyContain(p => p.GetProperty("authorName").ValueKind == JsonValueKind.Null);
-        all.GetProperty("drafts").GetArrayLength().Should().Be(0, "members never see drafts, private or not");
-
-        // The tabs: Públicas / Privadas narrow it on the server.
-        Tagged((await Json(member, "/api/news?visibility=public&pageSize=20")).GetProperty("posts"), tag)
-            .Select(p => p.GetProperty("id").GetInt32()).Should().Equal(publicId);
-        Tagged((await Json(member, "/api/news?visibility=private&pageSize=20")).GetProperty("posts"), tag)
-            .Select(p => p.GetProperty("id").GetInt32()).Should().Equal(privateId);
-
-        // Admin: the private draft is a draft for managers only.
-        var (admin, _) = await SignInAsync("Admin");
-        Tagged((await Json(admin, "/api/news?visibility=private")).GetProperty("drafts"), tag)
-            .Should().ContainSingle().Which.GetProperty("membersOnly").GetBoolean().Should().BeTrue();
-        Tagged((await Json(admin, "/api/news?visibility=public")).GetProperty("drafts"), tag).Should().BeEmpty();
-
-        _factory.Push.Invocations.Should().BeEmpty("news sends no push, so no private text can reach a notification");
-        _factory.Email.Invocations.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task HomePreview_ThreeNewest_IsPublicOnlyForVisitors_AndFlagsPrivatePostsForMembers()
-    {
-        // The home "Últimas novidades" asks /api/news?pageSize=3 with the reader's session; a private post is the newest.
-        var publicId = await AddAsync($"{Tag()} pública", "Texto", DateTime.UtcNow.AddYears(1).AddMinutes(-1), null);
-        var privateId = await AddAsync($"{Tag()} privada", "Segredo da home", DateTime.UtcNow.AddYears(1), null, isPublic: false);
-
-        var visitor = await (await Anonymous().GetAsync("/api/news?pageSize=3")).Content.ReadAsStringAsync();
-        visitor.Should().NotContain("Segredo da home");
-        JsonDocument.Parse(visitor).RootElement.GetProperty("posts").EnumerateArray().First().GetProperty("id").GetInt32().Should().Be(publicId);
-
-        var (member, _) = await SignInAsync("Member");
-        var posts = (await Json(member, "/api/news?pageSize=3")).GetProperty("posts").EnumerateArray().ToList();
-        posts[0].GetProperty("id").GetInt32().Should().Be(privateId);
-        posts[0].GetProperty("membersOnly").GetBoolean().Should().BeTrue("the preview card needs the flag for its badge");
-        posts[1].GetProperty("membersOnly").GetBoolean().Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task APrivatePost_HasNoDetailRoute_ForVisitors()
-    {
-        var id = await AddAsync($"{Tag()} só membros", "Segredo único de membros", DateTime.UtcNow, null, isPublic: false);
-        var anonymous = Anonymous();
-
-        // There is no per-post read endpoint: a guessed id answers like an unknown one and carries no data.
-        var guessed = await anonymous.GetAsync($"/api/news/{id}");
-        guessed.StatusCode.Should().NotBe(HttpStatusCode.OK);
-        guessed.StatusCode.Should().Be((await anonymous.GetAsync("/api/news/987654321")).StatusCode);
-        (await guessed.Content.ReadAsStringAsync()).Should().NotContain("Segredo");
-
-        var shell = await anonymous.GetAsync($"/news#post-{id}");
-        shell.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await shell.Content.ReadAsStringAsync()).Should().NotContain("Segredo");
-    }
-
     // ---------- helpers ----------
 
     private static string Tag() => "news" + Guid.NewGuid().ToString("N")[..8];
@@ -422,25 +71,10 @@ public class NewsApiTests : IClassFixture<EventsApiFactory>
         return post.GetProperty("publishedAt").GetDateTime();
     }
 
-    private static async Task<JsonElement> Json(HttpClient client, string path)
-    {
-        var response = await client.GetAsync(path);
-        response.StatusCode.Should().Be(HttpStatusCode.OK, path);
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
     private static async Task<JsonElement> Json(HttpResponseMessage response)
     {
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
-    private static async Task<Dictionary<string, string[]>> Errors(HttpResponseMessage response)
-    {
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return body.GetProperty("errors").EnumerateObject()
-            .ToDictionary(p => p.Name, p => p.Value.EnumerateArray().Select(v => v.GetString()!).ToArray());
     }
 
     private async Task<int> AddAsync(string? title, string body, DateTime? publishedAt, string? authorId, bool isPublic = true)
@@ -479,17 +113,5 @@ public class NewsApiTests : IClassFixture<EventsApiFactory>
         return CookieTestSession.SignInAsync(_factory, $"news{Guid.NewGuid():N}"[..20], $"10.91.{n / 250}.{n % 250 + 1}", role);
     }
 
-    private HttpClient Anonymous()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
-        client.DefaultRequestHeaders.Add(RemoteIpTestStartupFilter.HeaderName, "10.92.0.1");
-        return client;
-    }
-
-    private static async Task WithTokenAsync(HttpClient client)
-    {
-        var token = await client.GetFromJsonAsync<JsonElement>("/api/public/antiforgery-token");
-        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token.GetProperty("token").GetString());
-    }
+    private HttpClient Anonymous() => AreaHttp.Anonymous(_factory, "10.92.0.1");
 }

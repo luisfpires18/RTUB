@@ -10,7 +10,6 @@ using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -19,13 +18,13 @@ namespace RTUB.Application.Tests.Services;
 /// delete, the old form's rules, and the old delete semantics. <see cref="IEventService"/> is a fake
 /// that writes to the test database; push is a recording fake, so nothing is ever sent.
 /// </summary>
-public class EventManagementTests
+public partial class EventManagementTests
 {
     private static readonly ClaimsPrincipal Visitor = new(new ClaimsIdentity());
-    private static readonly ClaimsPrincipal Member = SignedIn("Member");
-    private static readonly ClaimsPrincipal Mod = SignedIn("Mod");
-    private static readonly ClaimsPrincipal Admin = SignedIn("Admin");
-    private static readonly ClaimsPrincipal Owner = SignedIn("Owner");
+    private static readonly ClaimsPrincipal Member = TestPrincipal.WithRole("Member");
+    private static readonly ClaimsPrincipal Mod = TestPrincipal.WithRole("Mod");
+    private static readonly ClaimsPrincipal Admin = TestPrincipal.WithRole("Admin");
+    private static readonly ClaimsPrincipal Owner = TestPrincipal.WithRole("Owner");
 
     private readonly DatabaseFixture _db = new();
     private readonly Mock<IEventService> _events = new();
@@ -67,7 +66,7 @@ public class EventManagementTests
             (await _service.GetEventForEditAsync(id, user)).Status.Should().Be(expected);
         }
 
-        _events.Invocations.Where(i => i.Method.Name != nameof(IEventService.GetEventByIdAsync)).Should().BeEmpty("nothing is written for them");
+        _events.Invocations.Should().BeEmpty("nothing is written for them");
         _push.VerifyNoOtherCalls();
     }
 
@@ -194,25 +193,6 @@ public class EventManagementTests
         result.Errors!.Keys.Should().Contain(new[] { "name", "time", "description" });
     }
 
-    // ---------- edit ----------
-
-    [Fact]
-    public async Task EditForm_LoadsTheStoredValues()
-    {
-        var single = AddEvent("Serenata", new DateTime(2031, 5, 3, 21, 30, 0), description: "nota", imageUrl: "https://pub-test.r2.dev/a.webp");
-        var multi = AddEvent("Festival", new DateTime(2031, 6, 1), endDate: new DateTime(2031, 6, 3), type: EventType.Festival);
-
-        var one = (await _service.GetEventForEditAsync(single, Owner)).Value!;
-        var many = (await _service.GetEventForEditAsync(multi, Admin)).Value!;
-
-        one.Should().BeEquivalentTo(new EventEditDto(single, "Serenata", "2031-05-03", "21:30", null, "Bragança", "Atuacao", "nota", true,
-            "https://pub-test.r2.dev/a.webp"));
-        many.Time.Should().BeNull();
-        many.EndDate.Should().Be("2031-06-03");
-        many.Type.Should().Be("Festival");
-        (await _service.GetEventForEditAsync(999_999, Admin)).Status.Should().Be(EventResultStatus.NotFound);
-    }
-
     [Fact]
     public async Task Update_ChangesTheDetails_ThroughTheExistingService()
     {
@@ -233,57 +213,7 @@ public class EventManagementTests
         (await _service.UpdateEventAsync(999_999, Input(), Admin)).Status.Should().Be(EventResultStatus.NotFound);
     }
 
-    // ---------- delete ----------
-
-    [Fact]
-    public async Task Delete_GoesThroughTheExistingService()
-    {
-        var id = AddEvent("Serenata", _future);
-
-        (await _service.DeleteEventAsync(id, Owner)).Status.Should().Be(EventResultStatus.Ok);
-
-        _events.Verify(s => s.DeleteEventAsync(id, default), Times.Once);
-        (await _service.GetEventAsync(id, Owner)).Should().BeNull();
-    }
-
-    [Fact]
-    public async Task Delete_IsRefused_WhenNerbaOrdersPointAtTheEvent()
-    {
-        var id = AddEvent("NERBA", _future, type: EventType.Nerba);
-        using (var db = _db.CreateContext())
-        {
-            db.NerbaOrders.Add(new NerbaOrder { Item = "Bifanas", Stock = 1, PricePerUnit = 2, EventId = id, ReportId = 1 });
-            db.SaveChanges();
-        }
-
-        (await _service.DeleteEventAsync(id, Admin)).Status.Should().Be(EventResultStatus.InUse);
-        _events.Verify(s => s.DeleteEventAsync(It.IsAny<int>(), default), Times.Never);
-    }
-
-    [Fact]
-    public async Task Delete_OfAMissingEvent_IsNotFound()
-    {
-        (await _service.DeleteEventAsync(999_999, Admin)).Status.Should().Be(EventResultStatus.NotFound);
-    }
-
-    [Fact]
-    public void ManagementContracts_CarryNoInternalField()
-    {
-        typeof(EventEditDto).GetProperties().Select(p => p.Name).Should().BeEquivalentTo(
-            "Id", "Name", "Date", "Time", "EndDate", "Location", "Type", "Description", "HasImage", "ImageUrl", "MembersOnly");
-        typeof(EventInput).GetProperties().Select(p => p.Name).Should().BeEquivalentTo(
-            "Name", "Date", "Time", "EndDate", "Location", "Type", "Description", "MembersOnly");
-    }
-
     // ---------- helpers ----------
-
-    private static ClaimsPrincipal SignedIn(string role) =>
-        new(new ClaimsIdentity(new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.Name, "u-" + role),
-            new Claim(ClaimTypes.Role, role),
-        }, "test"));
 
     private static EventInput Input(string name = "Serenata", string date = "2031-05-03", string? time = "19:00", string? endDate = null,
         string location = "Bragança", string type = "Atuacao", string? description = null) =>

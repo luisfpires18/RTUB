@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.ReactPortal;
 
@@ -11,15 +10,15 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class CalendarOfferPortalTests
 {
-    private static readonly string Src = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src");
+    private static readonly string Src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Src, file));
 
     [Fact]
     public void TheOffer_OpensGoogleOnlyFromAClick_WithAFixedDestination_AndNoPrivateFields()
     {
-        var offer = Read("CalendarOffer.tsx");
-        var builder = Read("calendar.ts");
+        var offer = Read("components/CalendarOffer.tsx");
+        var builder = Read("data/calendar.ts");
 
         offer.Should().NotContain("location.origin", "the link back uses the configured Calendar:PublicOrigin, not the host the page came from");
         offer.Should().NotContain("window.open").And.NotContain("location.assign").And.NotContain("location.href =");
@@ -34,24 +33,13 @@ public class CalendarOfferPortalTests
     [Fact]
     public void TheOffer_FollowsOnlyANewYes_ToAnUpcomingActivity_OnEveryAnswerPath()
     {
-        Read("EventDialogs.tsx").Should().Contain(
+        Read("components/EventAnswer.tsx").Should().Contain(
             "if (choice.willAttend && enrollment.status !== 'going' && saved.state === 'open' && !saved.event.past && !saved.event.cancelled) setOffer(saved);");
-        Read("RehearsalDialogs.tsx").Should().Contain(
+        Read("components/RehearsalPresence.tsx").Should().Contain(
             "if (willAttend && !going && data.state === 'open' && !data.rehearsal.past && !data.rehearsal.cancelled) setOffer(true);")
             .And.Contain("Presença registada, pendente de aprovação.");
-        Read("PendingActions.tsx").Should().Contain("if (o.kind === 'ok' && a.answer === 'yes' && upcoming) offerCalendar(row);");
-        Read("EventDetail.tsx").Should().Contain("{m.myStatus === 'going' && (").And.Contain("Adicionar ao calendário");
-        Read("RehearsalDetail.tsx").Should().Contain("{open && r.mine && r.mine.status !== 'notGoing' && (");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
+        Read("components/PendingActionPanel.tsx").Should().Contain("if (o.kind === 'ok' && a.answer === 'yes' && upcoming) offerCalendar(row);");
+        Read("components/EventDetailBody.tsx").Should().Contain("{m.myStatus === 'going' && (").And.Contain("Adicionar ao calendário");
+        Read("pages/RehearsalDetail.tsx").Should().Contain("{open && r.mine && r.mine.status !== 'notGoing' && (");
     }
 }

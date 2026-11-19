@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using RTUB.Core.Exceptions;
 
 
 namespace RTUB.Application.Services;
@@ -44,11 +42,6 @@ public class RequestService : IRequestService
         return await _requestRepository.GetAllAsync();
     }
 
-    public async Task<IEnumerable<Request>> GetPendingRequestsAsync()
-    {
-        return await _requestRepository.GetByStatusAsync(RequestStatus.Pending);
-    }
-
     public async Task<Request> CreateRequestAsync(string name, string email, string phone, string eventType, DateTime preferredDate, string location, string message)
     {
         var request = Request.Create(name, email, phone, eventType, preferredDate, location, message);
@@ -65,10 +58,7 @@ public class RequestService : IRequestService
             var adminUserIds = adminUsers.Union(ownerUsers).Select(u => u.Id).Distinct().ToList();
 
             // Send to each admin
-            foreach (var userId in adminUserIds)
-            {
-                await _pushNotificationService.SendToUserAsync(userId, notification);
-            }
+            await _pushNotificationService.SendToSelectedUsersAsync(adminUserIds, notification);
         }
         catch
         {

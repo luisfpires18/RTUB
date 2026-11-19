@@ -45,7 +45,7 @@ install the app.
 The splash is static markup in `portal/index.html` (logo on black while the bundle loads). Once React has committed,
 `revealApp` (`App.tsx`) decides, on the first load of a browser session:
 
-- `/` plays the opening (`styles.css`, *opening*; `.intro` on `<html>`, timings in `--intro-*`), about 3 s.
+- `/` plays the opening (`styles/004-opening.css`; `.intro` on `<html>`, timings in `--intro-*`), about 3 s.
 - Any other route gets the short curtain lift (a deep link never waits).
 - Later loads in the session, or `prefers-reduced-motion: reduce`: the splash is removed at once.
 
@@ -60,20 +60,14 @@ Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD 
 
 | Path | Notes |
 | --- | --- |
-| `/`, `/privacy`, `/request`, `/music`, `/music/albums/{id}`, `/news`, `/gallery`, `/shop` (read-only catalogue), `/events`, `/events/{id}`, `/roles`, `/share`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/login` | Public. `/privacy`: `portal/src/Privacy.tsx` is the legal source. `/share`: Web Share Target, GET only (`docs/react-identity.md`). |
+| `/`, `/privacy`, `/request`, `/music`, `/music/albums/{id}`, `/news`, `/gallery`, `/shop` (read-only catalogue), `/events`, `/events/{id}`, `/roles`, `/share`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/login` | Public. `/privacy`: `portal/src/pages/Privacy.tsx` is the legal source. `/share`: Web Share Target, GET only (`docs/react-identity.md`). |
 | `/profile` | Signed out: notice + link to `/login?returnUrl=/profile`. Signed in: own profile editor (`docs/react-member-area.md`). |
 | `/events/{id}/discussion`, `/events/{id}/contacts`, `/rehearsals[/{id}]`, `/members`, `/members/hierarchy`, `/members/map`, `/hall-of-fame`, `/leaderboard`, `/inventory`, `/music/play/{id}`, `/music/learn`, `/documentation`, `/logistics[/{id}]`, `/logistics/tasks`, `/treasury/...`, `/pending-actions`, `/requests`, `/questions`, `/naipes`, `/naipes/config`, `/meetings`, `/meetings/polls`, `/messages` | Members only. |
 | `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/dashboard`, `/owner/db` | Owner only (`docs/react-owner-operations.md`). Other members get the shell with a 403 refusal. |
 | `/Error` | Static server page for any method, no script, no details. |
 | `/portal/assets/*` | Content-hashed Vite output, normal static caching. Any other `/portal/*` is 404. |
 
-Old URLs kept as `302` redirects (GET/HEAD only): `/portal[/privacy\|/profile\|/request]` → same path without
-`/portal` (query kept); `/music/songs/{id}` → `/music/albums/{id}`; `/events/{id}/enrollment` → `/events/{id}?respond=1`;
-`/events/{id}/enrollments` → `/events/{id}#who-title`; `/member/events` → `/events`; `/member/gallery` → `/gallery`;
-`/member/roles` → `/roles`; `/member/profile` → `/profile`; `/member/map` → `/members/map`; `/hierarchy` →
-`/members/hierarchy`; `/members/manage` → `/members`; `/finance` → `/treasury`; `/finance/report/{id}` →
-`/treasury/reports/{id}`; `/calotes` → `/treasury/calotes` (keeps `fy`); `/mbway[/{id}]` → `/treasury/mbway`;
-`/nerba[/{id}]` → `/treasury/nerba`; `/nerba/event/{id}` → `/treasury/nerba/{id}`.
+There are no redirects for old addresses: any path not listed here answers `404` (`RetiredRoutesTests`).
 
 Shell-level APIs: `GET /api/account/me`, `GET /api/announcement`, `GET /api/public/antiforgery-token`,
 `POST /api/public/requests`, `GET /api/public/events/upcoming`, `GET /api/public/governance`.
@@ -86,7 +80,7 @@ Unknown URLs are a plain 404.
 
 | Path | What |
 | --- | --- |
-| `src/RTUB.Web/portal/` | Source: `index.html` (shell + splash), `src/*.tsx`, `styles.css`, `vite.config.ts`. Excluded from publish (`RTUB.csproj`). LF-only (`.gitattributes`). |
+| `src/RTUB.Web/portal/` | Source: `index.html` (shell + splash), `src/{pages,components,data}/`, `src/styles.css` + `src/styles/`, `vite.config.ts`. Excluded from publish (`RTUB.csproj`). LF-only (`.gitattributes`). |
 | `src/RTUB.Web/wwwroot/portal/` | **Committed** build output, published as-is. |
 | `src/RTUB.Web/package.json` | `build:portal`, `check:portal`. |
 
@@ -116,7 +110,7 @@ and Linux.
 
 Portal copy is original Portuguese; sentences from the old site are never copied. `PortalCopyOriginalityTests` fails if
 any six-word run of portal copy appears in the seeded labels or static HTML. Exception: the Privacy Policy, legal text,
-whose only copy is `portal/src/Privacy.tsx`.
+whose only copy is `portal/src/pages/Privacy.tsx`.
 
 **Institution naming.** Present-day copy says **UPB** (*Universidade Politécnica de Bragança*). Historical context
 (founding, old documents, songs) keeps **IPB**. Never mass-replace; bridge only when it helps ("fundada no contexto do
@@ -124,7 +118,7 @@ IPB, hoje UPB"). The Privacy Policy stays as written.
 
 ## Login
 
-`/login` is `portal/src/Login.tsx`. No public registration.
+`/login` is `portal/src/pages/Login.tsx`. No public registration.
 
 | Route | Behaviour |
 | --- | --- |
@@ -141,13 +135,13 @@ Tests: `ReactLoginTests`, `AuthAntiforgeryTests`, `LoginRateLimitTests`, `Portal
 `GET /api/account/me` (anonymous allowed, `no-store`) returns `{ authenticated: false }` or the caller's own
 `displayName` (nickname → first name → username), `fullName`, `avatarUrl`, category labels and `menu` (booleans from
 `MemberMenuAccess`). Never email, phone, birth date, roles, IDs or other users. React calls it once per page load
-(`getCurrentUser` in `portal/src/api.ts`); unknown or failed state falls back to the visitors' header.
+(`getCurrentUser` in `portal/src/data/api.ts`); unknown or failed state falls back to the visitors' header.
 
 ## Member shell
 
-`portal/src/MemberShell.tsx`. The header ends with `[inbox] [profile chip] [menu]`; the menu opens one right-hand
+`portal/src/components/MemberShell.tsx`. The header ends with `[inbox] [profile chip] [menu]`; the menu opens one right-hand
 drawer at every width (native modal `<dialog>`, 48px rows, safe-area insets) and closes after every choice. The profile
-chip opens `/profile`; the inbox opens `/messages` with the unread badge (`portal/src/unread.ts`). Perfil and Mensagens
+chip opens `/profile`; the inbox opens `/messages` with the unread badge (`portal/src/data/unread.ts`). Perfil and Mensagens
 are not in the menu.
 
 - **Groups:** Membro (Atuações, Ensaios, Música, Galeria, Novidades, Loja) · Tuna (Membros, Hierarquia, Órgãos
@@ -161,7 +155,7 @@ are not in the menu.
 
 ## Request
 
-`/request` is the only public request form (`portal/src/Request.tsx`). One submission path:
+`/request` is the only public request form (`portal/src/pages/Request.tsx`). One submission path:
 `IPublicRequestService.SubmitAsync` (entity annotations, `RequestValidationService` date rules,
 `RequestService.CreateRequestAsync` which pushes to every Admin and Owner, optional date range, then the RTUB email).
 Only the API calls it. Management is `/requests` (`docs/react-requests-questions.md`).

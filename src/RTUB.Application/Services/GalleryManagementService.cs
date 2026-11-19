@@ -12,14 +12,14 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /member/gallery management behind the React /gallery (React track 015, docs/react-gallery.md).
+/// The management side of the React /gallery (docs/react-gallery.md).
 /// Same behaviour, rules now server-side:
 /// - any signed-in member uploads an image or a video (by its type; images ≤10 MB, videos ≤100 MB or
 ///   GalleryMedia:MaxVideoSize), with a title (≤200), a date, members-only (the default) or public, and who appears;
-///   the people tagged at upload get a push ("Foste marcado..."), as before - later tag changes send nothing;
-/// - the uploader, Admin or Owner (was Admin only) edit the title, date, members-only flag and tags, or delete:
+///   the people tagged at upload get a push ("Foste marcado...") - later tag changes send nothing;
+/// - the uploader, Admin or Owner edit the title, date, members-only flag and tags, or delete:
 ///   the stored file first (never a file this environment does not own), then the row and its tags.
-/// No crop, no thumbnail (the old flow had neither). No schema change.
+/// No crop, no thumbnail. No schema change.
 /// </summary>
 public sealed class GalleryManagementService : IGalleryManagementService
 {
@@ -54,7 +54,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
 
     public async Task<EventResult<IReadOnlyList<GalleryTaggableDto>>> SearchPeopleAsync(string? query, ClaimsPrincipal user)
     {
-        if (!GalleryAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<IReadOnlyList<GalleryTaggableDto>>.Fail(EventResultStatus.SignInRequired);
         }
@@ -98,19 +98,17 @@ public sealed class GalleryManagementService : IGalleryManagementService
 
     public async Task<EventResult<GalleryItemDto>> UploadAsync(GalleryUpload upload, ClaimsPrincipal user)
     {
-        if (GalleryAuthorization.UserId(user) is not { } me)
+        if (user.UserId() is not { } me)
         {
             return EventResult<GalleryItemDto>.Fail(EventResultStatus.SignInRequired);
         }
 
         var errors = new Dictionary<string, string[]>();
-        var contentType = upload.ContentType ?? string.Empty;
-        MediaType? type = contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? MediaType.Image
-            : contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ? MediaType.Video
-            : null;
+        var accepted = GalleryUploadTypes.Find(upload.ContentType, upload.Content);
+        var type = accepted?.Type;
         if (type is null)
         {
-            errors["file"] = new[] { "Formato de ficheiro não suportado. Apenas imagens e vídeos são aceites." };
+            errors["file"] = new[] { GalleryUploadTypes.Refused };
         }
         else if (upload.Length <= 0)
         {
@@ -139,7 +137,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
 
         var (year, month, day) = details.Date!.Value;
         var title = upload.Title!.Trim();
-        var url = await _storage.UploadMediaAsync(upload.Content, upload.FileName, contentType, type!.Value, title, year, month, day);
+        var url = await _storage.UploadMediaAsync(upload.Content, "upload" + accepted!.Extension, upload.ContentType, type!.Value, title, year, month, day);
         var media = await _media.CreateAsync(GalleryMedia.Create(me, title, type.Value, url, year, month, day, null, null, upload.MembersOnly, upload.EventId));
         var tagged = upload.PersonIds.Distinct().ToList();
         if (tagged.Count > 0)
@@ -147,7 +145,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
             await _media.AddPersonTagsAsync(media.Id, tagged);
             try
             {
-                // As before: only the people tagged on upload hear about it (the uploader too, if tagged).
+                // Only the people tagged on upload hear about it (the uploader too, if tagged).
                 await _push.SendToSelectedUsersAsync(tagged, _pushFactory.CreateGalleryTagNotification(media.Id));
             }
             catch (Exception ex)
@@ -159,7 +157,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
         return EventResult<GalleryItemDto>.Ok((await _timeline.GetItemAsync(media.Id, user))!);
     }
 
-    /// <summary>Task 077: an upload may name an event that exists and is not cancelled (members see every event).</summary>
+    /// <summary>An upload may name an event that exists and is not cancelled (members see every event).</summary>
     private async Task<bool> EventExistsAsync(int eventId)
     {
         await using var db = await _contexts.CreateDbContextAsync();
@@ -210,10 +208,10 @@ public sealed class GalleryManagementService : IGalleryManagementService
         }
 
         var media = (await _media.GetByIdAsync(id))!;
-        // As before: the stored file first. A storage error throws, so the row and tags stay (500, retry later).
+        // The stored file first. A storage error throws, so the row and tags stay (500, retry later).
         // A URL this environment does not own (a production file referenced by a DEV copy, any other host) is
         // refused by the storage guard without a remote call and returns normally: the row goes, the foreign
-        // file is never touched (the unit-029 contract, docs/cloudflare-r2-and-database-backups.md). Production's
+        // file is never touched (docs/cloudflare-r2-and-database-backups.md). Production's
         // own rows are under its own public origin, so they always take the real delete path.
         await _storage.DeleteMediaAsync(media.MediaUrl);
         await _media.DeleteAsync(id);
@@ -224,7 +222,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
 
     private async Task<EventResult<T>?> RefusalAsync<T>(int id, ClaimsPrincipal user)
     {
-        if (!GalleryAuthorization.IsMember(user))
+        if (!user.IsMember())
         {
             return EventResult<T>.Fail(EventResultStatus.SignInRequired);
         }
@@ -276,7 +274,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
         return new Details(errors, errors.ContainsKey("date") ? null : parts);
     }
 
-    /// <summary>The old form's rule: 1 January keeps only the year; the 1st of another month the year and month.</summary>
+    /// <summary>1 January keeps only the year; the 1st of another month the year and month.</summary>
     internal static (int Year, byte? Month, byte? Day)? ParseDate(string? text)
     {
         if (!DateTime.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
@@ -289,7 +287,7 @@ public sealed class GalleryManagementService : IGalleryManagementService
             : (d.Year, (byte)d.Month, (byte)d.Day);
     }
 
-    /// <summary>The form's date for an item: the missing day or month read as the 1st, as the old form did.</summary>
+    /// <summary>The form's date for an item: the missing day or month read as the 1st.</summary>
     private static string DateText(int year, byte? month, byte? day) =>
         new DateTime(year, month ?? 1, day is { } d && month is not null ? d : 1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 }

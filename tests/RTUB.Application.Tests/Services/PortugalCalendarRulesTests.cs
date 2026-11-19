@@ -1,14 +1,11 @@
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
-using Moq;
 using RTUB.Application.Factories;
 using RTUB.Application.Helpers;
-using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -19,14 +16,9 @@ namespace RTUB.Application.Tests.Services;
 /// </summary>
 public class PortugalCalendarRulesTests
 {
-    private sealed class Clock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
-    }
-
     // 14 July 2026 23:30 UTC = 15 July 00:30 in Portugal (summer); 14 January 23:30 UTC = 23:30 in Portugal (winter).
-    private static readonly Clock SummerAfterMidnight = new(new DateTimeOffset(2026, 7, 14, 23, 30, 0, TimeSpan.Zero));
-    private static readonly Clock WinterBeforeMidnight = new(new DateTimeOffset(2026, 1, 14, 23, 30, 0, TimeSpan.Zero));
+    private static readonly TestClock SummerAfterMidnight = new(new DateTimeOffset(2026, 7, 14, 23, 30, 0, TimeSpan.Zero));
+    private static readonly TestClock WinterBeforeMidnight = new(new DateTimeOffset(2026, 1, 14, 23, 30, 0, TimeSpan.Zero));
 
     [Fact]
     public void AnEventThatEndedYesterdayInPortugal_IsPast_AndTakesPrizes()
@@ -58,10 +50,10 @@ public class PortugalCalendarRulesTests
     [Fact]
     public void TheFiscalYear_TurnsOn1SeptemberInPortugal()
     {
-        FiscalYearHelper.GetCurrentFiscalYearStartYear(new Clock(new DateTimeOffset(2026, 8, 31, 22, 59, 0, TimeSpan.Zero))).Should().Be(2025);
-        FiscalYearHelper.GetCurrentFiscalYearStartYear(new Clock(new DateTimeOffset(2026, 8, 31, 23, 30, 0, TimeSpan.Zero)))
+        FiscalYearHelper.GetCurrentFiscalYearStartYear(new TestClock(new DateTimeOffset(2026, 8, 31, 22, 59, 0, TimeSpan.Zero))).Should().Be(2025);
+        FiscalYearHelper.GetCurrentFiscalYearStartYear(new TestClock(new DateTimeOffset(2026, 8, 31, 23, 30, 0, TimeSpan.Zero)))
             .Should().Be(2026, "00:30 on 1 September in Portugal");
-        FiscalYearHelper.GetCurrentFiscalYearString(new Clock(new DateTimeOffset(2026, 8, 31, 23, 30, 0, TimeSpan.Zero))).Should().Be("2026-2027");
+        FiscalYearHelper.GetCurrentFiscalYearString(new TestClock(new DateTimeOffset(2026, 8, 31, 23, 30, 0, TimeSpan.Zero))).Should().Be("2026-2027");
     }
 
     [Fact]
@@ -84,11 +76,10 @@ public class PortugalCalendarRulesTests
     [Fact]
     public void PdfStamps_ShowPortugalsWallClock()
     {
-        var summerNoon = new Clock(new DateTimeOffset(2026, 7, 14, 11, 0, 0, TimeSpan.Zero));
+        var summerNoon = new TestClock(new DateTimeOffset(2026, 7, 14, 11, 0, 0, TimeSpan.Zero));
         var cache = new MemoryCache(new MemoryCacheOptions());
         new AtaPdfService(cache, summerNoon).GeneratedAt().Should().Be("14/07/2026 12:00", "summer: UTC+1, not the server's 11:00");
         new ReportPdfService(cache, summerNoon).GeneratedAt().Should().Be("14/07/2026 12:00");
-        new ReportService(Mock.Of<IReportRepository>(), summerNoon).GeneratedAt().Should().Be("14/07/2026 12:00");
         new AtaPdfService(cache, WinterBeforeMidnight).GeneratedAt().Should().Be("14/01/2026 23:30", "winter: UTC+0");
     }
 }

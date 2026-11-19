@@ -15,8 +15,4 @@ public interface IMentionService
     /// </summary>
     Task<IEnumerable<(string userId, string username, string displayName, string fullName, string avatarUrl)>> GetSuggestionsAsync(string query, int maxResults = 10);
 
-    /// <summary>
-    /// Get display names from mentions JSON
-    /// </summary>
-    Task<Dictionary<string, string>> GetDisplayNamesAsync(string? mentionsJson);
 }

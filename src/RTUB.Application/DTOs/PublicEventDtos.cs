@@ -5,8 +5,8 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.DTOs;
 
 /// <summary>
-/// An upcoming event on the React home preview (React track 010). Only what the Blazor /events
-/// already shows every visitor on its cards: name, date, time, location, type and whether it was
+/// An upcoming event on the React home preview. Only the fields
+/// every visitor may see: name, date, time, location, type and whether it was
 /// cancelled. No description, cancellation reason, image, enrollments or ids. Dates are the stored
 /// local (Portugal) values as plain text, so no time zone can shift them in the browser.
 /// </summary>

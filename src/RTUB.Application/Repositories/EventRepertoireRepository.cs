@@ -29,39 +29,6 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
         return entity;
     }
 
-    public override async Task UpdateAsync(EventRepertoire entity)
-    {
-        using var context = CreateContext();
-
-        // Preload Event and Song into context Local cache for audit log display name resolution
-        if (entity.EventId > 0)
-            await context.Events.FindAsync(entity.EventId);
-        if (entity.SongId > 0)
-            await context.Songs.FindAsync(entity.SongId);
-
-        var tracked = await context.Set<EventRepertoire>().FindAsync(entity.Id)
-            ?? throw new InvalidOperationException(
-                $"EventRepertoire with Id {entity.Id} not found in the database.");
-        context.Entry(tracked).CurrentValues.SetValues(entity);
-        await context.SaveChangesAsync();
-    }
-
-    public override async Task DeleteAsync(int id)
-    {
-        using var context = CreateContext();
-        var entity = await context.Set<EventRepertoire>().FindAsync(id);
-        if (entity == null) return;
-
-        // Preload Event and Song into context Local cache for audit log display name resolution
-        if (entity.EventId > 0)
-            await context.Events.FindAsync(entity.EventId);
-        if (entity.SongId > 0)
-            await context.Songs.FindAsync(entity.SongId);
-
-        context.Set<EventRepertoire>().Remove(entity);
-        await context.SaveChangesAsync();
-    }
-
     public async Task<IEnumerable<EventRepertoire>> GetRepertoireByEventIdAsync(int eventId, DateTime? date = null)
     {
         using var context = CreateContext();
@@ -89,17 +56,6 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
         return await context.Set<EventRepertoire>()
             .AsNoTracking()
             .AnyAsync(er => er.EventId == eventId && er.SongId == songId && er.RepertoireDate.Date == dateOnly);
-    }
-
-    public async Task<EventRepertoire?> GetRepertoireItemWithDetailsAsync(int id)
-    {
-        using var context = CreateContext();
-        return await context.Set<EventRepertoire>()
-            .AsNoTracking()
-            .Include(er => er.Song)
-                .ThenInclude(s => s!.Album)
-            .Include(er => er.Event)
-            .FirstOrDefaultAsync(er => er.Id == id);
     }
 
     public async Task<IEnumerable<DateTime>> GetRepertoireDatesAsync(int eventId)

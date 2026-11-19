@@ -34,16 +34,6 @@ public interface IAuditLogService
         bool? criticalOnly = null);
 
     /// <summary>
-    /// Gets audit logs for a specific entity
-    /// </summary>
-    Task<IEnumerable<AuditLog>> GetEntityHistoryAsync(string entityType, int entityId);
-
-    /// <summary>
-    /// Searches audit logs by changes content or entity name (#220)
-    /// </summary>
-    Task<IEnumerable<AuditLog>> SearchChangesAsync(string searchTerm, int page = 1, int pageSize = 100);
-
-    /// <summary>
     /// Gets distinct entity types from audit logs
     /// </summary>
     Task<IEnumerable<string>> GetEntityTypesAsync();
@@ -88,7 +78,7 @@ public interface IAuditLogService
 
     /// <summary>
     /// Gets paged audit logs with total count in a single call (avoids double query). <paramref name="search"/>
-    /// matches the stored changes or entity name (#220), together with the other filters.
+    /// matches the stored changes or entity name, together with the other filters.
     /// </summary>
     Task<(IEnumerable<AuditLog> logs, int totalCount)> GetPagedWithCountAsync(
         string? userName = null,

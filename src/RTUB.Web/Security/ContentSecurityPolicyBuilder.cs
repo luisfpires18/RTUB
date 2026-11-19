@@ -3,7 +3,7 @@
 namespace RTUB.Security;
 
 /// <summary>
-/// Builds RTUB's enforced Content-Security-Policy header value (unit 025).
+/// Builds RTUB's enforced Content-Security-Policy header value.
 ///
 /// Every source in the policy was derived from what the browser actually loads; nothing is
 /// whitelisted "just in case", and no directive gets an origin it does not use. See .ai/STATE.md
@@ -24,8 +24,7 @@ namespace RTUB.Security;
 /// replaced with a wildcard, so bad configuration can only make R2 content unavailable, never
 /// weaken the policy or inject header text.</para>
 ///
-/// <para><c>connect-src</c> is <c>'self'</c> only. Until task 037 it also named the request's own ws:/wss: origin for
-/// the Blazor Server circuit (<c>/_blazor</c>); the Blazor host is gone and nothing opens a WebSocket.</para>
+/// <para><c>connect-src</c> is <c>'self'</c> only: nothing opens a WebSocket.</para>
 /// </summary>
 public sealed class ContentSecurityPolicyBuilder
 {
@@ -139,25 +138,23 @@ public sealed class ContentSecurityPolicyBuilder
         // The only HTML form posts are /auth/login and /auth/logout.
         Directive("form-action", "'self'");
 
-        // Own origin only. cdnjs (cropper.min.js) and unpkg (leaflet.js) served the Blazor layout until task 032 and
-        // were dropped in 042: the React Cropper is canvas-only and Leaflet is bundled with the React map.
+        // Own origin only: the React Cropper is canvas-only and Leaflet is bundled with the React map.
         // No 'unsafe-eval' and no wasm source: nothing evaluates strings or runs WebAssembly.
         Directive("script-src", "'self'");
 
-        // Inline event handler attributes: removed by unit 023 and, for JS-built markup, 025.
+        // No inline event handler attributes, in served or JS-built markup.
         Directive("script-src-attr", "'none'");
 
         // Own origin only (the cdnjs / unpkg stylesheets went with them, as above; the Leaflet CSS is bundled).
         Directive("style-src", "'self'");
 
-        // Inline style attributes: removed by unit 024. Dynamic values go through the CSSOM,
+        // No inline style attributes. Dynamic values go through the CSSOM,
         // which CSP does not govern.
         Directive("style-src-attr", "'none'");
 
         // data: - the cropper and the gallery upload preview render the picked file as a
         //         data: URL before it is uploaded.
-        // OSM tiles - the Leaflet basemap of the React members map (MembersMap.tsx; OpenStreetMap since 040, CARTO
-        //             before, which started to require an API key).
+        // OSM tiles - the Leaflet basemap of the React members map (MembersMap.tsx; OpenStreetMap needs no API key).
         // R2 public - avatars, gallery images and event media, stored as absolute URLs.
         // r2ReferenceOrigin - inherited production media on a DEV snapshot. One exact origin, never
         // a wildcard, and absent unless explicitly configured (i.e. never in production).

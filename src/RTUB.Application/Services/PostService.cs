@@ -4,6 +4,7 @@ using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -21,6 +22,7 @@ public class PostService : IPostService
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IUserProfileService _userProfileService;
+    private readonly TimeProvider _time;
 
     public PostService(
         IPostRepository postRepository,
@@ -30,8 +32,10 @@ public class PostService : IPostService
         IEventMediaStorageService eventMediaStorageService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
-        IUserProfileService userProfileService)
+        IUserProfileService userProfileService,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _postRepository = postRepository;
         _discussionRepository = discussionRepository;
         _enrollmentRepository = enrollmentRepository;
@@ -81,7 +85,7 @@ public class PostService : IPostService
                     var authorNickname = authorUser.Nickname ?? authorUser.FirstName ?? "Utilizador";
 
                     // Send post notification to enrolled users (only for future events)
-                    if (discussion.Event.Date >= DateTime.UtcNow)
+                    if (discussion.Event.Date >= PortugalTime.Now(_time)) // an event date is Portugal's clock
                     {
                         var notification = _pushNotificationFactory.CreateDiscussionPostNotification(
                             discussion.Event,
@@ -93,10 +97,7 @@ public class PostService : IPostService
                             .Select(e => e.UserId)
                             .ToListAsync());
 
-                        foreach (var userId in enrolledUserIds)
-                        {
-                            await _pushNotificationService.SendToUserAsync(userId, notification);
-                        }
+                        await _pushNotificationService.SendToSelectedUsersAsync(enrolledUserIds, notification);
                     }
 
                     // Send mention notifications (always, regardless of event date)

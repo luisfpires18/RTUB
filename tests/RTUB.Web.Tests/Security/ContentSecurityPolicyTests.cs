@@ -1,7 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using FluentAssertions;
 using RTUB.Security;
-using Xunit;
 
 namespace RTUB.Web.Tests.Security;
 
@@ -14,7 +13,7 @@ namespace RTUB.Web.Tests.Security;
 /// so a deliberate directive change does not have to be restated in ten places - only a change
 /// that actually weakens the policy fails.
 /// </summary>
-public class ContentSecurityPolicyTests
+public partial class ContentSecurityPolicyTests
 {
     private const string PublicUrl = "https://pub-test.r2.dev";
     private const string AccountId = "abc123";
@@ -158,237 +157,6 @@ public class ContentSecurityPolicyTests
             .Should().Contain("http://localhost:9000");
     }
 
-    // ---------- the DEV production-reference origin (029 follow-up) ----------
-
-    /// <summary>
-    /// A DEV app running on a sanitized production snapshot inherits absolute production media
-    /// URLs it must still be able to render. <c>Cloudflare:R2:ReferencePublicUrl</c> admits that
-    /// one exact origin for reading, and nothing else: it reaches only the two directives that
-    /// render media, never a directive that could execute or connect.
-    /// </summary>
-    [Fact]
-    public void ReferencePublicUrl_AdmitsTheExactProductionOrigin_ForMediaOnly()
-    {
-        var directives = Directives(ReferencePolicy(ProdPublicUrl));
-
-        directives["img-src"].Should().Contain(PublicUrl).And.Contain(ProdPublicUrl);
-        directives["media-src"].Should().Contain(PublicUrl).And.Contain(ProdPublicUrl);
-
-        directives["script-src"].Should().NotContain(ProdPublicUrl);
-        directives["connect-src"].Should().NotContain(ProdPublicUrl);
-        directives["frame-src"].Should().NotContain(ProdPublicUrl);
-        directives["style-src"].Should().NotContain(ProdPublicUrl);
-        directives["default-src"].Should().NotContain(ProdPublicUrl);
-    }
-
-    /// <summary>
-    /// Production sets no reference origin, so its policy is byte-identical to what unit 025
-    /// shipped. This is the regression guard for "production behaviour is unchanged".
-    /// </summary>
-    [Fact]
-    public void NoReferencePublicUrl_LeavesThePolicyByteIdentical()
-    {
-        new ContentSecurityPolicyBuilder(PublicUrl, AccountId, null).Build()
-            .Should().Be(Policy());
-    }
-
-    /// <summary>
-    /// An exact origin or nothing. Junk, a wildcard, a non-http scheme and a bare host all
-    /// contribute no source at all rather than a permissive one.
-    /// </summary>
-    [Theory]
-    [InlineData("*")]
-    [InlineData("https://*")]
-    [InlineData("https://*.r2.dev")]
-    [InlineData("not a url")]
-    [InlineData("javascript:alert(1)")]
-    [InlineData("pub-prod.r2.dev")]
-    [InlineData("https://pub-prod.r2.dev; script-src 'unsafe-inline'")]
-    public void ReferencePublicUrl_NeverAdmitsAWildcardOrInjectedText(string configured)
-    {
-        var directives = Directives(ReferencePolicy(configured));
-
-        directives["img-src"].Should().Equal("'self'", "data:", "https://tile.openstreetmap.org", PublicUrl);
-        directives["media-src"].Should().Equal("'self'", PublicUrl, EndpointOrigin);
-        directives.Should().NotContainKey("script-src 'unsafe-inline'");
-        directives["script-src"].Should().NotContain("'unsafe-inline'");
-    }
-
-    /// <summary>
-    /// A reference origin equal to the environment's own origin is dropped, so the header never
-    /// lists the same source twice.
-    /// </summary>
-    [Fact]
-    public void ReferencePublicUrl_EqualToTheCurrentOrigin_IsNotRepeated()
-    {
-        Directives(ReferencePolicy(PublicUrl))["img-src"]
-            .Should().ContainSingle(s => s == PublicUrl);
-    }
-
-    /// <summary>
-    /// Malformed configuration must never reach the header. A value carrying a <c>;</c> or a
-    /// second directive, a non-http scheme, or plain junk contributes nothing - the source is
-    /// dropped rather than replaced with something permissive.
-    /// </summary>
-    [Theory]
-    [InlineData("https://evil.example; script-src 'unsafe-inline'")]
-    [InlineData("' ; default-src *")]
-    [InlineData("javascript:alert(1)")]
-    [InlineData("file:///etc/passwd")]
-    [InlineData("pub-test.r2.dev")]
-    [InlineData("*")]
-    [InlineData("")]
-    [InlineData("   ")]
-    [InlineData(null)]
-    public void MalformedR2PublicUrl_CannotInjectPolicyText(string? configured)
-    {
-        var policy = Policy(publicUrl: configured, accountId: null);
-
-        policy.Should().NotContain("unsafe-inline");
-        policy.Should().NotContain("evil.example");
-        policy.Should().NotContain("javascript:");
-        policy.Should().NotContain("file:");
-
-        var directives = Directives(policy);
-        directives["img-src"].Should().Equal("'self'", "data:", "https://tile.openstreetmap.org");
-        directives["media-src"].Should().Equal("'self'");
-    }
-
-    /// <summary>
-    /// The account id is interpolated into a hostname, so it is accepted only as a single DNS
-    /// label. Anything else leaves the app framing nothing rather than framing everything.
-    /// </summary>
-    [Theory]
-    [InlineData("abc 123")]
-    [InlineData("abc.evil.example")]
-    [InlineData("abc/../x")]
-    [InlineData("abc; frame-src *")]
-    [InlineData("-abc")]
-    [InlineData("")]
-    [InlineData(null)]
-    public void MalformedR2AccountId_YieldsNoFrameSource(string? configured)
-    {
-        var policy = Policy(accountId: configured);
-
-        policy.Should().NotContain("evil.example");
-        policy.Should().NotContain("frame-src *");
-
-        var directives = Directives(policy);
-        directives["frame-src"].Should().Equal("'none'");
-        directives["media-src"].Should().NotContain(s => s.Contains("cloudflarestorage"));
-    }
-
-    // ---------- connect-src ----------
-
-    /// <summary>
-    /// Task 037 retired the Blazor host: nothing opens a WebSocket, so connect-src is 'self' alone (it used to add the
-    /// request's own ws:/wss: origin for the /_blazor circuit). The policy no longer depends on the request at all.
-    /// </summary>
-    [Fact]
-    public void ConnectSrc_IsSelfOnly_WithNoWebSocketSource()
-    {
-        var policy = Policy();
-
-        Directives(policy)["connect-src"].Should().Equal("'self'");
-        policy.Should().NotContain("ws:").And.NotContain("wss:");
-    }
-
-    // ---------- static repository policy ----------
-
-    /// <summary>
-    /// The one script-src blocker unit 023 missed was the Blazor memberMap.js, which built its Leaflet popup markup as a
-    /// string carrying an inline onerror attribute. The React map (task 032) replaced it: popups are DOM nodes, names
-    /// go in as text, and the avatar fallback is a listener, so no member data or handler is ever written as markup.
-    /// </summary>
-    [Fact]
-    public void MembersMap_BuildsPopupsAsDomNodesWithoutInlineHandlers()
-    {
-        File.Exists(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "js", "memberMap.js"))
-            .Should().BeFalse("the Blazor map script was retired in 032");
-
-        var content = ReadRepoFile("src", "RTUB.Web", "portal", "src", "MembersMap.tsx");
-
-        JsMarkupEventHandler.IsMatch(content).Should().BeFalse(
-            "the popup avatar must not carry an inline error handler under a strict script-src");
-        content.Should().Contain("textContent = member.displayName", "names go into the popup as text, not markup")
-            .And.Contain("addEventListener('error'", "the avatar fallback is a listener")
-            .And.NotContain("innerHTML");
-    }
-
-    /// <summary>
-    /// Task 040: CARTO's basemap started answering "API KEY REQUIRED". The map uses OpenStreetMap's standard tiles (no
-    /// key), the CSP allows exactly that tile host, and nothing in the portal, the CSP or the built bundle still asks
-    /// CARTO for tiles.
-    /// </summary>
-    [Fact]
-    public void MembersMap_UsesNoKeyOpenStreetMapTiles_AllowedByTheCsp_AndNoCartoTiles()
-    {
-        var map = ReadRepoFile("src", "RTUB.Web", "portal", "src", "MembersMap.tsx");
-        map.Should().Contain("const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';")
-            .And.Contain("OpenStreetMap</a> contributors")
-            .And.NotContainAny("cartocdn", "carto.com", "apikey", "api_key", "access_token", "?key=");
-
-        Directives(Policy())["img-src"].Should().Contain("https://tile.openstreetmap.org")
-            .And.NotContain(s => s.Contains("cartocdn"));
-
-        var sources = Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src"))
-            .Concat(Directory.GetFiles(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "portal", "assets"), "*.js"))
-            .Append(Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "Security", "ContentSecurityPolicyBuilder.cs"));
-        sources.Where(f => File.ReadAllText(f).Contains("basemaps.cartocdn.com"))
-            .Should().BeEmpty("no CARTO tile dependency is left");
-    }
-
-    /// <summary>
-    /// Repository-wide sweep, aggregated into one failure like the 023/024 policy tests: no
-    /// application JavaScript may build markup carrying an inline on* handler. This is the check
-    /// that would have caught memberMap.js, and it is what stops the next one regressing silently.
-    ///
-    /// Vendored bundles under wwwroot/lib and build outputs are excluded; a handler written as a
-    /// DOM property (<c>el.onerror = fn</c>) is not a CSP violation and is not matched.
-    /// </summary>
-    [Fact]
-    public void ApplicationJavaScript_BuildsNoMarkupCarryingInlineEventHandlers()
-    {
-        var violations = new List<string>();
-        var root = GetProjectRoot();
-
-        foreach (var file in EnumerateApplicationScripts())
-        {
-            var relative = Path.GetRelativePath(root, file).Replace('\\', '/');
-            var content = File.ReadAllText(file);
-
-            foreach (Match match in JsMarkupEventHandler.Matches(content))
-            {
-                var line = content.AsSpan(0, match.Index).Count('\n') + 1;
-                violations.Add($"  {relative}:{line}  {match.Value.Trim()}");
-            }
-        }
-
-        violations.Should().BeEmpty(
-            "JavaScript that builds HTML strings must not write on* handler attributes into them; " +
-            "a strict script-src blocks those exactly as it blocks handlers written in markup." +
-            Environment.NewLine + string.Join(Environment.NewLine, violations));
-    }
-
-    /// <summary>
-    /// Unit 021 found a Google Fonts preconnect in the (since retired, 037) Blazor App.razor with no matching
-    /// stylesheet and no @font-face anywhere. Removing it is what lets font-src stay 'self'; if the hint comes back
-    /// without a font source, it is either dead weight or a directive the policy is missing.
-    /// </summary>
-    [Fact]
-    public void NoWebFontServiceIsReferenced()
-    {
-        ReadRepoFile("src", "RTUB.Web", "portal", "index.html")
-            .Should().NotContain("fonts.googleapis.com",
-                "the preconnect had no matching stylesheet; font-src is 'self'");
-
-        var cssRoot = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "wwwroot", "css");
-
-        Directory.EnumerateFiles(cssRoot, "*.css", SearchOption.AllDirectories)
-            .Where(f => File.ReadAllText(f).Contains("@font-face", StringComparison.OrdinalIgnoreCase))
-            .Should().BeEmpty("a local @font-face would need its own font-src review");
-    }
-
     // ---------- helpers ----------
 
     /// <summary>
@@ -405,7 +173,7 @@ public class ContentSecurityPolicyTests
     /// </summary>
     private static IEnumerable<string> EnumerateApplicationScripts()
     {
-        var src = Path.Combine(GetProjectRoot(), "src");
+        var src = Path.Combine(RepoPaths.Root(), "src");
 
         return new[] { "*.js", "*.ts" }
             .SelectMany(ext => Directory.EnumerateFiles(src, ext, SearchOption.AllDirectories))
@@ -423,21 +191,5 @@ public class ContentSecurityPolicyTests
     }
 
     private static string ReadRepoFile(params string[] segments) =>
-        File.ReadAllText(Path.Combine(new[] { GetProjectRoot() }.Concat(segments).ToArray()));
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        if (directory == null)
-        {
-            throw new InvalidOperationException("Could not find project root directory");
-        }
-
-        return directory.FullName;
-    }
+        File.ReadAllText(Path.Combine(new[] { RepoPaths.Root() }.Concat(segments).ToArray()));
 }

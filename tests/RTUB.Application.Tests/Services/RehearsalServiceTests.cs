@@ -1,7 +1,4 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
-using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
@@ -50,33 +47,6 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         result.Date.Should().Be(date.Date);
         result.Location.Should().Be(location);
         result.Theme.Should().Be(theme);
-    }
-
-    [Fact]
-    public async Task GetRehearsalByIdAsync_ExistingRehearsal_ReturnsRehearsal()
-    {
-        // Arrange
-        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
-        _context.Rehearsals.Add(rehearsal);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _rehearsalService.GetRehearsalByIdAsync(rehearsal.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(rehearsal.Id);
-        result.Location.Should().Be("Test Location");
-    }
-
-    [Fact]
-    public async Task GetRehearsalByIdAsync_NonExistingRehearsal_ReturnsNull()
-    {
-        // Act
-        var result = await _rehearsalService.GetRehearsalByIdAsync(999);
-
-        // Assert
-        result.Should().BeNull();
     }
 
     [Fact]

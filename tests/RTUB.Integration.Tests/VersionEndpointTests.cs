@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Integration.Tests;
 

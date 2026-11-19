@@ -3,7 +3,7 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>The React /documentation ("Documentação", React track 022; was the Blazor Documentation.razor).</summary>
+/// <summary>The React /documentation ("Documentação").</summary>
 public interface IDocumentationService
 {
     Task<EventResult<DocumentationDto>> GetAsync(string? fiscalYear, ClaimsPrincipal user);

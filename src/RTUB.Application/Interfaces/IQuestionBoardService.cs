@@ -4,7 +4,7 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React /questions ("Perguntas aos Órgãos Sociais", task 031; was the Blazor Questions.razor): members ask the
+/// The React /questions ("Perguntas aos Órgãos Sociais"): members ask the
 /// holders of an Órgãos Sociais position, and the two take turns replying. Notifications stay in <see cref="IQuestionService"/>.
 /// </summary>
 public interface IQuestionBoardService

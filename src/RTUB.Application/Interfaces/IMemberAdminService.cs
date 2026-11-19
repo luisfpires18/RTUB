@@ -3,13 +3,13 @@ using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
-/// <summary>Write side of the React members area (React track 018; was the Blazor /members/manage). Admin and Owner.</summary>
+/// <summary>Write side of the React members area. Admin and Owner.</summary>
 public interface IMemberAdminService
 {
-    /// <summary>Task 076: the limited member-information edit (Mod, Admin, Owner).</summary>
+    /// <summary>The limited member-information edit (Mod, Admin, Owner).</summary>
     Task<EventResult<MemberInfoDto>> GetInfoAsync(string id, ClaimsPrincipal user);
 
-    /// <summary>Task 076: save Cidade, Contacto, the missing dates and the Padrinho; nothing else.</summary>
+    /// <summary>Save Cidade, Contacto, the missing dates and the Padrinho; nothing else.</summary>
     Task<EventResult<MemberInfoDto>> UpdateInfoAsync(string id, MemberInfoInput input, ClaimsPrincipal user);
 
     Task<EventResult<MemberEditDto>> GetForEditAsync(string id, ClaimsPrincipal user);
@@ -35,6 +35,6 @@ public interface IMemberAdminService
     /// <summary>The push reminder to a retired member one activity away from coming back.</summary>
     Task<EventResult<bool>> SendReminderAsync(string id, ClaimsPrincipal user);
 
-    /// <summary>The old hard delete with related data: Owner any member, Admin Leitões only.</summary>
+    /// <summary>Hard delete with related data: Owner any member, Admin Leitões only.</summary>
     Task<EventResult<bool>> DeleteAsync(string id, ClaimsPrincipal user);
 }

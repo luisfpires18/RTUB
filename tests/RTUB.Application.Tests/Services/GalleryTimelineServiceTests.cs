@@ -7,7 +7,6 @@ using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -17,7 +16,7 @@ namespace RTUB.Application.Tests.Services;
 /// </summary>
 public class GalleryTimelineServiceTests
 {
-    private static readonly ClaimsPrincipal Visitor = new(new ClaimsIdentity());
+    private static readonly ClaimsPrincipal Visitor = TestPrincipal.Visitor();
     private static readonly ClaimsPrincipal Member = new(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "m") }, "test"));
 
     private readonly DatabaseFixture _db = new();

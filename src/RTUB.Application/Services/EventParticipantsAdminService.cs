@@ -9,12 +9,12 @@ using RTUB.Application.Interfaces;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// The old Blazor /events/{id}/enrollments management behind the React event page (React track 012E).
-/// Same rules, now server-side: Admin or Owner only; "Adicionar Membro" enrolls a member who has not
-/// answered as going, with their primary instrument and no notification (as before); any answer can be
-/// removed. New since the old page: expelled members are not offered, a duplicate is refused instead of
+/// The enrollments management of the React event page.
+/// Rules enforced server-side: Admin or Owner only; "Adicionar Membro" enrolls a member who has not
+/// answered as going, with their primary instrument and no notification; any answer can be
+/// removed. Expelled members are not offered, a duplicate is refused instead of
 /// silently overwriting, and a cancelled event takes no new answers (the answer modal already refused them).
-/// Nobody's answer is edited here: each member changes their own in the answer modal, as before.
+/// Nobody's answer is edited here: each member changes their own in the answer modal.
 /// </summary>
 public sealed class EventParticipantsAdminService : IEventParticipantsAdminService
 {
@@ -115,7 +115,7 @@ public sealed class EventParticipantsAdminService : IEventParticipantsAdminServi
             }
         }
 
-        // As the old page: going, the primary instrument, no notification (an Admin adding someone by hand).
+        // Going, the primary instrument, no notification (an Admin adding someone by hand).
         var primary = await _instruments.GetPrimaryInstrumentAsync(input.UserId!);
         await _enrollments.CreateEnrollmentAsync(input.UserId!, id, primary?.InstrumentType, null, true, null, skipNotification: true);
         return EventResult<EventEnrollmentListDto>.Ok(await ListAsync(id, canAdd: true));
@@ -169,7 +169,7 @@ public sealed class EventParticipantsAdminService : IEventParticipantsAdminServi
             .ToLowerInvariant();
 
     private static EventResult<T>? Refusal<T>(ClaimsPrincipal user) =>
-        !EventsAuthorization.IsMember(user) ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
+        !user.IsMember() ? EventResult<T>.Fail(EventResultStatus.SignInRequired)
         : !EventsAuthorization.CanManage(user) ? EventResult<T>.Fail(EventResultStatus.Forbidden)
         : null;
 }

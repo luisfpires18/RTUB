@@ -1,14 +1,14 @@
 namespace RTUB.Application.DTOs;
 
-// Contracts of the React member admin (React track 018; was the Blazor /members/manage). Admin and Owner only. The
-// edit form carries the fields the old "Editar Membro" modal edited, nothing else: no password, role, audit or
+// Contracts of the React member admin. Admin and Owner only. The
+// edit form carries the "Editar Membro" fields, nothing else: no password, role, audit or
 // Identity field leaves the server.
 
 /// <summary>
-/// Create or edit a member, as the old form. <c>Category</c>: Leitao, Caloiro or Tuno; <c>Fundador</c> and
+/// Create or edit a member. <c>Category</c>: Leitao, Caloiro or Tuno; <c>Fundador</c> and
 /// <c>Honorario</c> only count for a Tuno; <c>NoNickname</c> ("Sem alcunha") only when creating a Leitão: the email's
 /// local part becomes the nickname and the username. <c>Instruments</c> only when creating (an existing member's
-/// instruments change one by one, as before).
+/// instruments change one by one).
 /// </summary>
 public sealed record MemberInput(
     string? FirstName,
@@ -36,7 +36,7 @@ public sealed record MemberInstrumentInput(string Instrument, bool Primary);
 
 public sealed record MemberNicknameInput(string? Nickname);
 
-/// <summary>The old edit modal's values. <c>LockedDates</c>: the complete date pairs only Owner or the Magister may change.</summary>
+/// <summary>The edit form's values. <c>LockedDates</c>: the complete date pairs only Owner or the Magister may change.</summary>
 public sealed record MemberEditDto(
     string Id,
     string? FirstName,
@@ -72,9 +72,9 @@ public sealed record MentorCandidateDto(string Id, string DisplayName, string? F
 public sealed record MemberCreatedDto(string Id);
 
 /// <summary>
-/// Task 076: the Mod's limited edit of one member (also Admin / Owner). <c>Fields</c>: the fields that apply to this member
+/// The Mod's limited edit of one member (also Admin / Owner). <c>Fields</c>: the fields that apply to this member
 /// (<c>MemberInfoRules</c>); <c>Missing</c>: those still empty; <c>LockedDates</c>: complete date pairs only Owner or the
-/// Magister may change; <c>Stamp</c>: send it back unchanged - a save over a newer version is refused (409).
+/// Magister may change; <c>Stamp</c>: send it back unchanged - a save over a newer version is refused.
 /// </summary>
 public sealed record MemberInfoDto(
     string Id,
@@ -96,7 +96,7 @@ public sealed record MemberInfoDto(
     string Stamp);
 
 /// <summary>
-/// Task 076: what the limited edit may change - and nothing else (no name, email, category, role, position, status).
+/// What the limited edit may change - and nothing else (no name, email, category, role, position, status).
 /// A field that does not apply to the member must be empty.
 /// </summary>
 public sealed record MemberInfoInput(

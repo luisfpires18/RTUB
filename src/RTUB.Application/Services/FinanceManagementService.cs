@@ -11,7 +11,7 @@ public class FinanceManagementService : IFinanceManagementService
 {
     private readonly TimeProvider _time;
 
-    /// <summary>The activities it creates are dated today in Portugal (#226 F02).</summary>
+    /// <summary>The activities it creates are dated today in Portugal.</summary>
     public FinanceManagementService(TimeProvider? time = null)
     {
         _time = time ?? TimeProvider.System;

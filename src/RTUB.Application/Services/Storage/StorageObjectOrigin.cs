@@ -50,7 +50,7 @@ public enum StorageObjectOrigin
 ///
 /// <para>Production is unaffected. Its stored URLs sit under its own
 /// <c>Cloudflare:R2:PublicUrl</c>, so they resolve to <see cref="StorageObjectOrigin.CurrentEnvironment"/>
-/// and behave exactly as before, and it configures no reference origin at all.</para>
+/// and behave exactly, and it configures no reference origin at all.</para>
 /// </remarks>
 public sealed class StorageOriginResolver
 {
@@ -74,12 +74,6 @@ public sealed class StorageOriginResolver
 
     public static StorageOriginResolver FromConfiguration(IConfiguration configuration) =>
         new(configuration[CurrentPublicUrlKey], configuration[ReferencePublicUrlKey]);
-
-    /// <summary>Whether a production reference origin is configured at all.</summary>
-    public bool HasReferenceOrigin => _referenceOrigin != null;
-
-    /// <summary>The normalized production reference origin, or null. Used by the CSP builder.</summary>
-    public string? ReferenceOrigin => _referenceOrigin;
 
     /// <summary>
     /// Classifies a stored URL. Anything that is not an absolute http/https URL - a bare object
@@ -108,12 +102,6 @@ public sealed class StorageOriginResolver
 
         return StorageObjectOrigin.External;
     }
-
-    /// <summary>
-    /// The single invariant every destructive path goes through: only an object in this
-    /// environment's own bucket may be deleted or overwritten.
-    /// </summary>
-    public bool IsDeletable(string? url) => Resolve(url) == StorageObjectOrigin.CurrentEnvironment;
 
     /// <summary>
     /// <c>scheme://host[:port]</c> for an absolute http/https URL, or null for anything else.

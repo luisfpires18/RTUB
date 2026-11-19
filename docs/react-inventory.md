@@ -1,6 +1,6 @@
 # React Inventário: Instrumentos (`/inventory`)
 
-The tuna's instruments: `portal/src/Inventory.tsx` over `/api/inventory` (`Endpoints/InventoryEndpoints.cs` > `IInstrumentInventoryService`, over `IInstrumentService`). Table `Instruments`, entity `Instrument`; no quantity, owner, loans, reservations or history.
+The tuna's instruments: `portal/src/pages/Inventory.tsx` over `/api/inventory` (`Endpoints/InventoryEndpoints.cs` > `IInstrumentInventoryService`, over `IInstrumentService`). Table `Instruments`, entity `Instrument`; no quantity, owner, loans, reservations or history.
 Code: `Helpers/InventoryAuthorization.cs`. The shop is a separate module: [react-shop](react-shop.md).
 
 | Route | Who |

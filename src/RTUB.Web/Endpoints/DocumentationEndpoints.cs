@@ -6,9 +6,9 @@ using RTUB.Application.Services;
 namespace RTUB.Web.Endpoints;
 
 /// <summary>
-/// The React /documentation ("Documentação", React track 022, docs/react-documentation.md; was the Blazor page). Thin:
+/// The React /documentation ("Documentação", docs/react-documentation.md). Thin:
 /// every rule lives in <see cref="IDocumentationService"/>, decided from the session. Signed-in members only, Leitões
-/// refused, as before. A document is addressed by fiscalYear, folder and name; every write needs the antiforgery token
+/// refused. A document is addressed by fiscalYear, folder and name; every write needs the antiforgery token
 /// in the X-CSRF-TOKEN header.
 /// </summary>
 public static class DocumentationEndpoints
@@ -22,7 +22,7 @@ public static class DocumentationEndpoints
         docs.MapGet("/", async (string? fiscalYear, HttpContext http, IDocumentationService service) =>
             ToResult(await service.GetAsync(fiscalYear, http.User)));
 
-        // A short-lived pre-signed download URL; the page opens it in the same tab, as the old page did.
+        // A short-lived pre-signed download URL; the page opens it in the same tab.
         docs.MapGet("/file", async (string? fiscalYear, string? folder, string? name, HttpContext http, IDocumentationService service) =>
             ToResult(await service.GetDownloadAsync(fiscalYear, folder, name, http.User)));
 
@@ -38,8 +38,7 @@ public static class DocumentationEndpoints
             {
                 if (form.Files.GetFile("file") is not { } file)
                 {
-                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["file"] = new[] { "Escolha um ficheiro." } },
-                        title: "Há campos por corrigir.");
+                    return EndpointResults.Invalid("file", "Escolha um ficheiro.");
                 }
 
                 await using var content = file.OpenReadStream();
@@ -52,14 +51,6 @@ public static class DocumentationEndpoints
             ToResult(await service.DeleteDocumentAsync(fiscalYear, folder, name, http.User), _ => Results.NoContent()));
     }
 
-    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) => result.Status switch
-    {
-        EventResultStatus.Ok => ok is null ? Results.Ok(result.Value) : ok(result.Value!),
-        EventResultStatus.Invalid => Results.ValidationProblem(
-            (result.Errors ?? new Dictionary<string, string[]>()).ToDictionary(e => e.Key, e => e.Value), title: "Há campos por corrigir."),
-        EventResultStatus.SignInRequired => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
-            statusCode: StatusCodes.Status401Unauthorized),
-        EventResultStatus.Forbidden => Results.Problem(title: "Não tem permissão para esta ação.", statusCode: StatusCodes.Status403Forbidden),
-        _ => Results.Problem(title: "Documento ou pasta não encontrado.", statusCode: StatusCodes.Status404NotFound),
-    };
+    private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
+        EndpointResults.ToResult(result, ok, "Documento ou pasta não encontrado.");
 }

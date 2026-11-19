@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Xunit;
 
 namespace RTUB.Web.Tests.ReactPortal;
 
@@ -10,15 +9,15 @@ namespace RTUB.Web.Tests.ReactPortal;
 /// </summary>
 public class ReleaseNotesPortalTests
 {
-    private static readonly string Src = Path.Combine(GetProjectRoot(), "src", "RTUB.Web", "portal", "src");
+    private static readonly string Src = Path.Combine(RepoPaths.Root(), "src", "RTUB.Web", "portal", "src");
 
     private static string Read(string file) => File.ReadAllText(Path.Combine(Src, file));
 
     [Fact]
     public void TheDialog_RunsFirstInTheStartupQueue_AcknowledgesOnlyOnEntendido_AndNeverClaimsAFailedReceipt()
     {
-        var startup = Read("Startup.tsx");
-        var api = Read("releaseNotesApi.ts");
+        var startup = Read("components/Startup.tsx");
+        var api = Read("data/releaseNotesApi.ts");
 
         startup.Should().Contain("const STEPS: Step[] = [ReleaseNotes, PushReminder];");
         startup.Should().Contain("if (o.data.pending.length === 0) {", "the server decides what is pending");
@@ -34,8 +33,10 @@ public class ReleaseNotesPortalTests
     [Fact]
     public void TheFooter_ReopensTheRunningReleasesNotes_WithoutAcknowledging()
     {
-        var app = Read("App.tsx");
-        var footer = app[app.IndexOf("function VersionTag", StringComparison.Ordinal)..];
+        // Task 113: VersionTag is now the last function of components/AppChrome.tsx; what followed it in the old App.tsx
+        // (useLatest, useCurrentUser, AccountLink, ExternalLink, Loading) is components/AppShared.tsx.
+        var app = Read("components/AppChrome.tsx");
+        var footer = app[app.IndexOf("function VersionTag", StringComparison.Ordinal)..] + "\n" + Read("components/AppShared.tsx");
 
         footer.Should().Contain("Ver novidades da versão").And.Contain("const member = user?.authenticated === true;")
             .And.Contain("releaseNotesApi.state()").And.NotContain("acknowledge");
@@ -45,21 +46,10 @@ public class ReleaseNotesPortalTests
     [Fact]
     public void TheNotes_AreRenderedAsText_OneSectionPerRelease_NewestFirst()
     {
-        var dialog = Read("ReleaseNotes.tsx");
+        var dialog = Read("components/ReleaseNotes.tsx");
 
         dialog.Should().NotContain("dangerouslySetInnerHTML").And.NotContain("innerHTML");
         dialog.Should().Contain("const [first, ...older] = notes;").And.Contain("Desde a última vez que viste as novidades:")
             .And.Contain("Entendido").And.Contain("<Dialog");
-    }
-
-    private static string GetProjectRoot()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Could not find project root directory");
     }
 }

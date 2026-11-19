@@ -111,52 +111,6 @@ public class EmailRateLimiterTests : IDisposable
         result2.Should().BeTrue();
     }
 
-    [Fact]
-    public void ClearRateLimit_RemovesCacheEntry()
-    {
-        // Arrange
-        var cacheKey = "test-key-5";
-        _rateLimiter.ShouldRateLimit(cacheKey);
-        _rateLimiter.ShouldRateLimit(cacheKey).Should().BeTrue(); // Verify it's cached
-
-        // Act
-        _rateLimiter.ClearRateLimit(cacheKey);
-        var result = _rateLimiter.ShouldRateLimit(cacheKey);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void ClearRateLimit_WithNullKey_DoesNotThrow()
-    {
-        // Act
-        var act = () => _rateLimiter.ClearRateLimit(null!);
-
-        // Assert
-        act.Should().NotThrow();
-    }
-
-    [Fact]
-    public void ClearRateLimit_WithEmptyKey_DoesNotThrow()
-    {
-        // Act
-        var act = () => _rateLimiter.ClearRateLimit(string.Empty);
-
-        // Assert
-        act.Should().NotThrow();
-    }
-
-    [Fact]
-    public void ClearRateLimit_WithNonExistentKey_DoesNotThrow()
-    {
-        // Act
-        var act = () => _rateLimiter.ClearRateLimit("non-existent-key");
-
-        // Assert
-        act.Should().NotThrow();
-    }
-
     public void Dispose()
     {
         _cache?.Dispose();

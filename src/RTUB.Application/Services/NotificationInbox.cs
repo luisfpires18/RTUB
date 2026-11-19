@@ -7,7 +7,7 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// "Notificações RTUB" (task 058): every push is also kept, for later reference, in each recipient's read-only system
+/// "Notificações RTUB": every push is also kept, for later reference, in each recipient's read-only system
 /// conversation in /messages - whether or not the member has push turned on. The copy is title + body with the push's
 /// link, saved as already read (it never moves the unread badge). Chat-message pushes are not copied
 /// (<see cref="SendPushNotificationDto.KeepInInbox"/>); the /profile test push never comes through here. Expelled accounts

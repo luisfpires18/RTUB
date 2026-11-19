@@ -34,39 +34,6 @@ public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IR
         return entity;
     }
 
-    public override async Task UpdateAsync(RehearsalAttendance entity)
-    {
-        using var context = CreateContext();
-
-        // Preload User and Rehearsal into context Local cache for audit log display name resolution
-        if (!string.IsNullOrEmpty(entity.UserId))
-            await context.Users.FindAsync(entity.UserId);
-        if (entity.RehearsalId > 0)
-            await context.Rehearsals.FindAsync(entity.RehearsalId);
-
-        var tracked = await context.RehearsalAttendances.FindAsync(entity.Id)
-            ?? throw new InvalidOperationException(
-                $"RehearsalAttendance with Id {entity.Id} not found in the database.");
-        context.Entry(tracked).CurrentValues.SetValues(entity);
-        await context.SaveChangesAsync();
-    }
-
-    public override async Task DeleteAsync(int id)
-    {
-        using var context = CreateContext();
-        var entity = await context.RehearsalAttendances.FindAsync(id);
-        if (entity == null) return;
-
-        // Preload User and Rehearsal into context Local cache for audit log display name resolution
-        if (!string.IsNullOrEmpty(entity.UserId))
-            await context.Users.FindAsync(entity.UserId);
-        if (entity.RehearsalId > 0)
-            await context.Rehearsals.FindAsync(entity.RehearsalId);
-
-        context.RehearsalAttendances.Remove(entity);
-        await context.SaveChangesAsync();
-    }
-
     public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdAsync(int rehearsalId)
     {
         using var context = CreateContext();

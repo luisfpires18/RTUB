@@ -2,9 +2,9 @@
 
 | Route | Owner |
 | --- | --- |
-| `/forgot-password`, `/reset-password`, `/confirm-email` | React, public (`portal/src/ForgotPassword.tsx`, `ResetPassword.tsx`, `ConfirmEmail.tsx`, `accountApi.ts`) |
+| `/forgot-password`, `/reset-password`, `/confirm-email` | React, public (`portal/src/pages/ForgotPassword.tsx`, `ResetPassword.tsx`, `ConfirmEmail.tsx`, `accountApi.ts`) |
 | `/Error` | Server-owned static page (`wwwroot/error.html`, `wwwroot/css/error.css`), on purpose |
-| `/share` | React (`portal/src/Share.tsx`), public, Web Share Target |
+| `/share` | React (`portal/src/pages/Share.tsx`), public, Web Share Target |
 
 Code: `Services/AccountRecoveryService.cs`, `Endpoints/AccountRecoveryEndpoints.cs`, `Program.cs` (page routes, `/Error`,
 `/share`). Identity options, password rules and token providers are the framework's, unchanged.
@@ -18,13 +18,16 @@ Code: `Services/AccountRecoveryService.cs`, `Endpoints/AccountRecoveryEndpoints.
 | POST | `/confirm-email` | `{userId, code}` | 200 `{succeeded, message}` |
 
 Every call needs `X-CSRF-TOKEN` (from `/api/public/antiforgery-token`), and every answer is `no-store`.
+The three calls spend the login budget of their client (`LoginRateLimitPolicy`: 10 per 5 minutes per address, shared
+with `/auth/login`); past it they answer `429` with `Retry-After`, and the pages show their usual "tenta de novo".
 `GET /api/account/me` lives in `AccountController`.
 
 ## Behavior
 
 - Forgot password: validates the email (required, well-formed). An unknown or unconfirmed address gets the neutral
   sentence and no email. A confirmed account gets a reset token (`GeneratePasswordResetTokenAsync`) and the link
-  `{scheme}://{host}{pathBase}/reset-password?code={UrlEncode(token)}&email={UrlEncode(email)}`, rendered by
+  `{App:BaseUrl}/reset-password?code={UrlEncode(token)}&email={UrlEncode(email)}` (`Endpoints/SiteAddress.cs`: the
+  configured address, never the request's Host header where one is configured), rendered by
   `IEmailTemplateRenderer.RenderPasswordResetAsync` and sent with `IEmailSender` ("Recuperação de palavra-passe"). A
   failed send is logged without token or link and answered with the same neutral sentence, so it never reveals that an
   account exists.
@@ -91,7 +94,7 @@ dispositivo"), and from then on `/login` → "Entrar com Face ID / impressão di
 - Shared sign-in: `Program.SignInBlockAsync` (unconfirmed / locked / expelled) and `Program.CompleteSignInAsync` (reset
   failed count, last login, `LoginEvents`, cookie, landing) serve both sign-ins, so the rules cannot drift. The
   signature counter is stored after each passkey sign-in.
-- Client: `portal/src/passkey.ts` converts WebAuthn JSON natively (`parse*OptionsFromJSON`, `toJSON`) with a small
+- Client: `portal/src/data/passkey.ts` converts WebAuthn JSON natively (`parse*OptionsFromJSON`, `toJSON`) with a small
   base64url fallback for older Safari. The buttons show only where WebAuthn exists (secure context). A closed prompt is
   silent; a removed passkey answers "Este dispositivo não tem uma entrada ativa...".
 
@@ -103,8 +106,8 @@ dispositivo"), and from then on `/login` → "Entrar com Face ID / impressão di
 
 ## Follow-ups
 
-- No rate limit on forgot-password and reset-password: anyone can trigger reset emails to an address, one per request.
-  Consider the per-IP login limiter.
+- forgot-password answers a real account more slowly than an unknown address (it awaits the email send), and the
+  limit is per client address only: there is no per-email cooldown.
 - `/confirm-email` has no link generator in the app. Decide: keep it for old links, or drop it.
 - Passkeys: autofill (conditional mediation) on the username field; a real-device check (iPhone Face ID, Android
   fingerprint, the Play Store TWA) on DEV.

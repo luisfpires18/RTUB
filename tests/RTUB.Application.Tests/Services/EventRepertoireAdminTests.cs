@@ -11,7 +11,6 @@ using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Xunit;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -19,13 +18,13 @@ namespace RTUB.Application.Tests.Services;
 /// Repertoire management behind the React event page (React track 012D), through the real
 /// EventRepertoireService on the test database. No storage, email or push is involved.
 /// </summary>
-public class EventRepertoireAdminTests
+public partial class EventRepertoireAdminTests
 {
     private static readonly ClaimsPrincipal Visitor = new(new ClaimsIdentity());
-    private static readonly ClaimsPrincipal Member = SignedIn("Member", "member-1");
-    private static readonly ClaimsPrincipal Mod = SignedIn("Mod", "mod-1");
-    private static readonly ClaimsPrincipal Admin = SignedIn("Admin", "admin-1");
-    private static readonly ClaimsPrincipal Owner = SignedIn("Owner", "owner-1");
+    private static readonly ClaimsPrincipal Member = TestPrincipal.SignedIn("member-1", "Member");
+    private static readonly ClaimsPrincipal Mod = TestPrincipal.SignedIn("mod-1", "Mod");
+    private static readonly ClaimsPrincipal Admin = TestPrincipal.SignedIn("admin-1", "Admin");
+    private static readonly ClaimsPrincipal Owner = TestPrincipal.SignedIn("owner-1", "Owner");
 
     private readonly DatabaseFixture _db = new();
     private readonly EventRepertoireAdminService _service;
@@ -227,22 +226,7 @@ public class EventRepertoireAdminTests
         (await _service.SearchSongsAsync(id, "", Admin)).Value!.Select(s => s.Title).Should().Contain("Segredo");
     }
 
-    [Fact]
-    public void TheRepertoireContracts_CarryNoInternalField()
-    {
-        typeof(EventRepertoireItemDto).GetProperties().Select(p => p.Name).Should().BeEquivalentTo("Id", "Title");
-        typeof(EventRepertoireSongDto).GetProperties().Select(p => p.Name).Should().BeEquivalentTo("Id", "Title", "Album");
-    }
-
     // ---------- helpers ----------
-
-    private static ClaimsPrincipal SignedIn(string role, string id) =>
-        new(new ClaimsIdentity(new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, id),
-            new Claim(ClaimTypes.Name, "u-" + role),
-            new Claim(ClaimTypes.Role, role),
-        }, "test"));
 
     private int AddEvent(DateTime date, DateTime? end = null)
     {

@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Repositories;
 
@@ -36,11 +35,4 @@ public class NaipeTypeConfigRepository : Repository<NaipeTypeConfig>, INaipeType
             .ToListAsync();
     }
 
-    public async Task<NaipeTypeConfig?> GetByInstrumentTypeAsync(InstrumentType type)
-    {
-        using var context = CreateContext();
-        return await context.Set<NaipeTypeConfig>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.InstrumentType == type);
-    }
 }

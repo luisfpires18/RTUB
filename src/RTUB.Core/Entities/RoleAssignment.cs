@@ -49,9 +49,4 @@ public class RoleAssignment : BaseEntity
         EndYear = endYear;
         Notes = notes;
     }
-
-    public string GetFiscalYear()
-    {
-        return $"{StartYear}-{EndYear}";
-    }
 }

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -21,8 +21,8 @@ public class CommentService : ICommentService
     private readonly IPostService _postService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
-    private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly IUserProfileService _userProfileService;
+    private readonly TimeProvider _time;
 
     public CommentService(
         ICommentRepository commentRepository,
@@ -33,9 +33,10 @@ public class CommentService : ICommentService
         IPostService postService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
-        IEnrollmentRepository enrollmentRepository,
-        IUserProfileService userProfileService)
+        IUserProfileService userProfileService,
+        TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _commentRepository = commentRepository;
         _commentImageRepository = commentImageRepository;
         _eventMediaStorageService = eventMediaStorageService;
@@ -44,7 +45,6 @@ public class CommentService : ICommentService
         _postService = postService;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
-        _enrollmentRepository = enrollmentRepository;
         _userProfileService = userProfileService;
     }
 
@@ -96,7 +96,7 @@ public class CommentService : ICommentService
                         var authorNickname = authorUser.Nickname ?? authorUser.FirstName ?? "Utilizador";
 
                         // Send comment notification to post owner + previous commenters (only for future events)
-                        if (discussion.Event.Date >= DateTime.UtcNow)
+                        if (discussion.Event.Date >= PortugalTime.Now(_time)) // an event date is Portugal's clock
                         {
                             var notification = _pushNotificationFactory.CreateDiscussionCommentNotification(
                                 discussion.Event, authorNickname, post.Title);
@@ -111,10 +111,7 @@ public class CommentService : ICommentService
                             if (post.AuthorId != authorId)
                                 recipientIds.Add(post.AuthorId);
 
-                            foreach (var userId in recipientIds)
-                            {
-                                await _pushNotificationService.SendToUserAsync(userId, notification);
-                            }
+                            await _pushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
                         }
 
                         // Send mention notifications (always, regardless of event date)

@@ -38,14 +38,4 @@ public class MemberDebtRepository : Repository<MemberDebt>, IMemberDebtRepositor
             .OrderByDescending(md => md.FiscalYear.StartYear)
             .ToListAsync();
     }
-
-    public async Task<MemberDebt?> GetByUserIdAndFiscalYearIdAsync(string userId, int fiscalYearId)
-    {
-        using var context = CreateContext();
-        return await context.Set<MemberDebt>()
-            .AsNoTracking()
-            .Include(md => md.User)
-            .Include(md => md.FiscalYear)
-            .FirstOrDefaultAsync(md => md.UserId == userId && md.FiscalYearId == fiscalYearId);
-    }
 }

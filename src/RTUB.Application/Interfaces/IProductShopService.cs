@@ -4,8 +4,8 @@ using RTUB.Application.DTOs;
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
-/// The React /shop ("Loja RTUB", React track 021; was the Blazor Shop.razor): products and member reservations.
-/// Not the retired MyTuno in-game shop (removed in 026).
+/// The React /shop ("Loja RTUB"): products and member reservations.
+/// Not a MyTuno in-game shop.
 /// </summary>
 public interface IProductShopService
 {

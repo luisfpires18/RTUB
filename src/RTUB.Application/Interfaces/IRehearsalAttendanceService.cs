@@ -8,7 +8,6 @@ namespace RTUB.Application.Interfaces;
 /// </summary>
 public interface IRehearsalAttendanceService
 {
-    Task<RehearsalAttendance?> GetAttendanceByIdAsync(int id);
     Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdAsync(int rehearsalId);
     Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdsAsync(IEnumerable<int> rehearsalIds);
     Task<IEnumerable<RehearsalAttendance>> GetAttendancesByUserIdAsync(string userId);
@@ -22,7 +21,7 @@ public interface IRehearsalAttendanceService
     /// <summary>
     /// Creates the member's own first answer, pending (Attended = false) like <see cref="MarkAttendanceAsync"/>, but never
     /// touches an existing row: <see cref="InvalidOperationException"/> when one exists (a concurrent insert fails on the
-    /// unique (RehearsalId, UserId) index instead). Used by "As minhas ações pendentes" (task 072).
+    /// unique (RehearsalId, UserId) index instead). Used by "As minhas ações pendentes".
     /// </summary>
     Task<RehearsalAttendance> AddFirstAttendanceAsync(int rehearsalId, string userId, bool willAttend, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null, bool skipNotification = false);
 
@@ -51,6 +50,5 @@ public interface IRehearsalAttendanceService
     Task DeleteAttendanceAsync(int id);
 
     // Statistics
-    Task<int> GetUserAttendanceCountAsync(string userId, DateTime startDate, DateTime endDate);
     Task<Dictionary<string, int>> GetAttendanceStatsAsync(DateTime startDate, DateTime endDate);
 }
