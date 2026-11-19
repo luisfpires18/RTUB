@@ -6,13 +6,13 @@ in the docs `CLAUDE.md` links. Overwrite stale entries.
 _Last updated: 2026-11-19_
 
 ## Release state
-- `master` (PROD): **2.3.16** (released 2026-11-19, tag `v2.3.16`: `PostMedia` / `CommentImages` dropped, task 148). `dev`: **2.3.17** (unreleased).
+- `master` (PROD): **2.3.17** (released 2026-11-19, tag `v2.3.17`: others' photo in chats, task 150; 2.3.16 dropped `PostMedia` / `CommentImages`, task 148). `dev`: **2.3.18** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
 Task 150 (`fix/150/chat-avatars`, PR #359): others' chat messages show the sender's photo (Messenger style, by the last
-bubble of a run; `ThreadMessage` `lastOfRun`, `.bubble__face`). Not checked in a browser: check on DEV (group, direct,
-Notificações RTUB, phone width).
+bubble of a run; `ThreadMessage` `lastOfRun`, `.bubble__face`), released in 2.3.17. Not checked in a browser: check
+on PROD (group, direct, Notificações RTUB, phone width).
 
 Task 147 (`chore/147/unmap-post-media`): `PostMedia` / `CommentImages` (0 rows on PROD, 2026-11-19 backup) are unmapped:
 entities, repositories, delete clean-up and the dashboard uploads entries removed; `StopMappingPostMediaAndCommentImages` is
