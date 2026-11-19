@@ -32,12 +32,12 @@ public static class PushEndpoints
         push.MapGet("/reminder", async (HttpContext http, PushReminderService reminder) =>
             await reminder.GetAsync(UserId(http.User)) is { } state
                 ? Results.Ok(new { reformed = state.Reformed, acknowledged = state.Acknowledged })
-                : Results.Unauthorized());
+                : EndpointResults.SignInRequired());
 
         // The member's own account-wide push preferences; the catalogue (keys, labels, the mandatory
         // key) is the server's. Independent of the device subscription above: saving here never touches it.
         push.MapGet("/preferences", async (HttpContext http, PushPreferenceService preferences) =>
-            await preferences.GetAsync(UserId(http.User)) is { } items ? Results.Ok(new { items }) : Results.Unauthorized());
+            await preferences.GetAsync(UserId(http.User)) is { } items ? Results.Ok(new { items }) : EndpointResults.SignInRequired());
 
         var writes = push.MapGroup(string.Empty).AddEndpointFilter(EventEndpoints.RequireAntiforgery);
 
@@ -51,7 +51,7 @@ public static class PushEndpoints
 
                     if (result.Items is null)
                     {
-                        return Results.Unauthorized();
+                        return EndpointResults.SignInRequired();
                     }
 
                     logs.CreateLogger(typeof(PushEndpoints)).LogInformation("User {UserName} saved push preferences ({Off} off)",
@@ -61,7 +61,7 @@ public static class PushEndpoints
             .WithMetadata(new RequestSizeLimitAttribute(8 * 1024));
 
         writes.MapPost("/reminder/ack", async (HttpContext http, PushReminderService reminder) =>
-            await reminder.AcknowledgeAsync(UserId(http.User)) ? Results.NoContent() : Results.Unauthorized());
+            await reminder.AcknowledgeAsync(UserId(http.User)) ? Results.NoContent() : EndpointResults.SignInRequired());
 
         writes.MapPost("/check", async (PushEndpointInput input, HttpContext http, IPushNotificationService service) =>
                 string.IsNullOrWhiteSpace(input.Endpoint)

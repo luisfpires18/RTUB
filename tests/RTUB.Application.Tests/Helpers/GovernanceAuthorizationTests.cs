@@ -1,5 +1,6 @@
 using FluentAssertions;
 using RTUB.Application.Helpers;
+using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Helpers;
 
@@ -21,6 +22,20 @@ public class GovernanceAuthorizationTests
 
         GovernanceAuthorization.CanManage(session).Should().Be(manage);
         GovernanceAuthorization.CanViewRgi(session).Should().Be(viewRgi);
+    }
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("Member", false)]
+    [InlineData("Mod", true)]
+    [InlineData("Admin", true)]
+    [InlineData("Owner", true)]
+    public void SessionMenuFlag_IsExactlyTheManageRule(string role, bool governance)
+    {
+        var session = TestPrincipal.WithRole(role);
+
+        MemberMenuAccess.For(session, new ApplicationUser()).Governance.Should().Be(governance);
+        governance.Should().Be(GovernanceAuthorization.CanManage(session));
     }
 
     [Fact]

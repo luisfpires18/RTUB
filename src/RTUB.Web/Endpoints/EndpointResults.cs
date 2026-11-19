@@ -22,6 +22,10 @@ internal static class EndpointResults
         _ => Results.Problem(title: notFound, statusCode: StatusCodes.Status404NotFound),
     };
 
+    /// <summary>The 401 problem body, same as <see cref="EventEndpoints.RequireMember"/> and the SignInRequired answer.</summary>
+    public static IResult SignInRequired() => Results.Problem(title: "Reservado a membros da RTUB. Entre para continuar.",
+        statusCode: StatusCodes.Status401Unauthorized);
+
     /// <summary>A 400 for one field, in the shape of a service's Invalid answer.</summary>
     public static IResult Invalid(string field, string message) =>
         Results.ValidationProblem(new Dictionary<string, string[]> { [field] = new[] { message } }, title: "Há campos por corrigir.");

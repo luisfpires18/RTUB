@@ -16,14 +16,14 @@ public static class ReleaseEndpoints
             .AddEndpointFilter(EventEndpoints.NoStore).AddEndpointFilter(EventEndpoints.RequireMember);
 
         releases.MapGet("/notes", async (HttpContext http, ReleaseNotesService notes) =>
-            await notes.GetAsync(UserId(http.User)) is { } state ? Results.Ok(state) : Results.Unauthorized());
+            await notes.GetAsync(UserId(http.User)) is { } state ? Results.Ok(state) : EndpointResults.SignInRequired());
 
         releases.MapGroup(string.Empty).AddEndpointFilter(EventEndpoints.RequireAntiforgery)
             .MapPost("/notes/ack", async (ReleaseAckInput input, HttpContext http, ReleaseNotesService notes) =>
                 await notes.AcknowledgeAsync(UserId(http.User), input.Version) switch
                 {
                     true => Results.NoContent(),
-                    false => Results.Unauthorized(),
+                    false => EndpointResults.SignInRequired(),
                     null => Results.ValidationProblem(new Dictionary<string, string[]> { ["version"] = ["Esta não é a versão em execução."] },
                         title: "Há campos por corrigir."),
                 })
