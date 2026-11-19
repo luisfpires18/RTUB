@@ -1,0 +1,1 @@
+import{j as t}from"./vendor-react-CRpCRhFI.js";function f({text:n,children:r,role:o="alert",block:a,className:e}){if(!n&&!r)return null;const s=a?"div":"p";return t.jsxs(s,{className:e?`form__banner ${e}`:"form__banner",role:o==="none"?void 0:o,children:[n,r]})}export{f as B};
