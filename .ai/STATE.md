@@ -6,7 +6,7 @@ in the docs `CLAUDE.md` links. Overwrite stale entries.
 _Last updated: 2026-11-18_
 
 ## Release state
-- `master` (PROD): **2.3.12**. `dev`: **2.3.13** (unreleased).
+- `master` (PROD): **2.3.13** (released 2026-11-19, tag `v2.3.13`). `dev`: **2.3.14** (unreleased). The column drop (task 142, draft PR #346) waits for 2.3.13's rollback window.
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
