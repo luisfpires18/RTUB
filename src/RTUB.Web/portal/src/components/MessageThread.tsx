@@ -44,6 +44,12 @@ export function Thread({ id, onBack, onChanged, onRemoved }: { id: number; onBac
                 key={m.id}
                 message={m}
                 newDay={i === 0 || !sameDay(toDate(messages[i - 1].createdAt), toDate(m.createdAt))}
+                lastOfRun={
+                  i === messages.length - 1 ||
+                  messages[i + 1].isSystem !== m.isSystem ||
+                  messages[i + 1].sender?.id !== m.sender?.id ||
+                  !sameDay(toDate(messages[i + 1].createdAt), toDate(m.createdAt))
+                }
                 kind={c.kind}
                 canSend={c.canSend}
                 canReact={canReact}

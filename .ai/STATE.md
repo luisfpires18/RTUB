@@ -3,13 +3,17 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git and GitHub, durable detail
 in the docs `CLAUDE.md` links. Overwrite stale entries.
 
-_Last updated: 2026-11-18_
+_Last updated: 2026-11-19_
 
 ## Release state
-- `master` (PROD): **2.3.15** (released 2026-11-19, tag `v2.3.15`: `PostMedia` / `CommentImages` unmapped, task 147). `dev`: **2.3.16** (unreleased). The table drop (task 148, draft PR #355) waits for 2.3.15's rollback window.
+- `master` (PROD): **2.3.16** (released 2026-11-19, tag `v2.3.16`: `PostMedia` / `CommentImages` dropped, task 148). `dev`: **2.3.17** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 150 (`fix/150/chat-avatars`, PR #359): others' chat messages show the sender's photo (Messenger style, by the last
+bubble of a run; `ThreadMessage` `lastOfRun`, `.bubble__face`). Not checked in a browser: check on DEV (group, direct,
+Notificações RTUB, phone width).
+
 Task 147 (`chore/147/unmap-post-media`): `PostMedia` / `CommentImages` (0 rows on PROD, 2026-11-19 backup) are unmapped:
 entities, repositories, delete clean-up and the dashboard uploads entries removed; `StopMappingPostMediaAndCommentImages` is
 model only (empty Up/Down), the tables stay. The drop is task 148 (`chore/148/drop-post-media-tables`, `20261119170000_DropPostMediaAndCommentImages`), a draft PR:
