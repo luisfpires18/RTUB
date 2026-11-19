@@ -57,13 +57,13 @@ created from the Baseline, where `MemberStatuses.OverrideRetired` is NOT NULL wi
 `AspNetUsers`, `MemberStatuses`, `MeetingAtaAttachments` or `Reports` would drop the column early: check any migration
 on those tables.
 
-## Pending decision: `PostMedia`, `CommentImages`
+## Pending drop: `PostMedia`, `CommentImages`
 
-Photos/videos once attached to event-discussion posts and comments. Nothing creates or returns rows any more; the only
-reader is delete clean-up (`PostService.SoftDeleteAsync`, `CommentService`), which removes the R2 objects and rows when a
-post or comment is deleted. Next step: count rows on a production snapshot. Zero rows → drop both tables with their
-repositories, entities, configurations, navigations and the clean-up code. Rows present → the owner decides whether to
-delete their R2 objects first.
+Photos/videos once attached to event-discussion posts and comments. Both tables had 0 rows on the 2026-11-19 production
+backup. Task 147 (release N) unmapped them: entities, configurations, `DbSet`s, repositories, navigations, the
+delete clean-up in `PostService`/`CommentService` and the dashboard upload count are gone, and the model-only migration
+`20261119160000_StopMappingPostMediaAndCommentImages` is empty. The tables stay in the database. Release N+1 drops them
+with `DropTable` (own migration; re-check the production row count first).
 
 ## Do not touch
 

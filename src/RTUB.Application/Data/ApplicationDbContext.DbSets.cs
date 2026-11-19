@@ -101,9 +101,7 @@ public partial class ApplicationDbContext
 
     public DbSet<Comment> Comments { get; set; }
 
-    public DbSet<PostMedia> PostMedia { get; set; }
 
-    public DbSet<CommentImage> CommentImages { get; set; }
 
     // Meeting DbSet
     public DbSet<Meeting> Meetings { get; set; }
