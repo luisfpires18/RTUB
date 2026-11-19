@@ -1,12 +1,14 @@
-import { Component, useEffect, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { portal } from '../data/content';
-import { resetStartup, StartupModals } from './Startup';
+import { resetStartup } from '../data/startupRules';
 import { useCurrentUser } from './AppShared';
 import { useSession, revealApp } from './AppLaunch';
 import { Header, Footer } from './AppChrome';
 import { SystemAnnouncement } from './AppAnnouncement';
 import { EmptyState } from './ui/EmptyState';
 
+// Members only, after the page settles (Startup waits 1.5 s anyway): its own chunk, not the shell's.
+const StartupModals = lazy(() => import('./Startup').then((m) => ({ default: m.StartupModals })));
 
 export function Layout({ children }: { children: ReactNode }) {
   useEffect(revealApp, []);
@@ -25,7 +27,11 @@ export function Layout({ children }: { children: ReactNode }) {
         <Footer />
       </div>
       <SystemAnnouncement />
-      {member && <StartupModals />}
+      {member && (
+        <Suspense fallback={null}>
+          <StartupModals />
+        </Suspense>
+      )}
       <StartupReset />
     </div>
   );

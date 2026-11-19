@@ -4,7 +4,7 @@ import { Icon } from './icons';
 import { pushApi, readPush, turnOn, type PushState } from '../data/push';
 import { ReleaseNotesDialog } from './ReleaseNotes';
 import { releaseNotesApi, type ReleaseNote } from '../data/releaseNotesApi';
-import { reminderDue, reminderFits } from '../data/startupRules';
+import { LAUNCH_KEY, reminderDue, reminderFits } from '../data/startupRules';
 import { FieldError } from './ui/FieldError';
 
 // docs/react-push-v2.md → Startup reminder. The startup queue: one dialog at a time, in order, once
@@ -14,20 +14,10 @@ import { FieldError } from './ui/FieldError';
 // re-renders do not. The visitor shell clears it (sign-out, and /login before signing in or switching account).
 // SystemAnnouncement keeps its own purpose and is not part of the queue.
 
-const LAUNCH_KEY = 'rtub-startup-done';
 const SETTLE_MS = 1500;
 
 type Step = (props: { hidden: boolean; onDone: () => void }) => ReactNode;
 const STEPS: Step[] = [ReleaseNotes, PushReminder];
-
-/** Forget this launch's steps (called by the visitor shell). */
-export function resetStartup() {
-  try {
-    sessionStorage.removeItem(LAUNCH_KEY);
-  } catch {
-    // storage blocked: nothing was remembered
-  }
-}
 
 function launchDone(id: string): boolean {
   try {

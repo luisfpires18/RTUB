@@ -29,6 +29,18 @@ public partial class PwaManifestTests
         response.Content.Headers.ContentType?.MediaType.Should().Be("text/javascript");
     }
 
+    [Theory]
+    [InlineData("/service-worker.js")]
+    [InlineData("/js/sw-register.js")]
+    public async Task TheServiceWorkerScripts_AreRevalidatedOnEveryLoad(string path)
+    {
+        // Task 139: the portal loads sw-register.js unversioned, so a 30-day copy would outlive a deploy.
+        var response = await _client.GetAsync(path);
+
+        response.Headers.CacheControl?.NoCache.Should().BeTrue();
+        response.Headers.CacheControl?.MaxAge.Should().BeNull();
+    }
+
     [Fact]
     public async Task ServiceWorker_ContainsCachingStrategy()
     {

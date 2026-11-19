@@ -52,7 +52,8 @@ public static class StaticFilesPipelineExtensions
                 }
                 // Service Worker must always be revalidated so browsers detect updates immediately
                 // Without this, the SW file gets the 30-day cache and users see stale UI
-                else if (path.EndsWith("service-worker.js"))
+                // sw-register.js is loaded unversioned by the portal page, so a cached copy would outlive a deploy
+                else if (path.EndsWith("service-worker.js") || path.EndsWith("sw-register.js"))
                 {
                     ctx.Context.Response.Headers.Append("Cache-Control", "no-cache");
                 }

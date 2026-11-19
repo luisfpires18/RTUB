@@ -1,4 +1,5 @@
 // Dialog to create or edit an album (cover, visibility, exclusive member list).
+import { Avatar } from './ui/Avatar';
 import { PersonChip } from './ui/PersonChip';
 import { FieldError } from './ui/FieldError';
 import { DialogFooter } from './ui/DialogFooter';
@@ -152,7 +153,7 @@ export function AlbumForm({
                                   setSearch('');
                                 }}
                               >
-                                <img src={m.avatarUrl} alt="" width="28" height="28" />
+                                <Avatar src={m.avatarUrl} size={28} />
                                 {m.displayName}
                               </button>
                             </li>
