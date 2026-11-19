@@ -143,7 +143,7 @@ export function PlayAlongField({
         </div>
       )}
       {has && (
-        <CheckField checked={picking} disabled={busy || !chart} onChange={(c) => void togglePicking(c)}>
+        <CheckField checked={picking} disabled={busy || !chart || pending !== null} onChange={(c) => void togglePicking(c)}>
           Incluir dedilhado (guitarra)
         </CheckField>
       )}
