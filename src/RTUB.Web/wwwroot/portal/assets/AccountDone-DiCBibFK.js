@@ -1,1 +1,0 @@
-import{j as n}from"./vendor-react-DI41Mul8.js";import{I as a}from"./index-Dr1ukCdF.js";function m({icon:r,message:t,error:e,role:c="status",focusRef:o,children:s}){return n.jsxs("div",{ref:o,tabIndex:o?-1:void 0,className:e?"account-done account-done--error":"account-done",role:c,children:[n.jsx(a,{name:r}),n.jsx("p",{children:t}),s]})}export{m as A};
