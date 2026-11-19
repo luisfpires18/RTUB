@@ -166,6 +166,7 @@ export function ThreadNotice({ reason, onBack }: { reason: 'notfound' | 'signin'
 export function ThreadMessage({
   message: m,
   newDay,
+  lastOfRun,
   kind,
   canSend,
   canReact,
@@ -178,6 +179,8 @@ export function ThreadMessage({
 }: {
   message: MessageItem;
   newDay: boolean;
+  /** The next message is from someone else (or another day): others' photo goes here, Messenger style. */
+  lastOfRun: boolean;
   kind: string;
   canSend: boolean;
   canReact: boolean;
@@ -200,6 +203,12 @@ export function ThreadMessage({
         <p className="chat-note">{m.body}</p>
       ) : (
         <div className={`bubble-row${m.isMine ? ' bubble-row--mine' : ''}`}>
+          {!m.isMine &&
+            (lastOfRun ? (
+              <Avatar className="bubble__face" src={kind === 'system' ? RTUB_LOGO : (m.sender?.avatarUrl ?? null)} size={28} />
+            ) : (
+              <span className="bubble__face" aria-hidden="true" />
+            ))}
           <div className="bubble">
             {showNames && !m.isMine && name && <p className="bubble__name">{name}</p>}
             {m.replyTo && (
