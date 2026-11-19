@@ -51,7 +51,7 @@ public class AccountEndpointTests : IntegrationTestBase
         json.RootElement.GetProperty("displayName").GetString().Should().NotBeNullOrWhiteSpace();
         body.Should().NotContain("testadmin@test.com", "no contact details leave this endpoint");
         body.Should().NotContain("\"roles\"", "roles are not listed; menu only says which menu groups to show");
-        Menu(json).Should().Equal(("management", true), ("logistics", true), ("treasury", true), ("admin", true), ("owner", true));
+        Menu(json).Should().Equal(("management", true), ("logistics", true), ("treasury", true), ("admin", true), ("owner", true), ("governance", true));
     }
 
     /// <summary>
@@ -60,15 +60,15 @@ public class AccountEndpointTests : IntegrationTestBase
     /// a Leitão's Gestão shows Logística only (management and treasury stay off).
     /// </summary>
     [Theory]
-    [InlineData(null, null, true, true, false, false, false)]
-    [InlineData(null, MemberCategory.Leitao, false, true, false, false, false)]
-    [InlineData(null, MemberCategory.Caloiro, true, true, false, false, false)]
-    [InlineData(null, MemberCategory.Tuno, true, true, true, false, false)]
-    [InlineData("Mod", MemberCategory.Leitao, true, true, true, false, false)]
-    [InlineData("Admin", null, true, true, true, true, false)]
-    [InlineData("Owner", null, true, true, true, false, true)]
+    [InlineData(null, null, true, true, false, false, false, false)]
+    [InlineData(null, MemberCategory.Leitao, false, true, false, false, false, false)]
+    [InlineData(null, MemberCategory.Caloiro, true, true, false, false, false, false)]
+    [InlineData(null, MemberCategory.Tuno, true, true, true, false, false, false)]
+    [InlineData("Mod", MemberCategory.Leitao, true, true, true, false, false, true)]
+    [InlineData("Admin", null, true, true, true, true, false, true)]
+    [InlineData("Owner", null, true, true, true, false, true, true)]
     public async Task Menu_ShowsEachGroupOnlyWhereTheNavbarDid(
-        string? role, MemberCategory? category, bool management, bool logistics, bool treasury, bool admin, bool owner)
+        string? role, MemberCategory? category, bool management, bool logistics, bool treasury, bool admin, bool owner, bool governance)
     {
         var name = $"menu{Guid.NewGuid():N}"[..20];
         var (client, user) = await CookieTestSession.SignInAsync(Factory, name, $"10.97.0.{Interlocked.Increment(ref _ip)}", role);
@@ -84,7 +84,7 @@ public class AccountEndpointTests : IntegrationTestBase
         using var json = JsonDocument.Parse(await client.GetStringAsync(Me));
 
         Menu(json).Should().Equal(
-            ("management", management), ("logistics", logistics), ("treasury", treasury), ("admin", admin), ("owner", owner));
+            ("management", management), ("logistics", logistics), ("treasury", treasury), ("admin", admin), ("owner", owner), ("governance", governance));
     }
 
     private static int _ip;

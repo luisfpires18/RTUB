@@ -6,7 +6,7 @@ import { json } from './apiCall';
  * Which member-menu groups the caller sees (MemberMenuAccess): the navbar rules, decided by the
  * server. It only hides links; every page and API still enforces its own rule.
  */
-export type MemberMenu = { management: boolean; logistics: boolean; treasury: boolean; admin: boolean; owner: boolean };
+export type MemberMenu = { management: boolean; logistics: boolean; treasury: boolean; admin: boolean; owner: boolean; governance: boolean };
 
 /**
  * GET /api/account/me (AccountController). Only the caller's own, non-sensitive fields. `version` is the build, as

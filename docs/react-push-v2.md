@@ -40,7 +40,7 @@ Tables: `PushSubscriptions`, `PushPreferences`, `PendingActionDismissals`; user 
 
 ## API (`src/RTUB.Web/Endpoints/PushEndpoints.cs`)
 
-Signed-in members only (401), every answer `no-store`, every write needs `X-CSRF-TOKEN`. A member reads, adds and
+Signed-in members only (401 with a problem-details body, like every other API group), every answer `no-store`, every write needs `X-CSRF-TOKEN`. A member reads, adds and
 removes only their own subscriptions.
 
 | Route | Body | Answer |

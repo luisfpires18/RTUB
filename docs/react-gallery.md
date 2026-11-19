@@ -47,7 +47,7 @@ Upload with `eventId` needs only the upload right. The event must exist and not 
 
 ## API
 
-Writes need `X-CSRF-TOKEN`. Reads are GET only, `no-store`.
+Writes need `X-CSRF-TOKEN`. Reads are GET only; every `/api/gallery` GET, the two public ones included, runs under the `NoStore` filter (`Cache-Control: no-store`).
 
 | Endpoint | Who | Notes |
 | --- | --- | --- |
