@@ -45,7 +45,7 @@ public partial class ReleaseWorkflowTests
     [Fact]
     public void SchemaGate_KnowsTheSquash_WithTheSameIdsAsTheApp()
     {
-        var script = Read("scripts/release.sh");
+        var script = Read("scripts/release-checks.sh");
 
         script.Should().Contain($"BASELINE = \"{MigrationBaseline.BaselineId}\"");
         script.Should().Contain($"SQUASHED_THROUGH = \"{MigrationBaseline.LastSquashedId}\"");

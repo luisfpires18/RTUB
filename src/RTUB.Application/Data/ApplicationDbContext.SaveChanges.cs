@@ -1,12 +1,11 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Core.Constants;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Data;
 
-// SaveChanges with audit entries and SQLite lock retry.
+// SaveChanges with audit entries (the SQLite lock retry is in ApplicationDbContext.SaveRetry.cs).
 
 public partial class ApplicationDbContext
 {
@@ -18,6 +17,62 @@ public partial class ApplicationDbContext
             return await base.SaveChangesAsync(cancellationToken);
         }
 
+        var (username, userId) = ResolveAuditActor();
+
+        // Collect audit entries before saving
+        var auditEntries = new List<AuditLog>();
+
+        // Track Created entities to update EntityId after SaveChanges
+        // (EntityId is 0/null before save, gets assigned after)
+        var pendingCreatedAuditLogs = new List<(AuditLog auditLog, BaseEntity entity)>();
+
+        // Track role changes (critical action)
+        // Collect IDs during change tracking, then resolve names asynchronously after save
+        var pendingRoleAudits = new List<PendingRoleAudit>();
+
+        // Names the audited rows need (members, events, ...) and the tracker lacks, in at most one batched query
+        // per table and only when needed; before the save, so deleted rows are still there to be named.
+        await LoadAuditNamesAsync(ChangeTracker.Entries<BaseEntity>().Where(WillBeAudited).ToList(), cancellationToken);
+
+        StampTimestamps(username);
+        CollectAuditEntries(username, userId, auditEntries, pendingCreatedAuditLogs, pendingRoleAudits);
+
+        var result = await SaveChangesWithRetryAsync(cancellationToken);
+
+        // Update EntityId for Created audit logs now that IDs are assigned
+        foreach (var (auditLog, entity) in pendingCreatedAuditLogs)
+        {
+            if (entity.Id > 0)
+            {
+                auditLog.EntityId = entity.Id;
+            }
+        }
+
+        await AddResolvedRoleAuditsAsync(pendingRoleAudits, auditEntries, username, userId, cancellationToken);
+
+        // Save audit logs after successful save (disable auditing to prevent infinite loop)
+        if (auditEntries.Any())
+        {
+            _isAuditingEnabled = false;
+            try
+            {
+                AuditLogs.AddRange(auditEntries);
+                await SaveChangesWithRetryAsync(cancellationToken);
+            }
+            finally
+            {
+                _isAuditingEnabled = true;
+            }
+        }
+
+        return result;
+    }
+
+    private readonly record struct PendingRoleAudit(
+        string Action, string TargetUserId, string RoleId, string? CachedUsername, string? CachedRoleName);
+
+    private (string? Username, string? UserId) ResolveAuditActor()
+    {
         // Try to get user from HttpContext first (for HTTP requests)
         var username = _httpContextAccessor.HttpContext?.User?.Identity?.Name;
         var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -30,26 +85,18 @@ public partial class ApplicationDbContext
             userId = _auditContext.UserId;
         }
 
-        // Collect audit entries before saving
-        var auditEntries = new List<AuditLog>();
+        return (username, userId);
+    }
 
-        // Track Created entities to update EntityId after SaveChanges
-        // (EntityId is 0/null before save, gets assigned after)
-        var pendingCreatedAuditLogs = new List<(AuditLog auditLog, BaseEntity entity)>();
-
-        // Track role changes (critical action)
-        // Collect IDs during change tracking, then resolve names asynchronously after save
-        var pendingRoleAudits = new List<(string Action, string TargetUserId, string RoleId, string? CachedUsername, string? CachedRoleName)>();
-
-        // Names the audited rows need (members, events, ...) and the tracker lacks, in at most one batched query
-        // per table and only when needed; before the save, so deleted rows are still there to be named.
-        await LoadAuditNamesAsync(ChangeTracker.Entries<BaseEntity>().Where(WillBeAudited).ToList(), cancellationToken);
-
+    /// <summary>
+    /// Sets CreatedAt/By on added rows and UpdatedAt/By on modified rows. Excluded entity types
+    /// (high-frequency, low-value changes) are left untouched.
+    /// </summary>
+    private void StampTimestamps(string? username)
+    {
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
-            // Skip audit logging for excluded entities (high-frequency, low-value changes)
-            var entityTypeName = entry.Entity.GetType().Name;
-            if (AuditConfiguration.ExcludedEntityTypes.Contains(entityTypeName))
+            if (AuditConfiguration.ExcludedEntityTypes.Contains(entry.Entity.GetType().Name))
                 continue;
 
             switch (entry.State)
@@ -60,7 +107,40 @@ public partial class ApplicationDbContext
                     {
                         entry.Entity.CreatedBy = username;
                     }
+                    break;
 
+                case EntityState.Modified:
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    if (!string.IsNullOrEmpty(username))
+                    {
+                        entry.Entity.UpdatedBy = username;
+                    }
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds the audit rows for everything in the change tracker (entities, users, role links),
+    /// before the save. Role names are only collected here and resolved after the save.
+    /// </summary>
+    private void CollectAuditEntries(
+        string? username,
+        string? userId,
+        List<AuditLog> auditEntries,
+        List<(AuditLog auditLog, BaseEntity entity)> pendingCreatedAuditLogs,
+        List<PendingRoleAudit> pendingRoleAudits)
+    {
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            // Skip audit logging for excluded entities (high-frequency, low-value changes)
+            var entityTypeName = entry.Entity.GetType().Name;
+            if (AuditConfiguration.ExcludedEntityTypes.Contains(entityTypeName))
+                continue;
+
+            switch (entry.State)
+            {
+                case EntityState.Added:
                     // Create audit log for new entity
                     var createdLog = _auditLogAppender.CreateAuditLog(entry, "Created", username, userId, ResolveUserIdToNickname, GetEntityDisplayName);
                     if (createdLog != null)
@@ -72,12 +152,6 @@ public partial class ApplicationDbContext
                     break;
 
                 case EntityState.Modified:
-                    entry.Entity.UpdatedAt = DateTime.UtcNow;
-                    if (!string.IsNullOrEmpty(username))
-                    {
-                        entry.Entity.UpdatedBy = username;
-                    }
-
                     // Skip audit logging for entities excluded from Modified-only tracking
                     if (AuditConfiguration.ModifiedExcludedEntityTypes.Contains(entityTypeName))
                         break;
@@ -125,9 +199,6 @@ public partial class ApplicationDbContext
             }
         }
 
-        // Track role changes (critical action)
-        // Collect IDs during change tracking, then resolve names asynchronously after save
-
         foreach (var entry in ChangeTracker.Entries<IdentityUserRole<string>>())
         {
             if (entry.State == EntityState.Added || entry.State == EntityState.Deleted)
@@ -139,28 +210,24 @@ public partial class ApplicationDbContext
                 var role = Roles.Local.FirstOrDefault(r => r.Id == entry.Entity.RoleId);
 
                 // Store IDs and any cached values for async resolution after save
-                pendingRoleAudits.Add((
+                pendingRoleAudits.Add(new PendingRoleAudit(
                     action,
                     entry.Entity.UserId,
                     entry.Entity.RoleId,
                     targetUser?.UserName,
-                    role?.Name
-                ));
+                    role?.Name));
             }
         }
+    }
 
-        var result = await SaveChangesWithRetryAsync(cancellationToken);
-
-        // Update EntityId for Created audit logs now that IDs are assigned
-        foreach (var (auditLog, entity) in pendingCreatedAuditLogs)
-        {
-            if (entity.Id > 0)
-            {
-                auditLog.EntityId = entity.Id;
-            }
-        }
-
-        // Resolve any missing user/role names asynchronously after the main save
+    // Resolves any missing user/role names asynchronously after the main save.
+    private async Task AddResolvedRoleAuditsAsync(
+        List<PendingRoleAudit> pendingRoleAudits,
+        List<AuditLog> auditEntries,
+        string? username,
+        string? userId,
+        CancellationToken cancellationToken)
+    {
         if (pendingRoleAudits.Any())
         {
             // Collect IDs that need to be resolved
@@ -210,55 +277,5 @@ public partial class ApplicationDbContext
                     userId));
             }
         }
-
-        // Save audit logs after successful save (disable auditing to prevent infinite loop)
-        if (auditEntries.Any())
-        {
-            _isAuditingEnabled = false;
-            try
-            {
-                AuditLogs.AddRange(auditEntries);
-                await SaveChangesWithRetryAsync(cancellationToken);
-            }
-            finally
-            {
-                _isAuditingEnabled = true;
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Maximum number of retry attempts for SQLite "database table is locked" errors.
-    /// </summary>
-    private const int SqliteRetryCount = 3;
-
-    /// <summary>
-    /// Wraps base.SaveChangesAsync with automatic retry for SQLite "database table is locked"
-    /// (Error 6). This transient error occurs when multiple connections contend for write access.
-    /// </summary>
-    private async Task<int> SaveChangesWithRetryAsync(CancellationToken cancellationToken)
-    {
-        for (int attempt = 1; ; attempt++)
-        {
-            try
-            {
-                return await base.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException ex) when (attempt < SqliteRetryCount && IsSqliteTableLocked(ex))
-            {
-                // Exponential backoff: 50ms, 150ms, ...
-                await Task.Delay(50 * (int)Math.Pow(2, attempt - 1), cancellationToken);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Checks whether a DbUpdateException was caused by SQLite Error 6 ("database table is locked").
-    /// </summary>
-    private static bool IsSqliteTableLocked(DbUpdateException ex)
-    {
-        return ex.InnerException is SqliteException { SqliteErrorCode: 6 };
     }
 }
