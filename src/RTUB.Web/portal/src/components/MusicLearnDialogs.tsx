@@ -71,6 +71,7 @@ export function AddDialog({ taken, onChanged, onClose }: { taken: Set<number>; o
             key={songId}
             songId={songId}
             has={has}
+            confirm
             onChange={(now) => {
               setHas(now);
               onChanged();
