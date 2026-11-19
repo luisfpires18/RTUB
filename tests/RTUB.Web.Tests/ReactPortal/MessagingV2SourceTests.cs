@@ -26,7 +26,7 @@ public class MessagingV2SourceTests
     // Task 113 split pages/Messages.tsx into the page, components/Message*.tsx and data/messagesApi.ts.
     private static string MessagesPage() => string.Join("\n", new[]
     {
-        "pages/Messages.tsx", "components/MessageParts.tsx", "components/MessageThread.tsx", "components/MessageStart.tsx", "data/messagesApi.ts",
+        "pages/Messages.tsx", "components/MessageParts.tsx", "components/MessageThread.tsx", "data/useThread.ts", "components/MessageStart.tsx", "data/messagesApi.ts",
     }.Select(f => Read(Portal, f)));
 
     [Fact]

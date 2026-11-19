@@ -5,7 +5,7 @@ import { ListView, Summary } from '../components/LogisticsViews';
 import { logisticsApi, problem, STATUSES, type Board, type Card, type List, type Priority, type Status } from '../data/logisticsApi';
 import { lisbonToday } from '../data/format';
 import type { Drag, Drop, Due, Open, View } from '../data/logisticsBoardTypes';
-import { readUrl, writeUrl } from '../data/logisticsBoardUrl';
+import { readUrl, writeUrl, withoutCard, type BoardFilters } from '../data/logisticsBoardUrl';
 import { isLate, sortRows, type Row, type Sort } from '../data/logisticsRows';
 import { LogisticsBoardHead } from '../components/LogisticsBoardHead';
 import { LogisticsBoardToolbar } from '../components/LogisticsBoardToolbar';
@@ -26,6 +26,22 @@ const VIEWS: { key: View; label: string; icon: 'kanban' | 'listOl' | 'calendar' 
   { key: 'calendar', label: 'Calendário', icon: 'calendar' },
 ];
 
+/** The loaded board, or the notice that stands in for it. */
+type BoardState = Board | 'signin' | 'forbidden' | 'missing' | null;
+const toBoardState = (outcome: Awaited<ReturnType<typeof logisticsApi.board>>): BoardState => {
+  switch (outcome.kind) {
+    case 'ok':
+      return outcome.data;
+    case 'signin':
+      return 'signin';
+    case 'forbidden':
+      return 'forbidden';
+    case 'notfound':
+      return 'missing';
+    default:
+      return null;
+  }
+};
 
 /** The position among every card of the list (the dragged one left out) for a drop between visible cards. */
 const fullIndex = (list: List, visible: number[], index: number, dragged: number) => {
@@ -43,18 +59,23 @@ const fullIndex = (list: List, visible: number[], index: number, dragged: number
  * a card is assigned to tick its checklist and change its status there. Reminders live on the card; ?card=<id> opens a card (links and pushes).
  */
 export default function LogisticsBoard({ boardId }: { boardId: number }) {
-  const [board, setBoard] = useState<Board | 'signin' | 'forbidden' | 'missing' | null>();
+  const [board, setBoard] = useState<BoardState | undefined>();
   const [files, setFiles] = useState<Board['files']>();
   const [initial] = useState(readUrl);
-  const [view, setView] = useState<View>(initial.view);
-  const [text, setText] = useState(initial.q);
-  const [status, setStatus] = useState<Status | ''>(initial.status);
-  const [label, setLabel] = useState(initial.label);
-  const [who, setWho] = useState(initial.who);
-  const [prio, setPrio] = useState<Priority | ''>(initial.prio);
-  const [due, setDue] = useState<Due>(initial.due);
-  const [sort, setSort] = useState<Sort>(initial.sort);
-  const [month, setMonth] = useState(initial.month);
+  const [filters, setFilters] = useState<BoardFilters>(() => withoutCard(initial));
+  const { view, q: text, status, label, who, prio, due, sort, month } = filters;
+  // A patch that changes nothing keeps the same object, so the address effect does not run for it.
+  const update = (patch: Partial<BoardFilters>) =>
+    setFilters((current) => (Object.entries(patch).every(([key, value]) => current[key as keyof BoardFilters] === value) ? current : { ...current, ...patch }));
+  const setView = (next: View) => update({ view: next });
+  const setText = (next: string) => update({ q: next });
+  const setStatus = (next: Status | '') => update({ status: next });
+  const setLabel = (next: string) => update({ label: next });
+  const setWho = (next: string) => update({ who: next });
+  const setPrio = (next: Priority | '') => update({ prio: next });
+  const setDue = (next: Due) => update({ due: next });
+  const setSort = (next: Sort) => update({ sort: next });
+  const setMonth = (next: string) => update({ month: next });
   // ?card=<id>: a link or a push opens that card; the address follows the open card, so it can be shared.
   const [open, setOpen] = useState<Open | undefined>(() => (initial.card ? { kind: 'card', id: initial.card } : undefined));
   const pushNext = useRef(false);
@@ -71,20 +92,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   // The files are a storage listing (one slow R2 round trip): fetched on open and after a file change only, never
   // again on each card / list change. The board renders as soon as it arrives; the files join when they do.
   const loadFiles = () => logisticsApi.fileList(boardId).then((f) => f.kind === 'ok' && setFiles(f.data));
-  const load = () =>
-    logisticsApi.board(boardId).then((o) =>
-      setBoard(
-        o.kind === 'ok'
-          ? o.data
-          : o.kind === 'signin'
-            ? 'signin'
-            : o.kind === 'forbidden'
-              ? 'forbidden'
-              : o.kind === 'notfound'
-                ? 'missing'
-                : null,
-      ),
-    );
+  const load = () => logisticsApi.board(boardId).then((o) => setBoard(toBoardState(o)));
 
   useEffect(() => {
     loadFiles();
@@ -95,22 +103,14 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   // entry, so Back returns to the previous view; everything else replaces the current one.
   const cardOpen = open?.kind === 'card' ? open.id : undefined;
   useEffect(() => {
-    writeUrl({ view, q: text.trim(), status, label, who, prio, due, sort, month, card: cardOpen }, pushNext.current);
+    writeUrl({ ...filters, q: text.trim(), card: cardOpen }, pushNext.current);
     pushNext.current = false;
-  }, [view, text, status, label, who, prio, due, sort, month, cardOpen]);
+  }, [filters, cardOpen]);
 
   useEffect(() => {
     const back = () => {
       const u = readUrl();
-      setView(u.view);
-      setText(u.q);
-      setStatus(u.status);
-      setLabel(u.label);
-      setWho(u.who);
-      setPrio(u.prio);
-      setDue(u.due);
-      setSort(u.sort);
-      setMonth(u.month);
+      update(withoutCard(u));
       setOpen(u.card ? { kind: 'card', id: u.card } : undefined);
     };
     window.addEventListener('popstate', back);
@@ -172,7 +172,7 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
   const allCards = data.lists.flatMap((l) => l.cards);
   const total = allCards.length;
   const rows: Row[] = data.lists.flatMap((list) => visible(list.cards).map((card) => ({ card, list })));
-  const clear = () => (setText(''), setStatus(''), setLabel(''), setWho(''), setPrio(''), setDue(''));
+  const clear = () => update({ q: '', status: '', label: '', who: '', prio: '', due: '' });
   // An archived board is read-only for everyone; managers only restore it.
   const archived = !!data.archivedAt;
   const manage = data.canManage && !archived;
