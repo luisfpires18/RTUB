@@ -140,7 +140,7 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - A new database is broken for member status: the Baseline creates `MemberStatuses.OverrideRetired` NOT NULL with no
   default, and the app no longer writes the column (task 131), so every insert fails ("NOT NULL constraint failed",
   seen on an empty `.local/app.db`). PROD and DEV are not affected: their column has `DEFAULT 0` from the old chain.
-  Fix: a migration that gives it a default, as `UserXpLevelDefaults` did, or the drop of phase 142.
+  Fixed by `DropUnusedColumns` (task 142, draft PR): an empty database then creates its member status rows.
 - Sleeps that make two timestamps differ: `LeaderboardCommentServiceTests.cs:147`,
   `PostServiceTests.PinLockDelete.cs:178`, `RehearsalAttendanceAdminWorkflowTests.InstrumentAndConsistency.cs:142`,
   `RTUB.Core.Tests/Entities/PostTests.cs:175`; `ApplicationUserExtensionsTests.*` compute expectations from
@@ -283,7 +283,8 @@ Phases the audit proposed, each waiting for the owner's "yes, phase N": 140 / 14
 portal intro animation is not to be removed or shortened. The drop release does not go to 3.0.0 (owner, 2026-11-18): the
 "MAJOR bump" wording in the docs changes with phase 142. Not proposed: the CSS merges, backend query work.
 
-After the release with tasks 130-131 is live on PROD: the hand-written drop of the five columns (MAJOR bump,
-`docs/db-cleanup-inventory.md`). Other owner decisions left by the audit: the empty 401 of `PushEndpoints` /
+After the release with tasks 130-131 is live on PROD and its rollback window is over: merge the draft PR of task 142
+(`chore/142/drop-unused-columns`, `20261119020000_DropUnusedColumns`, rehearsed on a copy of the local snapshot; not
+3.0.0, the owner picks the number; production backup first; `docs/db-cleanup-inventory.md`). Other owner decisions left by the audit: the empty 401 of `PushEndpoints` /
 `ReleaseEndpoints`; the `NoStore` filter missing on the two public Gallery GETs; a lazy `Home`; the five files over 300
 lines.

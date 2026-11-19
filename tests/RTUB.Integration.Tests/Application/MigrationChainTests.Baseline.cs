@@ -1,6 +1,8 @@
 // MigrationChainTests: the squashed chain (task 130) and how existing databases adopt the Baseline.
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using RTUB.Application.Data;
 
 namespace RTUB.Integration.Tests;
@@ -11,7 +13,8 @@ public partial class MigrationChainTests
     public async Task ADatabaseThatRanTheSquashedChain_AdoptsTheBaseline_KeepsItsOldRows_AndRunsOnlyLaterMigrations()
     {
         await using var context = CreateContext();
-        await context.Database.MigrateAsync();
+        // An old-chain database has the Baseline's schema (the squash point), not what later migrations made of it.
+        await context.GetService<IMigrator>().MigrateAsync(MigrationBaseline.BaselineId);
         await AsOldChainAsync(context, "20261101211252_AddUserPasskeys", MigrationBaseline.LastSquashedId);
 
         await MigrationBaseline.AdoptAsync(context.Database);
