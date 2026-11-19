@@ -10,21 +10,21 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 140 (`chore/140/readable-backend`), ninth phase of the audit round. Same behaviour, smaller pieces:
+- Seed members: `SeedData.Member*.cs` (3 files), `.Owner.cs`, `.FiscalYearAndRoles.cs`, `.Mentors.cs` (a nickname
+  table); pinned first by `SeedDataMemberSnapshotTests` (83 users, 68 mentor pairs, 12 roles, a hash of every user).
+- Ata PDF: `AtaPdfService.cs` + `.Sections.cs` + `.Signatures.cs`; pinned first by `AtaPdfServiceGoldenTests` (six
+  cases, SHA-256 of the PDF bytes with dates blanked; byte-identical after the split).
+- Member delete in phases (`UserProfileService.Delete.cs`), pinned first by `UserProfileServiceDeleteTests`.
+- `ApplicationDbContext.SaveChanges.cs`: timestamps and audit entries in their own methods (`.SaveRetry.cs` holds the
+  retry). `LogisticsEndpoints.cs`: `s` is `logistics`. `release.sh` sources `release-checks.sh` (notes-check,
+  schema-gate) and `release-self-test.sh`; the self-test prints the same 77 lines.
+
 Task 139 (`perf/139/portal-chunks`), eighth phase of the audit round. Gzip sizes from the build:
 - `StartupModals` is lazy in `App.tsx` (`resetStartup` moved to `data/startupRules.ts`): entry chunk 33.4 → 30.9 KB.
 - `LogisticsBoardDialogs` loads on the first open: board chunk 19.5 → 9.7 KB.
 - `/js/sw-register.js` is `no-cache` (`StaticFilesPipelineExtensions.cs`), test in `PwaManifestTests`.
 - The four raw avatar images use `Avatar` (lazy, broken-image fallback). Shop dialogs left (about 2-3 KB).
-
-Task 138 (`fix/138/portal-loads`), seventh phase of the audit round.
-- The nine loads the audit found racing (a late answer for an older year, tab, search or page replaced the newer one)
-  now drop old answers: `useLatest` in Documentação, Órgãos Sociais, Calotes, Novidades and the Owner logins dialog;
-  an effect cleanup in the transactions history, Órgãos Sociais management, Música (album songs, play-along) and the
-  prizes dialog; `useLoad` in Aniversários.
-- `useLoad(load, deps, pick)` in `components/AppShared.tsx`; `useOwnerLoad` is now a wrapper over it. Pickers `orNull`
-  and `orAccess` in `data/apiCall.ts`, checked by `npm run check:load`. Pin: `PortalLoadGuardSourceTests`.
-- Not done: converting the other ~45 single-setter loads to `useLoad` (no JS test runner to check them; they cannot
-  race, their inputs never change while the page is open).
 
 Merged and not released yet (they matter at the next release): task 130 squashed the 180 migrations into
 `20261118134743_Baseline` (`Data/MigrationBaseline.cs`; Rollback • PROD to 2.3.12 or older needs `allow_newer_schema`);
@@ -36,7 +36,8 @@ the download proxy, rate-limited `/api/account/*`, built email links from `App:B
 DEV `https://rtub-dev.azurewebsites.net`, owner 2026-11-18) and limited gallery uploads to seven checked types
 (`docs/react-identity.md`, `docs/react-gallery.md`); task 136 added rule tests for the 14 `*Authorization` helpers
 (`tests/RTUB.Application.Tests/Helpers/`, `TestPrincipal.WithRole` / `NotSignedIn`); task 137 built the endpoints
-once per start (Integration tests about 175 s → 72 s) and added the `Local` launch profile (`docs/configuration-runbook.md`).
+once per start (Integration tests about 175 s → 72 s) and added the `Local` launch profile (`docs/configuration-runbook.md`); task 138 guarded nine racing portal loads
+(`useLoad`, `useLatest`; `docs/frontend-practices.md`).
 
 Before it: the second cleanup round, tasks 120-129 (PRs #326-#334, merged into `dev`; audit of 2026-11-18). No
 behaviour change except where noted.

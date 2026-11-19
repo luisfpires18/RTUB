@@ -282,8 +282,8 @@ leftover backfill defaults differ, and nothing reads those). The old files are i
 - A database that stopped earlier in the old chain is refused at startup, with the migration it stopped at. Start
   release 2.3.12 or older against it once (2.3.12 is the last release with the old chain), or restore a newer backup.
 - Deploy • PROD's schema check compares the migration ids of the two builds. A release with the Baseline lists none of
-  the 180 old ids, so the check counts every id up to the squash point as known to it (`scripts/release.sh`
-  `cmd_schema_gate`, which holds the same two ids as `MigrationBaseline`; `ReleaseWorkflowTests` pins them). A live
+  the 180 old ids, so the check counts every id up to the squash point as known to it (`scripts/release-checks.sh`,
+  sourced by `release.sh`: `cmd_schema_gate`, which holds the same two ids as `MigrationBaseline`; `ReleaseWorkflowTests` pins them). A live
   migration newer than the squash point that the release does not list is still refused.
 - Rollback • PROD uses the same check: from a release with the Baseline back to 2.3.12 or older it
   reports the Baseline as unknown. The Baseline changes no schema, so `allow_newer_schema` is safe for it; check any
