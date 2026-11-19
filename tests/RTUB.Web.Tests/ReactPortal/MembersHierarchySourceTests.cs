@@ -19,7 +19,7 @@ public class MembersHierarchySourceTests
     // Task 113 split pages/MembersHierarchy.tsx into these files; HierarchyBranch.tsx stays last so the Branch slice ends with its own file.
     private static readonly string Tree = string.Join("\n", new[]
     {
-        "pages/MembersHierarchy.tsx", "data/hierarchyTree.ts", "components/FamilyTree.tsx", "components/HierarchyBranch.tsx",
+        "pages/MembersHierarchy.tsx", "data/hierarchyTree.ts", "components/FamilyTree.tsx", "components/FamilyTreeParts.tsx", "data/useTreeNavigation.ts", "components/HierarchyBranch.tsx",
     }.Select(f => Read("portal", "src", f)));
 
     [Fact]
