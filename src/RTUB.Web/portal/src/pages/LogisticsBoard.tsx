@@ -1,5 +1,5 @@
 // /logistics/{id}: one board page - state, filters, drag and drop; the pieces live in components/Logistics*.
-import { useEffect, useId, useRef, useState, type DragEvent } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState, type DragEvent } from 'react';
 import { Icon } from '../components/icons';
 import { ListView, Summary } from '../components/LogisticsViews';
 import { logisticsApi, problem, STATUSES, type Board, type Card, type List, type Priority, type Status } from '../data/logisticsApi';
@@ -10,13 +10,15 @@ import { isLate, sortRows, type Row, type Sort } from '../data/logisticsRows';
 import { LogisticsBoardHead } from '../components/LogisticsBoardHead';
 import { LogisticsBoardToolbar } from '../components/LogisticsBoardToolbar';
 import { LogisticsKanban } from '../components/LogisticsKanban';
-import { LogisticsBoardDialogs } from '../components/LogisticsBoardDialogs';
 import { ArchivedCards } from '../components/LogisticsArchivedCards';
 import { BoardNotice } from '../components/LogisticsBoardNotice';
 import { CalendarView } from '../components/LogisticsCalendar';
 import { Loading } from '../components/ui/Loading';
 import { Banner } from '../components/ui/Banner';
 import { EmptyBlock } from '../components/ui/EmptyNote';
+
+// The card, list and move dialogs (about 700 lines) load on the first open, not with the board.
+const LogisticsBoardDialogs = lazy(() => import('../components/LogisticsBoardDialogs').then((m) => ({ default: m.LogisticsBoardDialogs })));
 
 const VIEWS: { key: View; label: string; icon: 'kanban' | 'listOl' | 'calendar' }[] = [
   { key: 'board', label: 'Quadro', icon: 'kanban' },
@@ -282,7 +284,11 @@ export default function LogisticsBoard({ boardId }: { boardId: number }) {
 
       <ArchivedCards data={data} manage={manage} run={run} setOpen={setOpen} />
 
-      <LogisticsBoardDialogs open={open} setOpen={setOpen} data={data} load={load} loadFiles={loadFiles} moveCard={moveCard} />
+      {open && (
+        <Suspense fallback={null}>
+          <LogisticsBoardDialogs open={open} setOpen={setOpen} data={data} load={load} loadFiles={loadFiles} moveCard={moveCard} />
+        </Suspense>
+      )}
     </section>
   );
 }

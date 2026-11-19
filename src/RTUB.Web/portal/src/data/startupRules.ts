@@ -20,3 +20,15 @@ export function reminderFits(state: PushState): boolean {
 export function reminderDue(account: { reformed: boolean; acknowledged: boolean }): boolean {
   return !account.reformed || !account.acknowledged;
 }
+
+/** This tab's startup steps already shown (session storage). Here, not in Startup.tsx, so the shell need not load it. */
+export const LAUNCH_KEY = 'rtub-startup-done';
+
+/** Forget this launch's steps (called by the visitor shell). */
+export function resetStartup() {
+  try {
+    sessionStorage.removeItem(LAUNCH_KEY);
+  } catch {
+    // storage blocked: nothing was remembered
+  }
+}

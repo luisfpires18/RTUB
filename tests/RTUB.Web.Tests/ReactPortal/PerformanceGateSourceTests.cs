@@ -51,4 +51,16 @@ public class PerformanceGateSourceTests
         // Task 113: the board's dialogs moved to components/LogisticsBoardDialogs.tsx.
         Read("src", "components/LogisticsBoardDialogs.tsx").Should().Contain("<FilesDialog board={data} onClose={() => setOpen(undefined)} onChanged={loadFiles} />");
     }
+
+    [Fact]
+    public void CodeNeededOnlyLater_IsItsOwnChunk()
+    {
+        // Task 139: the startup dialogs leave the shell's entry chunk; the board's dialogs load on the first open.
+        var app = Read("src", "components/App.tsx");
+        app.Should().Contain("const StartupModals = lazy(() => import('./Startup')").And.NotContain("from './Startup'");
+        app.Should().Contain("import { resetStartup } from '../data/startupRules';");
+        var board = Read("src", "pages/LogisticsBoard.tsx");
+        board.Should().Contain("const LogisticsBoardDialogs = lazy(() => import('../components/LogisticsBoardDialogs')")
+            .And.NotContain("from '../components/LogisticsBoardDialogs'").And.Contain("{open && (");
+    }
 }

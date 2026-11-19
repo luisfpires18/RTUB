@@ -1,4 +1,5 @@
 // Music statistics dialog: most played songs, albums and (for managers) members.
+import { Avatar } from './ui/Avatar';
 import { Banner } from './ui/Banner';
 import { EmptyNote } from './ui/EmptyNote';
 import { useEffect, useState } from 'react';
@@ -108,7 +109,7 @@ function MemberStats({ members }: { members: NonNullable<Statistics['members']> 
               <li key={`${m.displayName}-${m.avatarUrl}`}>
                 <details className="member-stats__item">
                   <summary>
-                    <img src={m.avatarUrl} alt="" width="36" height="36" />
+                    <Avatar src={m.avatarUrl} size={36} />
                     <span className="member-stats__who">
                       <span className="rank__title">{m.displayName}</span>
                       {m.fullName && m.fullName !== m.displayName && <span className="rank__sub">{m.fullName}</span>}

@@ -10,6 +10,12 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 139 (`perf/139/portal-chunks`), eighth phase of the audit round. Gzip sizes from the build:
+- `StartupModals` is lazy in `App.tsx` (`resetStartup` moved to `data/startupRules.ts`): entry chunk 33.4 → 30.9 KB.
+- `LogisticsBoardDialogs` loads on the first open: board chunk 19.5 → 9.7 KB.
+- `/js/sw-register.js` is `no-cache` (`StaticFilesPipelineExtensions.cs`), test in `PwaManifestTests`.
+- The four raw avatar images use `Avatar` (lazy, broken-image fallback). Shop dialogs left (about 2-3 KB).
+
 Task 138 (`fix/138/portal-loads`), seventh phase of the audit round.
 - The nine loads the audit found racing (a late answer for an older year, tab, search or page replaced the newer one)
   now drop old answers: `useLatest` in Documentação, Órgãos Sociais, Calotes, Novidades and the Owner logins dialog;
@@ -20,16 +26,6 @@ Task 138 (`fix/138/portal-loads`), seventh phase of the audit round.
 - Not done: converting the other ~45 single-setter loads to `useLoad` (no JS test runner to check them; they cannot
   race, their inputs never change while the page is open).
 
-Task 137 (`chore/137/test-speed`), sixth phase of the audit round.
-- Measured first: a test host's cost is the app's start, and the app built its 384 endpoints twice per start.
-  `app.BuildEndpointsOnce()` (owner approved the `Program.cs` change, 2026-11-18) builds them once: Integration tests
-  about 175 s → about 72 s, and every real start is shorter.
-- Measured and not kept: password-hash cost in test hosts, workstation GC, thread-pool size (no change). Not tried:
-  one shared host for the 28 `IntegrationTestBase` classes (it shares one database between classes, and the bigger
-  gain is in); `ConfigurationAuditTests` once per class (5.7 s of a project that is not the slow one).
-- `Local` launch profile: one command, port 5178, `.local/app.db`, no real bucket, no mail, no backup.
-- Docs: where the test time goes, disk and temp (`docs/ci-cd-and-azure-environments.md`), *Local run* (runbook).
-
 Merged and not released yet (they matter at the next release): task 130 squashed the 180 migrations into
 `20261118134743_Baseline` (`Data/MigrationBaseline.cs`; Rollback • PROD to 2.3.12 or older needs `allow_newer_schema`);
 task 131 stopped using five columns, which stay until the drop release (`docs/db-cleanup-inventory.md` → *Pending
@@ -39,7 +35,8 @@ pushes and the calotes reminder on Portugal's clock (`docs/backend-practices.md`
 the download proxy, rate-limited `/api/account/*`, built email links from `App:BaseUrl` (PROD `https://www.rtub.pt`,
 DEV `https://rtub-dev.azurewebsites.net`, owner 2026-11-18) and limited gallery uploads to seven checked types
 (`docs/react-identity.md`, `docs/react-gallery.md`); task 136 added rule tests for the 14 `*Authorization` helpers
-(`tests/RTUB.Application.Tests/Helpers/`, `TestPrincipal.WithRole` / `NotSignedIn`).
+(`tests/RTUB.Application.Tests/Helpers/`, `TestPrincipal.WithRole` / `NotSignedIn`); task 137 built the endpoints
+once per start (Integration tests about 175 s → 72 s) and added the `Local` launch profile (`docs/configuration-runbook.md`).
 
 Before it: the second cleanup round, tasks 120-129 (PRs #326-#334, merged into `dev`; audit of 2026-11-18). No
 behaviour change except where noted.
@@ -199,15 +196,11 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - `NewsEndpoints.cs` 403 title names system roles (API callers only; the portal shows its own message).
 - React `/roles` probes `GET /api/governance/manage`, logging a 403 console error for members without rights.
 - `portal/index.html` `theme-color` is `#000000`; the manifest says `#3F2A86`.
-- Portal `index.html` loads `/js/sw-register.js` unversioned: one visit after a deploy can run the old script.
 - `XpSettings` and `RankingConfiguration` both bind `Ranking`; equal level+XP keep SQLite's unordered order.
 - Play cooldown and the system announcement live in one app instance's memory (a scale-out needs a shared store).
 
 **Performance** (`docs/performance-gate.md`)
-- Left by task 126: `StartupModals` (with `data/push.ts`) stays in the entry chunk because `App.tsx` also needs
-  `resetStartup` from the same module; `Home` is static in `main.tsx` (the LCP page: an owner decision);
-  `LogisticsBoard` (19 KB gzip) and `Shop` likely ship dialogs the same way `/meetings` did; four avatar images bypass
-  `Avatar` (`ui/PersonChip.tsx`, `MusicAlbumForm.tsx`, `MusicStatistics.tsx`, `GalleryFormParts.tsx`).
+- `Home` is static in `main.tsx` (the LCP page: an owner decision); `Shop` dialogs are in its chunk (about 2-3 KB).
 - Left by task 121. `TreasuryService.Reports.cs:28` loads every activity and transaction for the reports list: SQLite
   cannot sum `decimal` in SQL, and a narrow projection would copy the `IsHiddenFromCalculations` rule. Push loops kept
   per recipient: mentions (a member named twice gets two pushes today), the reminder workers (cancellation between
@@ -276,10 +269,6 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   (`PreferencesLink`); five services keep a private `LooksLikeImage` that `MediaSignature` could replace; the portal's
   gallery input still offers every `image/*` / `video/*`; every API group is `AllowAnonymous()` and the checks live
   only in the services; member emails are logged at Information level (`EmailNotificationService.*`).
-- Portal: nine loads have no late-answer guard (`MemberListDialogs.tsx:105`, `Documentation.tsx:34`,
-  `TreasuryTransactionDialogs.tsx:126`, `Governance.tsx:43,55`, `TreasuryCalotes.tsx:31`, `News.tsx:42`,
-  `MusicLearnDialogs.tsx:24`, `OwnerLoginsDialog.tsx:25`, `MusicPlayAlongField.tsx:19`); `sw-register.js` gets the 30-day
-  cache (`StaticFilesPipelineExtensions.cs`); `LogisticsBoard.tsx:13` imports its dialogs statically.
 - Release: the daily backup keeps two generations, needs Always On and alerts nobody on failure; no test restores a
   backup; `release.sh` checks only that VERSION goes up, not the MAJOR bump of a drop release; `AdoptAsync` writes the
   Baseline row before the pre-migration snapshot.
@@ -289,7 +278,7 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
   `/api/me/profile` 15 queries, `/api/members` 7, `/api/leaderboard` 7. Every route loads 137 kB gzip first.
 
 ## Next
-Phases the audit proposed, each waiting for the owner's "yes, phase N": 139 portal chunks, 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
+Phases the audit proposed, each waiting for the owner's "yes, phase N": 140 / 141 readability (backend, portal), 142 the drop below as a draft PR. The
 portal intro animation is not to be removed or shortened. The drop release does not go to 3.0.0 (owner, 2026-11-18): the
 "MAJOR bump" wording in the docs changes with phase 142. Not proposed: the CSS merges, backend query work.
 

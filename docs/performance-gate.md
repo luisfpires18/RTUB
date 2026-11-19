@@ -25,6 +25,10 @@ Pinned by `tests/RTUB.Web.Tests/ReactPortal/PerformanceGateSourceTests.cs`.
 - No layout shift on mount: `.boot` uses padding (a margin collapses through `<body>`); `main { min-height:
   calc(100vh - var(--header-h)) }` keeps the footer below the fold; `/members` actions render while the list loads
   (only "Adicionar membro" waits for `canManage`); the event hero has `aspect-ratio: 3 / 2`.
+- Code needed only later is its own chunk (task 139, gzip from the build): the startup dialogs (`App.tsx` lazy
+  `StartupModals`; `resetStartup` lives in `data/startupRules.ts`) left the entry chunk, 33.4 → 30.9 KB; the board's
+  dialogs load on the first open (`LogisticsBoard.tsx` lazy `LogisticsBoardDialogs`), board chunk 19.5 → 9.7 KB.
+  `/js/sw-register.js` is `no-cache` like `service-worker.js` (it is loaded unversioned).
 - Logistics: board changes reload the board only (`?files=false`); the R2 folder listing (the slowest call in the
   app) loads on open, on "Tentar novamente" and after a file upload or delete (`/file-list`).
 - Cookie validation (`OnValidatePrincipal`) asks the database about the Admin role only when the cookie claims it. The

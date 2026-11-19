@@ -1,6 +1,6 @@
 // A member as a chip (photo + name): removable by default, or `readOnly` with a small note.
+import { Avatar } from './Avatar';
 import { Icon } from '../icons';
-import { DEFAULT_AVATAR } from '../../data/membersApi';
 
 /**
  * Removable (default): `chip chip--removable`, with a remove button only when `onRemove` is given.
@@ -27,7 +27,7 @@ export function PersonChip({
   const Tag = item ? 'li' : 'span';
   return (
     <Tag className={readOnly ? 'chip lx-person' : 'chip chip--removable'}>
-      <img src={avatar ?? DEFAULT_AVATAR} alt="" width="24" height="24" />
+      <Avatar src={avatar ?? null} size={24} />
       {name}
       {readOnly && note && <small className="lx-view__lead">{note}</small>}
       {!readOnly && onRemove && (

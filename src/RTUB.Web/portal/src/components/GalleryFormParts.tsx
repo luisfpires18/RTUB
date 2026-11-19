@@ -1,4 +1,5 @@
 // People picker and details fields shared by the gallery upload and edit dialogs.
+import { Avatar } from './ui/Avatar';
 import { useEffect, useId, useState } from 'react';
 import { FieldError } from './ui/FieldError';
 import { GalleryPerson } from '../data/api';
@@ -54,7 +55,7 @@ export function PeoplePicker({ people, onChange }: { people: GalleryPerson[]; on
                   setQuery('');
                 }}
               >
-                <img src={m.avatarUrl} alt="" width="28" height="28" loading="lazy" />
+                <Avatar src={m.avatarUrl} size={28} />
                 <span>
                   {m.name}
                   {m.fullName && m.fullName !== m.name && <small>{m.fullName}</small>}
