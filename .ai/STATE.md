@@ -6,10 +6,14 @@ in the docs `CLAUDE.md` links. Overwrite stale entries.
 _Last updated: 2026-11-18_
 
 ## Release state
-- `master` (PROD): **2.3.13** (released 2026-11-19, tag `v2.3.13`). `dev`: **2.3.14** (unreleased). The column drop (task 142, draft PR #346) waits for 2.3.13's rollback window.
+- `master` (PROD): **2.3.14** (released 2026-11-19, tag `v2.3.14`: the five-column drop, task 142). `dev`: **2.3.15** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 147 (`chore/147/unmap-post-media`): `PostMedia` / `CommentImages` (0 rows on PROD, 2026-11-19 backup) are unmapped:
+entities, repositories, delete clean-up and the dashboard uploads entries removed; `StopMappingPostMediaAndCommentImages` is
+model only (empty Up/Down), the tables stay. The drop is task 148, a draft PR, after 2.3.15 is live on PROD.
+
 Task 141 (`chore/141/readable-portal`), tenth phase of the audit round. Same UI, smaller pieces (proof: `tsc`, the
 source pins; no browser run, no component tests):
 - `MeetingAta.tsx` 228 + `data/useAtaEditor.ts` + `MeetingAtaBoard.tsx` + parts in `MeetingAtaParts.tsx`.

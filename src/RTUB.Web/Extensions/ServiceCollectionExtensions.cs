@@ -27,8 +27,6 @@ public static partial class ServiceCollectionExtensions
         services.AddScoped<IAlbumRepository, AlbumRepository>();
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
-        services.AddScoped<IPostMediaRepository, PostMediaRepository>();
-        services.AddScoped<ICommentImageRepository, CommentImageRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IMemberDebtRepository, MemberDebtRepository>();
         services.AddScoped<IDiscussionRepository, DiscussionRepository>();

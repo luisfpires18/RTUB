@@ -14,8 +14,6 @@ namespace RTUB.Application.Services;
 public class CommentService : ICommentService
 {
     private readonly ICommentRepository _commentRepository;
-    private readonly ICommentImageRepository _commentImageRepository;
-    private readonly IEventMediaStorageService _eventMediaStorageService;
     private readonly IPostRepository _postRepository;
     private readonly IDiscussionRepository _discussionRepository;
     private readonly IPostService _postService;
@@ -26,8 +24,6 @@ public class CommentService : ICommentService
 
     public CommentService(
         ICommentRepository commentRepository,
-        ICommentImageRepository commentImageRepository,
-        IEventMediaStorageService eventMediaStorageService,
         IPostRepository postRepository,
         IDiscussionRepository discussionRepository,
         IPostService postService,
@@ -38,8 +34,6 @@ public class CommentService : ICommentService
     {
         _time = time ?? TimeProvider.System;
         _commentRepository = commentRepository;
-        _commentImageRepository = commentImageRepository;
-        _eventMediaStorageService = eventMediaStorageService;
         _postRepository = postRepository;
         _discussionRepository = discussionRepository;
         _postService = postService;
@@ -158,26 +152,7 @@ public class CommentService : ICommentService
     {
         var comment = await _commentRepository.GetByIdOrThrowAsync(id);
 
-        // Get images before soft delete
-        var images = await _commentImageRepository.GetByCommentIdAsync(id);
-
         comment.SoftDelete();
         await _commentRepository.UpdateAsync(comment);
-
-        // Delete image files from storage
-        foreach (var image in images)
-        {
-            try
-            {
-                await _eventMediaStorageService.DeleteMediaAsync(image.Url);
-            }
-            catch
-            {
-                // Log but don't fail - media cleanup is secondary
-            }
-        }
-
-        // Remove image records
-        await _commentImageRepository.DeleteByCommentIdAsync(id);
     }
 }

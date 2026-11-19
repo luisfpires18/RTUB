@@ -21,10 +21,10 @@ public partial class OwnerOperationsService
     {
         ["Event"] = "Atuações", ["Enrollment"] = "Atuações", ["EventRepertoire"] = "Atuações", ["EventVideo"] = "Atuações",
         ["EventContact"] = "Atuações", ["Post"] = "Atuações", ["Comment"] = "Atuações", ["Discussion"] = "Atuações",
-        ["Transportation"] = "Atuações", ["TransportationPassenger"] = "Atuações", ["CommentImage"] = "Atuações",
+        ["Transportation"] = "Atuações", ["TransportationPassenger"] = "Atuações",
         ["Rehearsal"] = "Ensaios", ["RehearsalAttendance"] = "Ensaios",
         ["Song"] = "Música", ["SongVideo"] = "Música", ["SongYouTubeUrl"] = "Música", ["Album"] = "Música", ["AlbumAccess"] = "Música",
-        ["NewsPost"] = "Novidades", ["PostMedia"] = "Novidades",
+        ["NewsPost"] = "Novidades",
         ["Meeting"] = "Reuniões", ["MeetingRequest"] = "Reuniões", ["MeetingParticipation"] = "Reuniões", ["MeetingAta"] = "Reuniões",
         ["MeetingAtaAttachment"] = "Reuniões",
         ["Product"] = "Loja", ["ProductReservation"] = "Loja", ["ShopPromotion"] = "Loja", ["ShopPromotionItem"] = "Loja",
@@ -98,11 +98,7 @@ public partial class OwnerOperationsService
             .Where(x => x.CreatedAt >= since && x.CreatedAt < until).Select(x => x.CreatedAt).ToListAsync());
         uploads.AddRange(await db.NaipeContents.AsNoTracking()
             .Where(x => x.CreatedAt >= since && x.CreatedAt < until).Select(x => x.CreatedAt).ToListAsync());
-        uploads.AddRange(await db.PostMedia.AsNoTracking()
-            .Where(x => x.CreatedAt >= since && x.CreatedAt < until).Select(x => x.CreatedAt).ToListAsync());
         uploads.AddRange(await db.MeetingAtaAttachments.AsNoTracking()
-            .Where(x => x.CreatedAt >= since && x.CreatedAt < until).Select(x => x.CreatedAt).ToListAsync());
-        uploads.AddRange(await db.CommentImages.AsNoTracking()
             .Where(x => x.CreatedAt >= since && x.CreatedAt < until).Select(x => x.CreatedAt).ToListAsync());
 
         // Day index of a stored UTC timestamp: 0..days-1 in the range, negative in the previous period.

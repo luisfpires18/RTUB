@@ -565,54 +565,6 @@ namespace RTUB.Migrations
                     b.ToTable("Comments");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.CommentImage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CommentId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MimeType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("SizeBytes")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SortOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CommentId");
-
-                    b.HasIndex("CommentId", "SortOrder");
-
-                    b.ToTable("CommentImages", (string)null);
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.Conversation", b =>
                 {
                     b.Property<int>("Id")
@@ -3113,59 +3065,6 @@ namespace RTUB.Migrations
                     b.ToTable("Posts");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.PostMedia", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MediaType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MimeType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PostId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("SizeBytes")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SortOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PostId");
-
-                    b.HasIndex("PostId", "SortOrder");
-
-                    b.ToTable("PostMedia", (string)null);
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -4430,17 +4329,6 @@ namespace RTUB.Migrations
                     b.Navigation("Post");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.CommentImage", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.Comment", "Comment")
-                        .WithMany("Images")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Comment");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.ConversationUserSettings", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Conversation", "Conversation")
@@ -5124,17 +5012,6 @@ namespace RTUB.Migrations
                     b.Navigation("Discussion");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.PostMedia", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.Post", "Post")
-                        .WithMany("Media")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Post");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.ProductReservation", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Product", "Product")
@@ -5417,11 +5294,6 @@ namespace RTUB.Migrations
                     b.Navigation("Songs");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.Comment", b =>
-                {
-                    b.Navigation("Images");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.Conversation", b =>
                 {
                     b.Navigation("Messages");
@@ -5521,8 +5393,6 @@ namespace RTUB.Migrations
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
                 {
                     b.Navigation("Comments");
-
-                    b.Navigation("Media");
 
                     b.Navigation("Transportation");
                 });

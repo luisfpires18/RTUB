@@ -20,7 +20,6 @@ public class PostRepository : Repository<Post>, IPostRepository
         using var context = CreateContext();
         return await context.Set<Post>()
             .Include(p => p.Author)
-            .Include(p => p.Media)
             .Include(p => p.Transportation)
                 .ThenInclude(t => t!.Passengers)
                 .ThenInclude(p => p.Passenger)
@@ -34,7 +33,6 @@ public class PostRepository : Repository<Post>, IPostRepository
             .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Comments)
-            .Include(p => p.Media)
             .Include(p => p.Transportation)
                 .ThenInclude(t => t!.Passengers)
                 .ThenInclude(p => p.Passenger)
