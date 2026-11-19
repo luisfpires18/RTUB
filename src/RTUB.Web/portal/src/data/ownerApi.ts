@@ -128,8 +128,6 @@ export const ENTITY_LABELS: Record<string, string> = {
   Album: 'Álbum',
   AlbumAccess: 'Acesso a álbum',
   NewsPost: 'Novidade',
-  PostMedia: 'Anexo de publicação',
-  CommentImage: 'Imagem de comentário',
   Meeting: 'Reunião',
   MeetingRequest: 'Pedido de reunião',
   MeetingParticipation: 'Presença em reunião',

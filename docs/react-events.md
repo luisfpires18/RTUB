@@ -37,7 +37,7 @@ No schema change in the current rules. Key columns that constrain changes:
 - `Trophies`: `Name` (≤200), `EventId`.
 - `EventVideos`: `Url` (≤2048), `Title` (≤200), `MimeType` (≤100), `SizeBytes`, `SortOrder`, `CreatedByUserId`.
 - `EventRepertoires`: `SongId`, `DisplayOrder` (1-1000 per day), `RepertoireDate`. Unique (`EventId`, `SongId`). Songs come from Music; titles only.
-- `Discussions`, `Posts`, `Comments`, `Transportations`, `TransportationPassengers`, `PostMedia`, `CommentImages`. `PostMedia` and `CommentImages` are not written.
+- `Discussions`, `Posts`, `Comments`, `Transportations`, `TransportationPassengers`. (`PostMedia` and `CommentImages` are unmapped, task 147; the tables remain until the drop release.)
 - `EventContacts`: `EventId`, `UserId` (a member), `IsContacted`, `WillAttend` (bool?), `Notes` (≤500), `ContactedAt`, `ContactedBy`.
 
 Deleting an event cascades enrollments, trophies, video rows, repertoire, discussion and contacts. Video files stay in R2.

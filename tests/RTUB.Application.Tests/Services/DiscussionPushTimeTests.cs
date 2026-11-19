@@ -85,11 +85,11 @@ public class DiscussionPushTimeTests : IDisposable
 
     private PostService Posts(TimeProvider clock) => new(
         new PostRepository(_db.CreateContextFactory()), _discussions.Object, new EnrollmentRepository(_db.CreateContextFactory()),
-        Mock.Of<IPostMediaRepository>(), Mock.Of<IEventMediaStorageService>(), Mock.Of<IPushNotificationFactory>(),
+        Mock.Of<IPushNotificationFactory>(),
         _push.Object, _users.Object, clock);
 
     private CommentService Comments(TimeProvider clock) => new(
-        new CommentRepository(_db.CreateContextFactory()), Mock.Of<ICommentImageRepository>(), Mock.Of<IEventMediaStorageService>(),
+        new CommentRepository(_db.CreateContextFactory()),
         new PostRepository(_db.CreateContextFactory()), _discussions.Object, Mock.Of<IPostService>(),
         Mock.Of<IPushNotificationFactory>(), _push.Object, _users.Object, clock);
 

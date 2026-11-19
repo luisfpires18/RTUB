@@ -17,8 +17,6 @@ public class PostService : IPostService
     private readonly IPostRepository _postRepository;
     private readonly IDiscussionRepository _discussionRepository;
     private readonly IEnrollmentRepository _enrollmentRepository;
-    private readonly IPostMediaRepository _postMediaRepository;
-    private readonly IEventMediaStorageService _eventMediaStorageService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IUserProfileService _userProfileService;
@@ -28,8 +26,6 @@ public class PostService : IPostService
         IPostRepository postRepository,
         IDiscussionRepository discussionRepository,
         IEnrollmentRepository enrollmentRepository,
-        IPostMediaRepository postMediaRepository,
-        IEventMediaStorageService eventMediaStorageService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         IUserProfileService userProfileService,
@@ -39,8 +35,6 @@ public class PostService : IPostService
         _postRepository = postRepository;
         _discussionRepository = discussionRepository;
         _enrollmentRepository = enrollmentRepository;
-        _postMediaRepository = postMediaRepository;
-        _eventMediaStorageService = eventMediaStorageService;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _userProfileService = userProfileService;
@@ -176,27 +170,8 @@ public class PostService : IPostService
         if (post == null)
             throw new EntityNotFoundException(nameof(Post), id);
 
-        // Get media before soft delete
-        var media = await _postMediaRepository.GetByPostIdAsync(id);
-
         post.SoftDelete();
         await _postRepository.UpdateAsync(post);
-
-        // Delete media files from storage
-        foreach (var item in media)
-        {
-            try
-            {
-                await _eventMediaStorageService.DeleteMediaAsync(item.Url);
-            }
-            catch
-            {
-                // Log but don't fail - media cleanup is secondary
-            }
-        }
-
-        // Remove media records (cascade delete will handle this, but explicit is clearer)
-        await _postMediaRepository.DeleteByPostIdAsync(id);
     }
 
     public async Task UpdateLastActivityAsync(int id)

@@ -10,6 +10,10 @@ _Last updated: 2026-11-18_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 147 (`chore/147/unmap-post-media`): `PostMedia` / `CommentImages` (0 rows on PROD, 2026-11-19 backup) are unmapped:
+entities, repositories, delete clean-up and the dashboard uploads entries removed; `StopMappingPostMediaAndCommentImages` is
+model only (empty Up/Down), the tables stay. The drop is task 148, a draft PR, after 2.3.15 is live on PROD.
+
 Task 141 (`chore/141/readable-portal`), tenth phase of the audit round. Same UI, smaller pieces (proof: `tsc`, the
 source pins; no browser run, no component tests):
 - `MeetingAta.tsx` 228 + `data/useAtaEditor.ts` + `MeetingAtaBoard.tsx` + parts in `MeetingAtaParts.tsx`.

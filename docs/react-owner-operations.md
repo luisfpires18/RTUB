@@ -116,7 +116,7 @@ page.
 
 - Tiles (one per series; click to chart, with the change against the same number of days just before): sign-ins, active
   members (distinct per day; distinct over the range for the tile), movements (audit rows except `Played`), uploads
-  (`GalleryMedia`, `NaipeContents`, `PostMedia`, `MeetingAtaAttachments`, `CommentImages`), song plays
+  (`GalleryMedia`, `NaipeContents`, `MeetingAtaAttachments`), song plays
   (`SongPlayCounts`), naipe plays (`NaipePlayCounts`), enrollments (`Enrollments.EnrolledAt`).
 - Now: accounts, signed in within the last hour (as `/users`), members with a push subscription.
 - Busiest hours: `LoginEvents` by Portugal weekday × hour. Rankings (top 10): members by movements, and areas of the app

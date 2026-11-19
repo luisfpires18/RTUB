@@ -26,7 +26,6 @@ public class Comment : BaseEntity
     // Navigation properties
     public virtual Post Post { get; set; } = null!;
     public virtual ApplicationUser Author { get; set; } = null!;
-    public virtual ICollection<CommentImage> Images { get; set; } = new List<CommentImage>();
 
     // Private constructor for EF Core
     private Comment() { }

@@ -31,8 +31,6 @@ public partial class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Create mocks for new dependencies
         var mockDiscussionRepository = new Mock<IDiscussionRepository>();
         var mockEnrollmentRepository = new Mock<IEnrollmentRepository>();
-        var mockPostMediaRepository = new Mock<IPostMediaRepository>();
-        var mockEventMediaStorageService = new Mock<IEventMediaStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockUserProfileService = new Mock<IUserProfileService>();
@@ -41,8 +39,6 @@ public partial class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             new PostRepository(_fixture.CreateContextFactory()),
             mockDiscussionRepository.Object,
             mockEnrollmentRepository.Object,
-            mockPostMediaRepository.Object,
-            mockEventMediaStorageService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserProfileService.Object);
