@@ -20,7 +20,7 @@ namespace RTUB.Application.Helpers;
 /// - <see cref="Owner"/> (Utilizadores, Auditoria, Base de dados, Emails, Notificações): the Owner role, as the five
 ///   pages require (Emails and Notificações included).
 /// </summary>
-public sealed record MemberMenuAccess(bool Management, bool Logistics, bool Treasury, bool Admin, bool Owner)
+public sealed record MemberMenuAccess(bool Management, bool Logistics, bool Treasury, bool Admin, bool Owner, bool Governance)
 {
     public static MemberMenuAccess For(ClaimsPrincipal principal, ApplicationUser user)
     {
@@ -33,6 +33,7 @@ public sealed record MemberMenuAccess(bool Management, bool Logistics, bool Trea
             Logistics: true,
             Treasury: admin || owner || mod || user.IsTuno(),
             Admin: admin,
-            Owner: owner);
+            Owner: owner,
+            Governance: GovernanceAuthorization.CanManage(principal));
     }
 }

@@ -60,7 +60,10 @@ public class GalleryTests : IntegrationTestBase
         hidden.StatusCode.Should().Be(HttpStatusCode.NotFound, "a members-only item looks exactly like a missing one");
         (await hidden.Content.ReadAsStringAsync()).Should().NotContain(PrivateUrl);
 
-        (await client.GetAsync($"/api/gallery/items/{publicId}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        hidden.Headers.CacheControl!.NoStore.Should().BeTrue();
+        var open = await client.GetAsync($"/api/gallery/items/{publicId}");
+        open.StatusCode.Should().Be(HttpStatusCode.OK);
+        open.Headers.CacheControl!.NoStore.Should().BeTrue("the answer depends on the session");
         (await client.GetAsync("/api/gallery/items/987654")).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 

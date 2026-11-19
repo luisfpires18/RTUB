@@ -16,20 +16,18 @@ public static class GalleryEndpoints
 {
     public static void MapGalleryEndpoints(this IEndpointRouteBuilder app)
     {
-        var gallery = app.MapGroup("/api/gallery").AllowAnonymous();
+        var gallery = app.MapGroup("/api/gallery").AllowAnonymous().AddEndpointFilter(EventEndpoints.NoStore);
 
         // ?public=true: what a visitor sees, whoever asks (the home preview).
         gallery.MapGet("/", async (int? page, int? pageSize, int? year, string? q, string? person, bool? @public,
                 ClaimsPrincipal user, HttpContext context, IGalleryTimelineService timeline) =>
             {
-                NoStore(context);
                 var query = new GalleryQuery(page ?? 1, pageSize ?? 24, year, q, person, @public == true);
                 return Results.Json(await timeline.GetTimelineAsync(user, query));
             });
 
         gallery.MapGet("/items/{id:int}", async (int id, ClaimsPrincipal user, HttpContext context, IGalleryTimelineService timeline) =>
             {
-                NoStore(context);
                 // A members-only item is answered exactly like a missing one: a visitor learns nothing.
                 return await timeline.GetItemAsync(id, user) is { } item ? Results.Json(item) : Results.NotFound();
             });
@@ -74,6 +72,4 @@ public static class GalleryEndpoints
     private static IResult ToResult<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
         EndpointResults.ToResult(result, ok, "Media não encontrada.");
 
-    // The answer depends on the session: never cached, not after sign-out, not for another user.
-    private static void NoStore(HttpContext context) => context.Response.Headers.CacheControl = "no-store";
 }

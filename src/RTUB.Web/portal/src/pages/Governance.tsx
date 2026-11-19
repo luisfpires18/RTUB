@@ -38,6 +38,8 @@ export default function Governance() {
   const [open, setOpen] = useState<Open | null>(null);
   const { user } = useCurrentUser();
   const signedIn = user?.authenticated === true;
+  // menu.governance = Mod/Admin/Owner (GovernanceAuthorization.CanManage): the others never ask, so no 403 in the console.
+  const mayManage = user?.authenticated === true && user.menu.governance;
   const yearId = useId();
 
   const latest = useLatest();
@@ -59,16 +61,16 @@ export default function Governance() {
 
   useEffect(() => load(year), [load, year]);
 
-  // Management state only for Mod/Admin/Owner; anyone else gets 401/403 and keeps the public view.
+  // Management state only for Mod/Admin/Owner (the session says so); everyone else keeps the public view.
   useEffect(() => {
-    if (!signedIn) return setManage(null);
+    if (!mayManage) return setManage(null);
     let live = true;
     setManage(undefined);
     governanceApi.manage(year).then((o) => live && setManage(o.kind === 'ok' ? o.data : null));
     return () => {
       live = false;
     };
-  }, [signedIn, year]);
+  }, [mayManage, year]);
 
   const choose = (fiscalYear: string) => {
     history.replaceState(null, '', `${portal.roles}?fy=${encodeURIComponent(fiscalYear)}`);
@@ -137,7 +139,7 @@ export default function Governance() {
 
       {failed && !manage ? (
         <RetryNotice onRetry={() => load(year)}>Não foi possível carregar os órgãos sociais agora.</RetryNotice>
-      ) : !shown || (signedIn && manage === undefined) ? (
+      ) : !shown || (mayManage && manage === undefined) ? (
         <Loading label="A carregar os órgãos sociais…" />
       ) : !shown.fiscalYear ? (
         <Notice>{canManage ? 'Ainda não há anos letivos. Adiciona o primeiro.' : 'Ainda não há órgãos sociais registados.'}</Notice>

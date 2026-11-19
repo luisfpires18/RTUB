@@ -18,6 +18,9 @@ const entryPerson = (): string => {
   return typeof state?.[PERSON] === 'string' ? (state[PERSON] as string) : '';
 };
 type UrlState = { view: View; q: string; status: Status | ''; label: string; who: string; prio: Priority | ''; due: Due; sort: Sort; month: string; card?: number };
+/** Everything the address keeps except the open card, which the page holds as its own state. */
+export type BoardFilters = Omit<UrlState, 'card'>;
+export const withoutCard = ({ card: _card, ...filters }: UrlState): BoardFilters => filters;
 export const readUrl = (): UrlState => {
   const p = new URLSearchParams(location.search);
   const pick = <T extends string>(key: string, allowed: readonly T[], fallback: T) => (allowed.includes(p.get(key) as T) ? (p.get(key) as T) : fallback);
