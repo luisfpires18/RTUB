@@ -1,1 +1,0 @@
-import{j as t}from"./vendor-react-DI41Mul8.js";function h({id:e,checked:c,onChange:r,disabled:o,children:s}){return t.jsxs("label",{className:"form__check",htmlFor:e,children:[t.jsx("input",{id:e,type:"checkbox",checked:c,onChange:n=>r(n.target.checked),disabled:o}),s]})}export{h as C};
