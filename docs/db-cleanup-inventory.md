@@ -50,9 +50,10 @@ No code read or wrote `AspNetUsers.ExperiencePoints` / `Level`, `MemberStatuses.
 - `StopMappingUnusedColumns` changes only the model snapshot; `Up` and `Down` are empty. The five columns stay in every
   existing database. A database created from the Baseline after task 131 has them too.
 
-The drop (release N+1, a MAJOR bump) goes only after N is live on PROD and its rollback window is over. It must be
-written by hand: the snapshot no longer lists the columns, so `migrations add` generates nothing. Five `DropColumn`
-operations in their own migration; take the production backup first. Until then, an EF-generated rebuild of
+The drop (release N+1; not 3.0.0, owner 2026-11-18) goes only after N is live on PROD and its rollback window is
+over. Written by hand in task 142: `20261119020000_DropUnusedColumns` (five `DropColumn`, rehearsed on a copy of the
+local snapshot; its Designer is the unchanged model). Take the production backup first. It also fixes a database
+created from the Baseline, where `MemberStatuses.OverrideRetired` is NOT NULL with no default. Until then, an EF-generated rebuild of
 `AspNetUsers`, `MemberStatuses`, `MeetingAtaAttachments` or `Reports` would drop the column early: check any migration
 on those tables.
 

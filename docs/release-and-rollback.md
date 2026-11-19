@@ -50,7 +50,7 @@ prerelease, no build metadata.
 | --- | --- | --- |
 | PATCH | fixes only | 2.0.0 to 2.0.1 |
 | MINOR | backward-compatible features | 2.0.1 to 2.1.0 |
-| MAJOR | breaking release (a contract migration, a removed feature, a changed URL scheme) | 2.1.0 to 3.0.0 |
+| MAJOR | breaking release (a removed feature, a changed URL scheme); the owner decides | 2.1.0 to 3.0.0 |
 
 - Every push to `master` needs a higher `VERSION` than the previous `master` commit. The PR check
   *VERSION is bumped* (in CI • Build & Test, PRs into `master` only) and the first job of Deploy •
@@ -308,7 +308,8 @@ release immediately before it (expand/contract):
 | a backfill the previous code tolerates | change a column's type or meaning; renumber an enum; destructive data rewrites |
 
 For a contract change: release N stops using the old shape (and still tolerates it); a later
-release N+1 removes it. N+1 is a MAJOR bump, noted in its PR. Rolling back across a contract
+release N+1 removes it. N+1 is not a MAJOR bump by itself (owner, 2026-11-18: the five-column drop does not go to
+3.0.0); the owner picks its number, and its PR says it is a contract release. Rolling back across a contract
 release is not an app rollback (Rollback • PROD refuses it by default): it is a database restore
 to a snapshot taken before N+1, losing everything written since.
 
