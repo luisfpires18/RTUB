@@ -6,7 +6,7 @@ in the docs `CLAUDE.md` links. Overwrite stale entries.
 _Last updated: 2026-11-19_
 
 ## Release state
-- `master` (PROD): **2.3.15** (released 2026-11-19, tag `v2.3.15`: `PostMedia` / `CommentImages` unmapped, task 147). `dev`: **2.3.16** (unreleased). The table drop (task 148, draft PR #355) waits for 2.3.15's rollback window.
+- `master` (PROD): **2.3.16** (released 2026-11-19, tag `v2.3.16`: `PostMedia` / `CommentImages` dropped, task 148). `dev`: **2.3.17** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
