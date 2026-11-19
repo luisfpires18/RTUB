@@ -62,8 +62,10 @@ on those tables.
 Photos/videos once attached to event-discussion posts and comments. Both tables had 0 rows on the 2026-11-19 production
 backup. Task 147 (release N) unmapped them: entities, configurations, `DbSet`s, repositories, navigations, the
 delete clean-up in `PostService`/`CommentService` and the dashboard upload count are gone, and the model-only migration
-`20261119160000_StopMappingPostMediaAndCommentImages` is empty. The tables stay in the database. Release N+1 drops them
-with `DropTable` (own migration; re-check the production row count first).
+`20261119160000_StopMappingPostMediaAndCommentImages` is empty. The tables stay in the database. Release N+1 drops them:
+`20261119170000_DropPostMediaAndCommentImages` (task 148, draft PR; rehearsed on a copy of the 2026-11-19 production
+backup brought to 2.3.14: only the two empty tables and their four indexes go). Re-check the production row count and
+take the backup first.
 
 ## Do not touch
 
