@@ -115,6 +115,10 @@ public class AtaPdfServiceGoldenTests
     [MemberData(nameof(Cases))]
     public void Pdf_MatchesGolden(string name, MeetingType type, bool second, bool secretary, bool body, string expected)
     {
+        // The bytes depend on the platform's font layout: the hashes were captured on Windows (where the
+        // split was proven byte-identical) and differ on the Linux runner. Recapture before relying on them elsewhere.
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Golden PDF hashes are Windows-captured (font layout differs on Linux).");
+
         var hash = Fingerprint(Ata(type, second, secretary, body));
 
         hash.Should().Be(expected, name);
