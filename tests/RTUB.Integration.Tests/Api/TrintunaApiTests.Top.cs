@@ -77,6 +77,11 @@ public partial class TrintunaApiTests
         var keys = top.Select(r => r.GetProperty("key").GetString()).ToList();
         keys.Should().HaveCount(2).And.OnlyHaveUniqueItems().And.NotContainNulls();
         keys.Should().NotContain(new[] { userA.Id, userB.Id }, "the key is not the user id");
+
+        var gathering = (await AreaHttp.Json(a, "/api/trintuna")).GetProperty("past").EnumerateArray().Single(g => g.GetProperty("id").GetInt32() == past);
+        var going = gathering.GetProperty("going").EnumerateArray().Select(p => p.GetProperty("key").GetString()).ToList();
+        going.Should().HaveCount(2).And.OnlyHaveUniqueItems().And.NotContainNulls();
+        going.Should().BeEquivalentTo(keys, "an attendee keeps the same key as in the Top 3");
         await ClearAnswersAsync();
     }
 

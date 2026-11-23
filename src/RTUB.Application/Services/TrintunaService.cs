@@ -140,8 +140,9 @@ public sealed partial class TrintunaService : ITrintunaService
     private static List<TrintunaPersonDto> Answered(Gathering g, Dictionary<string, GovernanceMemberDto> people, bool willAttend) =>
         g.Participants
             .Where(p => p.WillAttend == willAttend && people.ContainsKey(p.UserId))
-            .Select(p => new TrintunaPersonDto(people[p.UserId].DisplayName, people[p.UserId].AvatarUrl))
+            .Select(p => new TrintunaPersonDto(RowKey(p.UserId), people[p.UserId].DisplayName, people[p.UserId].AvatarUrl))
             .OrderBy(p => p.DisplayName, StringComparer.Create(Pt, ignoreCase: true))
+            .ThenBy(p => p.Key, StringComparer.Ordinal)
             .ToList();
 
     private static bool IsPast(Gathering g, DateTime today) => g.IsHistorical || (g.Date is { } date && date.Date < today);
@@ -158,7 +159,7 @@ public sealed partial class TrintunaService : ITrintunaService
         var options = g.PollOptions.OrderBy(o => o.Date).ToList();
         var mine = g.Participants.FirstOrDefault(p => p.UserId == me);
         var organizer = g.OrganizerUserId is { } organizerId && people.TryGetValue(organizerId, out var who)
-            ? new TrintunaPersonDto(who.DisplayName, who.AvatarUrl)
+            ? new TrintunaPersonDto(RowKey(organizerId), who.DisplayName, who.AvatarUrl)
             : null;
 
         var poll = new GatheringPollDto(

@@ -50,7 +50,7 @@ Link: member menu (`MemberShell.tsx`, Tuna group "Trintuna"), shown when `GET /a
   (descending); Próximos = the rest, dated soonest first, undated after, by number.
 - The gathering DTO carries no user id except `organizerUserId`, and only for the Owner. The poll has the portal's
   `MeetingPoll` shape (rendered by `PollCard` with `onVote`), counts only, no voter names; each option also has its `date`.
-  Each gathering lists who answered, `going[]` and `notGoing[]` (`{ displayName, avatarUrl }`, by name, no user ids),
+  Each gathering lists who answered, `going[]` and `notGoing[]` (`{ key, displayName, avatarUrl }`, by name then `key`, no user ids; `key` is the same opaque per-member key as the Top 3),
   shown with the "Quem vai / Quem foi" tiles of /events (`WhoIsGoing`); `goingCount` is the Vou count.
 - Poll: 0-12 distinct dates (`pollDates`, `yyyy-MM-dd`). Saving diffs the options: kept dates keep their votes, removed
   dates lose theirs. A new vote replaces the earlier one. The poll is open while the gathering has no date and is not

@@ -200,6 +200,8 @@ export type EventDetail = {
 
 /** One answer in "Quem vai" (members only). */
 export type EventParticipant = {
+  /** A stable row key when the source has one (Trintuna); without it the list position is used. */
+  key?: string;
   name: string;
   fullName: string | null;
   avatarUrl: string;

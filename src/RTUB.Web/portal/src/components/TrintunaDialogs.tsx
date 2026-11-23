@@ -71,7 +71,7 @@ function Presence({ gathering, onChanged, onClose }: { gathering: Gathering; onC
 }
 
 /** "Quem vai / Quem foi" of /events: names and photos only. */
-const asParticipant = (p: Person) => ({ name: p.displayName, fullName: null, avatarUrl: p.avatarUrl ?? '', badge: null, instrument: null, notes: null });
+const asParticipant = (p: Person) => ({ key: p.key, name: p.displayName, fullName: null, avatarUrl: p.avatarUrl ?? '', badge: null, instrument: null, notes: null });
 
 /** One gathering: what, who organizes, the date poll, the caller's answer (past ones too) and who answered. */
 export function GatheringDialog({ gathering: g, onClose, onChanged }: { gathering: Gathering; onClose: () => void; onChanged: () => void }) {

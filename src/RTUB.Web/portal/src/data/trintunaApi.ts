@@ -5,7 +5,8 @@ import type { MeetingPoll } from './meetingsTypes';
 // The Owner and the members on the access list only; the server decides every rule (TrintunaService). Hiding a
 // button here is only a convenience.
 
-export type Person = { displayName: string; avatarUrl: string | null };
+/** `key`: opaque per member (not the user id), unique even when names repeat. */
+export type Person = { key: string; displayName: string; avatarUrl: string | null };
 /** `poll` is the /meetings poll shape (PollCard); each option also carries its `date` ("yyyy-MM-dd"). */
 export type Gathering = {
   id: number;

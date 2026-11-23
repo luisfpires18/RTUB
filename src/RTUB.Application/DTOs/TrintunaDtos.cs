@@ -12,7 +12,8 @@ public sealed record TrintunaBoardDto(bool CanManage, IReadOnlyList<GatheringDto
 /// <summary>One Top 3 row: <c>Key</c> an opaque per-member row key (a hash, never the user id), <c>Place</c> 1-3, <c>Count</c> the past gatherings the member answered Vou.</summary>
 public sealed record TrintunaRankDto(string Key, int Place, string DisplayName, string? AvatarUrl, int Count);
 
-public sealed record TrintunaPersonDto(string DisplayName, string? AvatarUrl);
+/// <summary>A member shown on the page. <c>Key</c>: opaque per-member key (<c>TrintunaService.RowKey</c>), never the user id.</summary>
+public sealed record TrintunaPersonDto(string Key, string DisplayName, string? AvatarUrl);
 
 /// <summary>
 /// One gathering. <c>Date</c> is "yyyy-MM-dd" or null. <c>MyStatus</c>: "going", "notGoing" or null.
