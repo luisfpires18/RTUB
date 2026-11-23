@@ -70,9 +70,15 @@ public sealed partial class TrintunaService
         return EventResult<GatheringDto>.Ok(await LoadAsync(db, gathering.Id, user, listed));
     }
 
-    /// <summary>A lost numbering race: unique constraint (19), or SQLite busy (5) / locked (6), bare or wrapped by EF.</summary>
+    /// <summary>
+    /// A lost numbering race: the unique <c>Gatherings.Number</c> index ("UNIQUE constraint failed: Gatherings.Number"),
+    /// or SQLite busy (5) / locked (6), bare or wrapped by EF. Any other constraint (organizer FK, poll-date index)
+    /// is not a race and is not retried.
+    /// </summary>
     internal static bool IsNumberRace(Exception ex) =>
-        (ex as SqliteException ?? ex.InnerException as SqliteException) is { SqliteErrorCode: 19 or 5 or 6 };
+        (ex as SqliteException ?? ex.InnerException as SqliteException) is { } sqlite
+        && (sqlite.SqliteErrorCode is 5 or 6
+            || (sqlite.SqliteErrorCode == 19 && sqlite.Message.Contains("UNIQUE constraint failed: Gatherings.Number", StringComparison.Ordinal)));
 
     public async Task<EventResult<GatheringDto>> UpdateAsync(int id, GatheringInput input, ClaimsPrincipal user)
     {
