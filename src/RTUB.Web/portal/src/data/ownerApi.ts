@@ -169,6 +169,8 @@ export const ENTITY_LABELS: Record<string, string> = {
   NaipeContent: 'Conteúdo de naipe',
   NaipeComment: 'Comentário de naipe',
   NaipeTypeConfig: 'Configuração de naipe',
+  Gathering: 'Almoço Trintuna',
+  TrintunaAccess: 'Acesso Trintuna',
   FiscalYear: 'Ano letivo',
   Document: 'Documento',
   Folder: 'Pasta',
