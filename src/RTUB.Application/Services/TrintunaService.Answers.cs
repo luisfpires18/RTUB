@@ -51,7 +51,7 @@ public sealed partial class TrintunaService
         return EventResult<GatheringDto>.Ok(await LoadAsync(db, id, user, listed));
     }
 
-    /// <summary>Vou / Não vou; Closed (409) for a past gathering.</summary>
+    /// <summary>Vou / Não vou, on upcoming and past gatherings alike.</summary>
     public async Task<EventResult<GatheringDto>> SetPresenceAsync(int id, GatheringPresenceInput input, ClaimsPrincipal user)
     {
         await using var db = await _contexts.CreateDbContextAsync();
@@ -61,9 +61,9 @@ public sealed partial class TrintunaService
             return refused;
         }
 
-        if (await OpenForPresenceAsync<GatheringDto>(db, id) is { } closed)
+        if (await GatheringExistsAsync<GatheringDto>(db, id) is { } missing)
         {
-            return closed;
+            return missing;
         }
 
         var me = user.UserId()!;
@@ -88,9 +88,9 @@ public sealed partial class TrintunaService
             return refused;
         }
 
-        if (await OpenForPresenceAsync<bool>(db, id) is { } closed)
+        if (await GatheringExistsAsync<bool>(db, id) is { } missing)
         {
-            return closed;
+            return missing;
         }
 
         var me = user.UserId()!;
@@ -98,14 +98,9 @@ public sealed partial class TrintunaService
         return EventResult<bool>.Ok(true);
     }
 
-    /// <summary>NotFound for an unknown gathering, Closed for a past one; null when answers are taken.</summary>
-    private async Task<EventResult<T>?> OpenForPresenceAsync<T>(ApplicationDbContext db, int id)
-    {
-        var gathering = await db.Gatherings.AsNoTracking().FirstOrDefaultAsync(g => g.Id == id);
-        return gathering is null ? EventResult<T>.Fail(EventResultStatus.NotFound)
-            : IsPast(gathering, PortugalTime.Today(_time)) ? EventResult<T>.Fail(EventResultStatus.Closed)
-            : null;
-    }
+    /// <summary>NotFound for an unknown gathering; null when it exists.</summary>
+    private static async Task<EventResult<T>?> GatheringExistsAsync<T>(ApplicationDbContext db, int id) =>
+        await db.Gatherings.AnyAsync(g => g.Id == id) ? null : EventResult<T>.Fail(EventResultStatus.NotFound);
 
     public async Task<EventResult<IReadOnlyList<TrintunaMemberDto>>> GetAccessAsync(ClaimsPrincipal user)
     {

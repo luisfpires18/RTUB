@@ -29,6 +29,8 @@ Code a beginner can read: one job per file, no file over 300 lines.
 - The server is the authority. Every permission is checked by the `/api/*` endpoint; the UI only hides what the API refuses.
 - The same UI piece is written once. Before writing markup, use the `components/ui/` piece for it; when a page really
   needs something different, make it a new component (or a named variant), never a copy.
+- Every select is `SelectField` (`components/ui/SearchTools.tsx`, task 154): `label` (screen-reader only) in toolbars,
+  no `label` inside `FormField` or an outer label; never a hand-written `<select>` or `control--select`.
 - Reuse before writing: look in `components/ui/`, `components/` (`Dialog.tsx`, `Notice.tsx`, `icons.tsx`, the `*Ui.tsx` helpers),
   `data/` (`api.ts`: `call`, `queryString`, `outcomeText`; `format.ts`: euros, dates, search folding; `content.ts`:
   paths and `loginTo`) and the `styles.css` classes and variables before adding a component, a request or a style. One stylesheet, split by area under `styles/`; no inline styles where a class will do.

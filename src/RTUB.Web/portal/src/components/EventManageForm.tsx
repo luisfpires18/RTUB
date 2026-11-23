@@ -14,6 +14,7 @@ import { Loading } from './ui/Loading';
 import { Banner } from './ui/Banner';
 import { AnswerActions } from './ui/AnswerActions';
 import { FormField } from './ui/FormField';
+import { SelectField } from './ui/SearchTools';
 
 /**
  * Create (no `eventId`) or edit one event, with its optional image (cropped 3:2 in the browser,
@@ -158,15 +159,13 @@ export function EventFormDialog({
               <input id={ids.location} type="text" maxLength={200} value={form.location} onChange={(e) => set({ location: e.target.value })} />
             </FormField>
             <FormField id={ids.type} label="Tipo" error={errors.type}>
-              <span className="control control--select">
-                <select id={ids.type} value={form.type} onChange={(e) => set({ type: e.target.value })}>
-                  {types.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </span>
+              <SelectField id={ids.type} value={form.type} onChange={(v) => set({ type: v })}>
+                {types.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </SelectField>
             </FormField>
           </div>
 

@@ -6,6 +6,7 @@ import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingPollAudienceOption } from '../data/meetingsTypes';
 import { pollProblem } from './MeetingPollCard';
 import { Banner } from './ui/Banner';
+import { SelectField } from './ui/SearchTools';
 
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 12;
@@ -65,9 +66,9 @@ export function CreatePollDialog({
         <Banner text={error} />
         <label className="form__field">
           <span>Órgão</span>
-          <select value={audience} onChange={(event) => setAudience(event.target.value)} required>
+          <SelectField value={audience} onChange={setAudience} required>
             {audiences.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </select>
+          </SelectField>
         </label>
         <label className="form__field" htmlFor={questionId}>
           <span>Pergunta</span>

@@ -11,6 +11,7 @@ import { FormField } from './ui/FormField';
 import { Spinner } from './ui/Spinner';
 import { EmptyNote } from './ui/EmptyNote';
 import { IconAction } from './ui/IconAction';
+import { SelectField } from './ui/SearchTools';
 
 /** Tomorrow at 10:00, Portugal time, as a datetime-local value. */
 const tomorrowAtTen = () => {
@@ -112,15 +113,13 @@ export function Reminders({
         <div className="lx-reminder-form" role="group" aria-label={draft.id ? 'Editar lembrete' : 'Novo lembrete'}>
           <div className="lx-reminder-form__when">
             <FormField id={`${id}-freq`} label="Repetir" error={errors.frequency} alert>
-              <span className="control control--select control--sm">
-                <select id={`${id}-freq`} value={draft.frequency} onChange={(e) => setDraft({ ...draft, frequency: e.target.value as Frequency })}>
-                  {(Object.keys(FREQUENCY) as Frequency[]).map((f) => (
-                    <option key={f} value={f}>
-                      {FREQUENCY[f]}
-                    </option>
-                  ))}
-                </select>
-              </span>
+              <SelectField small id={`${id}-freq`} value={draft.frequency} onChange={(v) => setDraft({ ...draft, frequency: v as Frequency })}>
+                {(Object.keys(FREQUENCY) as Frequency[]).map((f) => (
+                  <option key={f} value={f}>
+                    {FREQUENCY[f]}
+                  </option>
+                ))}
+              </SelectField>
             </FormField>
             <FormField id={`${id}-at`} label={draft.frequency === 'OneTime' ? 'Quando' : 'A partir de'} error={errors.nextReminderDate} alert>
               <input id={`${id}-at`} type="datetime-local" value={draft.at} onChange={(e) => setDraft({ ...draft, at: e.target.value })} />

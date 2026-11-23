@@ -10,6 +10,7 @@ import { Banner } from './ui/Banner';
 import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
 import { Spinner } from './ui/Spinner';
+import { SelectField } from './ui/SearchTools';
 
 /**
  * The preview document for the sandboxed frame (sandbox="", srcdoc: no script runs and nothing reaches this page). The
@@ -168,16 +169,14 @@ export function EmailDialog({ card, onClose, onSent }: { card: MeetingCard; onCl
           </div>
           {draft.tunoOptions.length > 0 && (
             <FormField id={`${id}-tuno`} label="Adicionar um Representante de Tunos" error={errors.tunoId} hint="Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV." alert>
-              <span className="control control--select">
-                <select id={`${id}-tuno`} value={tunoId} onChange={(e) => setTunoId(e.target.value)}>
-                  <option value="">Nenhum representante selecionado</option>
-                  {draft.tunoOptions.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </span>
+              <SelectField id={`${id}-tuno`} value={tunoId} onChange={setTunoId}>
+                <option value="">Nenhum representante selecionado</option>
+                {draft.tunoOptions.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </SelectField>
             </FormField>
           )}
           <p className="mtg-info">

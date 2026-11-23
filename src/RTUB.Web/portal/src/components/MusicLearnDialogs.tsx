@@ -6,6 +6,7 @@ import { PlayAlongField } from './MusicPlayAlongField';
 import { Dialog } from './MusicUi';
 import { musicApi, type AlbumSummary, type LearnSong, type Song } from '../data/musicApi';
 import { FormField, fieldProps } from './ui/FormField';
+import { SelectField } from './ui/SearchTools';
 
 const MAX_NOTICE = 300;
 
@@ -38,22 +39,22 @@ export function AddDialog({ taken, onChanged, onClose }: { taken: Set<number>; o
     <Dialog title="Adicionar música a Aprender" onClose={onClose}>
       <div className="form">
         <FormField id="learn-album" label="Álbum">
-          <select {...fieldProps('learn-album')} value={albumId ?? ''} onChange={(e) => setAlbumId(Number(e.target.value) || null)}>
+          <SelectField {...fieldProps('learn-album')} value={albumId ?? ''} onChange={(v) => setAlbumId(Number(v) || null)}>
             <option value="">Escolher álbum</option>
             {albums.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.title}
               </option>
             ))}
-          </select>
+          </SelectField>
         </FormField>
         {albumId !== null && (
           <FormField id="learn-song" label="Música" hint={songs.length === 0 ? 'Todas as músicas deste álbum já têm pauta.' : undefined}>
-            <select
+            <SelectField
               {...fieldProps('learn-song', undefined, songs.length === 0 ? 'hint' : undefined)}
               value={songId ?? ''}
-              onChange={(e) => {
-                setSongId(Number(e.target.value) || null);
+              onChange={(v) => {
+                setSongId(Number(v) || null);
                 setHas(false);
               }}
             >
@@ -63,7 +64,7 @@ export function AddDialog({ taken, onChanged, onClose }: { taken: Set<number>; o
                   {s.title}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </FormField>
         )}
         {songId !== null && (

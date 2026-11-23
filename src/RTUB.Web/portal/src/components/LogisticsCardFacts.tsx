@@ -5,6 +5,7 @@ import { day } from '../data/format';
 import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
 import type { Draft } from '../data/logisticsCardDraft';
+import { SelectField } from './ui/SearchTools';
 
 /** Status buttons of the card workspace side column. */
 export function CardStatus({ fid, detail, board, busy, errors, apply }: { fid: string; detail: CardDetail; board: Board; busy?: string; errors: Record<string, string>; apply: Apply }) {
@@ -47,15 +48,13 @@ export function CardFacts({ fid, detail, draft, errors, set }: { fid: string; de
       <div className="lx-ws__facts">
         <FormField id={`${fid}-prio`} label="Prioridade" error={errors.priority} alert>
           {detail.canWork ? (
-            <span className="control control--select control--sm">
-              <select id={`${fid}-prio`} value={draft.priority} onChange={(e) => set({ priority: e.target.value as Priority })}>
-                {PRIORITIES_LOW_FIRST.map((p) => (
-                  <option key={p} value={p}>
-                    {PRIORITY[p]}
-                  </option>
-                ))}
-              </select>
-            </span>
+            <SelectField small id={`${fid}-prio`} value={draft.priority} onChange={(v) => set({ priority: v as Priority })}>
+              {PRIORITIES_LOW_FIRST.map((p) => (
+                <option key={p} value={p}>
+                  {PRIORITY[p]}
+                </option>
+              ))}
+            </SelectField>
           ) : (
             <p id={`${fid}-prio`} className="lx-view__text">
               {PRIORITY[card.priority]}

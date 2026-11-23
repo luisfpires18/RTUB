@@ -1,6 +1,7 @@
 // List paging: Pager (arrow buttons + page size, meetings / owner / naipes) and TextPager (Anterior / Seguinte, music stats).
 import { useId } from 'react';
 import { Icon } from '../icons';
+import { SelectField } from './SearchTools';
 
 /**
  * `block` picks the look: "mtg-pager" (small arrows) or "naipe-pager" (regular arrows). `pages` defaults to
@@ -51,15 +52,13 @@ export function Pager({
       </span>
       <label htmlFor={id} className={`${block}__size`}>
         Por página
-        <span className="control control--select control--sm">
-          <select id={id} value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))}>
-            {sizes.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </span>
+        <SelectField small id={id} value={pageSize} onChange={(v) => onPageSize(Number(v))}>
+          {sizes.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </SelectField>
       </label>
     </nav>
   );
@@ -97,15 +96,13 @@ export function TextPager({
       </button>
       <label className="pager__size" htmlFor={sizeId}>
         Por página
-        <span className="control control--select control--sm">
-          <select id={sizeId} value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))}>
-            {[5, 10, 15, 20, 25].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </span>
+        <SelectField small id={sizeId} value={pageSize} onChange={(v) => onPageSize(Number(v))}>
+          {[5, 10, 15, 20, 25].map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </SelectField>
       </label>
     </div>
   );

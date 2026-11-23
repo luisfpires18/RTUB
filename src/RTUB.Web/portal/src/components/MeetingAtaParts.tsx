@@ -8,6 +8,7 @@ import { IconAction } from './ui/IconAction';
 import type { MeetingAtaEditor, MeetingPersonOption } from '../data/meetingsTypes';
 import { numericDateTime } from '../data/meetingsDates';
 import type { Point } from '../data/meetingAtaForm';
+import { SelectField } from './ui/SearchTools';
 
 const MAX_CLOSING = 5000;
 const MAX_POINT_TEXT = 5000;
@@ -50,16 +51,14 @@ export function SecretarySelect({
       <label htmlFor={id}>
         {label} <span className="note">(Opcional)</span>
       </label>
-      <span className="control control--select">
-        <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
-          <option value="">-- Nenhum secretário selecionado --</option>
-          {options.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </span>
+      <SelectField id={id} value={value} onChange={onChange}>
+        <option value="">-- Nenhum secretário selecionado --</option>
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.label}
+          </option>
+        ))}
+      </SelectField>
       <p className="form__hint">{hint}</p>
       <FieldError text={errors[name]} />
     </div>
@@ -162,13 +161,11 @@ export function AtaPointCard({
         ))}
         <div className="form__field">
           <label htmlFor={fieldId('result')}>Resultado:</label>
-          <span className="control control--select">
-            <select id={fieldId('result')} value={point.result} onChange={(e) => onChange({ result: e.target.value })}>
-              <option value="">--</option>
-              <option value="Aprovado">Aprovado</option>
-              <option value="Rejeitado">Rejeitado</option>
-            </select>
-          </span>
+          <SelectField id={fieldId('result')} value={point.result} onChange={(v) => onChange({ result: v })}>
+            <option value="">--</option>
+            <option value="Aprovado">Aprovado</option>
+            <option value="Rejeitado">Rejeitado</option>
+          </SelectField>
         </div>
       </div>
       <FieldError text={error} />

@@ -147,20 +147,6 @@ namespace RTUB.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.InsertData(
-                table: "Gatherings",
-                columns: new[] { "Id", "CreatedAt", "CreatedBy", "Date", "Description", "IsHistorical", "Number", "OrganizerUserId", "Place", "UpdatedAt", "UpdatedBy" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc), null, null, "Croquetes", true, 1, null, "Vizela", null, null },
-                    { 2, new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc), null, null, "Bronha", true, 2, null, "Lamares", null, null },
-                    { 3, new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc), null, null, "Frango", true, 3, null, "Marco de Canaveses", null, null },
-                    { 4, new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc), null, null, "Conchita", true, 4, null, "Chaves", null, null },
-                    { 5, new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc), null, null, "Coma", true, 5, null, "Fafe", null, null },
-                    { 6, new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc), null, null, "Pássaro", true, 6, null, "Mogadouro", null, null },
-                    { 7, new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc), null, null, "Jeans", true, 7, null, "Bragança", null, null }
-                });
-
             migrationBuilder.CreateIndex(
                 name: "IX_GatheringParticipants_GatheringId_UserId",
                 table: "GatheringParticipants",

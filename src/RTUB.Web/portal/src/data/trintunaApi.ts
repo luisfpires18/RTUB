@@ -5,7 +5,8 @@ import type { MeetingPoll } from './meetingsTypes';
 // The Owner and the members on the access list only; the server decides every rule (TrintunaService). Hiding a
 // button here is only a convenience.
 
-export type Person = { displayName: string; avatarUrl: string | null };
+/** `key`: opaque per member (not the user id), unique even when names repeat. */
+export type Person = { key: string; displayName: string; avatarUrl: string | null };
 /** `poll` is the /meetings poll shape (PollCard); each option also carries its `date` ("yyyy-MM-dd"). */
 export type Gathering = {
   id: number;
@@ -20,10 +21,15 @@ export type Gathering = {
   canEdit: boolean;
   past: boolean;
   goingCount: number;
+  /** Who answered Vou / Não vou, by name (no user ids). */
+  going: Person[];
+  notGoing: Person[];
   myStatus: 'going' | 'notGoing' | null;
   poll: Omit<MeetingPoll, 'options'> & { options: { id: number; text: string; date: string; votes: number }[] };
 };
-export type Board = { canManage: boolean; upcoming: Gathering[]; past: Gathering[] };
+/** One Top 3 row: `key` opaque per member (not the user id); dense `place` 1-3 (ties share it, by name); `count` = past gatherings answered Vou. */
+export type Rank = { key: string; place: number; displayName: string; avatarUrl: string | null; count: number };
+export type Board = { canManage: boolean; upcoming: Gathering[]; past: Gathering[]; top: Rank[] };
 export type Member = { id: string; displayName: string; avatarUrl: string | null };
 export type GatheringInput = { number: number; place: string; description: string; organizerUserId: string | null; pollDates: string[] };
 

@@ -14,6 +14,7 @@ import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 import { Spinner } from './ui/Spinner';
+import { SelectField } from './ui/SearchTools';
 
 // The ata of a meeting: the editor for whoever may write it (a draft stays private to its writers) and
 // "Ver Ata" for readers of a published one. The server decides who writes, reads, publishes and confirms.
@@ -144,12 +145,10 @@ export function AtaEditorDialog({ card, onClose, onChanged }: { card: MeetingCar
                   </div>
                   {kind === 'ag' && (
                     <FormField id={`${id}-quorum`} label="Base do Quórum" error={errors.quorumBasis} alert>
-                      <span className="control control--select">
-                        <select id={`${id}-quorum`} value={values.quorumBasis} onChange={(e) => set({ quorumBasis: e.target.value })}>
-                          <option value="HoraAgendada">Iniciada à hora agendada</option>
-                          <option value="HoraAgendadaMais30Minutos">Iniciada 30 minutos após hora agendada</option>
-                        </select>
-                      </span>
+                      <SelectField id={`${id}-quorum`} value={values.quorumBasis} onChange={(v) => set({ quorumBasis: v })}>
+                        <option value="HoraAgendada">Iniciada à hora agendada</option>
+                        <option value="HoraAgendadaMais30Minutos">Iniciada 30 minutos após hora agendada</option>
+                      </SelectField>
                     </FormField>
                   )}
                 </div>

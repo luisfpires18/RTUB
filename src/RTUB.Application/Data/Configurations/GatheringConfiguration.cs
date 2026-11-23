@@ -5,13 +5,11 @@ using RTUB.Core.Entities;
 namespace RTUB.Application.Data.Configurations;
 
 /// <summary>
-/// Trintuna gatherings. The 7 past gatherings are seeded here (HasData: in the migration and in every EnsureCreated
-/// test database; SeedData never runs once users exist), undated, without organizer and marked historical.
+/// Trintuna gatherings. No rows are seeded here (none on PROD); the dev seed adds the 7 almoços
+/// (<c>SeedData.SeedTrintunaAsync</c>, full dataset only).
 /// </summary>
 public class GatheringConfiguration : IEntityTypeConfiguration<Gathering>
 {
-    private static readonly DateTime Seeded = new(2026, 11, 23, 0, 0, 0, DateTimeKind.Utc);
-
     public void Configure(EntityTypeBuilder<Gathering> builder)
     {
         builder.HasKey(g => g.Id);
@@ -23,24 +21,5 @@ public class GatheringConfiguration : IEntityTypeConfiguration<Gathering>
             .WithMany()
             .HasForeignKey(g => g.OrganizerUserId)
             .OnDelete(DeleteBehavior.SetNull);
-
-        builder.HasData(
-            Seed(1, "Vizela", "Croquetes"),
-            Seed(2, "Lamares", "Bronha"),
-            Seed(3, "Marco de Canaveses", "Frango"),
-            Seed(4, "Chaves", "Conchita"),
-            Seed(5, "Fafe", "Coma"),
-            Seed(6, "Mogadouro", "Pássaro"),
-            Seed(7, "Bragança", "Jeans"));
     }
-
-    private static Gathering Seed(int number, string place, string description) => new()
-    {
-        Id = number,
-        Number = number,
-        Place = place,
-        Description = description,
-        IsHistorical = true,
-        CreatedAt = Seeded,
-    };
 }

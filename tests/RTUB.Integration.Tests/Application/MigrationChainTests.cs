@@ -94,6 +94,16 @@ public partial class MigrationChainTests : IDisposable
     }
 
     [Fact]
+    public async Task MigratedDatabase_HasNoTrintunaGatherings()
+    {
+        // #366: the 7 almoços are a dev seed (SeedData.SeedTrintunaAsync), never inserted by a migration, so PROD gets none.
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+
+        (await context.Gatherings.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
     public async Task MigratedDatabase_RequestsTableIsUnchanged()
     {
         await using var context = CreateContext();

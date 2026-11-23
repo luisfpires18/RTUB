@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { trintunaApi, problem, type Board, type Gathering } from '../data/trintunaApi';
 import { dayOf, monthShort, yearOf, dateLabel } from '../data/eventsDates';
-import { GatheringDialog, AccessDialog } from '../components/TrintunaDialogs';
+import { GatheringDialog, AccessDialog, TopDialog } from '../components/TrintunaDialogs';
 import { GatheringForm } from '../components/TrintunaForm';
 import { Icon } from '../components/icons';
 import { Notice, RetryNotice, SignInNotice } from '../components/Notice';
@@ -107,7 +107,9 @@ function PastRow({ g, onOpen, tools }: { g: Gathering; onOpen: () => void; tools
           {g.title} · {g.place}
         </a>
         <span className="archive-row__meta">
-          {[g.description, g.date && yearOf(g.date), g.organizer && `Organizou: ${g.organizer.displayName}`].filter(Boolean).join(' · ')}
+          {[g.description, g.date && yearOf(g.date), g.organizer && `Organizou: ${g.organizer.displayName}`, g.goingCount > 0 && (g.goingCount === 1 ? '1 foi' : `${g.goingCount} foram`)]
+            .filter(Boolean)
+            .join(' · ')}
         </span>
       </span>
       <span className="archive-row__badges">
@@ -119,7 +121,8 @@ function PastRow({ g, onOpen, tools }: { g: Gathering; onOpen: () => void; tools
 
 /**
  * /trintuna - the Trintuna gatherings ("Nº Almoço"). The Owner and the members the Owner lists only: anyone else gets
- * the "no access" notice (the API answers 404). Próximos with their date poll and Vou / Não vou, then Passados.
+ * the "no access" notice (the API answers 404). Próximos with their date poll and Vou / Não vou, then Passados
+ * (Vou / Não vou too). "Top 3" opens who went to the most almoços.
  * Everything is decided by GET /api/trintuna.
  */
 export default function Trintuna() {
@@ -128,6 +131,7 @@ export default function Trintuna() {
   const [editing, setEditing] = useState<number | 'new'>();
   const [deleting, setDeleting] = useState<Gathering>();
   const [access, setAccess] = useState(false);
+  const [top, setTop] = useState(false);
 
   useEffect(() => {
     document.title = 'Trintuna · RTUB';
@@ -164,16 +168,24 @@ export default function Trintuna() {
   return (
     <section className="page wrap events-page" aria-labelledby="trintuna-title">
       <PageHead eyebrow="Tuna" titleId="trintuna-title" title="Trintuna" lead="Os almoços da Trintuna: onde, quando e quem vai.">
-        {data?.canManage && (
+        {data && (
           <div className="events-page__actions">
-            <button type="button" className="btn btn--primary btn--sm" onClick={() => setEditing('new')}>
-              <Icon name="plus" />
-              Novo almoço
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTop(true)}>
+              <Icon name="trophy" />
+              Top 3
             </button>
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setAccess(true)}>
-              <Icon name="people" />
-              Quem tem acesso
-            </button>
+            {data.canManage && (
+              <>
+                <button type="button" className="btn btn--primary btn--sm" onClick={() => setEditing('new')}>
+                  <Icon name="plus" />
+                  Novo almoço
+                </button>
+                <button type="button" className="btn btn--ghost btn--sm" onClick={() => setAccess(true)}>
+                  <Icon name="people" />
+                  Quem tem acesso
+                </button>
+              </>
+            )}
           </div>
         )}
       </PageHead>
@@ -233,6 +245,7 @@ export default function Trintuna() {
         <GatheringForm gathering={edited} canManage={Boolean(data?.canManage)} onClose={() => setEditing(undefined)} onSaved={() => load(true)} />
       )}
       {access && <AccessDialog onClose={() => setAccess(false)} onSaved={() => load(true)} />}
+      {top && data && <TopDialog top={data.top} onClose={() => setTop(false)} />}
       {deleting && (
         <AsyncConfirmDialog title="Apagar almoço" confirmLabel="Apagar" confirmIcon="trash" danger onClose={() => setDeleting(undefined)} onConfirm={remove}>
           <p>

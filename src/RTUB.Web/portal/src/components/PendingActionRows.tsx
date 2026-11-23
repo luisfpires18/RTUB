@@ -6,6 +6,7 @@ import { NOTES_MAX, rowDate } from '../data/pendingActionsView';
 import { FieldError } from './ui/FieldError';
 import { AnswerActions } from './ui/AnswerActions';
 import { FormField } from './ui/FormField';
+import { SelectField } from './ui/SearchTools';
 
 /** Vou / Fui with a choice of instrument (and an optional note), as on the module pages. Cancelling sends nothing. */
 export function AnswerDialog({
@@ -42,16 +43,14 @@ export function AnswerDialog({
     <Dialog title={`${label}: ${row.title}`} onClose={onClose}>
       <form className="answer" onSubmit={submit}>
         <FormField id={ids.instrument} label="Instrumento">
-          <span className="control control--select">
-            <select id={ids.instrument} value={instrument} onChange={(e) => setInstrument(e.target.value)}>
-              <option value="">Sem instrumento</option>
-              {instruments.map((i) => (
-                <option key={i.value} value={i.value}>
-                  {i.label}
-                </option>
-              ))}
-            </select>
-          </span>
+          <SelectField id={ids.instrument} value={instrument} onChange={setInstrument}>
+            <option value="">Sem instrumento</option>
+            {instruments.map((i) => (
+              <option key={i.value} value={i.value}>
+                {i.label}
+              </option>
+            ))}
+          </SelectField>
         </FormField>
         <FormField id={ids.notes} label="Nota (opcional)">
           <textarea id={ids.notes} rows={2} maxLength={NOTES_MAX[row.kind] ?? 500} value={notes} onChange={(e) => setNotes(e.target.value)} />

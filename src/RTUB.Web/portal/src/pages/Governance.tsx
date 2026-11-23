@@ -18,6 +18,7 @@ import { Icon } from '../components/icons';
 import { Notice, RetryNotice } from '../components/Notice';
 import { Loading } from '../components/ui/Loading';
 import { IconAction } from '../components/ui/IconAction';
+import { SelectField } from '../components/ui/SearchTools';
 
 /** ?fy=2024-2025 keeps a mandate shareable. */
 const yearFromUrl = () => new URLSearchParams(location.search).get('fy') ?? undefined;
@@ -102,15 +103,13 @@ export default function Governance() {
             {showYears && (
               <label className="governance-page__year" htmlFor={yearId}>
                 Ano letivo
-                <span className="control control--select">
-                  <select id={yearId} value={shown?.fiscalYear ?? ''} onChange={(e) => choose(e.target.value)}>
-                    {years.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
-                </span>
+                <SelectField id={yearId} value={shown?.fiscalYear ?? ''} onChange={choose}>
+                  {years.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </SelectField>
               </label>
             )}
             {canAddYear && (

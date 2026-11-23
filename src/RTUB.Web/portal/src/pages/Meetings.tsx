@@ -12,7 +12,7 @@ import { Loading } from '../components/ui/Loading';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageHead } from '../components/ui/PageHead';
 import { IconAction } from '../components/ui/IconAction';
-import { SearchField } from '../components/ui/SearchTools';
+import { SearchField, SelectField } from '../components/ui/SearchTools';
 
 // The dialogs load when the first one is opened: most of this page's code is theirs, and many visits open none.
 const Dialogs = lazy(() => import('../components/MeetingDialogHost').then((m) => ({ default: m.Dialogs })));
@@ -198,18 +198,15 @@ export default function Meetings() {
         <>
           <div className="events-tools mtg-tools" role="search">
             <SearchField id={ids.q} label="Pesquisar reuniões" placeholder="Pesquisar por título ou declaração..." value={text} onChange={setText} />
-            <label className="control control--select" htmlFor={ids.year}>
-              <span className="sr-only">Ano</span>
-              <select id={ids.year} value={selectedYear} onChange={(e) => setFy(e.target.value === data.currentFiscalYear ? null : e.target.value)}>
-                <option value="all">Todos os anos</option>
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                    {y === data.currentFiscalYear ? ' (ATUAL)' : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectField id={ids.year} label="Ano" value={selectedYear} onChange={(v) => setFy(v === data.currentFiscalYear ? null : v)}>
+              <option value="all">Todos os anos</option>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                  {y === data.currentFiscalYear ? ' (ATUAL)' : ''}
+                </option>
+              ))}
+            </SelectField>
           </div>
 
           <MeetingSection
