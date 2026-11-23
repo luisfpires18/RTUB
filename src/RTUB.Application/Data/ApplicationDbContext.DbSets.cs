@@ -187,4 +187,11 @@ public partial class ApplicationDbContext
 
     // Push preferences: the push kinds a member turned off, per account
     public DbSet<PushPreference> PushPreferences { get; set; } = null!;
+
+    // Trintuna (/trintuna): access list, gatherings, date polls and presence
+    public DbSet<TrintunaAccess> TrintunaAccesses { get; set; } = null!;
+    public DbSet<Gathering> Gatherings { get; set; } = null!;
+    public DbSet<GatheringPollOption> GatheringPollOptions { get; set; } = null!;
+    public DbSet<GatheringPollVote> GatheringPollVotes { get; set; } = null!;
+    public DbSet<GatheringParticipant> GatheringParticipants { get; set; } = null!;
 }

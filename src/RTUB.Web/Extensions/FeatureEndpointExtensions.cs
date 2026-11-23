@@ -28,6 +28,7 @@ public static class FeatureEndpointExtensions
         // --------- Members area for the React /members ---------
         app.MapMemberEndpoints();
         app.MapLeaderboardEndpoints();
+        app.MapTrintunaEndpoints();
         app.MapInventoryEndpoints();
         app.MapShopEndpoints();
         app.MapDocumentationEndpoints();
