@@ -75,7 +75,12 @@ export function GatheringDialog({ gathering: g, onClose, onChanged }: { gatherin
         <span>{g.date ? dateLabel({ date: g.date, endDate: null }) : 'Data por decidir'}</span>
       </p>
       {g.description && <p>{g.description}</p>}
-      {g.organizer && <PersonChip readOnly name={g.organizer.displayName} avatar={g.organizer.avatarUrl} note="Organiza" />}
+      {g.organizer && (
+        <p className="agenda-card__meta">
+          <Icon name="person" />
+          <span>Organiza: {g.organizer.displayName}</span>
+        </p>
+      )}
       {g.poll.options.length > 0 ? (
         <PollCard poll={g.poll} onChanged={onChanged} onVote={(optionId) => trintunaApi.vote(g.id, optionId)} />
       ) : (
