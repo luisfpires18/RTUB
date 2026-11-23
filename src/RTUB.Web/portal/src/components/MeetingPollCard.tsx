@@ -1,10 +1,11 @@
-// One poll card on /meetings/polls (vote, close, remove).
+// One poll card on /meetings/polls (vote, close, remove); /trintuna reuses it for its date poll (onVote).
 import { useEffect, useState } from 'react';
 import { portal } from '../data/content';
 import { problem, typeClass } from './MeetingUi';
 import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
 import type { MeetingPoll } from '../data/meetingsTypes';
+import type { Outcome } from '../data/api';
 import { longDateTime } from '../data/meetingsDates';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 import { FieldError } from './ui/FieldError';
@@ -16,7 +17,8 @@ export const pollProblem = (outcome: Parameters<typeof problem>[0], what: string
       ? 'Esta votação já não existe ou deixou de estar disponível.'
       : problem(outcome, what);
 
-export function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: () => void }) {
+/** `onVote`: another area's vote call (Trintuna); the card then has no "Copiar link" (the link opens /meetings/polls). */
+export function PollCard({ poll, onChanged, onVote }: { poll: MeetingPoll; onChanged: () => void; onVote?: (optionId: number) => Promise<Outcome<unknown>> }) {
   const [selected, setSelected] = useState<number | null>(poll.myOptionId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -43,7 +45,7 @@ export function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: ()
     if (selected === null) return;
     setBusy(true);
     setError(undefined);
-    const outcome = await meetingsApi.votePoll(poll.id, selected);
+    const outcome = await (onVote ? onVote(selected) : meetingsApi.votePoll(poll.id, selected));
     setBusy(false);
     if (outcome.kind !== 'ok') return setError(pollProblem(outcome, 'registar o voto'));
     onChanged();
@@ -110,10 +112,12 @@ export function PollCard({ poll, onChanged }: { poll: MeetingPoll; onChanged: ()
             Encerrar votação
           </button>
         )}
-        <button type="button" className="btn btn--ghost btn--sm" onClick={copyLink}>
-          <Icon name={copied ? 'check' : 'link'} />
-          <span role="status">{copied ? 'Link copiado' : 'Copiar link'}</span>
-        </button>
+        {!onVote && (
+          <button type="button" className="btn btn--ghost btn--sm" onClick={copyLink}>
+            <Icon name={copied ? 'check' : 'link'} />
+            <span role="status">{copied ? 'Link copiado' : 'Copiar link'}</span>
+          </button>
+        )}
         {poll.canDelete && (
           <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirmDelete(true)} disabled={busy}>
             <Icon name="trash" />

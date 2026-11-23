@@ -131,6 +131,7 @@ public class MemberPagesTests : IntegrationTestBase
     [InlineData("/hall-of-fame")]
     [InlineData("/naipes")]
     [InlineData("/naipes/config")]
+    [InlineData("/trintuna")]
     [InlineData("/events/1/discussion")]
     public async Task MemberPages_RequireAuthentication(string url)
     {
@@ -148,7 +149,7 @@ public class MemberPagesTests : IntegrationTestBase
     public async Task MemberPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var memberUrls = new[] { "/members", "/members/hierarchy", "/rehearsals", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/events/1/discussion" };
+        var memberUrls = new[] { "/members", "/members/hierarchy", "/rehearsals", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/trintuna", "/events/1/discussion" };
 
         // Act & Assert
         foreach (var url in memberUrls)

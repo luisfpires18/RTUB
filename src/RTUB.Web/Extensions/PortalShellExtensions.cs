@@ -34,7 +34,7 @@ public static class PortalShellExtensions
         foreach (var route in new[] { "/events/{id:int}/discussion", "/events/{id:int}/contacts", "/rehearsals", "/rehearsals/{id:int}",
                      "/members", "/members/hierarchy", "/leaderboard", "/inventory", "/documentation", "/logistics", "/logistics/tasks", "/logistics/{id:int}",
                      "/treasury", "/treasury/reports/{id:int}", "/treasury/calotes", "/treasury/mbway", "/treasury/nerba", "/treasury/nerba/{id:int}",
-                     "/pending-actions", "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config",
+                     "/pending-actions", "/requests", "/questions", "/members/map", "/hall-of-fame", "/naipes", "/naipes/config", "/trintuna",
                      "/music/play/{id:int}", "/music/learn", "/meetings/polls", "/meetings", "/messages" })
         {
             app.MapMethods(route, ["GET", "HEAD"], (HttpContext context, IWebHostEnvironment env) =>

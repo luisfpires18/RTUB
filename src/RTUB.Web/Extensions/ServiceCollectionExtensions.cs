@@ -80,6 +80,7 @@ public static partial class ServiceCollectionExtensions
         services.AddScoped<IMemberMapService, MemberMapService>();
         services.AddScoped<IHallOfFameService, HallOfFameService>();
         services.AddScoped<ILeaderboardService, LeaderboardService>();
+        services.AddScoped<ITrintunaService, TrintunaService>();
         services.AddScoped<IInstrumentInventoryService, InstrumentInventoryService>();
         services.AddScoped<IProductShopService, ProductShopService>();
         services.AddScoped<IShopPromotionService, ShopPromotionService>();

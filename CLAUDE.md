@@ -10,7 +10,7 @@ Traffic controller. Routing rules only. Detailed standards live in the docs link
 3. Task-relevant doc from the map below. Nothing else by default.
 
 ## Stack
-ASP.NET Core on .NET 10 (minimal-API endpoints + a few controllers) · EF Core 10 · SQLite · ASP.NET Identity · PWA (service worker + Web Push) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/news`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`, `/requests`, `/questions`, `/members/map`, `/hall-of-fame`, `/naipes`, `/naipes/config`, `/meetings`, `/messages`, `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/dashboard`, `/owner/db`, `/pending-actions`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/share`; `/Error` is a server static page; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions.
+ASP.NET Core on .NET 10 (minimal-API endpoints + a few controllers) · EF Core 10 · SQLite · ASP.NET Identity · PWA (service worker + Web Push) · React 19 + Vite shell (`/`, `/privacy`, `/profile`, `/request`, `/login`, `/music`, `/events`, `/news`, `/rehearsals`, `/gallery`, `/roles`, `/members`, `/members/hierarchy`, `/leaderboard`, `/inventory`, `/shop`, `/documentation`, `/logistics`, `/treasury` + `/treasury/{reports,calotes,mbway,nerba}`, `/requests`, `/questions`, `/members/map`, `/hall-of-fame`, `/naipes`, `/naipes/config`, `/trintuna`, `/meetings`, `/messages`, `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/dashboard`, `/owner/db`, `/pending-actions`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/share`; `/Error` is a server static page; subpaths and owner list in `Program.cs`) · Cloudflare R2 object storage · xUnit + Moq + FluentAssertions.
 
 Clean Architecture: `RTUB.Core` (entities/enums) → `RTUB.Application` (services, repositories, EF Core) → `RTUB.Web` (host, endpoints, controllers, React portal).
 
@@ -74,6 +74,7 @@ Run only what the change can break.
 | React Pedidos + Perguntas (`/requests`, `/questions`) | `docs/react-requests-questions.md` |
 | React profile editor, members map, Hall of Fame (`/profile`, `/members/map`, `/hall-of-fame`) | `docs/react-member-area.md` |
 | React Naipes (`/naipes`, `/naipes/config`: instrument media, comments, settings) | `docs/react-naipes.md` |
+| React Trintuna (`/trintuna`: gatherings, date poll, presence) | `docs/react-trintuna.md` |
 | React Reuniões (`/meetings`: meetings, atas, requests, permission matrix) | `docs/react-meetings.md` |
 | React Owner tools (`/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/dashboard`, `/owner/db`: Owner only) | `docs/react-owner-operations.md` |
 | React password recovery / email confirmation, `/Error`, `/share` (Web Share Target, 053) | `docs/react-identity.md` |

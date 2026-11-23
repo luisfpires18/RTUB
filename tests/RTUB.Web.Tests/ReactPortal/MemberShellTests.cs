@@ -120,6 +120,7 @@ public class MemberShellTests
     [InlineData("portal.questions")]
     [InlineData("portal.hallOfFame")]
     [InlineData("portal.naipes")]
+    [InlineData("portal.trintuna")]
     [InlineData("portal.meetings")]
     [InlineData("portal.users")]
     [InlineData("portal.ownerTracing")]
@@ -187,6 +188,7 @@ public class MemberShellTests
     [InlineData("portal.membersMap", null)]
     [InlineData("portal.hallOfFame", null)]
     [InlineData("portal.naipes", null)]
+    [InlineData("portal.trintuna", "trintuna")]
     public void Menu_GatesEachRestrictedLinkOnTheServersMenuFlag(string href, string? flag)
     {
         var line = MenuLinks().Single(l => l.Href == href).Line;

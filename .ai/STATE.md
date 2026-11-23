@@ -3,13 +3,19 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git and GitHub, durable detail
 in the docs `CLAUDE.md` links. Overwrite stale entries.
 
-_Last updated: 2026-11-19_
+_Last updated: 2026-11-23_
 
 ## Release state
 - `master` (PROD): **2.3.17** (released 2026-11-19, tag `v2.3.17`: others' photo in chats, task 150; 2.3.16 dropped `PostMedia` / `CommentImages`, task 148). `dev`: **2.3.18** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 153 (`feat/153/trintuna`, Issue #364, PR #365, Codex ACCEPTED round 4, merged into `dev`): `/trintuna`, the Trintuna gatherings (5 new tables,
+migration `AddTrintunaGatherings`, 7 seeded historical gatherings), date poll settled from its own options, Vou / Não vou,
+one Owner-managed access list. `docs/react-trintuna.md`. Owner checks: real dates and organizers of 1-7, the menu icon,
+whether presence names are listed. Not checked in a browser: the create/edit form and settling a date
+(API tests and source pins only); check on DEV.
+
 Task 150 (`fix/150/chat-avatars`, PR #359): others' chat messages show the sender's photo (Messenger style, by the last
 bubble of a run; `ThreadMessage` `lastOfRun`, `.bubble__face`), released in 2.3.17. Not checked in a browser: check
 on PROD (group, direct, Notificações RTUB, phone width).
@@ -102,6 +108,9 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - Old work branches `chore/001`…`chore/029`, `fix/012`…`fix/029`, `perf/019`: delete when convenient.
 
 ## Deferred (recorded, not fixed)
+
+- Trintuna (153): `Gathering` and `TrintunaAccess` have no display name in `ApplicationDbContext.EntityDisplay.cs`;
+  the audit shows the raw type.
 
 **Portal (left after phase 3)**
 - `EventManage`, `GalleryManage` and `MeetingDialogs` keep their own error sentences (formal "Tente"/"Entre", other

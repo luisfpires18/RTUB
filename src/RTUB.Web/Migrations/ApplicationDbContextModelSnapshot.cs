@@ -1133,6 +1133,203 @@ namespace RTUB.Migrations
                     b.ToTable("GalleryMediaPersonTags", (string)null);
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.Gathering", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsHistorical")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("OrganizerUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Place")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizerUserId");
+
+                    b.ToTable("Gatherings");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Croquetes",
+                            IsHistorical = true,
+                            Number = 1,
+                            Place = "Vizela"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Bronha",
+                            IsHistorical = true,
+                            Number = 2,
+                            Place = "Lamares"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Frango",
+                            IsHistorical = true,
+                            Number = 3,
+                            Place = "Marco de Canaveses"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Conchita",
+                            IsHistorical = true,
+                            Number = 4,
+                            Place = "Chaves"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedAt = new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Coma",
+                            IsHistorical = true,
+                            Number = 5,
+                            Place = "Fafe"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CreatedAt = new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Pássaro",
+                            IsHistorical = true,
+                            Number = 6,
+                            Place = "Mogadouro"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CreatedAt = new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Jeans",
+                            IsHistorical = true,
+                            Number = 7,
+                            Place = "Bragança"
+                        });
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.GatheringParticipant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("AnsweredAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("GatheringId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("WillAttend")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("GatheringId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("GatheringParticipants");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.GatheringPollOption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("GatheringId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GatheringId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("GatheringPollOptions");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.GatheringPollVote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("GatheringId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("GatheringPollOptionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("VotedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GatheringPollOptionId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("GatheringId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("GatheringPollVotes");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.GeocodingCache", b =>
                 {
                     b.Property<int>("Id")
@@ -4135,6 +4332,40 @@ namespace RTUB.Migrations
                     b.ToTable("TransportationPassengers");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.TrintunaAccess", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("AddedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("TrintunaAccesses");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Trophy", b =>
                 {
                     b.Property<int>("Id")
@@ -4463,6 +4694,69 @@ namespace RTUB.Migrations
                     b.Navigation("GalleryMedia");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.Gathering", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Organizer")
+                        .WithMany()
+                        .HasForeignKey("OrganizerUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Organizer");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.GatheringParticipant", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Gathering", "Gathering")
+                        .WithMany("Participants")
+                        .HasForeignKey("GatheringId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Gathering");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.GatheringPollOption", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Gathering", "Gathering")
+                        .WithMany("PollOptions")
+                        .HasForeignKey("GatheringId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Gathering");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.GatheringPollVote", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Gathering", "Gathering")
+                        .WithMany("PollVotes")
+                        .HasForeignKey("GatheringId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.GatheringPollOption", "Option")
+                        .WithMany("Votes")
+                        .HasForeignKey("GatheringPollOptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Gathering");
+
+                    b.Navigation("Option");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LeaderboardComment", b =>
@@ -5271,6 +5565,17 @@ namespace RTUB.Migrations
                     b.Navigation("Transportation");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.TrintunaAccess", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Trophy", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Event", "Event")
@@ -5318,6 +5623,20 @@ namespace RTUB.Migrations
             modelBuilder.Entity("RTUB.Core.Entities.GalleryMedia", b =>
                 {
                     b.Navigation("PeopleInMedia");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.Gathering", b =>
+                {
+                    b.Navigation("Participants");
+
+                    b.Navigation("PollOptions");
+
+                    b.Navigation("PollVotes");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.GatheringPollOption", b =>
+                {
+                    b.Navigation("Votes");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LeaderboardComment", b =>
