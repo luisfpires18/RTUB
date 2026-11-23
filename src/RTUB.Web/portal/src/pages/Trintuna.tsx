@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { trintunaApi, problem, type Board, type Gathering } from '../data/trintunaApi';
 import { dayOf, monthShort, yearOf, dateLabel } from '../data/eventsDates';
-import { GatheringDialog, AccessDialog, TopDialog } from '../components/TrintunaDialogs';
+import { GatheringDialog, AccessDialog, HallOfFameDialog } from '../components/TrintunaDialogs';
 import { GatheringForm } from '../components/TrintunaForm';
 import { Icon } from '../components/icons';
 import { Notice, RetryNotice, SignInNotice } from '../components/Notice';
@@ -119,19 +119,29 @@ function PastRow({ g, onOpen, tools }: { g: Gathering; onOpen: () => void; tools
   );
 }
 
+// The shared link /trintuna?almoco={id} opens that gathering; the dialog keeps the query in step (the Gallery pattern).
+const almocoFromUrl = () => Number(new URLSearchParams(location.search).get('almoco')) || undefined;
+
+function setAlmocoInUrl(id?: number) {
+  const url = new URL(location.href);
+  if (id) url.searchParams.set('almoco', String(id));
+  else url.searchParams.delete('almoco');
+  history.replaceState(null, '', url.pathname + url.search);
+}
+
 /**
  * /trintuna - the Trintuna gatherings ("Nº Almoço"). The Owner and the members the Owner lists only: anyone else gets
  * the "no access" notice (the API answers 404). Próximos with their date poll and Vou / Não vou, then Passados
- * (Vou / Não vou too). "Top 3" opens who went to the most almoços.
+ * (Fui / Não fui). "Hall of Fame" ranks everyone by past almoços. ?almoco={id} opens one gathering.
  * Everything is decided by GET /api/trintuna.
  */
 export default function Trintuna() {
   const [board, setBoard] = useState<Board | 'signin' | 'notfound' | null>();
-  const [open, setOpen] = useState<number>();
+  const [open, setOpen] = useState<number | undefined>(almocoFromUrl);
   const [editing, setEditing] = useState<number | 'new'>();
   const [deleting, setDeleting] = useState<Gathering>();
   const [access, setAccess] = useState(false);
-  const [top, setTop] = useState(false);
+  const [hall, setHall] = useState(false);
 
   useEffect(() => {
     document.title = 'Trintuna · RTUB';
@@ -155,6 +165,15 @@ export default function Trintuna() {
     onDelete: data?.canManage ? () => setDeleting(g) : undefined,
   });
   const opened = find(open);
+  const show = (id?: number) => {
+    setOpen(id);
+    setAlmocoInUrl(id);
+  };
+
+  // A shared link to a gathering that is not on the board (deleted, wrong id): drop the query, no dialog.
+  useEffect(() => {
+    if (data && open !== undefined && !opened) show(undefined);
+  }, [data, open, opened]);
   const edited = editing === 'new' ? undefined : find(editing);
 
   const remove = async () => {
@@ -170,9 +189,9 @@ export default function Trintuna() {
       <PageHead eyebrow="Tuna" titleId="trintuna-title" title="Trintuna" lead="Os almoços da Trintuna: onde, quando e quem vai.">
         {data && (
           <div className="events-page__actions">
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTop(true)}>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setHall(true)}>
               <Icon name="trophy" />
-              Top 3
+              Hall of Fame
             </button>
             {data.canManage && (
               <>
@@ -212,7 +231,7 @@ export default function Trintuna() {
               <ul className="agenda">
                 {board.upcoming.map((g) => (
                   <li key={g.id}>
-                    <UpcomingCard g={g} onOpen={() => setOpen(g.id)} tools={tools(g)} />
+                    <UpcomingCard g={g} onOpen={() => show(g.id)} tools={tools(g)} />
                   </li>
                 ))}
               </ul>
@@ -230,7 +249,7 @@ export default function Trintuna() {
                 <ul className="archive__list">
                   {board.past.map((g) => (
                     <li key={g.id}>
-                      <PastRow g={g} onOpen={() => setOpen(g.id)} tools={tools(g)} />
+                      <PastRow g={g} onOpen={() => show(g.id)} tools={tools(g)} />
                     </li>
                   ))}
                 </ul>
@@ -240,12 +259,12 @@ export default function Trintuna() {
         </>
       )}
 
-      {opened && <GatheringDialog gathering={opened} onClose={() => setOpen(undefined)} onChanged={() => load(true)} />}
+      {opened && <GatheringDialog gathering={opened} onClose={() => show(undefined)} onChanged={() => load(true)} />}
       {editing !== undefined && (editing === 'new' || edited) && (
         <GatheringForm gathering={edited} canManage={Boolean(data?.canManage)} onClose={() => setEditing(undefined)} onSaved={() => load(true)} />
       )}
       {access && <AccessDialog onClose={() => setAccess(false)} onSaved={() => load(true)} />}
-      {top && data && <TopDialog top={data.top} onClose={() => setTop(false)} />}
+      {hall && data && <HallOfFameDialog ranks={data.hallOfFame} onClose={() => setHall(false)} />}
       {deleting && (
         <AsyncConfirmDialog title="Apagar almoço" confirmLabel="Apagar" confirmIcon="trash" danger onClose={() => setDeleting(undefined)} onConfirm={remove}>
           <p>

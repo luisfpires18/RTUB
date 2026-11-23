@@ -27,11 +27,11 @@ export type Gathering = {
   myStatus: 'going' | 'notGoing' | null;
   poll: Omit<MeetingPoll, 'options'> & { options: { id: number; text: string; date: string; votes: number }[] };
 };
-/** One Top 3 row: `key` opaque per member (not the user id); dense `place` 1-3 (ties share it, by name); `count` = past gatherings answered Vou. */
+/** One Hall of Fame row: `key` opaque per member (not the user id); dense `place` (ties share it, by name; 0 included); `count` = past gatherings answered Vou. */
 export type Rank = { key: string; place: number; displayName: string; avatarUrl: string | null; count: number };
-export type Board = { canManage: boolean; upcoming: Gathering[]; past: Gathering[]; top: Rank[] };
+export type Board = { canManage: boolean; upcoming: Gathering[]; past: Gathering[]; hallOfFame: Rank[] };
 export type Member = { id: string; displayName: string; avatarUrl: string | null };
-export type GatheringInput = { number: number; place: string; description: string; organizerUserId: string | null; pollDates: string[] };
+export type GatheringInput = { place: string; description: string; organizerUserId: string | null; pollDates: string[] };
 
 const base = '/api/trintuna';
 const one = (id: number) => `${base}/gatherings/${id}`;
@@ -45,6 +45,8 @@ export const trintunaApi = {
   vote: (id: number, optionId: number) => call<Gathering>('PUT', `${one(id)}/vote`, { optionId }),
   answer: (id: number, willAttend: boolean) => call<Gathering>('PUT', `${one(id)}/presence`, { willAttend }),
   withdraw: (id: number) => call<void>('DELETE', `${one(id)}/presence`),
+  /** The Owner(s) and the access list, for the Organizador dropdown (Owner only). */
+  organizers: () => call<Member[]>('GET', `${base}/organizers`),
   access: () => call<Member[]>('GET', `${base}/access`),
   setAccess: (userIds: string[]) => call<Member[]>('PUT', `${base}/access`, { userIds }),
 };
@@ -58,4 +60,5 @@ export const problem = (o: Outcome<unknown>, what: string) =>
     forbidden: 'Não tem permissão para esta ação.',
     notfound: 'Este almoço já não existe.',
     closed: 'Este almoço já não aceita esta alteração.',
+    conflict: 'Outro almoço foi criado ao mesmo tempo. Tente outra vez.',
   });
