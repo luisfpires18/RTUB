@@ -18,17 +18,15 @@ public partial class TrintunaApiTests
         gathering.GetProperty("poll").GetProperty("options").EnumerateArray().First(o => o.GetProperty("date").GetString() == date).GetProperty("votes").GetInt32();
 
     [Fact]
-    public async Task TheOwnerChecksNumberAndOrganizer_AndTheOrganizerEditsOnlyTheirOwn()
+    public async Task TheOwnerChecksTheOrganizer_AndTheOrganizerEditsOnlyTheirOwn()
     {
         var (owner, _) = await SignInAsync("Owner");
         var (organizer, who) = await SignInAsync();
         var (other, someone) = await SignInAsync();
         await SetListAsync(owner, someone.Id);
 
-        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/trintuna/gatherings", Input(NextNumber(), who.Id)))).Should().ContainKey("organizerUserId");
-        var taken = await CreateAsync(owner);
-        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/trintuna/gatherings", Input(taken.GetProperty("number").GetInt32())))).Should().ContainKey("number");
-        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/trintuna/gatherings", new { number = NextNumber(), place = " ", pollDates = new[] { "amanhã" } })))
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/trintuna/gatherings", Input(who.Id)))).Should().ContainKey("organizerUserId");
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/trintuna/gatherings", new { place = " ", pollDates = new[] { "amanhã" } })))
             .Should().ContainKeys("place", "pollDates");
 
         await SetListAsync(owner, someone.Id, who.Id);
@@ -38,14 +36,14 @@ public partial class TrintunaApiTests
         mine.GetProperty("organizerUserId").GetString().Should().Be(who.Id);
 
         var edited = await AreaHttp.Json(await organizer.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(mine)}",
-            new { number = 9999, place = "Amarante", description = "Doces", organizerUserId = someone.Id, pollDates = new[] { InDays(20) } }));
+            new { place = "Amarante", description = "Doces", organizerUserId = someone.Id, pollDates = new[] { InDays(20) } }));
         edited.GetProperty("place").GetString().Should().Be("Amarante");
         edited.GetProperty("number").GetInt32().Should().Be(mine.GetProperty("number").GetInt32());
         edited.GetProperty("organizer").GetProperty("displayName").GetString().Should().Be(who.Nickname);
         edited.GetProperty("organizerUserId").ValueKind.Should().Be(JsonValueKind.Null, "only the Owner gets user ids");
         edited.GetProperty("canEdit").GetBoolean().Should().BeTrue();
 
-        (await organizer.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(theirs)}", Input(1))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await organizer.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(theirs)}", Input())).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await other.GetAsync("/api/trintuna")).StatusCode.Should().Be(HttpStatusCode.OK);
 
         (await owner.DeleteAsync($"/api/trintuna/gatherings/{Id(theirs)}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -72,7 +70,7 @@ public partial class TrintunaApiTests
         (await AreaHttp.Errors(await member.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}/vote", new { optionId = Option(other, c) }))).Should().ContainKey("optionId");
 
         // b kept (its vote stays), a removed, c added.
-        var edited = await AreaHttp.Json(await owner.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}", Input(gathering.GetProperty("number").GetInt32(), null, b, c)));
+        var edited = await AreaHttp.Json(await owner.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}", Input(null, b, c)));
         edited.GetProperty("poll").GetProperty("options").EnumerateArray().Select(o => o.GetProperty("date").GetString()).Should().Equal(b, c);
         Votes(edited, b).Should().Be(1);
         Option(edited, b).Should().Be(Option(gathering, b));
@@ -105,8 +103,8 @@ public partial class TrintunaApiTests
         (await owner.PostAsJsonAsync($"/api/trintuna/gatherings/{historical}/settle", new { optionId = 1 })).StatusCode.Should().Be(HttpStatusCode.Conflict, "a historical gathering has no poll");
         (await member.PutAsJsonAsync($"/api/trintuna/gatherings/{historical}/vote", new { optionId = 1 })).StatusCode.Should().Be(HttpStatusCode.Conflict, "votes stay closed on a historical gathering");
         (await member.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}/vote", new { optionId = Option(gathering, a) })).StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await AreaHttp.Errors(await organizer.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}", Input(1, null, a)))).Should().ContainKey("pollDates");
-        (await AreaHttp.Json(await organizer.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}", new { number = 1, place = "Régua", pollDates = new[] { a, b } })))
+        (await AreaHttp.Errors(await organizer.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}", Input(null, a)))).Should().ContainKey("pollDates");
+        (await AreaHttp.Json(await organizer.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}", new { place = "Régua", pollDates = new[] { a, b } })))
             .GetProperty("date").GetString().Should().Be(b, "the place still changes; the dates and the date do not");
     }
 

@@ -113,6 +113,21 @@ public sealed partial class TrintunaService
         return EventResult<IReadOnlyList<TrintunaMemberDto>>.Ok(await AccessListAsync(db));
     }
 
+    public async Task<EventResult<IReadOnlyList<TrintunaMemberDto>>> GetOrganizersAsync(ClaimsPrincipal user)
+    {
+        await using var db = await _contexts.CreateDbContextAsync();
+        if (await OwnerRefusalAsync<IReadOnlyList<TrintunaMemberDto>>(db, user) is { } refused)
+        {
+            return refused;
+        }
+
+        var organizers = (await ViewersAsync(db))
+            .OrderBy(x => x.Value.DisplayName, StringComparer.Create(Pt, true))
+            .Select(x => new TrintunaMemberDto(x.Key, x.Value.DisplayName, x.Value.AvatarUrl))
+            .ToList();
+        return EventResult<IReadOnlyList<TrintunaMemberDto>>.Ok(organizers);
+    }
+
     /// <summary>Replaces the list (rows kept, added or removed as needed).</summary>
     public async Task<EventResult<IReadOnlyList<TrintunaMemberDto>>> UpdateAccessAsync(TrintunaAccessInput input, ClaimsPrincipal user)
     {

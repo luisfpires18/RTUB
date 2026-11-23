@@ -4,12 +4,13 @@ namespace RTUB.Application.DTOs;
 // server except a gathering's organizerUserId for the Owner (the edit form) and the access list (Owner only).
 
 /// <summary>
-/// Próximos (soonest first, undated after) and Passados (historical or before today, newest first). <c>Top</c>: the
-/// 3 highest distinct counts of Vou on past gatherings (dense places 1-3, ties share a place, by name; 0 excluded).
+/// Próximos (soonest first, undated after) and Passados (historical or before today, newest first). <c>HallOfFame</c>:
+/// everyone who can see the page (Owner-role users and listed members, not expelled) by Vou on past gatherings, zeros
+/// included; dense places over every distinct count (ties share a place, by name). The client pages it.
 /// </summary>
-public sealed record TrintunaBoardDto(bool CanManage, IReadOnlyList<GatheringDto> Upcoming, IReadOnlyList<GatheringDto> Past, IReadOnlyList<TrintunaRankDto> Top);
+public sealed record TrintunaBoardDto(bool CanManage, IReadOnlyList<GatheringDto> Upcoming, IReadOnlyList<GatheringDto> Past, IReadOnlyList<TrintunaRankDto> HallOfFame);
 
-/// <summary>One Top 3 row: <c>Key</c> an opaque per-member row key (a hash, never the user id), <c>Place</c> 1-3, <c>Count</c> the past gatherings the member answered Vou.</summary>
+/// <summary>One Hall of Fame row: <c>Key</c> an opaque per-member row key (a hash, never the user id), <c>Place</c> dense from 1, <c>Count</c> the past gatherings the member answered Vou.</summary>
 public sealed record TrintunaRankDto(string Key, int Place, string DisplayName, string? AvatarUrl, int Count);
 
 /// <summary>A member shown on the page. <c>Key</c>: opaque per-member key (<c>TrintunaService.RowKey</c>), never the user id.</summary>
@@ -56,14 +57,17 @@ public sealed record GatheringPollDto(
 /// <summary><c>Date</c> is "yyyy-MM-dd" (the edit form); <c>Text</c> is its Portuguese label.</summary>
 public sealed record GatheringPollOptionDto(int Id, string Text, string Date, int Votes);
 
-/// <summary>Create / edit. <c>PollDates</c>: 0-12 distinct "yyyy-MM-dd". There is no date field: see <c>SettleAsync</c>.</summary>
-public sealed record GatheringInput(int Number, string? Place, string? Description, string? OrganizerUserId, IReadOnlyList<string>? PollDates);
+/// <summary>
+/// Create / edit. <c>PollDates</c>: 0-12 distinct "yyyy-MM-dd". There is no date field: see <c>SettleAsync</c>. There is
+/// no number: the server gives a new gathering the highest number + 1 and never changes it.
+/// </summary>
+public sealed record GatheringInput(string? Place, string? Description, string? OrganizerUserId, IReadOnlyList<string>? PollDates);
 
 public sealed record GatheringOptionInput(int OptionId);
 
 public sealed record GatheringPresenceInput(bool WillAttend);
 
-/// <summary>A member on (or for) the access list.</summary>
+/// <summary>A member on (or for) the access list, or an organizer the Owner can pick.</summary>
 public sealed record TrintunaMemberDto(string Id, string DisplayName, string? AvatarUrl);
 
 public sealed record TrintunaAccessInput(IReadOnlyList<string>? UserIds);

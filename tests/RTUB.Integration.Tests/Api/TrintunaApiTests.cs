@@ -22,7 +22,7 @@ public partial class TrintunaApiTests : IClassFixture<EventsApiFactory>
         _factory = factory;
     }
 
-    private static readonly string[] Reads = { "/api/trintuna", "/api/trintuna/access" };
+    private static readonly string[] Reads = { "/api/trintuna", "/api/trintuna/access", "/api/trintuna/organizers" };
 
     [Fact]
     public async Task Visitors_GetNothing_AndThePageAsksToSignIn()
@@ -42,14 +42,21 @@ public partial class TrintunaApiTests : IClassFixture<EventsApiFactory>
         var page = await anonymous.GetAsync("/trintuna");
         page.StatusCode.Should().Be(HttpStatusCode.Redirect);
         page.Headers.Location!.ToString().Should().Be("/login?returnUrl=%2Ftrintuna");
+
+        // A shared gathering link keeps its query through the sign-in.
+        var shared = await anonymous.GetAsync("/trintuna?almoco=5");
+        shared.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        shared.Headers.Location!.ToString().Should().Be("/login?returnUrl=%2Ftrintuna%3Falmoco%3D5");
     }
 
-    [Fact]
-    public async Task AMemberNotOnTheList_GetsNotFoundEverywhere_AndNoMenuLink()
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("Mod")]
+    public async Task AMemberNotOnTheList_GetsNotFoundEverywhere_AndNoMenuLink(string role)
     {
         var (owner, _) = await SignInAsync("Owner");
         await SetListAsync(owner);
-        var (member, _) = await SignInAsync("Admin");
+        var (member, _) = await SignInAsync(role);
         await AreaHttp.WithTokenAsync(member);
 
         foreach (var path in Reads)
@@ -86,7 +93,7 @@ public partial class TrintunaApiTests : IClassFixture<EventsApiFactory>
         await AreaHttp.WithTokenAsync(member);
         (await member.GetAsync("/api/trintuna/access")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await member.PutAsJsonAsync("/api/trintuna/access", new { userIds = new[] { me.Id } })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await member.PostAsJsonAsync("/api/trintuna/gatherings", Input(NextNumber()))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await member.PostAsJsonAsync("/api/trintuna/gatherings", Input())).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await member.DeleteAsync($"/api/trintuna/gatherings/{gathering.GetProperty("id").GetInt32()}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         // Taken off the list: the page is gone again.
@@ -106,7 +113,7 @@ public partial class TrintunaApiTests : IClassFixture<EventsApiFactory>
 
         var noToken = (await SignInAsync("Owner", token: false)).Client;
         (await noToken.PutAsJsonAsync("/api/trintuna/access", new { userIds = Array.Empty<string>() })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await noToken.PostAsJsonAsync("/api/trintuna/gatherings", Input(NextNumber()))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await noToken.PostAsJsonAsync("/api/trintuna/gatherings", Input())).StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -139,15 +146,11 @@ public partial class TrintunaApiTests : IClassFixture<EventsApiFactory>
 
     // ---------------------------------------------------------------- helpers
 
-    private static int _number = 1000;
-
-    private static int NextNumber() => Interlocked.Increment(ref _number);
-
-    private static object Input(int number, string? organizerUserId = null, params string[] pollDates) =>
-        new { number, place = "Vila Real", description = "Tripas", organizerUserId, pollDates };
+    private static object Input(string? organizerUserId = null, params string[] pollDates) =>
+        new { place = "Vila Real", description = "Tripas", organizerUserId, pollDates };
 
     private async Task<JsonElement> CreateAsync(HttpClient owner, string? organizerUserId = null, params string[] pollDates) =>
-        await AreaHttp.Json(await owner.PostAsJsonAsync("/api/trintuna/gatherings", Input(NextNumber(), organizerUserId, pollDates)));
+        await AreaHttp.Json(await owner.PostAsJsonAsync("/api/trintuna/gatherings", Input(organizerUserId, pollDates)));
 
     private async Task<JsonElement> SetListAsync(HttpClient owner, params string[] userIds) =>
         await AreaHttp.Json(await owner.PutAsJsonAsync("/api/trintuna/access", new { userIds }));
@@ -155,8 +158,8 @@ public partial class TrintunaApiTests : IClassFixture<EventsApiFactory>
     /// <summary>Every write once, on gathering 1 (whether it exists or not: these callers are refused first).</summary>
     private static async Task<HttpResponseMessage[]> WritesAsync(HttpClient client) => new[]
     {
-        await client.PostAsJsonAsync("/api/trintuna/gatherings", Input(5000)),
-        await client.PutAsJsonAsync("/api/trintuna/gatherings/1", Input(1)),
+        await client.PostAsJsonAsync("/api/trintuna/gatherings", Input()),
+        await client.PutAsJsonAsync("/api/trintuna/gatherings/1", Input()),
         await client.DeleteAsync("/api/trintuna/gatherings/1"),
         await client.PostAsJsonAsync("/api/trintuna/gatherings/1/settle", new { optionId = 1 }),
         await client.PutAsJsonAsync("/api/trintuna/gatherings/1/vote", new { optionId = 1 }),
@@ -170,13 +173,14 @@ public partial class TrintunaApiTests : IClassFixture<EventsApiFactory>
     {
         using var scope = _factory.Services.CreateScope();
         await using var db = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContextAsync();
-        var gathering = new Gathering { Number = NextNumber(), Place = "Lamego", Description = "Bola", IsHistorical = historical };
+        var next = (await db.Gatherings.MaxAsync(g => (int?)g.Number) ?? 0) + 1;
+        var gathering = new Gathering { Number = next, Place = "Lamego", Description = "Bola", IsHistorical = historical };
         db.Gatherings.Add(gathering);
         await db.SaveChangesAsync();
         return gathering.Id;
     }
 
-    /// <summary>Removes every Vou / Não vou, so the Top 3 of the shared database starts empty.</summary>
+    /// <summary>Removes every Vou / Não vou, so the Hall of Fame counts of the shared database starts empty.</summary>
     private async Task ClearAnswersAsync()
     {
         using var scope = _factory.Services.CreateScope();
