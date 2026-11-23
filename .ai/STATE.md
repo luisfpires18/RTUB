@@ -10,6 +10,11 @@ _Last updated: 2026-11-19_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 153 (`feat/153/trintuna`, Issue #364, draft PR #365): `/trintuna`, the Trintuna gatherings (5 new tables,
+migration `AddTrintunaGatherings`, 7 seeded historical gatherings), date poll settled from its own options, Vou / Não vou,
+one Owner-managed access list. `docs/react-trintuna.md`. Owner checks: real dates and organizers of 1-7, the menu icon,
+whether presence names are listed.
+
 Task 150 (`fix/150/chat-avatars`, PR #359): others' chat messages show the sender's photo (Messenger style, by the last
 bubble of a run; `ThreadMessage` `lastOfRun`, `.bubble__face`), released in 2.3.17. Not checked in a browser: check
 on PROD (group, direct, Notificações RTUB, phone width).
@@ -102,6 +107,9 @@ Before it, tasks 110-119 (PRs #314-#325): no Blazor leftovers; `portal/src` in `
 - Old work branches `chore/001`…`chore/029`, `fix/012`…`fix/029`, `perf/019`: delete when convenient.
 
 ## Deferred (recorded, not fixed)
+
+- Trintuna (153): `Gathering` and `TrintunaAccess` have no display name in `ApplicationDbContext.EntityDisplay.cs`;
+  the audit shows the raw type.
 
 **Portal (left after phase 3)**
 - `EventManage`, `GalleryManage` and `MeetingDialogs` keep their own error sentences (formal "Tente"/"Entre", other

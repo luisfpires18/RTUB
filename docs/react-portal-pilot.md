@@ -62,7 +62,7 @@ Declared in one place, `src/RTUB.Web/Program.cs` (`MapFallbackToFile`, GET/HEAD 
 | --- | --- |
 | `/`, `/privacy`, `/request`, `/music`, `/music/albums/{id}`, `/news`, `/gallery`, `/shop` (read-only catalogue), `/events`, `/events/{id}`, `/roles`, `/share`, `/forgot-password`, `/reset-password`, `/confirm-email`, `/login` | Public. `/privacy`: `portal/src/pages/Privacy.tsx` is the legal source. `/share`: Web Share Target, GET only (`docs/react-identity.md`). |
 | `/profile` | Signed out: notice + link to `/login?returnUrl=/profile`. Signed in: own profile editor (`docs/react-member-area.md`). |
-| `/events/{id}/discussion`, `/events/{id}/contacts`, `/rehearsals[/{id}]`, `/members`, `/members/hierarchy`, `/members/map`, `/hall-of-fame`, `/leaderboard`, `/inventory`, `/music/play/{id}`, `/music/learn`, `/documentation`, `/logistics[/{id}]`, `/logistics/tasks`, `/treasury/...`, `/pending-actions`, `/requests`, `/questions`, `/naipes`, `/naipes/config`, `/meetings`, `/meetings/polls`, `/messages` | Members only. |
+| `/events/{id}/discussion`, `/events/{id}/contacts`, `/rehearsals[/{id}]`, `/members`, `/members/hierarchy`, `/members/map`, `/hall-of-fame`, `/trintuna`, `/leaderboard`, `/inventory`, `/music/play/{id}`, `/music/learn`, `/documentation`, `/logistics[/{id}]`, `/logistics/tasks`, `/treasury/...`, `/pending-actions`, `/requests`, `/questions`, `/naipes`, `/naipes/config`, `/meetings`, `/meetings/polls`, `/messages` | Members only. |
 | `/emails`, `/notifications`, `/users`, `/owner/tracing`, `/owner/dashboard`, `/owner/db` | Owner only (`docs/react-owner-operations.md`). Other members get the shell with a 403 refusal. |
 | `/Error` | Static server page for any method, no script, no details. |
 | `/portal/assets/*` | Content-hashed Vite output, normal static caching. Any other `/portal/*` is 404. |
@@ -145,7 +145,7 @@ chip opens `/profile`; the inbox opens `/messages` with the unread badge (`porta
 are not in the menu.
 
 - **Groups:** Membro (Atuações, Ensaios, Música, Galeria, Novidades, Loja) · Tuna (Membros, Hierarquia, Órgãos
-  Sociais, Classificação, Hall of Fame, Naipes) · Gestão (Reuniões, Documentação, Instrumentos da Tuna, Questões,
+  Sociais, Classificação, Hall of Fame, Naipes, Trintuna: Owner and listed members) · Gestão (Reuniões, Documentação, Instrumentos da Tuna, Questões,
   Logística, Tesouraria, Pedidos) · Owner (Utilizadores, Auditoria, Base de dados).
 - **Who sees what** (`MemberMenuAccess`, links only): see [permissions](permissions.md). Removed modules (Jogos, Bets,
   MyTuno, Imagens, Conteúdo) are never listed. `MemberShellTests` pins the list, the gating and that every link opens a
