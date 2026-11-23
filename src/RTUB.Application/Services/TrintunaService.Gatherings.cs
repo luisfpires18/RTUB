@@ -49,7 +49,7 @@ public sealed partial class TrintunaService
         };
         db.Gatherings.Add(gathering);
         // The next number is highest + 1. SQLite has one writer: a create that loses the race hits the unique index
-        // (constraint, code 19) and takes the next number on its next try.
+        // (constraint, code 19), or finds the database busy / locked (5 / 6), and re-reads the highest number on its next try.
         for (var attempt = 1; ; attempt++)
         {
             gathering.Number = (await db.Gatherings.MaxAsync(g => (int?)g.Number) ?? 0) + 1;
@@ -58,7 +58,7 @@ public sealed partial class TrintunaService
                 await db.SaveChangesAsync();
                 break;
             }
-            catch (DbUpdateException ex) when (ex.InnerException is SqliteException { SqliteErrorCode: 19 })
+            catch (Exception ex) when (IsNumberRace(ex))
             {
                 if (attempt == NumberTries)
                 {
@@ -69,6 +69,10 @@ public sealed partial class TrintunaService
 
         return EventResult<GatheringDto>.Ok(await LoadAsync(db, gathering.Id, user, listed));
     }
+
+    /// <summary>A lost numbering race: unique constraint (19), or SQLite busy (5) / locked (6), bare or wrapped by EF.</summary>
+    internal static bool IsNumberRace(Exception ex) =>
+        (ex as SqliteException ?? ex.InnerException as SqliteException) is { SqliteErrorCode: 19 or 5 or 6 };
 
     public async Task<EventResult<GatheringDto>> UpdateAsync(int id, GatheringInput input, ClaimsPrincipal user)
     {
