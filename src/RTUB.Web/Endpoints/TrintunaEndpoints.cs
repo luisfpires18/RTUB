@@ -43,12 +43,19 @@ public static class TrintunaEndpoints
         trintuna.MapGet("/access", async (HttpContext http, ITrintunaService service) =>
             Answer(await service.GetAccessAsync(http.User)));
 
+        trintuna.MapGet("/organizers", async (HttpContext http, ITrintunaService service) =>
+            Answer(await service.GetOrganizersAsync(http.User)));
+
         writes.MapPut("/access", async (TrintunaAccessInput input, HttpContext http, ITrintunaService service) =>
             Answer(await service.UpdateAccessAsync(input, http.User)));
     }
 
     private static IResult Answer<T>(EventResult<T> result, Func<T, IResult>? ok = null) =>
-        ToResult(result, ok, special: status => status == EventResultStatus.Closed
-            ? Results.Problem(title: "Este almoço já não aceita esta resposta.", statusCode: StatusCodes.Status409Conflict, type: "trintuna:closed")
-            : null);
+        ToResult(result, ok, special: status => status switch
+        {
+            EventResultStatus.Closed => Results.Problem(title: "Este almoço já não aceita esta resposta.", statusCode: StatusCodes.Status409Conflict, type: "trintuna:closed"),
+            // Create lost the race for the next number five times.
+            EventResultStatus.Conflict => Results.Problem(title: "Tente outra vez.", statusCode: StatusCodes.Status409Conflict, type: "trintuna:conflict"),
+            _ => null,
+        });
 }

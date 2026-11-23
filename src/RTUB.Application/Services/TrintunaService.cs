@@ -17,7 +17,9 @@ namespace RTUB.Application.Services;
 /// - Passados: historical (the seed) or dated before today (Portugal), newest first then by number (descending).
 ///   Próximos: the rest, dated soonest first, undated after, by number.
 /// - The poll is open while the gathering has no date and is not historical. Settling picks one of its own options.
-/// - Vou / Não vou is open on every gathering, past ones included. Top 3: Vou on past gatherings, dense places.
+/// - Vou / Não vou is open on every gathering, past ones included (the page words it Fui / Não fui there). Hall of
+///   Fame: everyone who can see the page by Vou on past gatherings, zeros included, dense places.
+/// - The number is the server's: highest + 1 on create, never edited.
 /// </summary>
 public sealed partial class TrintunaService : ITrintunaService
 {
@@ -51,7 +53,7 @@ public sealed partial class TrintunaService : ITrintunaService
         var people = await PeopleAsync(db, gatherings);
         var today = PortugalTime.Today(_time);
         var all = gatherings.Select(g => Map(g, people, user, listed, today)).ToList();
-        var top = Top(gatherings, people, today);
+        var hallOfFame = HallOfFame(gatherings, await ViewersAsync(db), today);
 
         var past = all.Where(g => g.Past)
             .OrderByDescending(g => g.Date ?? string.Empty, StringComparer.Ordinal)
@@ -62,7 +64,7 @@ public sealed partial class TrintunaService : ITrintunaService
             .ThenBy(g => g.Date ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(g => g.Number)
             .ToList();
-        return EventResult<TrintunaBoardDto>.Ok(new TrintunaBoardDto(TrintunaAuthorization.CanManage(user), upcoming, past, top));
+        return EventResult<TrintunaBoardDto>.Ok(new TrintunaBoardDto(TrintunaAuthorization.CanManage(user), upcoming, past, hallOfFame));
     }
 
     /// <summary>SignInRequired for a visitor, NotFound for a member who may not see the page; else the listed flag.</summary>
@@ -76,6 +78,23 @@ public sealed partial class TrintunaService : ITrintunaService
         var me = user.UserId();
         var listed = me is not null && await db.TrintunaAccesses.AnyAsync(a => a.UserId == me);
         return TrintunaAuthorization.CanView(user, listed) ? (null, listed) : (EventResult<T>.Fail(EventResultStatus.NotFound), listed);
+    }
+
+    /// <summary>
+    /// Who can see the page: Owner-role users and listed members, not expelled. The Organizador list, its server check
+    /// and the Hall of Fame all read this, so they cannot drift.
+    /// </summary>
+    private static IQueryable<ApplicationUser> Viewers(ApplicationDbContext db) => db.Users.Where(u => !u.IsExpelled
+        && (db.TrintunaAccesses.Any(a => a.UserId == u.Id)
+            || db.UserRoles.Any(r => r.UserId == u.Id && db.Roles.Any(role => role.Id == r.RoleId && role.Name == "Owner"))));
+
+    /// <summary><see cref="Viewers"/> with display names and photos, by user id.</summary>
+    private static async Task<Dictionary<string, GovernanceMemberDto>> ViewersAsync(ApplicationDbContext db)
+    {
+        var users = await Viewers(db).AsNoTracking()
+            .Select(u => new { u.Id, u.Nickname, u.FirstName, u.LastName, u.ImageUrl })
+            .ToListAsync();
+        return users.ToDictionary(u => u.Id, u => GovernanceService.ToMember(u.Nickname, u.FirstName, u.LastName, u.ImageUrl));
     }
 
     private static IQueryable<Gathering> Gatherings(ApplicationDbContext db) => db.Gatherings
@@ -113,19 +132,21 @@ public sealed partial class TrintunaService : ITrintunaService
     }
 
     /// <summary>
-    /// Vou on past gatherings by member. Dense ranking: the 3 highest distinct counts get places 1-3 and everyone with
-    /// that count shares the place, ordered by name (5,5,3,2 gives gold A and B, silver C, bronze D). 0 never appears.
+    /// Vou on past gatherings for everyone who can see the page (<paramref name="viewers"/>), 0 included. Dense ranking:
+    /// each distinct count is one place and everyone with it shares the place, ordered by name (5,5,3,0 gives 1 A and
+    /// B, 2 C, 3 D). Members off the list or expelled are not in <paramref name="viewers"/>, so not ranked.
     /// </summary>
-    private static IReadOnlyList<TrintunaRankDto> Top(IEnumerable<Gathering> gatherings, Dictionary<string, GovernanceMemberDto> people, DateTime today)
+    private static IReadOnlyList<TrintunaRankDto> HallOfFame(IEnumerable<Gathering> gatherings, Dictionary<string, GovernanceMemberDto> viewers, DateTime today)
     {
-        var counts = gatherings
+        var went = gatherings
             .Where(g => IsPast(g, today))
             .SelectMany(g => g.Participants.Where(p => p.WillAttend))
             .GroupBy(p => p.UserId)
-            .Where(c => people.ContainsKey(c.Key))
-            .Select(c => (Key: RowKey(c.Key), Who: people[c.Key], Count: c.Count()))
+            .ToDictionary(c => c.Key, c => c.Count());
+        var counts = viewers
+            .Select(v => (Key: RowKey(v.Key), Who: v.Value, Count: went.GetValueOrDefault(v.Key)))
             .ToList();
-        return counts.Select(c => c.Count).Distinct().OrderByDescending(n => n).Take(3)
+        return counts.Select(c => c.Count).Distinct().OrderByDescending(n => n)
             .SelectMany((n, i) => counts.Where(c => c.Count == n)
                 .OrderBy(c => c.Who.DisplayName, StringComparer.Create(Pt, ignoreCase: true))
                 .ThenBy(c => c.Key, StringComparer.Ordinal)

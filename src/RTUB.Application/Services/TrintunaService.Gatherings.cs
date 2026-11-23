@@ -1,6 +1,7 @@
 // Trintuna: create, edit, delete and settle a gathering; input validation and the poll option diff.
 using System.Globalization;
 using System.Security.Claims;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
@@ -14,6 +15,9 @@ public sealed partial class TrintunaService
     public const int MaxPlace = 200;
     public const int MaxDescription = 2000;
     public const int MaxPollDates = 12;
+
+    /// <summary>Tries to save a new gathering when another create took the same number first (unique index).</summary>
+    internal const int NumberTries = 5;
 
     public async Task<EventResult<GatheringDto>> CreateAsync(GatheringInput input, ClaimsPrincipal user)
     {
@@ -30,7 +34,7 @@ public sealed partial class TrintunaService
         }
 
         var (errors, dates) = Validate(input);
-        await CheckOwnerFieldsAsync(db, input, null, errors);
+        await CheckOwnerFieldsAsync(db, input, errors);
         if (errors.Count > 0)
         {
             return new EventResult<GatheringDto>(EventResultStatus.Invalid, Errors: errors);
@@ -38,16 +42,43 @@ public sealed partial class TrintunaService
 
         var gathering = new Gathering
         {
-            Number = input.Number,
             Place = input.Place!.Trim(),
             Description = Clean(input.Description),
             OrganizerUserId = Clean(input.OrganizerUserId),
             PollOptions = dates.Select(d => new GatheringPollOption { Date = d }).ToList(),
         };
         db.Gatherings.Add(gathering);
-        await db.SaveChangesAsync();
+        // The next number is highest + 1. SQLite has one writer: a create that loses the race hits the unique index
+        // (constraint, code 19), or finds the database busy / locked (5 / 6), and re-reads the highest number on its next try.
+        for (var attempt = 1; ; attempt++)
+        {
+            gathering.Number = (await db.Gatherings.MaxAsync(g => (int?)g.Number) ?? 0) + 1;
+            try
+            {
+                await db.SaveChangesAsync();
+                break;
+            }
+            catch (Exception ex) when (IsNumberRace(ex))
+            {
+                if (attempt == NumberTries)
+                {
+                    return EventResult<GatheringDto>.Fail(EventResultStatus.Conflict);
+                }
+            }
+        }
+
         return EventResult<GatheringDto>.Ok(await LoadAsync(db, gathering.Id, user, listed));
     }
+
+    /// <summary>
+    /// A lost numbering race: the unique <c>Gatherings.Number</c> index ("UNIQUE constraint failed: Gatherings.Number"),
+    /// or SQLite busy (5) / locked (6), bare or wrapped by EF. Any other constraint (organizer FK, poll-date index)
+    /// is not a race and is not retried.
+    /// </summary>
+    internal static bool IsNumberRace(Exception ex) =>
+        (ex as SqliteException ?? ex.InnerException as SqliteException) is { } sqlite
+        && (sqlite.SqliteErrorCode is 5 or 6
+            || (sqlite.SqliteErrorCode == 19 && sqlite.Message.Contains("UNIQUE constraint failed: Gatherings.Number", StringComparison.Ordinal)));
 
     public async Task<EventResult<GatheringDto>> UpdateAsync(int id, GatheringInput input, ClaimsPrincipal user)
     {
@@ -69,13 +100,13 @@ public sealed partial class TrintunaService
             return EventResult<GatheringDto>.Fail(EventResultStatus.Forbidden);
         }
 
-        // The organizer edits place, description and dates; number and organizer stay as stored.
+        // The organizer edits place, description and dates; the organizer stays as stored. The number never changes.
         var owner = TrintunaAuthorization.CanManage(user);
-        var effective = owner ? input : input with { Number = gathering.Number, OrganizerUserId = gathering.OrganizerUserId };
+        var effective = owner ? input : input with { OrganizerUserId = gathering.OrganizerUserId };
         var (errors, dates) = Validate(effective);
         if (owner)
         {
-            await CheckOwnerFieldsAsync(db, effective, gathering.Id, errors);
+            await CheckOwnerFieldsAsync(db, effective, errors);
         }
 
         var kept = gathering.PollOptions.Select(o => o.Date).ToHashSet();
@@ -89,7 +120,6 @@ public sealed partial class TrintunaService
             return new EventResult<GatheringDto>(EventResultStatus.Invalid, Errors: errors);
         }
 
-        gathering.Number = effective.Number;
         gathering.Place = effective.Place!.Trim();
         gathering.Description = Clean(effective.Description);
         gathering.OrganizerUserId = Clean(effective.OrganizerUserId);
@@ -169,11 +199,6 @@ public sealed partial class TrintunaService
     private static (Dictionary<string, string[]> Errors, List<DateTime> Dates) Validate(GatheringInput input)
     {
         var errors = new Dictionary<string, string[]>();
-        if (input.Number < 1)
-        {
-            errors["number"] = new[] { "O número do almoço tem de ser 1 ou mais." };
-        }
-
         var place = input.Place?.Trim() ?? string.Empty;
         if (place.Length == 0)
         {
@@ -215,23 +240,15 @@ public sealed partial class TrintunaService
         return (errors, dates);
     }
 
-    /// <summary>Owner-only fields: a free number, and an organizer who is the Owner or on the access list.</summary>
-    private static async Task CheckOwnerFieldsAsync(ApplicationDbContext db, GatheringInput input, int? id, Dictionary<string, string[]> errors)
+    /// <summary>Owner-only field: an organizer who can see the page (<see cref="Viewers"/>, as GET /organizers lists).</summary>
+    private static async Task CheckOwnerFieldsAsync(ApplicationDbContext db, GatheringInput input, Dictionary<string, string[]> errors)
     {
-        if (input.Number >= 1 && await db.Gatherings.AnyAsync(g => g.Number == input.Number && g.Id != id))
-        {
-            errors["number"] = new[] { $"Já existe o {input.Number}º Almoço." };
-        }
-
         if (Clean(input.OrganizerUserId) is not { } organizer)
         {
             return;
         }
 
-        var allowed = await db.Users.AnyAsync(u => u.Id == organizer && !u.IsExpelled)
-            && (await db.TrintunaAccesses.AnyAsync(a => a.UserId == organizer)
-                || await db.UserRoles.AnyAsync(r => r.UserId == organizer && db.Roles.Any(role => role.Id == r.RoleId && role.Name == "Owner")));
-        if (!allowed)
+        if (!await Viewers(db).AnyAsync(u => u.Id == organizer))
         {
             errors["organizerUserId"] = new[] { "O organizador tem de estar na lista de acesso." };
         }

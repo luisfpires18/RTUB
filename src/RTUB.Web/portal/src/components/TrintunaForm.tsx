@@ -13,8 +13,9 @@ import { SelectField } from './ui/SearchTools';
 const ORGANIZER_HINT = 'Escolhido entre quem tem acesso à página.';
 
 /**
- * "Novo almoço" / "Editar almoço". The Owner sets the number and the organizer (a member on the access list); the
- * organizer edits place, description and dates. Once the date is set, the dates no longer change.
+ * "Novo almoço" / "Editar almoço". The server numbers a new gathering (highest + 1); nobody types it. The Owner sets
+ * the organizer (an Owner or a member on the access list); the organizer edits place, description and dates. Once the
+ * date is set, the dates no longer change.
  */
 export function GatheringForm({
   gathering: g,
@@ -27,7 +28,6 @@ export function GatheringForm({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [number, setNumber] = useState(g ? String(g.number) : '');
   const [place, setPlace] = useState(g?.place ?? '');
   const [description, setDescription] = useState(g?.description ?? '');
   const [organizer, setOrganizer] = useState(g?.organizerUserId ?? '');
@@ -43,17 +43,17 @@ export function GatheringForm({
   const settleOptions = g ? g.poll.options.filter((o) => dates.includes(o.date)) : [];
   const settleDate = settleOptions.some((o) => o.date === settle) ? settle : '';
 
-  // The organizer list is the access list (Owner only).
+  // The organizer list: the Owner(s) and the access list (Owner only, GET /organizers).
   useEffect(() => {
     if (!canManage) return;
-    trintunaApi.access().then((o) => o.kind === 'ok' && setMembers(o.data));
+    trintunaApi.organizers().then((o) => o.kind === 'ok' && setMembers(o.data));
   }, [canManage]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setErrors({});
-    const input = { number: Number(number), place, description, organizerUserId: organizer || null, pollDates: dates.filter(Boolean) };
+    const input = { place, description, organizerUserId: organizer || null, pollDates: dates.filter(Boolean) };
     const saved = g ? await trintunaApi.update(g.id, input) : await trintunaApi.create(input);
     if (saved.kind !== 'ok') {
       setBusy(false);
@@ -79,13 +79,10 @@ export function GatheringForm({
       title={g ? `Editar ${g.title}` : 'Novo almoço'}
       size="lg"
       onClose={onClose}
-      footer={<DialogFooter form={id('form')} busy={busy} disabled={!place.trim() || !number} onClose={onClose} />}
+      footer={<DialogFooter form={id('form')} busy={busy} disabled={!place.trim()} onClose={onClose} />}
     >
       <form id={id('form')} className="form" onSubmit={submit} noValidate>
         <Banner text={errors.form} />
-        <FormField id={id('number')} label="Nº do almoço" error={errors.number} hint={canManage ? undefined : 'O número é definido por quem gere a página.'}>
-          <input {...fieldProps(id('number'), errors.number)} type="number" min={1} value={number} disabled={!canManage} onChange={(e) => setNumber(e.target.value)} />
-        </FormField>
         <FormField id={id('place')} label="Local" error={errors.place}>
           <input {...fieldProps(id('place'), errors.place)} type="text" maxLength={MAX_PLACE} value={place} onChange={(e) => setPlace(e.target.value)} />
         </FormField>

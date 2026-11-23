@@ -1,11 +1,12 @@
-// /trintuna dialogs: one gathering (description, organizer, date poll, Vou / Não vou, who answered), the Top 3 and
-// the Owner's access list.
+// /trintuna dialogs: one gathering (description, organizer, date poll, Vou / Não vou or Fui / Não fui, who answered,
+// its share link), the Hall of Fame and the Owner's access list.
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { PollCard } from './MeetingPollCard';
 import { MemberPicker } from './LogisticsFields';
 import type { Outcome } from '../data/api';
+import { portal } from '../data/content';
 import { trintunaApi, problem, type Gathering, type Member, type Person, type Rank } from '../data/trintunaApi';
 import { medal } from '../data/leaderboardApi';
 import { dateLabel } from '../data/eventsDates';
@@ -17,8 +18,12 @@ import { CloseFooter, DialogFooter } from './ui/DialogFooter';
 import { EmptyNote } from './ui/EmptyNote';
 import { Loading } from './ui/Loading';
 import { PersonChip } from './ui/PersonChip';
+import { SimplePager } from './ui/SimplePager';
 
-/** Vou / Não vou, with the answer markup of /events; past gatherings take answers too. */
+/** Hall of Fame rows per page (the list is whole in the board; the dialog slices it). */
+const HALL_PAGE = 15;
+
+/** Vou / Não vou, with the answer markup of /events; past gatherings take answers too, worded Fui / Não fui. */
 function Presence({ gathering, onChanged, onClose }: { gathering: Gathering; onChanged: () => void; onClose: () => void }) {
   const stored = gathering.myStatus === 'going' ? true : gathering.myStatus === 'notGoing' ? false : null;
   const [choice, setChoice] = useState<boolean | null>(stored);
@@ -50,12 +55,12 @@ function Presence({ gathering, onChanged, onClose }: { gathering: Gathering; onC
           <label className={choice === true ? 'choice__option choice__option--yes is-on' : 'choice__option choice__option--yes'}>
             <input type="radio" name={name} checked={choice === true} onChange={() => setChoice(true)} />
             <Icon name="check" />
-            Vou
+            {gathering.past ? 'Fui' : 'Vou'}
           </label>
           <label className={choice === false ? 'choice__option choice__option--no is-on' : 'choice__option choice__option--no'}>
             <input type="radio" name={name} checked={choice === false} onChange={() => setChoice(false)} />
             <Icon name="close" />
-            Não vou
+            {gathering.past ? 'Não fui' : 'Não vou'}
           </label>
         </div>
       </fieldset>
@@ -73,8 +78,24 @@ function Presence({ gathering, onChanged, onClose }: { gathering: Gathering; onC
 /** "Quem vai / Quem foi" of /events: names and photos only. */
 const asParticipant = (p: Person) => ({ key: p.key, name: p.displayName, fullName: null, avatarUrl: p.avatarUrl ?? '', badge: null, instrument: null, notes: null });
 
-/** One gathering: what, who organizes, the date poll, the caller's answer (past ones too) and who answered. */
+/** One gathering: what, who organizes, the date poll, the caller's answer (past ones too), who answered, its link. */
 export function GatheringDialog({ gathering: g, onClose, onChanged }: { gathering: Gathering; onClose: () => void; onChanged: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const [linkError, setLinkError] = useState<string>();
+
+  // The MeetingPollCard pattern: the link opens this gathering for the Owner and listed members; others see the notice.
+  const copyLink = async () => {
+    const link = `${location.origin}${portal.trintuna}?almoco=${g.id}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setLinkError(undefined);
+      setCopied(true);
+    } catch {
+      // The browser refused the clipboard: show the link to select by hand.
+      setLinkError(`Não foi possível copiar. Link: ${link}`);
+    }
+  };
+
   return (
     <Dialog title={`${g.title} · ${g.place}`} onClose={onClose}>
       <p className="agenda-card__meta">
@@ -95,35 +116,49 @@ export function GatheringDialog({ gathering: g, onClose, onChanged }: { gatherin
       )}
       <Presence gathering={g} onChanged={onChanged} onClose={onClose} />
       <WhoIsGoing participants={{ going: g.going.map(asParticipant), leitoes: [], notGoing: g.notGoing.map(asParticipant) }} past={g.past} />
+      <Banner text={linkError} />
+      <button type="button" className="btn btn--ghost btn--sm" onClick={copyLink}>
+        <Icon name={copied ? 'check' : 'link'} />
+        <span role="status">{copied ? 'Link copiado' : 'Copiar link'}</span>
+      </button>
     </Dialog>
   );
 }
 
-/** "Top 3": who went to the most past almoços, in the /leaderboard row look; ties share a medal. */
-export function TopDialog({ top, onClose }: { top: Rank[]; onClose: () => void }) {
+/**
+ * "Hall of Fame": everyone who can see the page, by past almoços (zeros included), in the /leaderboard row look; ties
+ * share a place, medals for places 1-3, 15 per page.
+ */
+export function HallOfFameDialog({ ranks, onClose }: { ranks: Rank[]; onClose: () => void }) {
+  const [page, setPage] = useState(1);
+  const pages = Math.ceil(ranks.length / HALL_PAGE);
+  const shown = ranks.slice((page - 1) * HALL_PAGE, page * HALL_PAGE);
   return (
-    <Dialog title="Top 3" onClose={onClose} footer={<CloseFooter onClose={onClose} />}>
-      {top.length === 0 ? (
+    <Dialog title="Hall of Fame" onClose={onClose} footer={<CloseFooter onClose={onClose} />}>
+      {ranks.length === 0 ? (
         <EmptyNote>Ainda ninguém foi a um almoço.</EmptyNote>
       ) : (
-        <ol className="leaderboard-rows" aria-label="Top 3">
-          {top.map((r) => (
-            <li key={r.key}>
-              <div className={`leaderboard-row leaderboard-row--top${r.place} leaderboard-row--static`}>
-                <span className="leaderboard-row__pos" aria-label={`${r.place}.º lugar`}>
-                  {medal(r.place)}
-                </span>
-                <Avatar className="who__avatar" src={r.avatarUrl} size={48} />
-                <span className="leaderboard-row__who">
-                  <strong>{r.displayName}</strong>
-                </span>
-                <span className="leaderboard-row__score">
-                  <strong>{r.count === 1 ? '1 almoço' : `${r.count} almoços`}</strong>
-                </span>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <>
+          <ol className="leaderboard-rows" aria-label="Hall of Fame">
+            {shown.map((r) => (
+              <li key={r.key}>
+                <div className={`leaderboard-row${r.place <= 3 ? ` leaderboard-row--top${r.place}` : ''} leaderboard-row--static`}>
+                  <span className="leaderboard-row__pos" aria-label={`${r.place}.º lugar`}>
+                    {medal(r.place)}
+                  </span>
+                  <Avatar className="who__avatar" src={r.avatarUrl} size={48} />
+                  <span className="leaderboard-row__who">
+                    <strong>{r.displayName}</strong>
+                  </span>
+                  <span className="leaderboard-row__score">
+                    <strong>{r.count === 1 ? '1 almoço' : `${r.count} almoços`}</strong>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <SimplePager page={page} pages={pages} onPage={setPage} words />
+        </>
       )}
     </Dialog>
   );

@@ -214,7 +214,7 @@
   border-color: var(--line-strong);
 }
 
-/* Rows that open nothing (the /trintuna Top 3 dialog). */
+/* Rows that open nothing (the /trintuna Hall of Fame dialog). */
 .leaderboard-row--static {
   cursor: default;
 }
