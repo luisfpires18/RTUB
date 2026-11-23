@@ -60,7 +60,7 @@ Link: member menu (`MemberShell.tsx`, Tuna group "Trintuna"), shown when `GET /a
   votes are refused (409) and the dates no longer change (400). Changing or clearing a settled date is out of scope.
 - Vou / Não vou works on every gathering, past and historical ones included (set, change, clear). Votes on the date
   poll stay closed (409) once settled or on a historical gathering.
-- Top 3 (`top[]`: `{ place, displayName, avatarUrl, count }`, "Top 3" button, `TopDialog` in the /leaderboard row look):
+- Top 3 (`top[]`: `{ key, place, displayName, avatarUrl, count }`; `key` is an opaque per-member row key (SHA-256 of the user id, 16 hex), never the user id, "Top 3" button, `TopDialog` in the /leaderboard row look):
   `count` is the number of past gatherings (historical, or dated before today) the member answered Vou, read from the
   answers on every request (no stored counter, no input). Dense ranking: the 3 highest distinct counts get places 1-3,
   everyone with that count shares the place (and the medal), ordered by name; 0 is never shown. 5,5,3,2 gives gold A

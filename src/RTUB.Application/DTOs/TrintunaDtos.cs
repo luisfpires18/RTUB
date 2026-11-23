@@ -9,8 +9,8 @@ namespace RTUB.Application.DTOs;
 /// </summary>
 public sealed record TrintunaBoardDto(bool CanManage, IReadOnlyList<GatheringDto> Upcoming, IReadOnlyList<GatheringDto> Past, IReadOnlyList<TrintunaRankDto> Top);
 
-/// <summary>One Top 3 row: <c>Place</c> 1-3, <c>Count</c> the past gatherings the member answered Vou.</summary>
-public sealed record TrintunaRankDto(int Place, string DisplayName, string? AvatarUrl, int Count);
+/// <summary>One Top 3 row: <c>Key</c> an opaque per-member row key (a hash, never the user id), <c>Place</c> 1-3, <c>Count</c> the past gatherings the member answered Vou.</summary>
+public sealed record TrintunaRankDto(string Key, int Place, string DisplayName, string? AvatarUrl, int Count);
 
 public sealed record TrintunaPersonDto(string DisplayName, string? AvatarUrl);
 

@@ -123,14 +123,19 @@ public sealed partial class TrintunaService : ITrintunaService
             .SelectMany(g => g.Participants.Where(p => p.WillAttend))
             .GroupBy(p => p.UserId)
             .Where(c => people.ContainsKey(c.Key))
-            .Select(c => (Who: people[c.Key], Count: c.Count()))
+            .Select(c => (Key: RowKey(c.Key), Who: people[c.Key], Count: c.Count()))
             .ToList();
         return counts.Select(c => c.Count).Distinct().OrderByDescending(n => n).Take(3)
             .SelectMany((n, i) => counts.Where(c => c.Count == n)
                 .OrderBy(c => c.Who.DisplayName, StringComparer.Create(Pt, ignoreCase: true))
-                .Select(c => new TrintunaRankDto(i + 1, c.Who.DisplayName, c.Who.AvatarUrl, n)))
+                .ThenBy(c => c.Key, StringComparer.Ordinal)
+                .Select(c => new TrintunaRankDto(c.Key, i + 1, c.Who.DisplayName, c.Who.AvatarUrl, n)))
             .ToList();
     }
+
+    /// <summary>A stable, unique row key that is not the user id (the page never receives user ids).</summary>
+    internal static string RowKey(string userId) =>
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(userId)))[..16];
 
     private static List<TrintunaPersonDto> Answered(Gathering g, Dictionary<string, GovernanceMemberDto> people, bool willAttend) =>
         g.Participants

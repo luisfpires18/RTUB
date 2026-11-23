@@ -107,9 +107,8 @@ export function TopDialog({ top, onClose }: { top: Rank[]; onClose: () => void }
         <EmptyNote>Ainda ninguém foi a um almoço.</EmptyNote>
       ) : (
         <ol className="leaderboard-rows" aria-label="Top 3">
-          {/* No user ids reach the page: name + photo identify a ranked member. */}
           {top.map((r) => (
-            <li key={`${r.displayName}|${r.avatarUrl ?? ''}`}>
+            <li key={r.key}>
               <div className={`leaderboard-row leaderboard-row--top${r.place} leaderboard-row--static`}>
                 <span className="leaderboard-row__pos" aria-label={`${r.place}.º lugar`}>
                   {medal(r.place)}

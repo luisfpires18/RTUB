@@ -1,6 +1,9 @@
 using System.Globalization;
 using System.Net;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using RTUB.Application.Data;
 
 namespace RTUB.Integration.Tests.Api;
 
@@ -46,6 +49,34 @@ public partial class TrintunaApiTests
         var tied = new[] { userA.Nickname, userB.Nickname }.OrderBy(n => n, ByName).ToArray();
         (await TopAsync(a)).Should().Equal((1, tied[0], 2), (1, tied[1], 2), (2, userC.Nickname, 1));
         (await AreaHttp.Json(a, "/api/trintuna")).GetProperty("top").GetRawText().Should().NotContain(userA.Id, "no user id in the Top 3");
+        await ClearAnswersAsync();
+    }
+
+    [Fact]
+    public async Task Top_RowKeysStayUnique_WhenMembersShareNameAndHaveNoPhoto()
+    {
+        await ClearAnswersAsync();
+        var (owner, _) = await SignInAsync("Owner");
+        var (a, userA) = await SignInAsync();
+        var (b, userB) = await SignInAsync();
+        await SetListAsync(owner, userA.Id, userB.Id);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            await using var db = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContextAsync();
+            await db.Users.Where(u => u.Id == userA.Id || u.Id == userB.Id).ExecuteUpdateAsync(u => u
+                .SetProperty(x => x.Nickname, "Gémeo").SetProperty(x => x.FirstName, "Gé").SetProperty(x => x.LastName, "Meo")
+                .SetProperty(x => x.ImageUrl, (string?)null));
+        }
+
+        var past = await SeedGatheringAsync(historical: true);
+        await AnswerAsync(a, past, true);
+        await AnswerAsync(b, past, true);
+
+        var top = (await AreaHttp.Json(a, "/api/trintuna")).GetProperty("top").EnumerateArray().ToList();
+        top.Select(r => r.GetProperty("displayName").GetString()).Distinct().Should().HaveCount(1, "both rows show the same name");
+        var keys = top.Select(r => r.GetProperty("key").GetString()).ToList();
+        keys.Should().HaveCount(2).And.OnlyHaveUniqueItems().And.NotContainNulls();
+        keys.Should().NotContain(new[] { userA.Id, userB.Id }, "the key is not the user id");
         await ClearAnswersAsync();
     }
 
