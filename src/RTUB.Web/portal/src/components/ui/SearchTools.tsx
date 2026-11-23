@@ -1,6 +1,6 @@
-// The filter bar of a list page: the bar itself, a search box and a select, each with a screen-reader-only label.
-import type { ReactNode } from 'react';
-import { Icon } from '../icons';
+// The filter bar of a list page (the bar, a search box) and the one shared select of the portal (SelectField).
+import type { ReactNode, SelectHTMLAttributes } from 'react';
+import { Icon, type IconName } from '../icons';
 
 /** `div.events-tools[role=search]`; `className` is added after "events-tools" (e.g. "mtg-tools"). */
 export function ToolsBar({ className, children }: { className?: string; children: ReactNode }) {
@@ -36,28 +36,46 @@ export function SearchField({
   );
 }
 
-/** A select; the `<option>`s are the children. `small` is the compact `control--sm` size. */
+/**
+ * The one select of the portal; the `<option>`s are the children. With `label`: a `label.control` with a
+ * screen-reader-only text (toolbars). Without: a `span.control`, for use inside `FormField`, an outer label or with
+ * `aria-label`. `small` is the compact `control--sm` size, `icon` goes before the select. Other props (`disabled`,
+ * `required`, `aria-*`, the `fieldProps` spread) go to the `<select>`.
+ */
 export function SelectField({
   id,
   label,
   value,
   onChange,
   small,
+  icon,
   children,
-}: {
-  id: string;
-  label: string;
-  value: string;
+  ...rest
+}: Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange' | 'id'> & {
+  /** Needed with `label`; a select inside an outer `<label>` may go without. */
+  id?: string;
+  label?: string;
+  value: string | number;
   onChange: (value: string) => void;
   small?: boolean;
+  icon?: IconName;
   children: ReactNode;
 }) {
-  return (
-    <label className={small ? 'control control--select control--sm' : 'control control--select'} htmlFor={id}>
-      <span className="sr-only">{label}</span>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+  const className = small ? 'control control--select control--sm' : 'control control--select';
+  const select = (
+    <>
+      {icon && <Icon name={icon} />}
+      <select {...rest} id={id} value={value} onChange={(e) => onChange(e.target.value)}>
         {children}
       </select>
+    </>
+  );
+  return label ? (
+    <label className={className} htmlFor={id}>
+      <span className="sr-only">{label}</span>
+      {select}
     </label>
+  ) : (
+    <span className={className}>{select}</span>
   );
 }

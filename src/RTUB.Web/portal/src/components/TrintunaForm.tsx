@@ -8,6 +8,9 @@ import { Banner } from './ui/Banner';
 import { DialogFooter } from './ui/DialogFooter';
 import { FormField, fieldProps } from './ui/FormField';
 import { PersonChip } from './ui/PersonChip';
+import { SelectField } from './ui/SearchTools';
+
+const ORGANIZER_HINT = 'Escolhido entre quem tem acesso à página.';
 
 /**
  * "Novo almoço" / "Editar almoço". The Owner sets the number and the organizer (a member on the access list); the
@@ -86,21 +89,19 @@ export function GatheringForm({
         <FormField id={id('place')} label="Local" error={errors.place}>
           <input {...fieldProps(id('place'), errors.place)} type="text" maxLength={MAX_PLACE} value={place} onChange={(e) => setPlace(e.target.value)} />
         </FormField>
-        <FormField id={id('desc')} label="Descrição (opcional)" error={errors.description}>
+        <FormField id={id('desc')} label="Descrição" error={errors.description}>
           <textarea {...fieldProps(id('desc'), errors.description)} rows={3} maxLength={MAX_DESCRIPTION} value={description} onChange={(e) => setDescription(e.target.value)} />
         </FormField>
         {canManage ? (
-          <FormField id={id('organizer')} label="Organizador (opcional)" error={errors.organizerUserId} hint="Escolhido entre quem tem acesso à página.">
-            <span className="control control--select">
-              <select {...fieldProps(id('organizer'), errors.organizerUserId)} value={organizer} onChange={(e) => setOrganizer(e.target.value)}>
-                <option value="">Sem organizador</option>
-                {organizers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.displayName}
-                  </option>
-                ))}
-              </select>
-            </span>
+          <FormField id={id('organizer')} label="Organizador" error={errors.organizerUserId} hint={ORGANIZER_HINT}>
+            <SelectField {...fieldProps(id('organizer'), errors.organizerUserId, ORGANIZER_HINT)} value={organizer} onChange={setOrganizer}>
+              <option value="">Sem organizador</option>
+              {organizers.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.displayName}
+                </option>
+              ))}
+            </SelectField>
           </FormField>
         ) : (
           g?.organizer && (
@@ -133,16 +134,14 @@ export function GatheringForm({
         </fieldset>
         {g && !closed && settleOptions.length > 0 && (
           <FormField id={id('settle')} label="Marcar data" error={errors.settle ?? errors.optionId} hint="Uma das datas possíveis já guardadas. Depois de marcada, a votação fecha.">
-            <span className="control control--select">
-              <select {...fieldProps(id('settle'), errors.settle)} value={settleDate} onChange={(e) => setSettle(e.target.value)}>
-                <option value="">Ainda não</option>
-                {settleOptions.map((o) => (
-                  <option key={o.id} value={o.date}>
-                    {o.text} ({o.votes} {o.votes === 1 ? 'voto' : 'votos'})
-                  </option>
-                ))}
-              </select>
-            </span>
+            <SelectField {...fieldProps(id('settle'), errors.settle ?? errors.optionId)} value={settleDate} onChange={setSettle}>
+              <option value="">Ainda não</option>
+              {settleOptions.map((o) => (
+                <option key={o.id} value={o.date}>
+                  {o.text} ({o.votes} {o.votes === 1 ? 'voto' : 'votos'})
+                </option>
+              ))}
+            </SelectField>
           </FormField>
         )}
       </form>

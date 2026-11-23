@@ -49,26 +49,20 @@ export function LogisticsBoardToolbar({
             </option>
           ))}
         </SelectField>
-        <label className="control control--select control--sm" htmlFor={ids.prio}>
-          <span className="sr-only">Prioridade</span>
-          <select id={ids.prio} value={prio} onChange={(e) => setPrio(e.target.value as Priority | '')}>
-            <option value="">Qualquer prioridade</option>
-            {PRIORITIES_URGENT_FIRST.map((p) => (
-              <option key={p} value={p}>
-                {PRIORITY[p]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="control control--select control--sm" htmlFor={ids.due}>
-          <span className="sr-only">Prazo</span>
-          <select id={ids.due} value={due} onChange={(e) => setDue(e.target.value as Due)}>
-            <option value="">Qualquer prazo</option>
-            <option value="late">Atrasados</option>
-            <option value="soon">Próximos 7 dias</option>
-            <option value="none">Sem prazo</option>
-          </select>
-        </label>
+        <SelectField id={ids.prio} label="Prioridade" value={prio} onChange={(v) => setPrio(v as Priority | '')} small>
+          <option value="">Qualquer prioridade</option>
+          {PRIORITIES_URGENT_FIRST.map((p) => (
+            <option key={p} value={p}>
+              {PRIORITY[p]}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField id={ids.due} label="Prazo" value={due} onChange={(v) => setDue(v as Due)} small>
+          <option value="">Qualquer prazo</option>
+          <option value="late">Atrasados</option>
+          <option value="soon">Próximos 7 dias</option>
+          <option value="none">Sem prazo</option>
+        </SelectField>
         {data.labels.length > 0 && (
           <SelectField id={ids.label} label="Etiqueta" value={label} onChange={setLabel} small>
             <option value="">Todas as etiquetas</option>
@@ -80,15 +74,12 @@ export function LogisticsBoardToolbar({
           </SelectField>
         )}
         {view === 'list' && (
-          <label className="control control--select control--sm" htmlFor={ids.sort}>
-            <span className="sr-only">Ordenar</span>
-            <select id={ids.sort} value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-              <option value="due">Ordenar por prazo</option>
-              <option value="priority">Ordenar por prioridade</option>
-              <option value="status">Ordenar por estado</option>
-              <option value="title">Ordenar por título</option>
-            </select>
-          </label>
+          <SelectField id={ids.sort} label="Ordenar" value={sort} onChange={(v) => setSort(v as Sort)} small>
+            <option value="due">Ordenar por prazo</option>
+            <option value="priority">Ordenar por prioridade</option>
+            <option value="status">Ordenar por estado</option>
+            <option value="title">Ordenar por título</option>
+          </SelectField>
         )}
       </div>
       {filtering && (

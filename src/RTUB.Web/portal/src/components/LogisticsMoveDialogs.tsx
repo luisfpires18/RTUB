@@ -6,6 +6,7 @@ import { logisticsApi, problem, STATUS, type Board, type Card, type List } from 
 import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
 import { DialogFooter } from './ui/DialogFooter';
+import { SelectField } from './ui/SearchTools';
 
 /** Delete a column: its cards never go with it - they move to the chosen column and take its state. */
 export function DeleteListDialog({ board, list, onClose, onDone }: { board: Board; list: List; onClose: () => void; onDone: () => void }) {
@@ -44,15 +45,13 @@ export function DeleteListDialog({ board, list, onClose, onDone }: { board: Boar
             <label htmlFor={`${fid}-to`}>
               {count === 1 ? 'O cartão passa para' : `Os ${count} cartões passam para`}
             </label>
-            <span className="control control--select control--sm">
-              <select id={`${fid}-to`} value={target} onChange={(e) => setTarget(Number(e.target.value))}>
-                {others.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name} ({STATUS[l.state].label})
-                  </option>
-                ))}
-              </select>
-            </span>
+            <SelectField small id={`${fid}-to`} value={target ?? ''} onChange={(v) => setTarget(Number(v))}>
+              {others.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name} ({STATUS[l.state].label})
+                </option>
+              ))}
+            </SelectField>
             <small className="note">E ficam com o estado dessa coluna.</small>
           </div>
         ))}
@@ -92,34 +91,30 @@ export function MoveCardDialog({
       <div className="form">
         <div className="form__row">
           <FormField id={`${fid}-list`} label="Lista">
-            <span className="control control--select">
-              <select
-                id={`${fid}-list`}
-                value={target}
-                onChange={(e) => {
-                  const next = Number(e.target.value);
-                  setTarget(next);
-                  setPosition(next === listId ? current : board.lists.find((l) => l.id === next)!.cards.length);
-                }}
-              >
-                {board.lists.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            </span>
+            <SelectField
+              id={`${fid}-list`}
+              value={target}
+              onChange={(v) => {
+                const next = Number(v);
+                setTarget(next);
+                setPosition(next === listId ? current : board.lists.find((l) => l.id === next)!.cards.length);
+              }}
+            >
+              {board.lists.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </SelectField>
           </FormField>
           <FormField id={`${fid}-pos`} label="Posição">
-            <span className="control control--select">
-              <select id={`${fid}-pos`} value={position} onChange={(e) => setPosition(Number(e.target.value))}>
-                {Array.from({ length: others.length + 1 }, (_, i) => (
-                  <option key={i} value={i}>
-                    {i === 0 ? '1 (no topo)' : i === others.length ? `${i + 1} (no fim)` : i + 1}
-                  </option>
-                ))}
-              </select>
-            </span>
+            <SelectField id={`${fid}-pos`} value={position} onChange={(v) => setPosition(Number(v))}>
+              {Array.from({ length: others.length + 1 }, (_, i) => (
+                <option key={i} value={i}>
+                  {i === 0 ? '1 (no topo)' : i === others.length ? `${i + 1} (no fim)` : i + 1}
+                </option>
+              ))}
+            </SelectField>
           </FormField>
         </div>
       </div>

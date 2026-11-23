@@ -7,6 +7,7 @@ import { MemberBadge } from '../components/MemberBadge';
 import { Pager } from '../components/ui/Pager';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { Spinner } from '../components/ui/Spinner';
+import { SelectField } from '../components/ui/SearchTools';
 
 type Message = { text: string; error?: boolean };
 type View = { kind: 'table'; table: string; grid: DbGrid } | { kind: 'query'; grid: DbGrid; page: number; pageSize: number };
@@ -86,16 +87,14 @@ export default function OwnerDatabase() {
           <aside className="owner-db__tables" aria-label="Tabelas">
             <div className="form__field owner-db__picker">
               <label htmlFor={`${id}-table`}>Tabela</label>
-              <span className="control control--select">
-                <select id={`${id}-table`} value={selected} onChange={(e) => openTable(e.target.value, 1)}>
-                  <option value="">Escolher uma tabela</option>
-                  {names.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </span>
+              <SelectField id={`${id}-table`} value={selected} onChange={(v) => openTable(v, 1)}>
+                <option value="">Escolher uma tabela</option>
+                {names.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </SelectField>
             </div>
             <div className="owner-db__list">
               <h2 className="owner-card__title">Tabelas ({names.length})</h2>

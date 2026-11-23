@@ -5,6 +5,7 @@ import { Dialog } from './Dialog';
 import type { EventSummary } from '../data/eventsApi';
 import { Icon } from './icons';
 import type { RehearsalSummary } from '../data/rehearsalsApi';
+import { SelectField } from './ui/SearchTools';
 
 // The optional "Adicionar ao Google Calendar" offer after a saved "vou", and the same action later on an
 // upcoming detail page. Opening Google happens only on the member's click (no popup after an async save). Nothing here
@@ -85,13 +86,13 @@ export function CalendarOffer({ activity, headline, onClose }: { activity: Calen
       {suggested && (
         <div className="form__field">
           <label htmlFor={`${id}-duration`}>Duração sugerida (a RTUB não guarda a hora de fim)</label>
-          <select id={`${id}-duration`} value={duration} onChange={(e) => setDuration(Number(e.target.value))}>
+          <SelectField id={`${id}-duration`} value={duration} onChange={(v) => setDuration(Number(v))}>
             {DURATIONS.map((d) => (
               <option key={d} value={d}>
                 {hours(d)}
               </option>
             ))}
-          </select>
+          </SelectField>
           <p className="form__hint">Fim sugerido às {end}; podes mudá-lo no Google Calendar.</p>
         </div>
       )}

@@ -9,6 +9,7 @@ import { failure, EventLine, members, useAudience } from './EventManageShared';
 import { Segmented } from './ui/Segmented';
 import { FieldError } from './ui/FieldError';
 import { AnswerActions } from './ui/AnswerActions';
+import { SelectField } from './ui/SearchTools';
 
 /**
  * One notice about an upcoming event: an email ("Nova atuação" or
@@ -92,12 +93,10 @@ export function NoticeDialog({ event, onClose }: { event: EventSummary; onClose:
             {channel === 'email' ? (
               <div className="form__field">
                 <label htmlFor={ids.kind}>Tipo de email</label>
-                <span className="control control--select">
-                  <select id={ids.kind} value={kind} onChange={(e) => change(() => setKind(e.target.value as 'new' | 'reminder'))} disabled={busy}>
-                    <option value="new">Nova atuação</option>
-                    <option value="reminder">Lembrete de atuação</option>
-                  </select>
-                </span>
+                <SelectField id={ids.kind} value={kind} onChange={(v) => change(() => setKind(v as 'new' | 'reminder'))} disabled={busy}>
+                  <option value="new">Nova atuação</option>
+                  <option value="reminder">Lembrete de atuação</option>
+                </SelectField>
                 <p className="form__hint">
                   {kind === 'new' ? 'Apresenta a atuação aos membros.' : 'Lembra os membros da atuação que se aproxima.'}
                 </p>

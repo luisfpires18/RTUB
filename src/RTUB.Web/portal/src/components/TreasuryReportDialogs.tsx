@@ -6,6 +6,7 @@ import { day, today } from '../data/format';
 import { FormField } from './ui/FormField';
 import { DialogFooter } from './ui/DialogFooter';
 import { Banner } from './ui/Banner';
+import { SelectField } from './ui/SearchTools';
 
 /** "Editar Dinheiro no Banco / em Caixa": one value, any sign; 0 clears it. */
 export function BalanceDialog({ report, kind, onClose, onSaved }: { report: Report; kind: 'bank' | 'cash'; onClose: () => void; onSaved: (r: Report) => void }) {
@@ -109,16 +110,14 @@ export function ActivityDialog({
         </div>
         {events.length > 0 && (
           <FormField alert id={`${fid}-event`} label="Atuação (opcional)" error={errors.eventId}>
-            <span className="control control--select">
-              <select id={`${fid}-event`} value={eventId ?? ''} onChange={(e) => setEventId(Number(e.target.value) || null)}>
-                <option value="">Nenhuma</option>
-                {events.map((ev) => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.name} · {day(ev.date)}
-                  </option>
-                ))}
-              </select>
-            </span>
+            <SelectField id={`${fid}-event`} value={eventId ?? ''} onChange={(v) => setEventId(Number(v) || null)}>
+              <option value="">Nenhuma</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name} · {day(ev.date)}
+                </option>
+              ))}
+            </SelectField>
           </FormField>
         )}
         <FormField alert id={`${fid}-desc`} label="Descrição (opcional)" error={errors.description}>

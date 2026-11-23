@@ -7,6 +7,7 @@ import { call, type Outcome, outcomeText } from '../data/api';
 import { Icon } from './icons';
 import { Avatar } from './ui/Avatar';
 import { Loading } from './ui/Loading';
+import { SelectField } from './ui/SearchTools';
 
 // Órgãos Sociais for members. The RGI for Member, Mod, Admin and
 // Owner; fiscal years and position assignments for Mod, Admin and Owner. The server decides and validates everything
@@ -98,15 +99,13 @@ export function CreateYearDialog({ years, onDone, onClose }: { years: number[]; 
         <form id={`${id}-form`} className="form" onSubmit={submit} noValidate>
           <div className={error ? 'form__field form__field--error' : 'form__field'}>
             <label htmlFor={id}>Ano de início</label>
-            <span className="control control--select">
-              <select id={id} value={startYear} onChange={(e) => setStartYear(Number(e.target.value))}>
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}-{y + 1}
-                  </option>
-                ))}
-              </select>
-            </span>
+            <SelectField id={id} value={startYear} onChange={(v) => setStartYear(Number(v))}>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}-{y + 1}
+                </option>
+              ))}
+            </SelectField>
             <FieldError text={error} alert={false} />
           </div>
         </form>

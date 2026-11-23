@@ -10,6 +10,7 @@ import { Loading } from './ui/Loading';
 import { FieldError } from './ui/FieldError';
 import { AnswerActions } from './ui/AnswerActions';
 import { FormField } from './ui/FormField';
+import { SelectField } from './ui/SearchTools';
 
 const NOTES_MAX = 1000;
 
@@ -170,16 +171,14 @@ function AnswerForm({
 
       {choice.willAttend === true && options.length > 0 && (
         <FormField id={ids.instrument} label="Instrumento">
-          <span className="control control--select">
-            <select id={ids.instrument} value={choice.instrument} onChange={(e) => setChoice((c) => ({ ...c, instrument: e.target.value }))}>
-              <option value="">{enrollment.isLeitao ? 'Sem instrumento' : 'Não vou tocar'}</option>
-              {options.map((i) => (
-                <option key={i.value} value={i.value}>
-                  {i.label}
-                </option>
-              ))}
-            </select>
-          </span>
+          <SelectField id={ids.instrument} value={choice.instrument} onChange={(v) => setChoice((c) => ({ ...c, instrument: v }))}>
+            <option value="">{enrollment.isLeitao ? 'Sem instrumento' : 'Não vou tocar'}</option>
+            {options.map((i) => (
+              <option key={i.value} value={i.value}>
+                {i.label}
+              </option>
+            ))}
+          </SelectField>
         </FormField>
       )}
 

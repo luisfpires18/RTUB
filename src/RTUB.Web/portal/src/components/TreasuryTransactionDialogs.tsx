@@ -11,6 +11,7 @@ import { FormField } from './ui/FormField';
 import { DialogFooter } from './ui/DialogFooter';
 import { Banner } from './ui/Banner';
 import { EmptyNote } from './ui/EmptyNote';
+import { SelectField } from './ui/SearchTools';
 
 const MAX_RECEIPT = 10 * 1024 * 1024;
 
@@ -71,12 +72,10 @@ export function TransactionDialog({
             <input id={`${fid}-date`} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </FormField>
           <FormField alert id={`${fid}-type`} label="Tipo" error={errors.type}>
-            <span className="control control--select">
-              <select id={`${fid}-type`} value={type} onChange={(e) => setType(e.target.value)}>
-                <option value="Income">Receita</option>
-                <option value="Expense">Despesa</option>
-              </select>
-            </span>
+            <SelectField id={`${fid}-type`} value={type} onChange={setType}>
+              <option value="Income">Receita</option>
+              <option value="Expense">Despesa</option>
+            </SelectField>
           </FormField>
         </div>
         <FormField alert id={`${fid}-desc`} label="Descrição" error={errors.description}>

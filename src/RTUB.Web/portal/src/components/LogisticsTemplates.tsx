@@ -9,6 +9,7 @@ import { Banner } from './ui/Banner';
 import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
 import { Spinner } from './ui/Spinner';
+import { SelectField } from './ui/SearchTools';
 
 type Person = { id: string; name: string; avatar: string | null };
 type Draft = { include: boolean; title: string; priority: Priority; dueDate: string; checklist: string };
@@ -185,13 +186,13 @@ export function TemplateDialog({ onClose }: { onClose: () => void }) {
                           </label>
                           <label>
                             <span>Prioridade</span>
-                            <select value={d.priority} disabled={!d.include} onChange={(e) => set(i, { priority: e.target.value as Priority })}>
+                            <SelectField value={d.priority} disabled={!d.include} onChange={(v) => set(i, { priority: v as Priority })}>
                               {PRIORITIES_LOW_FIRST.map((p) => (
                                 <option key={p} value={p}>
                                   {PRIORITY[p]}
                                 </option>
                               ))}
-                            </select>
+                            </SelectField>
                           </label>
                           {cards[i]?.offsetDays !== null && cards[i]?.offsetDays !== undefined && (
                             <small className="note">{cards[i].offsetDays === 0 ? 'no dia' : `${-cards[i].offsetDays!} dias antes`}</small>

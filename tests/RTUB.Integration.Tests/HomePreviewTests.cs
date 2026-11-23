@@ -148,10 +148,10 @@ public class HomePreviewTests : IntegrationTestBase
         // Its search and selects moved to the kit (SearchTools) in 119.
         Source("components/GalleryToolbar.tsx").Should().Contain("<SearchField").And.Contain("<SelectField");
         Source("components/ui/SearchTools.tsx").Should().Contain("'control control--sm' : 'control'").And.Contain("'control control--select'");
-        Source("pages/Governance.tsx").Should().Contain("className=\"control control--select\"");
+        Source("pages/Governance.tsx").Should().Contain("<SelectField"); // one shared select since 154
         Source("pages/MusicAlbum.tsx").Should().Contain("className=\"control album-tools__search\"").And.Contain("<BackLink href=\"/music\">");
         Source("components/ui/BackLink.tsx").Should().Contain("className=\"back-link\""); // the music back link moved to the kit in 119
-        Source("components/ui/Pager.tsx").Should().Contain("control control--select control--sm"); // the music TextPager moved to the kit in 119
+        Source("components/ui/Pager.tsx").Should().Contain("<SelectField small"); // the music TextPager moved to the kit in 119; one shared select since 154
         Source("components/MusicStatistics.tsx").Should().Contain("<TextPager");
         Source("pages/Privacy.tsx").Should().Contain("<BackLink"); // the back link moved to the kit in 119
         Source("components/ui/BackLink.tsx").Should().Contain("className=\"back-link\"");

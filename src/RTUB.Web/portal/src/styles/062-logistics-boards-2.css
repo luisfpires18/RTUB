@@ -15,7 +15,6 @@
 
 .lx-template__fields input[type="text"],
 .lx-template__fields input[type="date"],
-.lx-template__fields select,
 .lx-template__fields textarea {
   min-width: 0;
   min-height: 44px;

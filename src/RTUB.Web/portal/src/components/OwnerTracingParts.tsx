@@ -5,6 +5,7 @@ import { ownerApi, ownerProblem } from '../data/ownerApi';
 import { Flash } from './OwnerUi';
 import { Spinner } from './ui/Spinner';
 import { FormField } from './ui/FormField';
+import { SelectField } from './ui/SearchTools';
 
 /** A member field that suggests usernames as you type (native datalist: no list of 100 options to scroll). */
 export function UserField({
@@ -56,16 +57,14 @@ export function Select({
 }) {
   return (
     <FormField id={id} label={label}>
-      <span className="control control--sm control--select">
-        <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
-          <option value="">{all}</option>
-          {items.map((i) => (
-            <option key={i} value={i}>
-              {text(i)}
-            </option>
-          ))}
-        </select>
-      </span>
+      <SelectField small id={id} value={value} onChange={onChange}>
+        <option value="">{all}</option>
+        {items.map((i) => (
+          <option key={i} value={i}>
+            {text(i)}
+          </option>
+        ))}
+      </SelectField>
     </FormField>
   );
 }
