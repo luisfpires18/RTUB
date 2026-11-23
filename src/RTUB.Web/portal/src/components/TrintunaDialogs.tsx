@@ -1,6 +1,6 @@
 // /trintuna dialogs: one gathering (description, organizer, date poll, Vou / Não vou or Fui / Não fui, who answered,
 // its share link), the Hall of Fame and the Owner's access list.
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { PollCard } from './MeetingPollCard';
@@ -11,7 +11,6 @@ import { trintunaApi, problem, type Gathering, type Member, type Person, type Ra
 import { medal } from '../data/leaderboardApi';
 import { dateLabel } from '../data/eventsDates';
 import { WhoIsGoing } from './EventDetailPeople';
-import { AnswerActions } from './ui/AnswerActions';
 import { Avatar } from './ui/Avatar';
 import { Banner } from './ui/Banner';
 import { CloseFooter, DialogFooter } from './ui/DialogFooter';
@@ -24,7 +23,7 @@ import { SimplePager } from './ui/SimplePager';
 const HALL_PAGE = 15;
 
 /** Vou / Não vou, with the answer markup of /events; past gatherings take answers too, worded Fui / Não fui. */
-function Presence({ gathering, onChanged, onClose }: { gathering: Gathering; onChanged: () => void; onClose: () => void }) {
+function Presence({ gathering, onChanged }: { gathering: Gathering; onChanged: () => void }) {
   const stored = gathering.myStatus === 'going' ? true : gathering.myStatus === 'notGoing' ? false : null;
   const [choice, setChoice] = useState<boolean | null>(stored);
   const [busy, setBusy] = useState(false);
@@ -38,40 +37,44 @@ function Presence({ gathering, onChanged, onClose }: { gathering: Gathering; onC
     setError(undefined);
     const o = await call();
     setBusy(false);
-    if (o.kind !== 'ok') return setError(problem(o, what));
+    if (o.kind !== 'ok') {
+      setChoice(stored); // the saved answer stays shown when the save fails
+      return setError(problem(o, what));
+    }
     onChanged();
   };
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (choice !== null) run(() => trintunaApi.answer(gathering.id, choice), 'guardar a resposta');
+  // Picking an answer saves it at once (no Guardar step).
+  const pick = (value: boolean) => {
+    if (busy || value === stored) return setChoice(value);
+    setChoice(value);
+    run(() => trintunaApi.answer(gathering.id, value), 'guardar a resposta');
   };
 
   return (
-    <form className="answer" onSubmit={submit}>
-      <fieldset className="choice">
+    <div className="answer">
+      <fieldset className="choice" disabled={busy}>
         <legend className="sr-only">A tua resposta</legend>
         <div className="choice__options">
           <label className={choice === true ? 'choice__option choice__option--yes is-on' : 'choice__option choice__option--yes'}>
-            <input type="radio" name={name} checked={choice === true} onChange={() => setChoice(true)} />
+            <input type="radio" name={name} checked={choice === true} onChange={() => pick(true)} />
             <Icon name="check" />
             {gathering.past ? 'Fui' : 'Vou'}
           </label>
           <label className={choice === false ? 'choice__option choice__option--no is-on' : 'choice__option choice__option--no'}>
-            <input type="radio" name={name} checked={choice === false} onChange={() => setChoice(false)} />
+            <input type="radio" name={name} checked={choice === false} onChange={() => pick(false)} />
             <Icon name="close" />
             {gathering.past ? 'Não fui' : 'Não vou'}
           </label>
         </div>
       </fieldset>
       <Banner text={error} />
-      <AnswerActions cancelLabel="Fechar" onCancel={onClose} label="Guardar" busy={busy} disabled={choice === null || choice === stored} />
       {stored !== null && (
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => run(() => trintunaApi.withdraw(gathering.id), 'retirar a resposta')} disabled={busy}>
           Retirar a minha resposta
         </button>
       )}
-    </form>
+    </div>
   );
 }
 
@@ -114,7 +117,7 @@ export function GatheringDialog({ gathering: g, onClose, onChanged }: { gatherin
       ) : (
         !g.date && !g.past && <EmptyNote>Ainda não há datas possíveis para votar.</EmptyNote>
       )}
-      <Presence gathering={g} onChanged={onChanged} onClose={onClose} />
+      <Presence gathering={g} onChanged={onChanged} />
       <WhoIsGoing participants={{ going: g.going.map(asParticipant), leitoes: [], notGoing: g.notGoing.map(asParticipant) }} past={g.past} />
       <Banner text={linkError} />
       <button type="button" className="btn btn--ghost btn--sm" onClick={copyLink}>
