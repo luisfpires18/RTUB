@@ -36,6 +36,9 @@ export function GatheringForm({
   const fid = useId();
   const id = (k: string) => `${fid}-${k}`;
   const closed = Boolean(g?.poll.closed);
+  // "Marcar data" only offers saved options still in the date list: removing or changing the chosen date clears it.
+  const settleOptions = g ? g.poll.options.filter((o) => dates.includes(o.date)) : [];
+  const settleDate = settleOptions.some((o) => o.date === settle) ? settle : '';
 
   // The organizer list is the access list (Owner only).
   useEffect(() => {
@@ -54,11 +57,12 @@ export function GatheringForm({
       return setErrors(saved.kind === 'invalid' ? saved.errors : { form: problem(saved, 'guardar o almoço') });
     }
 
-    // "Marcar data": the saved gathering's option for the chosen date (a date just removed is no longer one).
-    const option = settle && saved.data.poll.options.find((o) => o.date === settle);
+    // "Marcar data": the saved gathering's option for the chosen date. If it is gone, say so and keep the form open.
+    const option = settleDate ? saved.data.poll.options.find((o) => o.date === settleDate) : undefined;
     const settled = option ? await trintunaApi.settle(saved.data.id, option.id) : undefined;
     setBusy(false);
     onSaved();
+    if (settleDate && !option) return setErrors({ settle: 'A data escolhida já não está nas datas possíveis. Escolha outra.' });
     if (settled && settled.kind !== 'ok') return setErrors({ settle: problem(settled, 'marcar a data') });
     onClose();
   };
@@ -127,12 +131,12 @@ export function GatheringForm({
           )}
           {errors.pollDates && <p className="form__error">{errors.pollDates}</p>}
         </fieldset>
-        {g && !closed && g.poll.options.length > 0 && (
+        {g && !closed && settleOptions.length > 0 && (
           <FormField id={id('settle')} label="Marcar data" error={errors.settle ?? errors.optionId} hint="Uma das datas possíveis já guardadas. Depois de marcada, a votação fecha.">
             <span className="control control--select">
-              <select {...fieldProps(id('settle'), errors.settle)} value={settle} onChange={(e) => setSettle(e.target.value)}>
+              <select {...fieldProps(id('settle'), errors.settle)} value={settleDate} onChange={(e) => setSettle(e.target.value)}>
                 <option value="">Ainda não</option>
-                {g.poll.options.map((o) => (
+                {settleOptions.map((o) => (
                   <option key={o.id} value={o.date}>
                     {o.text} ({o.votes} {o.votes === 1 ? 'voto' : 'votos'})
                   </option>
