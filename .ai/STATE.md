@@ -10,7 +10,7 @@ _Last updated: 2026-11-23_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-Task 154 (`feat/154/trintuna-attendance`, Issue #366, draft PR #367): Trintuna Vou / Não vou on past gatherings with who
+Task 154 (`feat/154/trintuna-attendance`, Issue #366, PR #367, Codex ACCEPTED round 6, merged into `dev`): Trintuna Vou / Não vou on past gatherings with who
 answered, a Top 3 dialog (dense places, ties share a medal), the 7 almoços as a dev seed only (none on PROD; DEV keeps its
 #365 rows, 7º historical), one shared select (`SelectField`) for the whole portal. Not shot: logistics board toolbar and
 templates, Pager, ata, calendar offer, shop promotions (no data in the scratch DB); check on DEV.
