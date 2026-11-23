@@ -2,6 +2,8 @@ using System.Net;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Data;
 using RTUB.Core.Entities;
 
 namespace RTUB.Integration.Tests.Api;
@@ -108,28 +110,31 @@ public partial class TrintunaApiTests : IClassFixture<EventsApiFactory>
     }
 
     [Fact]
-    public async Task TheSevenSeededGatherings_AreUnderPassados_AndNoUserIdLeaksToMembers()
+    public async Task HistoricalGatherings_AreUnderPassados_AndNoUserIdLeaksToMembers()
     {
         var (owner, _) = await SignInAsync("Owner");
         var (member, me) = await SignInAsync();
-        await SetListAsync(owner, me.Id);
-        var (_, who) = await SignInAsync();
+        var (other, who) = await SignInAsync();
         await SetListAsync(owner, me.Id, who.Id);
         await CreateAsync(owner, organizerUserId: who.Id);
+        var first = await SeedGatheringAsync(historical: true);
+        var second = await SeedGatheringAsync(historical: true);
+        (await member.PutAsJsonAsync($"/api/trintuna/gatherings/{second}/presence", new { willAttend = true })).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await other.PutAsJsonAsync($"/api/trintuna/gatherings/{second}/presence", new { willAttend = false })).StatusCode.Should().Be(HttpStatusCode.OK);
 
         var board = await AreaHttp.Json(member, "/api/trintuna");
-        var seeded = board.GetProperty("past").EnumerateArray().Where(g => g.GetProperty("number").GetInt32() <= 7).ToList();
-        seeded.Select(g => g.GetProperty("place").GetString()).Should().Equal(
-            "Bragança", "Mogadouro", "Fafe", "Chaves", "Marco de Canaveses", "Lamares", "Vizela");
-        seeded.Should().OnlyContain(g => g.GetProperty("date").ValueKind == JsonValueKind.Null
+        var historical = board.GetProperty("past").EnumerateArray().Where(g => g.GetProperty("id").GetInt32() is var id && (id == first || id == second)).ToList();
+        historical.Select(g => g.GetProperty("id").GetInt32()).Should().Equal(second, first);
+        historical.Should().OnlyContain(g => g.GetProperty("date").ValueKind == JsonValueKind.Null
             && g.GetProperty("organizer").ValueKind == JsonValueKind.Null
             && g.GetProperty("poll").GetProperty("closed").GetBoolean());
-        seeded[0].GetProperty("title").GetString().Should().Be("7º Almoço");
-        seeded[0].GetProperty("description").GetString().Should().Be("Jeans");
+        historical[0].GetProperty("going").EnumerateArray().Select(p => p.GetProperty("displayName").GetString()).Should().Equal(me.Nickname);
+        historical[0].GetProperty("notGoing").EnumerateArray().Select(p => p.GetProperty("displayName").GetString()).Should().Equal(who.Nickname);
 
         var text = board.GetRawText();
         text.Should().NotContain(me.Id).And.NotContain(who.Id);
         (await AreaHttp.Json(owner, "/api/trintuna")).GetRawText().Should().Contain(who.Id);
+        await ClearAnswersAsync();
     }
 
     // ---------------------------------------------------------------- helpers
@@ -147,7 +152,7 @@ public partial class TrintunaApiTests : IClassFixture<EventsApiFactory>
     private async Task<JsonElement> SetListAsync(HttpClient owner, params string[] userIds) =>
         await AreaHttp.Json(await owner.PutAsJsonAsync("/api/trintuna/access", new { userIds }));
 
-    /// <summary>Every write once, on gathering 1 (seeded).</summary>
+    /// <summary>Every write once, on gathering 1 (whether it exists or not: these callers are refused first).</summary>
     private static async Task<HttpResponseMessage[]> WritesAsync(HttpClient client) => new[]
     {
         await client.PostAsJsonAsync("/api/trintuna/gatherings", Input(5000)),
@@ -159,6 +164,25 @@ public partial class TrintunaApiTests : IClassFixture<EventsApiFactory>
         await client.DeleteAsync("/api/trintuna/gatherings/1/presence"),
         await client.PutAsJsonAsync("/api/trintuna/access", new { userIds = Array.Empty<string>() }),
     };
+
+    /// <summary>A gathering written straight to the database (the API cannot create a historical one); its id.</summary>
+    private async Task<int> SeedGatheringAsync(bool historical)
+    {
+        using var scope = _factory.Services.CreateScope();
+        await using var db = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContextAsync();
+        var gathering = new Gathering { Number = NextNumber(), Place = "Lamego", Description = "Bola", IsHistorical = historical };
+        db.Gatherings.Add(gathering);
+        await db.SaveChangesAsync();
+        return gathering.Id;
+    }
+
+    /// <summary>Removes every Vou / Não vou, so the Top 3 of the shared database starts empty.</summary>
+    private async Task ClearAnswersAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        await using var db = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContextAsync();
+        await db.GatheringParticipants.ExecuteDeleteAsync();
+    }
 
     private async Task<ApplicationUser> AddUserAsync(bool expelled = false)
     {

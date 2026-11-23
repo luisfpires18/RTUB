@@ -4,7 +4,7 @@ using FluentAssertions;
 
 namespace RTUB.Integration.Tests.Api;
 
-/// <summary>/api/trintuna gatherings: create and edit, the date poll, settling the date and Vou / Não vou.</summary>
+/// <summary>/api/trintuna gatherings: create and edit, the date poll, settling the date and Vou / Não vou (past ones too).</summary>
 public partial class TrintunaApiTests
 {
     private static string InDays(int days) => DateTime.Today.AddDays(days).ToString("yyyy-MM-dd");
@@ -26,7 +26,8 @@ public partial class TrintunaApiTests
         await SetListAsync(owner, someone.Id);
 
         (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/trintuna/gatherings", Input(NextNumber(), who.Id)))).Should().ContainKey("organizerUserId");
-        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/trintuna/gatherings", Input(3)))).Should().ContainKey("number");
+        var taken = await CreateAsync(owner);
+        (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/trintuna/gatherings", Input(taken.GetProperty("number").GetInt32())))).Should().ContainKey("number");
         (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/trintuna/gatherings", new { number = NextNumber(), place = " ", pollDates = new[] { "amanhã" } })))
             .Should().ContainKeys("place", "pollDates");
 
@@ -100,7 +101,9 @@ public partial class TrintunaApiTests
         settled.GetProperty("past").GetBoolean().Should().BeFalse();
 
         (await organizer.PostAsJsonAsync(settle, new { optionId = Option(gathering, a) })).StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await owner.PostAsJsonAsync("/api/trintuna/gatherings/1/settle", new { optionId = 1 })).StatusCode.Should().Be(HttpStatusCode.Conflict, "a seeded gathering is historical");
+        var historical = await SeedGatheringAsync(historical: true);
+        (await owner.PostAsJsonAsync($"/api/trintuna/gatherings/{historical}/settle", new { optionId = 1 })).StatusCode.Should().Be(HttpStatusCode.Conflict, "a historical gathering has no poll");
+        (await member.PutAsJsonAsync($"/api/trintuna/gatherings/{historical}/vote", new { optionId = 1 })).StatusCode.Should().Be(HttpStatusCode.Conflict, "votes stay closed on a historical gathering");
         (await member.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}/vote", new { optionId = Option(gathering, a) })).StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await AreaHttp.Errors(await organizer.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}", Input(1, null, a)))).Should().ContainKey("pollDates");
         (await AreaHttp.Json(await organizer.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}", new { number = 1, place = "Régua", pollDates = new[] { a, b } })))
@@ -108,7 +111,7 @@ public partial class TrintunaApiTests
     }
 
     [Fact]
-    public async Task Presence_IsSetChangedAndCleared_ButNotOnAPastGathering()
+    public async Task Presence_WorksOnUpcomingDatedPastAndHistoricalGatherings()
     {
         var (owner, _) = await SignInAsync("Owner");
         var (member, me) = await SignInAsync();
@@ -119,9 +122,12 @@ public partial class TrintunaApiTests
         var going = await AreaHttp.Json(await member.PutAsJsonAsync(presence, new { willAttend = true }));
         going.GetProperty("myStatus").GetString().Should().Be("going");
         going.GetProperty("goingCount").GetInt32().Should().Be(1);
+        going.GetProperty("going").EnumerateArray().Select(p => p.GetProperty("displayName").GetString()).Should().Equal(me.Nickname);
         var notGoing = await AreaHttp.Json(await member.PutAsJsonAsync(presence, new { willAttend = false }));
         notGoing.GetProperty("myStatus").GetString().Should().Be("notGoing");
         notGoing.GetProperty("goingCount").GetInt32().Should().Be(0);
+        notGoing.GetProperty("going").GetArrayLength().Should().Be(0);
+        notGoing.GetProperty("notGoing").EnumerateArray().Select(p => p.GetProperty("displayName").GetString()).Should().Equal(me.Nickname);
         (await member.DeleteAsync(presence)).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await AreaHttp.Json(member, "/api/trintuna")).GetProperty("upcoming").EnumerateArray()
             .First(g => Id(g) == Id(gathering)).GetProperty("myStatus").ValueKind.Should().Be(JsonValueKind.Null);
@@ -129,12 +135,19 @@ public partial class TrintunaApiTests
         var old = await CreateAsync(owner, null, "2020-01-04");
         var dated = await AreaHttp.Json(await owner.PostAsJsonAsync($"/api/trintuna/gatherings/{Id(old)}/settle", new { optionId = Option(old, "2020-01-04") }));
         dated.GetProperty("past").GetBoolean().Should().BeTrue();
-        (await member.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(old)}/presence", new { willAttend = true })).StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await member.DeleteAsync($"/api/trintuna/gatherings/{Id(old)}/presence")).StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await member.PutAsJsonAsync("/api/trintuna/gatherings/1/presence", new { willAttend = true })).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var historical = await SeedGatheringAsync(historical: true);
+        foreach (var id in new[] { Id(old), historical })
+        {
+            var answered = await AreaHttp.Json(await member.PutAsJsonAsync($"/api/trintuna/gatherings/{id}/presence", new { willAttend = true }));
+            answered.GetProperty("past").GetBoolean().Should().BeTrue();
+            answered.GetProperty("myStatus").GetString().Should().Be("going");
+            answered.GetProperty("poll").GetProperty("canVote").GetBoolean().Should().BeFalse("votes stay closed on a past gathering");
+            (await member.DeleteAsync($"/api/trintuna/gatherings/{id}/presence")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        }
 
+        (await member.PutAsJsonAsync("/api/trintuna/gatherings/987654/presence", new { willAttend = true })).StatusCode.Should().Be(HttpStatusCode.NotFound);
         var board = await AreaHttp.Json(member, "/api/trintuna");
-        board.GetProperty("past").EnumerateArray().First().GetProperty("id").GetInt32().Should().NotBe(1, "dated past gatherings come before the undated seed");
-        board.GetProperty("past").EnumerateArray().Should().Contain(g => Id(g) == Id(old));
+        board.GetProperty("past").EnumerateArray().First().GetProperty("id").GetInt32().Should().Be(Id(old), "dated past gatherings come before the undated historical ones");
+        board.GetProperty("past").EnumerateArray().Should().Contain(g => Id(g) == historical);
     }
 }

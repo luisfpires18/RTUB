@@ -1,20 +1,24 @@
-// /trintuna dialogs: one gathering (description, organizer, date poll, Vou / Não vou) and the Owner's access list.
+// /trintuna dialogs: one gathering (description, organizer, date poll, Vou / Não vou, who answered), the Top 3 and
+// the Owner's access list.
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { PollCard } from './MeetingPollCard';
 import { MemberPicker } from './LogisticsFields';
 import type { Outcome } from '../data/api';
-import { trintunaApi, problem, type Gathering, type Member } from '../data/trintunaApi';
+import { trintunaApi, problem, type Gathering, type Member, type Person, type Rank } from '../data/trintunaApi';
+import { medal } from '../data/leaderboardApi';
 import { dateLabel } from '../data/eventsDates';
+import { WhoIsGoing } from './EventDetailPeople';
 import { AnswerActions } from './ui/AnswerActions';
+import { Avatar } from './ui/Avatar';
 import { Banner } from './ui/Banner';
 import { CloseFooter, DialogFooter } from './ui/DialogFooter';
 import { EmptyNote } from './ui/EmptyNote';
 import { Loading } from './ui/Loading';
 import { PersonChip } from './ui/PersonChip';
 
-/** Vou / Não vou, with the answer markup of /events; past gatherings take no answer. */
+/** Vou / Não vou, with the answer markup of /events; past gatherings take answers too. */
 function Presence({ gathering, onChanged, onClose }: { gathering: Gathering; onChanged: () => void; onClose: () => void }) {
   const stored = gathering.myStatus === 'going' ? true : gathering.myStatus === 'notGoing' ? false : null;
   const [choice, setChoice] = useState<boolean | null>(stored);
@@ -66,10 +70,13 @@ function Presence({ gathering, onChanged, onClose }: { gathering: Gathering; onC
   );
 }
 
-/** One gathering: what, who organizes, the date poll and the caller's answer. */
+/** "Quem vai / Quem foi" of /events: names and photos only. */
+const asParticipant = (p: Person) => ({ name: p.displayName, fullName: null, avatarUrl: p.avatarUrl ?? '', badge: null, instrument: null, notes: null });
+
+/** One gathering: what, who organizes, the date poll, the caller's answer (past ones too) and who answered. */
 export function GatheringDialog({ gathering: g, onClose, onChanged }: { gathering: Gathering; onClose: () => void; onChanged: () => void }) {
   return (
-    <Dialog title={`${g.title} · ${g.place}`} onClose={onClose} footer={g.past ? <CloseFooter onClose={onClose} /> : undefined}>
+    <Dialog title={`${g.title} · ${g.place}`} onClose={onClose}>
       <p className="agenda-card__meta">
         <Icon name="clock" />
         <span>{g.date ? dateLabel({ date: g.date, endDate: null }) : 'Data por decidir'}</span>
@@ -86,7 +93,38 @@ export function GatheringDialog({ gathering: g, onClose, onChanged }: { gatherin
       ) : (
         !g.date && !g.past && <EmptyNote>Ainda não há datas possíveis para votar.</EmptyNote>
       )}
-      {!g.past && <Presence gathering={g} onChanged={onChanged} onClose={onClose} />}
+      <Presence gathering={g} onChanged={onChanged} onClose={onClose} />
+      <WhoIsGoing participants={{ going: g.going.map(asParticipant), leitoes: [], notGoing: g.notGoing.map(asParticipant) }} past={g.past} />
+    </Dialog>
+  );
+}
+
+/** "Top 3": who went to the most past almoços, in the /leaderboard row look; ties share a medal. */
+export function TopDialog({ top, onClose }: { top: Rank[]; onClose: () => void }) {
+  return (
+    <Dialog title="Top 3" onClose={onClose} footer={<CloseFooter onClose={onClose} />}>
+      {top.length === 0 ? (
+        <EmptyNote>Ainda ninguém foi a um almoço.</EmptyNote>
+      ) : (
+        <ol className="leaderboard-rows" aria-label="Top 3">
+          {top.map((r, i) => (
+            <li key={i}>
+              <div className={`leaderboard-row leaderboard-row--top${r.place} leaderboard-row--static`}>
+                <span className="leaderboard-row__pos" aria-label={`${r.place}.º lugar`}>
+                  {medal(r.place)}
+                </span>
+                <Avatar className="who__avatar" src={r.avatarUrl} size={48} />
+                <span className="leaderboard-row__who">
+                  <strong>{r.displayName}</strong>
+                </span>
+                <span className="leaderboard-row__score">
+                  <strong>{r.count === 1 ? '1 almoço' : `${r.count} almoços`}</strong>
+                </span>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
     </Dialog>
   );
 }

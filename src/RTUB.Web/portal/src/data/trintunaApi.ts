@@ -20,10 +20,15 @@ export type Gathering = {
   canEdit: boolean;
   past: boolean;
   goingCount: number;
+  /** Who answered Vou / Não vou, by name (no user ids). */
+  going: Person[];
+  notGoing: Person[];
   myStatus: 'going' | 'notGoing' | null;
   poll: Omit<MeetingPoll, 'options'> & { options: { id: number; text: string; date: string; votes: number }[] };
 };
-export type Board = { canManage: boolean; upcoming: Gathering[]; past: Gathering[] };
+/** One Top 3 row: dense `place` 1-3 (ties share it, by name); `count` = past gatherings answered Vou. */
+export type Rank = { place: number; displayName: string; avatarUrl: string | null; count: number };
+export type Board = { canManage: boolean; upcoming: Gathering[]; past: Gathering[]; top: Rank[] };
 export type Member = { id: string; displayName: string; avatarUrl: string | null };
 export type GatheringInput = { number: number; place: string; description: string; organizerUserId: string | null; pollDates: string[] };
 

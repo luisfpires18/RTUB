@@ -3,13 +3,20 @@ namespace RTUB.Application.DTOs;
 // Contracts of the React /trintuna (docs/react-trintuna.md). Owner and listed members only. No user id leaves the
 // server except a gathering's organizerUserId for the Owner (the edit form) and the access list (Owner only).
 
-/// <summary>Próximos (soonest first, undated after) and Passados (historical or before today, newest first).</summary>
-public sealed record TrintunaBoardDto(bool CanManage, IReadOnlyList<GatheringDto> Upcoming, IReadOnlyList<GatheringDto> Past);
+/// <summary>
+/// Próximos (soonest first, undated after) and Passados (historical or before today, newest first). <c>Top</c>: the
+/// 3 highest distinct counts of Vou on past gatherings (dense places 1-3, ties share a place, by name; 0 excluded).
+/// </summary>
+public sealed record TrintunaBoardDto(bool CanManage, IReadOnlyList<GatheringDto> Upcoming, IReadOnlyList<GatheringDto> Past, IReadOnlyList<TrintunaRankDto> Top);
+
+/// <summary>One Top 3 row: <c>Place</c> 1-3, <c>Count</c> the past gatherings the member answered Vou.</summary>
+public sealed record TrintunaRankDto(int Place, string DisplayName, string? AvatarUrl, int Count);
 
 public sealed record TrintunaPersonDto(string DisplayName, string? AvatarUrl);
 
 /// <summary>
 /// One gathering. <c>Date</c> is "yyyy-MM-dd" or null. <c>MyStatus</c>: "going", "notGoing" or null.
+/// <c>Going</c> / <c>NotGoing</c>: who answered, by display name (no user ids); <c>GoingCount</c> = <c>Going.Count</c>.
 /// <c>Poll</c> has the shape of the portal's MeetingPoll (counts only, no voter names).
 /// </summary>
 public sealed record GatheringDto(
@@ -24,6 +31,8 @@ public sealed record GatheringDto(
     bool CanEdit,
     bool Past,
     int GoingCount,
+    IReadOnlyList<TrintunaPersonDto> Going,
+    IReadOnlyList<TrintunaPersonDto> NotGoing,
     string? MyStatus,
     GatheringPollDto Poll);
 

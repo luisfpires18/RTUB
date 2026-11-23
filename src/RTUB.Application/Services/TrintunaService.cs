@@ -17,6 +17,7 @@ namespace RTUB.Application.Services;
 /// - Passados: historical (the seed) or dated before today (Portugal), newest first then by number (descending).
 ///   Próximos: the rest, dated soonest first, undated after, by number.
 /// - The poll is open while the gathering has no date and is not historical. Settling picks one of its own options.
+/// - Vou / Não vou is open on every gathering, past ones included. Top 3: Vou on past gatherings, dense places.
 /// </summary>
 public sealed partial class TrintunaService : ITrintunaService
 {
@@ -50,6 +51,7 @@ public sealed partial class TrintunaService : ITrintunaService
         var people = await PeopleAsync(db, gatherings);
         var today = PortugalTime.Today(_time);
         var all = gatherings.Select(g => Map(g, people, user, listed, today)).ToList();
+        var top = Top(gatherings, people, today);
 
         var past = all.Where(g => g.Past)
             .OrderByDescending(g => g.Date ?? string.Empty, StringComparer.Ordinal)
@@ -60,7 +62,7 @@ public sealed partial class TrintunaService : ITrintunaService
             .ThenBy(g => g.Date ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(g => g.Number)
             .ToList();
-        return EventResult<TrintunaBoardDto>.Ok(new TrintunaBoardDto(TrintunaAuthorization.CanManage(user), upcoming, past));
+        return EventResult<TrintunaBoardDto>.Ok(new TrintunaBoardDto(TrintunaAuthorization.CanManage(user), upcoming, past, top));
     }
 
     /// <summary>SignInRequired for a visitor, NotFound for a member who may not see the page; else the listed flag.</summary>
@@ -91,10 +93,14 @@ public sealed partial class TrintunaService : ITrintunaService
         return Map(gathering, people, user, listed, PortugalTime.Today(_time));
     }
 
-    /// <summary>Organizers' display names and photos, by user id.</summary>
+    /// <summary>Organizers' and participants' display names and photos, by user id.</summary>
     private static async Task<Dictionary<string, GovernanceMemberDto>> PeopleAsync(ApplicationDbContext db, IEnumerable<Gathering> gatherings)
     {
-        var ids = gatherings.Select(g => g.OrganizerUserId).OfType<string>().Distinct().ToList();
+        var ids = gatherings
+            .SelectMany(g => g.Participants.Select(p => (string?)p.UserId).Append(g.OrganizerUserId))
+            .OfType<string>()
+            .Distinct()
+            .ToList();
         if (ids.Count == 0)
         {
             return new Dictionary<string, GovernanceMemberDto>();
@@ -105,6 +111,33 @@ public sealed partial class TrintunaService : ITrintunaService
             .ToListAsync();
         return users.ToDictionary(u => u.Id, u => GovernanceService.ToMember(u.Nickname, u.FirstName, u.LastName, u.ImageUrl));
     }
+
+    /// <summary>
+    /// Vou on past gatherings by member. Dense ranking: the 3 highest distinct counts get places 1-3 and everyone with
+    /// that count shares the place, ordered by name (5,5,3,2 gives gold A and B, silver C, bronze D). 0 never appears.
+    /// </summary>
+    private static IReadOnlyList<TrintunaRankDto> Top(IEnumerable<Gathering> gatherings, Dictionary<string, GovernanceMemberDto> people, DateTime today)
+    {
+        var counts = gatherings
+            .Where(g => IsPast(g, today))
+            .SelectMany(g => g.Participants.Where(p => p.WillAttend))
+            .GroupBy(p => p.UserId)
+            .Where(c => people.ContainsKey(c.Key))
+            .Select(c => (Who: people[c.Key], Count: c.Count()))
+            .ToList();
+        return counts.Select(c => c.Count).Distinct().OrderByDescending(n => n).Take(3)
+            .SelectMany((n, i) => counts.Where(c => c.Count == n)
+                .OrderBy(c => c.Who.DisplayName, StringComparer.Create(Pt, ignoreCase: true))
+                .Select(c => new TrintunaRankDto(i + 1, c.Who.DisplayName, c.Who.AvatarUrl, n)))
+            .ToList();
+    }
+
+    private static List<TrintunaPersonDto> Answered(Gathering g, Dictionary<string, GovernanceMemberDto> people, bool willAttend) =>
+        g.Participants
+            .Where(p => p.WillAttend == willAttend && people.ContainsKey(p.UserId))
+            .Select(p => new TrintunaPersonDto(people[p.UserId].DisplayName, people[p.UserId].AvatarUrl))
+            .OrderBy(p => p.DisplayName, StringComparer.Create(Pt, ignoreCase: true))
+            .ToList();
 
     private static bool IsPast(Gathering g, DateTime today) => g.IsHistorical || (g.Date is { } date && date.Date < today);
 
@@ -154,6 +187,8 @@ public sealed partial class TrintunaService : ITrintunaService
             TrintunaAuthorization.CanEdit(user, listed, g.OrganizerUserId),
             IsPast(g, today),
             g.Participants.Count(p => p.WillAttend),
+            Answered(g, people, true),
+            Answered(g, people, false),
             mine is null ? null : mine.WillAttend ? "going" : "notGoing",
             poll);
     }
