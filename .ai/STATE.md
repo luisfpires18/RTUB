@@ -10,7 +10,7 @@ _Last updated: 2026-11-23_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-Task 155 (`feat/155/trintuna-hall-of-fame`, Issue #368, PR #369, in review): Trintuna number given by the server (highest + 1,
+Task 155 (`feat/155/trintuna-hall-of-fame`, Issue #368, PR #369, Codex ACCEPTED round 4, merged into `dev`): Trintuna number given by the server (highest + 1,
 retry on the unique index, no number in the form), `GET /api/trintuna/organizers` (Owner(s) + list) for the Organizador,
 Fui / Não fui on past gatherings, Hall of Fame (everyone who can see, zeros included, 15 per page) replacing the Top 3,
 share link `/trintuna?almoco={id}` with "Copiar link". Owner checks: Owners listed with 0 in the Hall of Fame; a shared
