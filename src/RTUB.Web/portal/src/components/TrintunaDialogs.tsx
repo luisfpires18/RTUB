@@ -11,6 +11,7 @@ import { trintunaApi, problem, type Gathering, type Member, type Person, type Ra
 import { medal } from '../data/leaderboardApi';
 import { dateLabel } from '../data/eventsDates';
 import { WhoIsGoing } from './EventDetailPeople';
+import { MarkWhoWent } from './TrintunaMarkWhoWent';
 import { Avatar } from './ui/Avatar';
 import { Banner } from './ui/Banner';
 import { CloseFooter, DialogFooter } from './ui/DialogFooter';
@@ -81,8 +82,9 @@ function Presence({ gathering, onChanged }: { gathering: Gathering; onChanged: (
 /** "Quem vai / Quem foi" of /events: names and photos only. */
 const asParticipant = (p: Person) => ({ key: p.key, name: p.displayName, fullName: null, avatarUrl: p.avatarUrl ?? '', badge: null, instrument: null, notes: null });
 
-/** One gathering: what, who organizes, the date poll, the caller's answer (past ones too), who answered, its link. */
-export function GatheringDialog({ gathering: g, onClose, onChanged }: { gathering: Gathering; onClose: () => void; onChanged: () => void }) {
+/** One gathering: what, who organizes, the date poll, the caller's answer (past ones too), who answered, its link.
+ * `people` (the Hall of Fame list) feeds "Marcar quem foi" on a past gathering the caller can edit. */
+export function GatheringDialog({ gathering: g, people, onClose, onChanged }: { gathering: Gathering; people: Person[]; onClose: () => void; onChanged: () => void }) {
   const [copied, setCopied] = useState(false);
   const [linkError, setLinkError] = useState<string>();
 
@@ -119,6 +121,7 @@ export function GatheringDialog({ gathering: g, onClose, onChanged }: { gatherin
       )}
       <Presence gathering={g} onChanged={onChanged} />
       <WhoIsGoing participants={{ going: g.going.map(asParticipant), leitoes: [], notGoing: g.notGoing.map(asParticipant) }} past={g.past} />
+      {g.past && g.canEdit && <MarkWhoWent gathering={g} people={people} onChanged={onChanged} />}
       <Banner text={linkError} />
       <button type="button" className="btn btn--ghost btn--sm" onClick={copyLink}>
         <Icon name={copied ? 'check' : 'link'} />

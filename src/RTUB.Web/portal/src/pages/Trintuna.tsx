@@ -150,7 +150,7 @@ export default function Trintuna() {
         </>
       )}
 
-      {opened && <GatheringDialog gathering={opened} onClose={() => show(undefined)} onChanged={() => load(true)} />}
+      {opened && <GatheringDialog gathering={opened} people={data?.hallOfFame ?? []} onClose={() => show(undefined)} onChanged={() => load(true)} />}
       {editing !== undefined && (editing === 'new' || edited) && (
         <GatheringForm gathering={edited} canManage={Boolean(data?.canManage)} onClose={() => setEditing(undefined)} onSaved={() => load(true)} />
       )}

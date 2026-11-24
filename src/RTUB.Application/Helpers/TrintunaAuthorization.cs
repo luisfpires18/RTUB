@@ -8,7 +8,7 @@ namespace RTUB.Application.Helpers;
 ///
 /// - Owner: everything (gatherings, the access list, settling any date).
 /// - A listed member: sees the page, votes and answers Vou / Não vou.
-/// - The organizer of a gathering (while listed): edits it and settles its date.
+/// - The organizer of a gathering (while listed): edits it, settles its date and, once past, marks who went (Fui).
 /// - Anyone else: the page does not exist for them.
 /// </summary>
 public static class TrintunaAuthorization

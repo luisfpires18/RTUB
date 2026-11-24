@@ -43,7 +43,7 @@ type first (a Leitão is blocked from several pages whatever the role).
 | `/inventory` | - | R | W D | W D | W D | W D | [inventory](react-inventory.md#permissions) |
 | `/shop` | public catalogue (R) | R + reserve | R | + add products, promotions, reservations | W D + reservations | W D + reservations | [shop](react-shop.md#permissions) |
 | `/naipes` | - | R + add own | yes | as Member | + manage all, settings | + manage all, settings | [naipes](react-naipes.md#permissions) |
-| `/trintuna` | - | only if listed: R + vote + presence; organizer edits own gathering | as Member | as Member | as Member | all + access list | [trintuna](react-trintuna.md#permissions) |
+| `/trintuna` | - | only if listed: R + vote + presence; organizer edits own gathering and marks who went once past | as Member | as Member | as Member | all (marks who went too) + access list | [trintuna](react-trintuna.md#permissions) |
 | `/pending-actions` | sign-in | own actions (active: answer Atuações, Ensaios; past = self-report, rehearsals pending approval; everyone: own Logística cards, own open Questões; 1.º/2.º Tesoureiro: Tesouraria; Secretário: Secretaria; presidents: Reuniões; Ensaiador / Magister: presenças, repertório — by current position, not role; Mod / Admin / Owner: Membros — by role) | yes | as member type | as member type | as member type | [pending-actions](react-pending-actions.md#permissions) |
 | `/profile`, `/members/map`, `/hall-of-fame` | sign-in | own profile, R | yes | same | same | same | [member-area](react-member-area.md#permissions) |
 | `/emails`, `/notifications`, `/users`, `/owner/*` | - | - | - | - | - | all | [owner-tools](react-owner-operations.md#permissions) |

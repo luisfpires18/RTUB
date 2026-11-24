@@ -34,17 +34,18 @@ Link: member menu (`MemberShell.tsx`, Tuna group "Trintuna"), shown when `GET /a
 | `POST /gatherings/{id}/settle` `{ optionId }` | Owner; the gathering's organizer |
 | `PUT /gatherings/{id}/vote` `{ optionId }` | Owner, listed members |
 | `PUT /gatherings/{id}/presence` `{ willAttend }`, `DELETE` → 204 | Owner, listed members |
+| `PUT /gatherings/{id}/attendees/{key}` → the gathering (Fui for that person), `DELETE` → 204 (removes that person's Fui) | past gathering only (409 `trintuna:closed` otherwise): Owner; the gathering's organizer while listed (403 otherwise) |
 | `GET /access`, `PUT /access` `{ userIds[] }` | Owner |
 | `GET /organizers` → `[{ id, displayName, avatarUrl }]` (Owner-role users and listed members, not expelled, by name) | Owner (401 / 404 / 403 as `/access`) |
 
 ## Permissions
 
-| Who | See | Vote, Vou / Não vou | Edit a gathering, settle its date | Create, delete, access list |
-| --- | --- | --- | --- | --- |
-| Visitor | 401 | 401 | 401 | 401 |
-| Member not on the list (Admin and Mod included) | 404 | 404 | 404 | 404 |
-| Listed member | yes | yes | only as its organizer (403 otherwise) | 403 |
-| Owner | yes | yes | all | yes |
+| Who | See | Vote, Vou / Não vou | Edit a gathering, settle its date | Marcar quem foi (past) | Create, delete, access list |
+| --- | --- | --- | --- | --- | --- |
+| Visitor | 401 | 401 | 401 | 401 | 401 |
+| Member not on the list (Admin and Mod included) | 404 | 404 | 404 | 404 | 404 |
+| Listed member | yes | yes | only as its organizer (403 otherwise) | only as its organizer (403 otherwise) | 403 |
+| Owner | yes | yes | all | all | yes |
 
 ## Rules
 
@@ -67,6 +68,14 @@ Link: member menu (`MemberShell.tsx`, Tuna group "Trintuna"), shown when `GET /a
   constraint, code 19) and retries with the next one, up to 5 tries, then 409 "Tente outra vez." (`trintuna:conflict`,
   portal text "Outro almoço foi criado ao mesmo tempo."). No migration: the column and its unique index stay.
 - The answer buttons read Vou / Não vou on upcoming gatherings and Fui / Não fui on past ones (same radios and endpoints).
+- Marcar quem foi (task 160): on a past gathering the Owner, or its organizer while listed, marks Fui for a person
+  (`PUT /attendees/{key}`) or removes a Fui (`DELETE`). A mark is that person's ordinary answer row (`GatheringParticipant`,
+  `WillAttend = true`), so "Quem foi", `goingCount` and the Hall of Fame count it with no extra code, and the member can
+  still change it. `{key}` is the opaque row key (never a user id); the server accepts only a person who can see the page
+  (Owner-role users and listed members, not expelled; otherwise 400 `key`). Marking someone who answered Não fui turns it
+  into Fui; `DELETE` removes only a Fui (any Fui, the member's own answer included: they are the same row), never a Não
+  fui, and is 204 when there is nothing to remove. The dialog shows "Marcar quem foi" (`TrintunaMarkWhoWent.tsx`:
+  `MemberPicker` over the `hallOfFame[]` people, `PersonChip` per Fui with "Retirar Fui a …") only when `past && canEdit`.
 - Hall of Fame (`hallOfFame[]`: `{ key, place, displayName, avatarUrl, count }`; `key` is an opaque per-member row key
   (SHA-256 of the user id, 16 hex), never the user id; "Hall of Fame" button, `HallOfFameDialog` in the /leaderboard
   row look): everyone who can see the page (Owner-role users and listed members, not expelled; the same set as
@@ -85,7 +94,9 @@ Link: member menu (`MemberShell.tsx`, Tuna group "Trintuna"), shown when `GET /a
   listed members see it; anyone else gets the "no access" notice. Installed app: the manifest scope is `/` and
   `launch_handler.client_mode` is `navigate-existing`, and the service worker leaves the query alone, so on Android the
   link opens in the app (Play Store TWA via `assetlinks.json`). iOS Home Screen apps never capture links: it opens in
-  Safari. No manifest or service-worker change.
+  Safari (seen on the owner's iPhone, 2026-11-24). The only fix there is a native App Store wrapper published with
+  `/.well-known/apple-app-site-association` (Universal Links); push notifications already open the installed app. No
+  manifest or service-worker change.
 - Access list: one list for the whole page; `PUT` replaces it (unknown or expelled ids: 400). Removing an account
   removes its rows (cascade); a deleted organizer leaves the gathering without one (SetNull).
 - Seed (task 154): no migration inserts gatherings, so PROD gets none. The dev seed (`SeedData.Trintuna.cs`,
