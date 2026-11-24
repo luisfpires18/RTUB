@@ -28,9 +28,9 @@ export type Gathering = {
   poll: Omit<MeetingPoll, 'options'> & { options: { id: number; text: string; date: string; votes: number }[] };
 };
 /** One Hall of Fame row: `key` opaque per member (not the user id); dense `place` (ties share it, by name; 0 included); `count` = past gatherings answered Vou. */
-export type Rank = { key: string; place: number; displayName: string; avatarUrl: string | null; count: number };
+export type Rank = { key: string; place: number; displayName: string; avatarUrl: string | null; count: number; fullName: string | null };
 export type Board = { canManage: boolean; upcoming: Gathering[]; past: Gathering[]; hallOfFame: Rank[] };
-export type Member = { id: string; displayName: string; avatarUrl: string | null };
+export type Member = { id: string; displayName: string; avatarUrl: string | null; fullName: string | null };
 export type GatheringInput = { place: string; description: string; organizerUserId: string | null; pollDates: string[] };
 
 const base = '/api/trintuna';
@@ -45,6 +45,9 @@ export const trintunaApi = {
   vote: (id: number, optionId: number) => call<Gathering>('PUT', `${one(id)}/vote`, { optionId }),
   answer: (id: number, willAttend: boolean) => call<Gathering>('PUT', `${one(id)}/presence`, { willAttend }),
   withdraw: (id: number) => call<void>('DELETE', `${one(id)}/presence`),
+  /** Past gathering, Owner or its organizer: Fui for a person, by `key` (never a user id). */
+  mark: (id: number, key: string) => call<Gathering>('PUT', `${one(id)}/attendees/${encodeURIComponent(key)}`),
+  unmark: (id: number, key: string) => call<void>('DELETE', `${one(id)}/attendees/${encodeURIComponent(key)}`),
   /** The Owner(s) and the access list, for the Organizador dropdown (Owner only). */
   organizers: () => call<Member[]>('GET', `${base}/organizers`),
   access: () => call<Member[]>('GET', `${base}/access`),

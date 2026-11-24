@@ -28,6 +28,12 @@ public interface ITrintunaService
 
     Task<EventResult<bool>> ClearPresenceAsync(int id, ClaimsPrincipal user);
 
+    /// <summary>Past gathering, Owner or its organizer: Fui for a person who can see the page, by row key (400 otherwise).</summary>
+    Task<EventResult<GatheringDto>> MarkAttendeeAsync(int id, string key, ClaimsPrincipal user);
+
+    /// <summary>Past gathering, Owner or its organizer: removes that person's Fui; a "Não fui" is never touched.</summary>
+    Task<EventResult<bool>> UnmarkAttendeeAsync(int id, string key, ClaimsPrincipal user);
+
     Task<EventResult<IReadOnlyList<TrintunaMemberDto>>> GetAccessAsync(ClaimsPrincipal user);
 
     /// <summary>Owner only: the Owner-role users and the listed members, not expelled, by name (the Organizador list).</summary>

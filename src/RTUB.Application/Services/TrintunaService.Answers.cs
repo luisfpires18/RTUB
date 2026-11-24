@@ -123,7 +123,7 @@ public sealed partial class TrintunaService
 
         var organizers = (await ViewersAsync(db))
             .OrderBy(x => x.Value.DisplayName, StringComparer.Create(Pt, true))
-            .Select(x => new TrintunaMemberDto(x.Key, x.Value.DisplayName, x.Value.AvatarUrl))
+            .Select(x => new TrintunaMemberDto(x.Key, x.Value.DisplayName, x.Value.AvatarUrl, x.Value.FullName))
             .ToList();
         return EventResult<IReadOnlyList<TrintunaMemberDto>>.Ok(organizers);
     }
@@ -170,7 +170,7 @@ public sealed partial class TrintunaService
         return users
             .Select(u => (u.Id, who: GovernanceService.ToMember(u.Nickname, u.FirstName, u.LastName, u.ImageUrl)))
             .OrderBy(x => x.who.DisplayName, StringComparer.Create(CultureInfo.GetCultureInfo("pt-PT"), true))
-            .Select(x => new TrintunaMemberDto(x.Id, x.who.DisplayName, x.who.AvatarUrl))
+            .Select(x => new TrintunaMemberDto(x.Id, x.who.DisplayName, x.who.AvatarUrl, x.who.FullName))
             .ToList();
     }
 }
