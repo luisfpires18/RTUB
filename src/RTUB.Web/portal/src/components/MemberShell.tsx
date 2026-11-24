@@ -47,8 +47,8 @@ const memberMenu: MenuGroup[] = [
       { href: portal.leaderboard, label: 'Classificação', icon: 'trophy' },
       { href: portal.hallOfFame, label: 'Hall of Fame', icon: 'star' },
       { href: portal.naipes, label: 'Naipes', icon: 'naipes' },
-      { href: portal.trintuna, label: 'Trintuna', icon: 'smile', when: 'trintuna' },
       { href: portal.inventory, label: 'Instrumentos', icon: 'music' },
+      { href: portal.trintuna, label: 'Trintuna', icon: 'smile', when: 'trintuna' },
     ],
   },
   {
