@@ -6,7 +6,7 @@ in the docs `CLAUDE.md` links. Overwrite stale entries.
 _Last updated: 2026-11-24_
 
 ## Release state
-- `master` (PROD): **2.3.18** (released 2026-11-24, tag `v2.3.18`, PR #372: Trintuna, tasks 153-157; no member release notes, owner). `dev`: **2.3.19** (unreleased).
+- `master` (PROD): **2.3.19** (released 2026-11-24, tag `v2.3.19`, PR #378: Trintuna tasks 159-161; no member release notes, owner). `dev`: **2.3.20** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
