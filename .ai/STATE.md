@@ -3,14 +3,14 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git and GitHub, durable detail
 in the docs `CLAUDE.md` links. Overwrite stale entries.
 
-_Last updated: 2026-11-23_
+_Last updated: 2026-11-24_
 
 ## Release state
-- `master` (PROD): **2.3.17** (released 2026-11-19, tag `v2.3.17`: others' photo in chats, task 150; 2.3.16 dropped `PostMedia` / `CommentImages`, task 148). `dev`: **2.3.18** (unreleased).
+- `master` (PROD): **2.3.18** (released 2026-11-24, tag `v2.3.18`, PR #372: Trintuna, tasks 153-157; no member release notes, owner). `dev`: **2.3.19** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-Task 157 (`fix/157/trintuna-menu-last`, PR #371, Codex ACCEPTED round 1): Trintuna is the last link of the Tuna menu.
+Task 157 (`fix/157/trintuna-menu-last`, PR #371, merged, released in 2.3.18): Trintuna is the last link of the Tuna menu.
 
 Task 156 (`fix/156/trintuna-answer-on-click`, PR #370, merged into `dev`): Trintuna Vou / Fui saves on click, no
 Guardar / Fechar in the answer. Not checked in a browser: check the dialog on DEV.
