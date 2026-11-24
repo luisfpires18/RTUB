@@ -11,6 +11,7 @@ import { DialogFooter } from './ui/DialogFooter';
 import { FieldError } from './ui/FieldError';
 import { FormField } from './ui/FormField';
 import type { Option } from '../data/sharedTypes';
+import { SelectField } from './ui/SearchTools';
 
 const blank = (): Input => ({
   name: '',
@@ -131,17 +132,15 @@ export function FormDialog({
           <div className="form__row">
             {text('name', 'Nome', 100)}
             <FormField id={`${fid}-category`} label="Tipo" hint={savedId !== undefined ? 'O tipo fica como foi escolhido ao adicionar.' : undefined} error={errors.category} alert>
-              <span className="control control--select">
-                <select id={`${fid}-category`} value={form.category} disabled={savedId !== undefined} onChange={(e) => set({ category: e.target.value })}>
-                  <option value="">Escolher…</option>
-                  {categories.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                  {form.category && !categories.some((c) => c.value === form.category) && <option value={form.category}>{form.category}</option>}
-                </select>
-              </span>
+              <SelectField id={`${fid}-category`} value={form.category} disabled={savedId !== undefined} onChange={(v) => set({ category: v })}>
+                <option value="">Escolher…</option>
+                {categories.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+                {form.category && !categories.some((c) => c.value === form.category) && <option value={form.category}>{form.category}</option>}
+              </SelectField>
             </FormField>
           </div>
           <div className="form__row">
@@ -150,15 +149,13 @@ export function FormDialog({
           </div>
           <div className="form__row">
             <FormField id={`${fid}-condition`} label="Condição" error={errors.condition} alert>
-              <span className="control control--select">
-                <select id={`${fid}-condition`} value={form.condition} onChange={(e) => set({ condition: e.target.value })}>
-                  {conditions.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </span>
+              <SelectField id={`${fid}-condition`} value={form.condition} onChange={(v) => set({ condition: v })}>
+                {conditions.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </SelectField>
             </FormField>
             {text('location', 'Localização', 200)}
           </div>

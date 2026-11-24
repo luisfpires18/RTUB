@@ -10,6 +10,7 @@ import { CATEGORIES, type Form, blank, fromEdit, problem } from '../data/memberF
 import { Instruments, MentorPicker, MonthYear } from './MemberFormFields';
 import { Loading } from './ui/Loading';
 import type { Option } from '../data/sharedTypes';
+import { SelectField } from './ui/SearchTools';
 
 /** "Adicionar membro" / "Editar membro": the member's fields, rules and dependent fields. */
 export function MemberFormDialog({
@@ -175,16 +176,14 @@ export function MemberFormDialog({
 
         <div className={field('category')}>
           <label htmlFor={ids.category}>Categoria</label>
-          <span className="control control--select">
-            <select id={ids.category} value={form.category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="">Escolher categoria</option>
-              {CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </span>
+          <SelectField id={ids.category} value={form.category} onChange={setCategory}>
+            <option value="">Escolher categoria</option>
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </SelectField>
           {error('category')}
         </div>
 

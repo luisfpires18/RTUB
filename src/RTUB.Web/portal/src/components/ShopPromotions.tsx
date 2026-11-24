@@ -11,6 +11,7 @@ import { FieldError } from './ui/FieldError';
 import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 import { EmptyNote } from './ui/EmptyNote';
 import { IconAction } from './ui/IconAction';
+import { SelectField } from './ui/SearchTools';
 
 // /api/shop/promotions: bundle offers ("3 CDs por 20 € em vez de 30 €"). Visitors see offers made of public products,
 // members all of them; Mod, Admin and Owner create, edit and delete. The server decides and validates everything.
@@ -190,17 +191,15 @@ function PromotionForm({ promo, onClose, onSaved }: { promo?: Promo; onClose: ()
                 <label className="sr-only" htmlFor={`${fid}-p${i}`}>
                   Produto {i + 1}
                 </label>
-                <span className="control control--select">
-                  <select id={`${fid}-p${i}`} value={r.productId} onChange={(e) => setRow(i, { productId: Number(e.target.value) })}>
-                    <option value={0}>Escolher produto…</option>
-                    {Array.isArray(products) &&
-                      products.map((p) => (
-                        <option key={p.id} value={p.id} disabled={rows.some((o, j) => j !== i && o.productId === p.id)}>
-                          {p.name} ({p.type}) - {euros(p.price)}
-                        </option>
-                      ))}
-                  </select>
-                </span>
+                <SelectField id={`${fid}-p${i}`} value={r.productId} onChange={(v) => setRow(i, { productId: Number(v) })}>
+                  <option value={0}>Escolher produto…</option>
+                  {Array.isArray(products) &&
+                    products.map((p) => (
+                      <option key={p.id} value={p.id} disabled={rows.some((o, j) => j !== i && o.productId === p.id)}>
+                        {p.name} ({p.type}) - {euros(p.price)}
+                      </option>
+                    ))}
+                </SelectField>
                 <IconAction icon="trash" label={`Remover produto ${i + 1}`} onClick={() => setRows((all) => all.filter((_, j) => j !== i))} large danger disabled={rows.length === 1} />
               </div>
               <div className="promo-row__qty">

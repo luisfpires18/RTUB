@@ -31,6 +31,7 @@ const pages: Record<string, ReturnType<typeof lazy>> = {
   '/hall-of-fame': lazy(() => import('./pages/HallOfFame')),
   '/naipes': lazy(() => import('./pages/Naipes')),
   '/naipes/config': lazy(() => import('./pages/NaipesConfig')),
+  '/trintuna': lazy(() => import('./pages/Trintuna')),
   '/leaderboard': lazy(() => import('./pages/Leaderboard')),
   '/inventory': lazy(() => import('./pages/Inventory')),
   '/shop': lazy(() => import('./pages/Shop')),

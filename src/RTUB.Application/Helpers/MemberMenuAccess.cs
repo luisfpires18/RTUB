@@ -19,10 +19,12 @@ namespace RTUB.Application.Helpers;
 /// - <see cref="Admin"/> (Pedidos): the Admin role.
 /// - <see cref="Owner"/> (Utilizadores, Auditoria, Base de dados, Emails, Notificações): the Owner role, as the five
 ///   pages require (Emails and Notificações included).
+/// - <see cref="Trintuna"/> (Trintuna): the Owner, or a member on the Trintuna access list (the <c>trintuna</c> argument
+///   in <see cref="For"/>, read by the caller).
 /// </summary>
-public sealed record MemberMenuAccess(bool Management, bool Logistics, bool Treasury, bool Admin, bool Owner, bool Governance)
+public sealed record MemberMenuAccess(bool Management, bool Logistics, bool Treasury, bool Admin, bool Owner, bool Governance, bool Trintuna = false)
 {
-    public static MemberMenuAccess For(ClaimsPrincipal principal, ApplicationUser user)
+    public static MemberMenuAccess For(ClaimsPrincipal principal, ApplicationUser user, bool trintuna = false)
     {
         var admin = principal.IsInRole("Admin");
         var owner = principal.IsInRole("Owner");
@@ -34,6 +36,7 @@ public sealed record MemberMenuAccess(bool Management, bool Logistics, bool Trea
             Treasury: admin || owner || mod || user.IsTuno(),
             Admin: admin,
             Owner: owner,
-            Governance: GovernanceAuthorization.CanManage(principal));
+            Governance: GovernanceAuthorization.CanManage(principal),
+            Trintuna: owner || trintuna);
     }
 }

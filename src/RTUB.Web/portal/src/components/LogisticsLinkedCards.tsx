@@ -6,6 +6,7 @@ import { logisticsApi, type Board, type CardDetail } from '../data/logisticsApi'
 import { FieldError } from './ui/FieldError';
 import { EmptyNote } from './ui/EmptyNote';
 import { IconAction } from './ui/IconAction';
+import { SelectField } from './ui/SearchTools';
 
 /** Links to other cards of this board ("Cartões ligados"), distinct from the attachments. */
 export function LinkedCards({ detail, board, apply, errors }: { detail: CardDetail; board: Board; apply: Apply; errors: Record<string, string> }) {
@@ -35,16 +36,14 @@ export function LinkedCards({ detail, board, apply, errors }: { detail: CardDeta
       )}
       {detail.canManage && others.length > 0 && (
         <div className="lx-inline">
-          <span className="control control--select control--sm">
-            <select aria-label="Cartão a ligar" value={pick} onChange={(e) => setPick(e.target.value)}>
-              <option value="">Ligar a outro cartão…</option>
-              {others.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.list} · {c.title}
-                </option>
-              ))}
-            </select>
-          </span>
+          <SelectField small aria-label="Cartão a ligar" value={pick} onChange={setPick}>
+            <option value="">Ligar a outro cartão…</option>
+            {others.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.list} · {c.title}
+              </option>
+            ))}
+          </SelectField>
           <button
             type="button"
             className="btn btn--ghost btn--sm"

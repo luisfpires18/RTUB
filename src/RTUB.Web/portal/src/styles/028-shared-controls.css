@@ -70,6 +70,20 @@
   color: var(--ink);
 }
 
+.control select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* A select in a dialog form (SelectField inside FormField): the inputs' height and their error border. */
+.form__field .control:not(.control--sm) select {
+  height: 46px;
+}
+
+.form__field--error .control {
+  border-color: #ff8f86;
+}
+
 /* The chevron: drawn in CSS, so every browser shows the same one. */
 .control--select::after {
   content: '';

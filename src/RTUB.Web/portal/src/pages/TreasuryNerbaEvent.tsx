@@ -17,6 +17,7 @@ import { Banner } from '../components/ui/Banner';
 import { IconAction } from '../components/ui/IconAction';
 import { SearchField, ToolsBar } from '../components/ui/SearchTools';
 import { EmptyNote } from '../components/ui/EmptyNote';
+import { SelectField } from '../components/ui/SearchTools';
 type Sort = 'item' | 'type' | 'stock' | 'pricePerUnit' | 'total';
 const COLUMNS: { key: Sort; label: string; numeric?: boolean }[] = [
   { key: 'item', label: 'Item' },
@@ -251,15 +252,13 @@ function OrderDialog({
         <Banner text={errors.form} />
         {data.days.length > 0 && (
           <FormField alert id={`${fid}-day`} label="Dia" error={errors.orderDate}>
-            <span className="control control--select">
-              <select id={`${fid}-day`} value={orderDate} onChange={(e) => setOrderDate(e.target.value)}>
-                {data.days.map((d) => (
-                  <option key={d} value={isoDay(d)}>
-                    {day(d)} ({weekday(d)})
-                  </option>
-                ))}
-              </select>
-            </span>
+            <SelectField id={`${fid}-day`} value={orderDate} onChange={setOrderDate}>
+              {data.days.map((d) => (
+                <option key={d} value={isoDay(d)}>
+                  {day(d)} ({weekday(d)})
+                </option>
+              ))}
+            </SelectField>
           </FormField>
         )}
         <FormField alert id={`${fid}-item`} label="Item" error={errors.item}>

@@ -41,6 +41,7 @@ public class ShellPagesTests : IntegrationTestBase
     [InlineData("/profile")]
     [InlineData("/meetings")]
     [InlineData("/naipes")]
+    [InlineData("/trintuna")]
     [InlineData("/emails")]
     [InlineData("/notifications")]
     [InlineData("/owner/db")]

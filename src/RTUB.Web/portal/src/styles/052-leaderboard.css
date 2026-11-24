@@ -214,6 +214,15 @@
   border-color: var(--line-strong);
 }
 
+/* Rows that open nothing (the /trintuna Hall of Fame dialog). */
+.leaderboard-row--static {
+  cursor: default;
+}
+
+.leaderboard-row--static:hover {
+  border-color: var(--line-strong);
+}
+
 .leaderboard-row__pos {
   flex: none;
   width: 2.25rem;

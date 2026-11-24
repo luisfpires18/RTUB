@@ -14,6 +14,7 @@ import { PageHead } from '../components/ui/PageHead';
 import { FieldError } from '../components/ui/FieldError';
 import { IconAction } from '../components/ui/IconAction';
 import { EmptyNote } from '../components/ui/EmptyNote';
+import { SelectField } from '../components/ui/SearchTools';
 /**
  * /treasury - Tesouraria. Treasury members: the annual reports, newest first,
  * with income, expenses and balance, search and PDF. Admin, Owner and treasury-team Mods create a report; Owner and the
@@ -189,15 +190,13 @@ function CreateReportDialog({ years, onClose, onSaved }: { years: number[]; onCl
         ) : (
           <div className={error ? 'form__field form__field--error' : 'form__field'}>
             <label htmlFor={`${fid}-year`}>Ano letivo</label>
-            <span className="control control--select">
-              <select id={`${fid}-year`} value={year} onChange={(e) => setYear(Number(e.target.value))}>
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}-{y + 1}
-                  </option>
-                ))}
-              </select>
-            </span>
+            <SelectField id={`${fid}-year`} value={year} onChange={(v) => setYear(Number(v))}>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}-{y + 1}
+                </option>
+              ))}
+            </SelectField>
             <FieldError text={error} />
           </div>
         )}

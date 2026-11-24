@@ -10,6 +10,7 @@ import { Loading } from './ui/Loading';
 import { FieldError } from './ui/FieldError';
 import { AnswerActions } from './ui/AnswerActions';
 import { FormField } from './ui/FormField';
+import { SelectField } from './ui/SearchTools';
 
 // ---------- the member's presença ----------
 
@@ -105,16 +106,14 @@ function PresenceForm({ data, onClose, onSaved }: { data: MyAttendance; onClose:
 
       {willAttend === true && data.instruments.length > 0 && (
         <FormField id={ids.instrument} label="Instrumento">
-          <span className="control control--select">
-            <select id={ids.instrument} value={instrument} onChange={(e) => setInstrument(e.target.value)}>
-              <option value="">{data.isLeitao ? 'Sem instrumento' : 'Não vou tocar'}</option>
-              {data.instruments.map((i) => (
-                <option key={i.value} value={i.value}>
-                  {i.label}
-                </option>
-              ))}
-            </select>
-          </span>
+          <SelectField id={ids.instrument} value={instrument} onChange={setInstrument}>
+            <option value="">{data.isLeitao ? 'Sem instrumento' : 'Não vou tocar'}</option>
+            {data.instruments.map((i) => (
+              <option key={i.value} value={i.value}>
+                {i.label}
+              </option>
+            ))}
+          </SelectField>
         </FormField>
       )}
 

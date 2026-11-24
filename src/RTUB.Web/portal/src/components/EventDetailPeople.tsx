@@ -66,7 +66,7 @@ function People({ people }: { people: EventParticipant[] }) {
   return (
     <ul className="who">
       {people.map((p, i) => (
-        <li key={i} className="who__person" title={p.fullName ?? undefined}>
+        <li key={p.key ?? i} className="who__person" title={p.fullName ?? undefined}>
           <Avatar className="who__avatar" src={p.avatarUrl} size={72} />
           <p className="who__name">{p.name}</p>
           {p.badge && <MemberBadge kind={badgeKind(p.badge)}>{p.badge}</MemberBadge>}

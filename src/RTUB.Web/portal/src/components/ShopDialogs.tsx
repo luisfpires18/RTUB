@@ -13,6 +13,7 @@ import { EmptyNote } from './ui/EmptyNote';
 import { CheckField } from './ui/CheckField';
 import { FactRow } from './ui/FactRow';
 import { IconAction } from './ui/IconAction';
+import { SelectField } from './ui/SearchTools';
 
 export function DetailDialog({ id, onClose }: { id: number; onClose: () => void }) {
   const [detail, setDetail] = useState<Detail | 'missing' | null>();
@@ -95,16 +96,14 @@ export function ReserveDialog({ product, sizes, onClose, onDone }: { product: Pr
         </CheckField>
         {hasSizes && (
           <FormField id={`${id}-size`} label="Tamanho" error={errors.size}>
-            <span className="control control--select">
-              <select id={`${id}-size`} value={size} onChange={(e) => setSize(e.target.value)}>
-                <option value="">Escolher o tamanho</option>
-                {sizes.map((s) => (
-                  <option key={s} value={s}>
-                    {SIZE_LABELS[s] ?? s}
-                  </option>
-                ))}
-              </select>
-            </span>
+            <SelectField id={`${id}-size`} value={size} onChange={setSize}>
+              <option value="">Escolher o tamanho</option>
+              {sizes.map((s) => (
+                <option key={s} value={s}>
+                  {SIZE_LABELS[s] ?? s}
+                </option>
+              ))}
+            </SelectField>
           </FormField>
         )}
       </form>

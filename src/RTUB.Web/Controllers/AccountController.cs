@@ -20,12 +20,15 @@ public class AccountController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly string? _publicOrigin;
     private readonly RTUB.Application.Services.PageViewCounter _pageViews;
+    private readonly RTUB.Application.Interfaces.ITrintunaService _trintuna;
 
-    public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration, RTUB.Application.Services.PageViewCounter pageViews)
+    public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration, RTUB.Application.Services.PageViewCounter pageViews,
+        RTUB.Application.Interfaces.ITrintunaService trintuna)
     {
         _userManager = userManager;
         _publicOrigin = TrustedOrigin(configuration["Calendar:PublicOrigin"]);
         _pageViews = pageViews;
+        _trintuna = trintuna;
     }
 
     [HttpGet("me")]
@@ -61,7 +64,8 @@ public class AccountController : ControllerBase
             fullName = fullName.Length > 0 ? fullName : null,
             avatarUrl = user.ProfilePictureSrc,
             categories = user.Categories.Select(StatusHelper.GetCategoryDisplay).ToArray(),
-            menu = MemberMenuAccess.For(User, user),
+            // Trintuna: one indexed lookup on the access list (Owner sees it anyway).
+            menu = MemberMenuAccess.For(User, user, await _trintuna.HasAccessAsync(user.Id)),
             // A Reformado has no "As minhas ações pendentes" (no menu entry, no page, no reminder push).
             retired = user.IsRetired,
             // The configured public origin for links that leave RTUB (Google Calendar). Never the request's host.

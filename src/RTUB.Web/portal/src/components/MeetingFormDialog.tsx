@@ -9,6 +9,7 @@ import { Loading } from './ui/Loading';
 import { Banner } from './ui/Banner';
 import { FormField } from './ui/FormField';
 import { DialogFooter } from './ui/DialogFooter';
+import { SelectField } from './ui/SearchTools';
 
 const TYPE_LABELS: Record<string, string> = {
   AssembleiaGeralOrdinaria: 'Assembleia Geral Ordinária',
@@ -108,18 +109,16 @@ export function MeetingFormDialog({
           {form && (
             <>
               <FormField id={`${id}-type`} label="Tipo de Reunião" error={errors.type} alert>
-                <span className="control control--select">
-                  <select id={`${id}-type`} value={type} onChange={(e) => setType(e.target.value)}>
-                    <option value="" disabled>
-                      -- Selecionar Tipo --
+                <SelectField id={`${id}-type`} value={type} onChange={setType}>
+                  <option value="" disabled>
+                    -- Selecionar Tipo --
+                  </option>
+                  {options.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
                     </option>
-                    {options.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </span>
+                  ))}
+                </SelectField>
               </FormField>
               <FormField id={`${id}-title`} label="Título" error={errors.title} alert>
                 <input id={`${id}-title`} type="text" maxLength={MAX_TITLE} placeholder="Inserir título..." value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -139,19 +138,17 @@ export function MeetingFormDialog({
               </FormField>
               {isCouncil && (
                 <FormField id={`${id}-rep`} label="Representante de Tunos (Opcional)" error={errors.tunoRepresentativeId} hint="Este tuno poderá ver e participar nesta reunião de CV." alert>
-                  <span className="control control--select">
-                    <select id={`${id}-rep`} value={representative} onChange={(e) => setRepresentative(e.target.value)}>
-                      <option value="">Nenhum representante selecionado</option>
-                      {representative && !representatives.some((r) => r.id === representative) && (
-                        <option value={representative}>{card?.tunoRepresentative ?? 'Representante atual'}</option>
-                      )}
-                      {representatives.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.label}
-                        </option>
-                      ))}
-                    </select>
-                  </span>
+                  <SelectField id={`${id}-rep`} value={representative} onChange={setRepresentative}>
+                    <option value="">Nenhum representante selecionado</option>
+                    {representative && !representatives.some((r) => r.id === representative) && (
+                      <option value={representative}>{card?.tunoRepresentative ?? 'Representante atual'}</option>
+                    )}
+                    {representatives.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </SelectField>
                 </FormField>
               )}
               <FormField id={`${id}-statement`} label="Declaração" error={errors.statement} hint={`Máximo ${MAX_STATEMENT} caracteres (${statement.length} / ${MAX_STATEMENT})`} alert>

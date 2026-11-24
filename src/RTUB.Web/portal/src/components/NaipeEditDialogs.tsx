@@ -7,6 +7,7 @@ import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 import { Banner } from './ui/Banner';
 import { DialogFooter } from './ui/DialogFooter';
 import { FormField } from './ui/FormField';
+import { SelectField } from './ui/SearchTools';
 
 /** "Adicionar vídeo" / "Adicionar imagem" (instrument, file, title, description, order) and "Editar". */
 export function EditDialog({ board, editing, onClose, onSaved }: { board: NaipeBoard; editing: Editing; onClose: () => void; onSaved: (item: NaipeItem) => void }) {
@@ -65,15 +66,13 @@ export function EditDialog({ board, editing, onClose, onSaved }: { board: NaipeB
         {creating && (
           <>
             <FormField id={`${id}-instrument`} label="Instrumento" error={errors.instrument} alert>
-              <span className="control control--select">
-                <select id={`${id}-instrument`} value={instrument} onChange={(e) => setInstrument(e.target.value)}>
-                  {board.instrumentOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </span>
+              <SelectField id={`${id}-instrument`} value={instrument} onChange={setInstrument}>
+                {board.instrumentOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </SelectField>
             </FormField>
             <FormField
               id={`${id}-file`}

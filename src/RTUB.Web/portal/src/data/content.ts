@@ -25,6 +25,7 @@ export const portal = {
   hallOfFame: '/hall-of-fame',
   naipes: '/naipes',
   naipesConfig: '/naipes/config',
+  trintuna: '/trintuna',
   leaderboard: '/leaderboard',
   inventory: '/inventory',
   shop: '/shop',

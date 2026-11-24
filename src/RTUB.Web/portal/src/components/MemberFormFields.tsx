@@ -10,6 +10,7 @@ import { LOCKED_HINT, MIN_YEAR, MONTHS, problem } from '../data/memberFormState'
 import { Avatar } from './ui/Avatar';
 import type { Option } from '../data/sharedTypes';
 import { IconAction } from './ui/IconAction';
+import { SelectField } from './ui/SearchTools';
 
 export function MonthYear({
   label,
@@ -39,33 +40,23 @@ export function MonthYear({
     <fieldset className={error ? 'form__field form__field--error member-form__date' : 'form__field member-form__date'} disabled={locked}>
       <legend className="form__label">{label}</legend>
       <span className="member-form__pair">
-        <span className="control control--select">
-          <label className="sr-only" htmlFor={`${id}-m`}>
-            Mês
-          </label>
-          <select id={`${id}-m`} value={month ?? ''} onChange={(e) => pickMonth(e.target.value)}>
-            <option value="">Mês</option>
-            {MONTHS.map((m, i) => (
-              <option key={m} value={i + 1}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </span>
-        <span className="control control--select">
-          <label className="sr-only" htmlFor={`${id}-y`}>
-            Ano
-          </label>
-          <select id={`${id}-y`} value={year ?? ''} onChange={(e) => pickYear(e.target.value)}>
-            <option value="">Ano</option>
-            {year !== null && !years.includes(year) && <option value={year}>{year}</option>}
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </span>
+        <SelectField id={`${id}-m`} aria-label="Mês" value={month ?? ''} onChange={pickMonth}>
+          <option value="">Mês</option>
+          {MONTHS.map((m, i) => (
+            <option key={m} value={i + 1}>
+              {m}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField id={`${id}-y`} aria-label="Ano" value={year ?? ''} onChange={pickYear}>
+          <option value="">Ano</option>
+          {year !== null && !years.includes(year) && <option value={year}>{year}</option>}
+          {years.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </SelectField>
       </span>
       {locked && <p className="form__hint">{lockedHint}</p>}
       <FieldError text={error} alert={false} />
@@ -124,16 +115,14 @@ export function Instruments({
     <div className={shown ? 'form__field form__field--error' : 'form__field'}>
       <label htmlFor={id}>Instrumentos</label>
       <span className="member-form__pair">
-        <span className="control control--select">
-          <select id={id} value={picked} onChange={(e) => setPicked(e.target.value)} disabled={busy}>
-            <option value="">Escolher instrumento…</option>
-            {available.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </span>
+        <SelectField id={id} value={picked} onChange={setPicked} disabled={busy}>
+          <option value="">Escolher instrumento…</option>
+          {available.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </SelectField>
         <button type="button" className="btn btn--ghost btn--sm" onClick={add} disabled={!picked || busy}>
           <Icon name="plus" />
           Adicionar

@@ -11,7 +11,7 @@ import { Loading } from '../components/ui/Loading';
 import { AsyncConfirmDialog } from '../components/ui/ConfirmDialog';
 import { PageHead } from '../components/ui/PageHead';
 import { BackLink } from '../components/ui/BackLink';
-import { SearchField, ToolsBar } from '../components/ui/SearchTools';
+import { SearchField, SelectField, ToolsBar } from '../components/ui/SearchTools';
 import { EmptyNote } from '../components/ui/EmptyNote';
 import { Avatar } from '../components/ui/Avatar';
 
@@ -87,17 +87,13 @@ export default function TreasuryCalotes() {
             <>
               <ToolsBar>
                 {!own && <SearchField id={ids.search} label="Procurar membro" placeholder="Procurar membro" value={search} onChange={setSearch} />}
-                <label className="control control--select" htmlFor={ids.year}>
-                  <span className="sr-only">Ano letivo</span>
-                  <Icon name="calendar" />
-                  <select id={ids.year} value={c.fiscalYear ?? ''} onChange={(e) => changeYear(e.target.value)}>
-                    {c.fiscalYears.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <SelectField id={ids.year} label="Ano letivo" icon="calendar" value={c.fiscalYear ?? ''} onChange={changeYear}>
+                  {c.fiscalYears.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </SelectField>
               </ToolsBar>
 
               <dl className="tr-tiles tr-tiles--one">
