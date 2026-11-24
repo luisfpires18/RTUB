@@ -5,19 +5,25 @@ import type { EventParticipant } from '../data/eventsApi';
 import { Icon } from './icons';
 import { MemberBadge, badgeKind } from './MemberBadge';
 import { Avatar } from './ui/Avatar';
+import { IconAction } from './ui/IconAction';
 
 /** "Quem vai" before and during an event, "Quem foi" once it is over. */
 const whoLabel = (past: boolean) => (past ? 'Quem foi' : 'Quem vai');
 
-/** Who answered, on this page: members going, Leitões going, and (folded) who is not going. */
+/**
+ * Who answered, on this page: members going, Leitões going, and (folded) who is not going. `onRemove`: an X on each
+ * "going" tile (the /meetings tile-remove look); the caller confirms (Trintuna marks).
+ */
 export function WhoIsGoing({
   participants,
   past,
   onManage,
+  onRemove,
 }: {
   participants: { going: EventParticipant[]; leitoes: EventParticipant[]; notGoing: EventParticipant[] };
   past: boolean;
   onManage?: () => void;
+  onRemove?: (p: EventParticipant) => void;
 }) {
   const { going, leitoes, notGoing } = participants;
   const total = going.length + leitoes.length;
@@ -39,7 +45,7 @@ export function WhoIsGoing({
         <EmptyNote>Ainda ninguém respondeu.</EmptyNote>
       ) : (
         <>
-          {going.length > 0 && <People people={going} />}
+          {going.length > 0 && <People people={going} onRemove={onRemove} />}
           {leitoes.length > 0 && (
             <>
               <h3 className="who__group">Leitões · {leitoes.length}</h3>
@@ -62,11 +68,12 @@ export function WhoIsGoing({
 }
 
 /** Avatar-led tiles: the face first, then the nickname, the category and what they play. */
-function People({ people }: { people: EventParticipant[] }) {
+function People({ people, onRemove }: { people: EventParticipant[]; onRemove?: (p: EventParticipant) => void }) {
   return (
     <ul className="who">
       {people.map((p, i) => (
-        <li key={p.key ?? i} className="who__person" title={p.fullName ?? undefined}>
+        <li key={p.key ?? i} className={onRemove ? 'who__person mtg-who__person' : 'who__person'} title={p.fullName ?? undefined}>
+          {onRemove && <IconAction icon="close" label={`Retirar ${p.name}`} title="Retirar" onClick={() => onRemove(p)} danger className="mtg-who__remove" />}
           <Avatar className="who__avatar" src={p.avatarUrl} size={72} />
           <p className="who__name">{p.name}</p>
           {p.badge && <MemberBadge kind={badgeKind(p.badge)}>{p.badge}</MemberBadge>}

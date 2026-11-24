@@ -75,8 +75,12 @@ Link: member menu (`MemberShell.tsx`, Tuna group "Trintuna"), shown when `GET /a
   (Owner-role users and listed members, not expelled; otherwise 400 `key`). Marking someone who answered Não fui turns it
   into Fui; `DELETE` removes only a Fui (any Fui, the member's own answer included: they are the same row), never a Não
   fui, and is 204 when there is nothing to remove. The dialog shows "Marcar quem foi" (`TrintunaMarkWhoWent.tsx`:
-  `MemberPicker` over the `hallOfFame[]` people, `PersonChip` per Fui with "Retirar Fui a …") only when `past && canEdit`.
-- Hall of Fame (`hallOfFame[]`: `{ key, place, displayName, avatarUrl, count }`; `key` is an opaque per-member row key
+  `MemberPicker` over the `hallOfFame[]` people) only when `past && canEdit`. Task 161: removing a Fui is the X on its
+  "Quem foi" tile (`WhoIsGoing` `onRemove`, the /meetings tile-remove look), confirmed with `AsyncConfirmDialog`.
+- Searches (task 161): the organizer and "Marcar quem foi" search in the browser over `displayName` + `fullName`
+  (`/organizers` and `hallOfFame[]` carry `fullName`): every word, accents folded, as the server search behind "Quem tem
+  acesso" (`/api/logistics/members`: username, nickname, first and last name).
+- Hall of Fame (`hallOfFame[]`: `{ key, place, displayName, avatarUrl, count, fullName }`; `key` is an opaque per-member row key
   (SHA-256 of the user id, 16 hex), never the user id; "Hall of Fame" button, `HallOfFameDialog` in the /leaderboard
   row look): everyone who can see the page (Owner-role users and listed members, not expelled; the same set as
   `GET /organizers`), zeros included. `count` is the number of past gatherings (historical, or dated before today) the

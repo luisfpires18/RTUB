@@ -28,9 +28,9 @@ export type Gathering = {
   poll: Omit<MeetingPoll, 'options'> & { options: { id: number; text: string; date: string; votes: number }[] };
 };
 /** One Hall of Fame row: `key` opaque per member (not the user id); dense `place` (ties share it, by name; 0 included); `count` = past gatherings answered Vou. */
-export type Rank = { key: string; place: number; displayName: string; avatarUrl: string | null; count: number };
+export type Rank = { key: string; place: number; displayName: string; avatarUrl: string | null; count: number; fullName: string | null };
 export type Board = { canManage: boolean; upcoming: Gathering[]; past: Gathering[]; hallOfFame: Rank[] };
-export type Member = { id: string; displayName: string; avatarUrl: string | null };
+export type Member = { id: string; displayName: string; avatarUrl: string | null; fullName: string | null };
 export type GatheringInput = { place: string; description: string; organizerUserId: string | null; pollDates: string[] };
 
 const base = '/api/trintuna';
