@@ -10,7 +10,7 @@ _Last updated: 2026-11-24_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-Task 160 (`feat/160/trintuna-mark-attendance`, Issue #375, draft PR #376): on a past gathering the Owner or its
+Task 160 (`feat/160/trintuna-mark-attendance`, Issue #375, PR #376, Codex ACCEPTED round 1, merged into `dev`): on a past gathering the Owner or its
 organizer marks who went (Fui) and removes a Fui (`PUT`/`DELETE /api/trintuna/gatherings/{id}/attendees/{key}`); a mark
 is the person's own answer row, so Quem foi and the Hall of Fame count it. Owner checks (plan defaults applied): any Fui
 can be removed, a mark overwrites Não fui, everyone who can see the page is offered.
