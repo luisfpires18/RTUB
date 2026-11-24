@@ -1,6 +1,6 @@
 // The create / edit gathering dialog of /trintuna. There is no free date field: "Marcar data" picks one of the
 // gathering's own saved poll options (POST /settle), so the date always matches an option.
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useMemo, useState, type FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { Icon } from './icons';
 import { trintunaApi, problem, MAX_PLACE, MAX_DESCRIPTION, MAX_POLL_DATES, type Gathering, type Member } from '../data/trintunaApi';
@@ -8,6 +8,7 @@ import { Banner } from './ui/Banner';
 import { DialogFooter } from './ui/DialogFooter';
 import { FormField, fieldProps } from './ui/FormField';
 import { PersonChip } from './ui/PersonChip';
+import { MemberPicker } from './LogisticsFields';
 import { SelectField } from './ui/SearchTools';
 
 const ORGANIZER_HINT = 'Escolhido entre quem tem acesso à página.';
@@ -70,9 +71,17 @@ export function GatheringForm({
     onClose();
   };
 
-  const organizers = members.some((m) => m.id === organizer) || !g?.organizer || !organizer
-    ? members
-    : [{ id: organizer, displayName: g.organizer.displayName, avatarUrl: g.organizer.avatarUrl }, ...members];
+  const stored = g?.organizer;
+  const organizers = useMemo(
+    () =>
+      members.some((m) => m.id === organizer) || !stored || !organizer
+        ? members
+        : [{ id: organizer, displayName: stored.displayName, avatarUrl: stored.avatarUrl }, ...members],
+    [members, organizer, stored],
+  );
+  const chosen = organizers.find((m) => m.id === organizer);
+  // Stable between renders, so the picker's search effect does not run again on every render.
+  const pickable = useMemo(() => organizers.map((m) => ({ id: m.id, displayName: m.displayName, fullName: null, avatarUrl: m.avatarUrl })), [organizers]);
 
   return (
     <Dialog
@@ -91,14 +100,17 @@ export function GatheringForm({
         </FormField>
         {canManage ? (
           <FormField id={id('organizer')} label="Organizador" error={errors.organizerUserId} hint={ORGANIZER_HINT}>
-            <SelectField {...fieldProps(id('organizer'), errors.organizerUserId, ORGANIZER_HINT)} value={organizer} onChange={setOrganizer}>
-              <option value="">Sem organizador</option>
-              {organizers.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.displayName}
-                </option>
-              ))}
-            </SelectField>
+            {chosen ? (
+              <div className="chips">
+                <PersonChip name={chosen.displayName} avatar={chosen.avatarUrl} onRemove={() => setOrganizer('')} removeLabel="Escolher outro organizador" />
+              </div>
+            ) : (
+              <MemberPicker
+                label="Organizador"
+                options={pickable}
+                onPick={(m) => setOrganizer(m.id)}
+              />
+            )}
           </FormField>
         ) : (
           g?.organizer && (
