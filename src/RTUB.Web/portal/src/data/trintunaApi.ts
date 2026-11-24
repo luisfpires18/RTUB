@@ -45,6 +45,9 @@ export const trintunaApi = {
   vote: (id: number, optionId: number) => call<Gathering>('PUT', `${one(id)}/vote`, { optionId }),
   answer: (id: number, willAttend: boolean) => call<Gathering>('PUT', `${one(id)}/presence`, { willAttend }),
   withdraw: (id: number) => call<void>('DELETE', `${one(id)}/presence`),
+  /** Past gathering, Owner or its organizer: Fui for a person, by `key` (never a user id). */
+  mark: (id: number, key: string) => call<Gathering>('PUT', `${one(id)}/attendees/${encodeURIComponent(key)}`),
+  unmark: (id: number, key: string) => call<void>('DELETE', `${one(id)}/attendees/${encodeURIComponent(key)}`),
   /** The Owner(s) and the access list, for the Organizador dropdown (Owner only). */
   organizers: () => call<Member[]>('GET', `${base}/organizers`),
   access: () => call<Member[]>('GET', `${base}/access`),
