@@ -94,7 +94,9 @@ Link: member menu (`MemberShell.tsx`, Tuna group "Trintuna"), shown when `GET /a
   listed members see it; anyone else gets the "no access" notice. Installed app: the manifest scope is `/` and
   `launch_handler.client_mode` is `navigate-existing`, and the service worker leaves the query alone, so on Android the
   link opens in the app (Play Store TWA via `assetlinks.json`). iOS Home Screen apps never capture links: it opens in
-  Safari. No manifest or service-worker change.
+  Safari (seen on the owner's iPhone, 2026-11-24). The only fix there is a native App Store wrapper published with
+  `/.well-known/apple-app-site-association` (Universal Links); push notifications already open the installed app. No
+  manifest or service-worker change.
 - Access list: one list for the whole page; `PUT` replaces it (unknown or expelled ids: 400). Removing an account
   removes its rows (cascade); a deleted organizer leaves the gathering without one (SetNull).
 - Seed (task 154): no migration inserts gatherings, so PROD gets none. The dev seed (`SeedData.Trintuna.cs`,
