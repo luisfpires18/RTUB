@@ -40,6 +40,13 @@ public static class TrintunaEndpoints
         writes.MapDelete("/gatherings/{id:int}/presence", async (int id, HttpContext http, ITrintunaService service) =>
             Answer(await service.ClearPresenceAsync(id, http.User), _ => Results.NoContent()));
 
+        // {key}: the page's row key for a person, never a user id.
+        writes.MapPut("/gatherings/{id:int}/attendees/{key}", async (int id, string key, HttpContext http, ITrintunaService service) =>
+            Answer(await service.MarkAttendeeAsync(id, key, http.User)));
+
+        writes.MapDelete("/gatherings/{id:int}/attendees/{key}", async (int id, string key, HttpContext http, ITrintunaService service) =>
+            Answer(await service.UnmarkAttendeeAsync(id, key, http.User), _ => Results.NoContent()));
+
         trintuna.MapGet("/access", async (HttpContext http, ITrintunaService service) =>
             Answer(await service.GetAccessAsync(http.User)));
 
