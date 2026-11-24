@@ -10,7 +10,9 @@ _Last updated: 2026-11-23_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-Task 156 (`fix/156/trintuna-answer-on-click`, PR #370, Codex ACCEPTED round 1): Trintuna Vou / Fui saves on click, no
+Task 157 (`fix/157/trintuna-menu-last`, PR #371, Codex ACCEPTED round 1): Trintuna is the last link of the Tuna menu.
+
+Task 156 (`fix/156/trintuna-answer-on-click`, PR #370, merged into `dev`): Trintuna Vou / Fui saves on click, no
 Guardar / Fechar in the answer. Not checked in a browser: check the dialog on DEV.
 
 Task 155 (`feat/155/trintuna-hall-of-fame`, Issue #368, PR #369, Codex ACCEPTED round 4, merged into `dev`): Trintuna number given by the server (highest + 1,
