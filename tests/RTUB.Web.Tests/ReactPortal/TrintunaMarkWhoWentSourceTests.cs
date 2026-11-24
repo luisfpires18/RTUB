@@ -22,15 +22,39 @@ public class TrintunaMarkWhoWentSourceTests
     }
 
     [Fact]
-    public void MarkWhoWent_UsesTheSharedPickerAndChips_WithKeysOnly()
+    public void MarkWhoWent_UsesTheSharedPicker_ByNicknameOrName_WithKeysOnly()
     {
         var mark = Read("components", "TrintunaMarkWhoWent.tsx");
 
-        mark.Should().Contain("const options = useMemo(").And.Contain("id: p.key");
+        mark.Should().Contain("const options = useMemo(").And.Contain("id: p.key").And.Contain("fullName: p.fullName");
         mark.Should().Contain("<MemberPicker").And.Contain("options={options}").And.Contain("exclude={g.going.map((p) => p.key)}");
-        mark.Should().Contain("<PersonChip").And.Contain("onRemove={() => run(() => trintunaApi.unmark(g.id, p.key)");
-        mark.Should().Contain("removeLabel={`Retirar Fui a ${p.displayName}`}");
+        mark.Should().NotContain("<PersonChip", "task 161: no second list; the X is on the Quem foi tile");
         mark.Should().NotContain("userId").And.NotContain("organizers(");
+    }
+
+    /// <summary>Task 161: removing a mark is an X on the "Quem foi" tile, confirmed with the shared AsyncConfirmDialog.</summary>
+    [Fact]
+    public void RemovingAMark_IsAnXOnTheTile_WithAConfirmDialog()
+    {
+        var dialogs = Read("components", "TrintunaDialogs.tsx");
+        var people = Read("components", "EventDetailPeople.tsx");
+
+        dialogs.Should().Contain("onRemove={g.past && g.canEdit ? (p) => setUnmarking(");
+        dialogs.Should().Contain("<AsyncConfirmDialog").And.Contain("trintunaApi.unmark(g.id, unmarking.key)");
+        people.Should().Contain("onRemove?: (p: EventParticipant) => void;");
+        people.Should().Contain("<IconAction icon=\"close\"").And.Contain("className=\"mtg-who__remove\"");
+        people.Should().Contain("<People people={going} onRemove={onRemove} />");
+    }
+
+    /// <summary>Task 161: the browser-side search (organizer, Marcar quem foi) matches every word over nickname and full name, accents folded, as the server search does.</summary>
+    [Fact]
+    public void LocalSearch_MatchesNicknameOrFullName_AccentsFolded()
+    {
+        var picker = Read("components", "LogisticsFields.tsx");
+
+        picker.Should().Contain(@"const words = fold(query).split(/\s+/).filter(Boolean);");
+        picker.Should().Contain("words.every((w) => fold(`${m.displayName} ${m.fullName ?? ''}`).includes(w))");
+        Read("components", "TrintunaForm.tsx").Should().Contain("fullName: m.fullName, avatarUrl: m.avatarUrl");
     }
 
     [Fact]

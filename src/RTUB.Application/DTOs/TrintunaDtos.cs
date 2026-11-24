@@ -11,7 +11,7 @@ namespace RTUB.Application.DTOs;
 public sealed record TrintunaBoardDto(bool CanManage, IReadOnlyList<GatheringDto> Upcoming, IReadOnlyList<GatheringDto> Past, IReadOnlyList<TrintunaRankDto> HallOfFame);
 
 /// <summary>One Hall of Fame row: <c>Key</c> an opaque per-member row key (a hash, never the user id), <c>Place</c> dense from 1, <c>Count</c> the past gatherings the member answered Vou.</summary>
-public sealed record TrintunaRankDto(string Key, int Place, string DisplayName, string? AvatarUrl, int Count);
+public sealed record TrintunaRankDto(string Key, int Place, string DisplayName, string? AvatarUrl, int Count, string? FullName = null);
 
 /// <summary>A member shown on the page. <c>Key</c>: opaque per-member key (<c>TrintunaService.RowKey</c>), never the user id.</summary>
 public sealed record TrintunaPersonDto(string Key, string DisplayName, string? AvatarUrl);
@@ -68,6 +68,6 @@ public sealed record GatheringOptionInput(int OptionId);
 public sealed record GatheringPresenceInput(bool WillAttend);
 
 /// <summary>A member on (or for) the access list, or an organizer the Owner can pick.</summary>
-public sealed record TrintunaMemberDto(string Id, string DisplayName, string? AvatarUrl);
+public sealed record TrintunaMemberDto(string Id, string DisplayName, string? AvatarUrl, string? FullName = null);
 
 public sealed record TrintunaAccessInput(IReadOnlyList<string>? UserIds);

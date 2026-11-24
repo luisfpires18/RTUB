@@ -150,7 +150,7 @@ public sealed partial class TrintunaService : ITrintunaService
             .SelectMany((n, i) => counts.Where(c => c.Count == n)
                 .OrderBy(c => c.Who.DisplayName, StringComparer.Create(Pt, ignoreCase: true))
                 .ThenBy(c => c.Key, StringComparer.Ordinal)
-                .Select(c => new TrintunaRankDto(c.Key, i + 1, c.Who.DisplayName, c.Who.AvatarUrl, n)))
+                .Select(c => new TrintunaRankDto(c.Key, i + 1, c.Who.DisplayName, c.Who.AvatarUrl, n, c.Who.FullName)))
             .ToList();
     }
 

@@ -19,6 +19,7 @@ import { EmptyNote } from './ui/EmptyNote';
 import { Loading } from './ui/Loading';
 import { PersonChip } from './ui/PersonChip';
 import { SimplePager } from './ui/SimplePager';
+import { AsyncConfirmDialog } from './ui/ConfirmDialog';
 
 /** Hall of Fame rows per page (the list is whole in the board; the dialog slices it). */
 const HALL_PAGE = 15;
@@ -84,8 +85,9 @@ const asParticipant = (p: Person) => ({ key: p.key, name: p.displayName, fullNam
 
 /** One gathering: what, who organizes, the date poll, the caller's answer (past ones too), who answered, its link.
  * `people` (the Hall of Fame list) feeds "Marcar quem foi" on a past gathering the caller can edit. */
-export function GatheringDialog({ gathering: g, people, onClose, onChanged }: { gathering: Gathering; people: Person[]; onClose: () => void; onChanged: () => void }) {
+export function GatheringDialog({ gathering: g, people, onClose, onChanged }: { gathering: Gathering; people: Rank[]; onClose: () => void; onChanged: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [unmarking, setUnmarking] = useState<Person>(); // the "Quem foi" tile whose X was pressed
   const [linkError, setLinkError] = useState<string>();
 
   // The MeetingPollCard pattern: the link opens this gathering for the Owner and listed members; others see the notice.
@@ -120,8 +122,27 @@ export function GatheringDialog({ gathering: g, people, onClose, onChanged }: { 
         !g.date && !g.past && <EmptyNote>Ainda não há datas possíveis para votar.</EmptyNote>
       )}
       <Presence gathering={g} onChanged={onChanged} />
-      <WhoIsGoing participants={{ going: g.going.map(asParticipant), leitoes: [], notGoing: g.notGoing.map(asParticipant) }} past={g.past} />
+      <WhoIsGoing
+        participants={{ going: g.going.map(asParticipant), leitoes: [], notGoing: g.notGoing.map(asParticipant) }}
+        past={g.past}
+        onRemove={g.past && g.canEdit ? (p) => setUnmarking(g.going.find((x) => x.key === p.key)) : undefined}
+      />
       {g.past && g.canEdit && <MarkWhoWent gathering={g} people={people} onChanged={onChanged} />}
+      {unmarking && (
+        <AsyncConfirmDialog
+          title="Retirar o Fui"
+          confirmLabel="Retirar"
+          danger
+          onClose={() => setUnmarking(undefined)}
+          onConfirm={async () => {
+            const o = await trintunaApi.unmark(g.id, unmarking.key);
+            if (o.kind !== 'ok') return problem(o, 'retirar o Fui');
+            onChanged();
+          }}
+        >
+          Retirar {unmarking.displayName} de "Quem foi" neste almoço?
+        </AsyncConfirmDialog>
+      )}
       <Banner text={linkError} />
       <button type="button" className="btn btn--ghost btn--sm" onClick={copyLink}>
         <Icon name={copied ? 'check' : 'link'} />
@@ -220,7 +241,7 @@ export function AccessDialog({ onClose, onSaved }: { onClose: () => void; onSave
           <MemberPicker
             label="Dar acesso a"
             exclude={members.map((m) => m.id)}
-            onPick={(m) => setMembers([...members, { id: m.id, displayName: m.displayName, avatarUrl: m.avatarUrl }])}
+            onPick={(m) => setMembers([...members, { id: m.id, displayName: m.displayName, avatarUrl: m.avatarUrl, fullName: m.fullName }])}
           />
           <small className="note">Quem está na lista vê esta página, vota nas datas e responde Vou / Não vou.</small>
         </div>

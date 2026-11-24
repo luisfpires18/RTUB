@@ -76,12 +76,12 @@ export function GatheringForm({
     () =>
       members.some((m) => m.id === organizer) || !stored || !organizer
         ? members
-        : [{ id: organizer, displayName: stored.displayName, avatarUrl: stored.avatarUrl }, ...members],
+        : [{ id: organizer, displayName: stored.displayName, avatarUrl: stored.avatarUrl, fullName: null }, ...members],
     [members, organizer, stored],
   );
   const chosen = organizers.find((m) => m.id === organizer);
   // Stable between renders, so the picker's search effect does not run again on every render.
-  const pickable = useMemo(() => organizers.map((m) => ({ id: m.id, displayName: m.displayName, fullName: null, avatarUrl: m.avatarUrl })), [organizers]);
+  const pickable = useMemo(() => organizers.map((m) => ({ id: m.id, displayName: m.displayName, fullName: m.fullName, avatarUrl: m.avatarUrl })), [organizers]);
 
   return (
     <Dialog

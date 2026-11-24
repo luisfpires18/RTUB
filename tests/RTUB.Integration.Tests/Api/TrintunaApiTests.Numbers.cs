@@ -73,6 +73,13 @@ public partial class TrintunaApiTests
         var names = (await AreaHttp.Json(owner, "/api/trintuna/organizers")).EnumerateArray().Select(m => m.GetProperty("displayName").GetString()).ToList();
         names.Should().BeInAscendingOrder(ByName);
 
+        // Task 161: the full name travels too, so the organizer search finds first and last names (the dialogs search in the browser).
+        var listedRow = (await AreaHttp.Json(owner, "/api/trintuna/organizers")).EnumerateArray().Single(m => m.GetProperty("id").GetString() == listed.Id);
+        listedRow.GetProperty("fullName").GetString().Should().Be($"{listed.FirstName} {listed.LastName}".Trim());
+        (await AreaHttp.Json(member, "/api/trintuna")).GetProperty("hallOfFame").EnumerateArray()
+            .Single(r => r.GetProperty("displayName").GetString() == listed.Nickname)
+            .GetProperty("fullName").GetString().Should().Be($"{listed.FirstName} {listed.LastName}".Trim());
+
         (await AreaHttp.Json(await owner.PostAsJsonAsync("/api/trintuna/gatherings", Input(boss.Id))))
             .GetProperty("organizerUserId").GetString().Should().Be(boss.Id, "the Owner can organize");
         (await AreaHttp.Errors(await owner.PostAsJsonAsync("/api/trintuna/gatherings", Input(outsider.Id)))).Should().ContainKey("organizerUserId");
