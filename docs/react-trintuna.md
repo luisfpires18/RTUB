@@ -92,7 +92,7 @@ Link: member menu (`MemberShell.tsx`, Tuna group "Trintuna"), shown when `GET /a
 - Organizer: chosen by the Owner from `GET /organizers` (the Owner(s) and the access list); the server accepts the same
   set and refuses anyone else (400). A member taken off the list stays stored as organizer but can no longer open the
   page or edit.
-- Share link (task 155): "Copiar link" in the gathering dialog copies `{origin}/trintuna?almoco={id}` (the id, stable
+- Share link (task 155): "Copiar link" in the gathering dialog copies `{shareOrigin}/trintuna?almoco={id}` (task 164: `shareOrigin` from `/api/account/me` = `App:BaseUrl`, `https://www.rtub.pt` on PROD, whatever host the page is on; PROD answers on `rtub.azurewebsites.net`, `rtub.pt` and `www.rtub.pt` with no redirect, so installed apps keep their host) (the id, stable
   if a number is ever reused); when the browser refuses the clipboard the link is shown to copy by hand. Opening a
   gathering sets `?almoco=` and closing drops it (`history.replaceState`, the /gallery pattern). Only the Owner and
   listed members see it; anyone else gets the "no access" notice. Installed app: the manifest scope is `/` and

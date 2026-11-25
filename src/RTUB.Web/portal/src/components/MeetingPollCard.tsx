@@ -1,6 +1,7 @@
 // One poll card on /meetings/polls (vote, close, remove); /trintuna reuses it for its date poll (onVote).
 import { useEffect, useState } from 'react';
 import { portal } from '../data/content';
+import { shareLink } from '../data/apiSession';
 import { problem, typeClass } from './MeetingUi';
 import { Icon } from './icons';
 import { meetingsApi } from '../data/meetingsApi';
@@ -30,7 +31,7 @@ export function PollCard({ poll, onChanged, onVote }: { poll: MeetingPoll; onCha
 
   // The link opens this poll for a signed-in member in its audience; anyone else is asked to sign in or sees nothing.
   const copyLink = async () => {
-    const link = `${location.origin}${portal.meetingPolls}?poll=${poll.id}`;
+    const link = await shareLink(`${portal.meetingPolls}?poll=${poll.id}`);
     try {
       await navigator.clipboard.writeText(link);
       setError(undefined);
