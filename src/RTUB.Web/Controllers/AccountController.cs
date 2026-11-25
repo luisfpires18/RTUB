@@ -19,6 +19,7 @@ public class AccountController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly string? _publicOrigin;
+    private readonly string? _shareOrigin;
     private readonly RTUB.Application.Services.PageViewCounter _pageViews;
     private readonly RTUB.Application.Interfaces.ITrintunaService _trintuna;
 
@@ -27,6 +28,7 @@ public class AccountController : ControllerBase
     {
         _userManager = userManager;
         _publicOrigin = TrustedOrigin(configuration["Calendar:PublicOrigin"]);
+        _shareOrigin = TrustedOrigin(configuration["App:BaseUrl"]);
         _pageViews = pageViews;
         _trintuna = trintuna;
     }
@@ -69,7 +71,10 @@ public class AccountController : ControllerBase
             // A Reformado has no "As minhas ações pendentes" (no menu entry, no page, no reminder push).
             retired = user.IsRetired,
             // The configured public origin for links that leave RTUB (Google Calendar). Never the request's host.
-            publicOrigin = _publicOrigin
+            publicOrigin = _publicOrigin,
+            // The site address for links members share ("Copiar link"): App:BaseUrl, so a link copied on rtub.pt or the
+            // Azure host still opens www.rtub.pt, where the members' Face ID keys are (task 164). Null on a local run.
+            shareOrigin = _shareOrigin
         });
     }
 
