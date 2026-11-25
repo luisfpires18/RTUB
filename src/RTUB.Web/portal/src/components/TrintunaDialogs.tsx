@@ -7,6 +7,7 @@ import { PollCard } from './MeetingPollCard';
 import { MemberPicker } from './LogisticsFields';
 import type { Outcome } from '../data/api';
 import { portal } from '../data/content';
+import { shareLink } from '../data/apiSession';
 import { trintunaApi, problem, type Gathering, type Member, type Person, type Rank } from '../data/trintunaApi';
 import { medal } from '../data/leaderboardApi';
 import { dateLabel } from '../data/eventsDates';
@@ -92,7 +93,7 @@ export function GatheringDialog({ gathering: g, people, onClose, onChanged }: { 
 
   // The MeetingPollCard pattern: the link opens this gathering for the Owner and listed members; others see the notice.
   const copyLink = async () => {
-    const link = `${location.origin}${portal.trintuna}?almoco=${g.id}`;
+    const link = await shareLink(`${portal.trintuna}?almoco=${g.id}`);
     try {
       await navigator.clipboard.writeText(link);
       setLinkError(undefined);

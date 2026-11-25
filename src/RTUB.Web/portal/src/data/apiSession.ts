@@ -26,9 +26,19 @@ export type CurrentUser =
       retired: boolean;
       /** Calendar:PublicOrigin, the trusted origin for links that leave RTUB; null when not configured. */
       publicOrigin: string | null;
+      shareOrigin: string | null;
     };
 
 let session: Promise<CurrentUser> | null = null;
+
+/**
+ * A link to share ("Copiar link"): the site's own address (App:BaseUrl, www.rtub.pt) plus `path`, whatever host this
+ * page is on (rtub.pt, the Azure host, an installed app). Falls back to this page's origin (a local run, no session).
+ */
+export async function shareLink(path: string): Promise<string> {
+  const user = await getCurrentUser().catch(() => null);
+  return `${(user?.authenticated && user.shareOrigin) || location.origin}${path}`;
+}
 
 /** One request per page load, shared by the header and the profile page; `refresh` retries. */
 export function getCurrentUser(refresh = false): Promise<CurrentUser> {
