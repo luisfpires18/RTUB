@@ -116,6 +116,9 @@ public class Program
         // Skip migration and seeding in Test environment (integration tests handle this)
         await app.MigrateAndSeedDatabaseAsync(builder.Configuration, connectionString);
 
+        // rtub.pt → www.rtub.pt (one origin: cookies, storage, passkeys), before anything else answers.
+        app.UseCanonicalHost();
+
         app.UseErrorHandlingAndSecurityHeaders();
 
         app.UseRoutingStaticFilesAndAuth();
