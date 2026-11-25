@@ -3,10 +3,10 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git and GitHub, durable detail
 in the docs `CLAUDE.md` links. Overwrite stale entries.
 
-_Last updated: 2026-11-24_
+_Last updated: 2026-11-25_
 
 ## Release state
-- `master` (PROD): **2.3.19** (released 2026-11-24, tag `v2.3.19`, PR #378: Trintuna tasks 159-161; no member release notes, owner). `dev`: **2.3.20** (unreleased).
+- `master` (PROD): **2.3.20** (released 2026-11-25, tag `v2.3.20`, PR #382: shared links on www.rtub.pt, task 164; no member release notes, owner). `dev`: **2.3.21** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
