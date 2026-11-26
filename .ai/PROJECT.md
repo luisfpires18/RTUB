@@ -23,6 +23,9 @@ Only these:
 
 `.claude/settings.json` (web preset merged in) turns off the game-engine plugins here.
 
+## Commands
+- Pre-push gate: `.ai/checks.sh` (run by `scripts/gate.py`)
+
 ## Tests for a task
 As `CLAUDE.md` "Validation — change-aware": docs, tooling or config only → parse/lint the touched files; application code → `dotnet build` and the affected test projects; full `dotnet test` when the change is broad. Always `git diff --check`, a secret scan, and a final review of `git diff` and `git status`. CI (`ci.yml`) runs on PRs.
 
