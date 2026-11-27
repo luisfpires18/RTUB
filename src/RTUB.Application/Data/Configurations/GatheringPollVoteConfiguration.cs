@@ -9,7 +9,9 @@ public sealed class GatheringPollVoteConfiguration : IEntityTypeConfiguration<Ga
     public void Configure(EntityTypeBuilder<GatheringPollVote> builder)
     {
         builder.HasKey(vote => vote.Id);
-        builder.HasIndex(vote => new { vote.GatheringId, vote.UserId }).IsUnique();
+        // Task 166: one vote per member per date (a member may choose several dates of one gathering).
+        builder.HasIndex(vote => new { vote.GatheringId, vote.UserId });
+        builder.HasIndex(vote => new { vote.GatheringPollOptionId, vote.UserId }).IsUnique();
         builder.Property(vote => vote.UserId).IsRequired().HasMaxLength(450);
         builder.HasOne(vote => vote.Gathering)
             .WithMany(gathering => gathering.PollVotes)

@@ -12,8 +12,8 @@ namespace RTUB.Application.Services;
 
 public sealed partial class TrintunaService
 {
-    /// <summary>A new vote replaces the caller's earlier one. Closed (409) once the date is set.</summary>
-    public async Task<EventResult<GatheringDto>> VoteAsync(int id, GatheringOptionInput input, ClaimsPrincipal user)
+    /// <summary>One or more dates; a new vote replaces the caller's earlier set. Closed (409) once the date is set.</summary>
+    public async Task<EventResult<GatheringDto>> VoteAsync(int id, GatheringVoteInput input, ClaimsPrincipal user)
     {
         await using var db = await _contexts.CreateDbContextAsync();
         var (refused, listed) = await SeeAsync<GatheringDto>(db, user);
@@ -33,20 +33,18 @@ public sealed partial class TrintunaService
             return EventResult<GatheringDto>.Fail(EventResultStatus.Closed);
         }
 
-        if (gathering.PollOptions.All(o => o.Id != input.OptionId))
+        var chosen = input.OptionIds ?? (input.OptionId is { } one ? [one] : []);
+        if (chosen.Count == 0 || chosen.Distinct().Count() != chosen.Count || chosen.Any(c => gathering.PollOptions.All(o => o.Id != c)))
         {
-            return EventResult<GatheringDto>.Invalid("optionId", "Escolha uma das datas possíveis deste almoço.");
+            return EventResult<GatheringDto>.Invalid("optionIds", "Escolha uma ou mais das datas possíveis deste almoço.");
         }
 
         var me = user.UserId()!;
-        var vote = await db.GatheringPollVotes.FirstOrDefaultAsync(v => v.GatheringId == id && v.UserId == me);
-        if (vote is null)
-        {
-            db.GatheringPollVotes.Add(vote = new GatheringPollVote { GatheringId = id, UserId = me });
-        }
-
-        vote.GatheringPollOptionId = input.OptionId;
-        vote.VotedAt = _time.GetUtcNow().UtcDateTime;
+        var mine = await db.GatheringPollVotes.Where(v => v.GatheringId == id && v.UserId == me).ToListAsync();
+        db.GatheringPollVotes.RemoveRange(mine.Where(v => !chosen.Contains(v.GatheringPollOptionId)));
+        var now = _time.GetUtcNow().UtcDateTime;
+        db.GatheringPollVotes.AddRange(chosen.Where(c => mine.All(v => v.GatheringPollOptionId != c))
+            .Select(c => new GatheringPollVote { GatheringId = id, GatheringPollOptionId = c, UserId = me, VotedAt = now }));
         await db.SaveChangesAsync();
         return EventResult<GatheringDto>.Ok(await LoadAsync(db, id, user, listed));
     }

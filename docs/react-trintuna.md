@@ -7,7 +7,8 @@ Code: `portal/src/pages/Trintuna.tsx`, `components/TrintunaDialogs.tsx` (gatheri
 `components/TrintunaForm.tsx` (create / edit, "Marcar data"), `data/trintunaApi.ts`; `Endpoints/TrintunaEndpoints.cs` >
 `ITrintunaService` (`TrintunaService.cs`, `.Gatherings.cs`, `.Answers.cs`), rules in `Helpers/TrintunaAuthorization.cs`.
 Tables (migration `AddTrintunaGatherings`): `TrintunaAccesses`, `Gatherings`, `GatheringPollOptions`,
-`GatheringPollVotes`, `GatheringParticipants`.
+`GatheringPollVotes`, `GatheringParticipants`. Migration `AllowTrintunaMultiVote` (task 166, indexes only, N-1 safe): the
+vote unique index is `(GatheringPollOptionId, UserId)`, one row per member per chosen date; `(GatheringId, UserId)` stays non-unique.
 Tests: `Integration.Tests/Api/TrintunaApiTests*.cs` (`.HallOfFame.cs`: the Hall of Fame; `.Numbers.cs`: numbers and organizers), `Application.Tests/Helpers/TrintunaAuthorizationTests.cs`,
 `Application.Tests/Data/SeedDataTrintunaTests.cs`, `MigrationChainTests.MigratedDatabase_HasNoTrintunaGatherings`,
 `Web.Tests/ReactPortal/TrintunaFormSourceTests.cs`, `SharedSelectSourceTests.cs`, `MemberShellTests`, `MemberPagesTests`,
@@ -32,7 +33,7 @@ Link: member menu (`MemberShell.tsx`, Tuna group "Trintuna"), shown when `GET /a
 | `PUT /gatherings/{id}` (same body; the number never changes) | Owner; the gathering's organizer (organizer stays as stored) |
 | `DELETE /gatherings/{id}` → 204 | Owner |
 | `POST /gatherings/{id}/settle` `{ optionId }` | Owner; the gathering's organizer |
-| `PUT /gatherings/{id}/vote` `{ optionId }` | Owner, listed members |
+| `PUT /gatherings/{id}/vote` `{ optionIds[] }` (one or more dates; a body with only `optionId` is one date) | Owner, listed members |
 | `PUT /gatherings/{id}/presence` `{ willAttend }`, `DELETE` → 204 | Owner, listed members |
 | `PUT /gatherings/{id}/attendees/{key}` → the gathering (Fui for that person), `DELETE` → 204 (removes that person's Fui) | past gathering only (409 `trintuna:closed` otherwise): Owner; the gathering's organizer while listed (403 otherwise) |
 | `GET /access`, `PUT /access` `{ userIds[] }` | Owner |
@@ -52,11 +53,14 @@ Link: member menu (`MemberShell.tsx`, Tuna group "Trintuna"), shown when `GET /a
 - Lists (Portugal day, `PortugalTime.Today`): Passados = historical or dated before today, newest first, then by number
   (descending); Próximos = the rest, dated soonest first, undated after, by number.
 - The gathering DTO carries no user id except `organizerUserId`, and only for the Owner. The poll has the portal's
-  `MeetingPoll` shape (rendered by `PollCard` with `onVote`), counts only, no voter names; each option also has its `date`.
+  `MeetingPoll` shape (rendered by `PollCard` with `onVote`), counts only, no voter names; each option also has its `date`. Task 166: `multiple: true`
+  (checkboxes), `myOptionIds` (the member's dates, by date; `myOptionId` = the first, for older pages), `totalVotes` = members who
+  voted ("N pessoas votaram"), `options[].votes` = members per date.
   Each gathering lists who answered, `going[]` and `notGoing[]` (`{ key, displayName, avatarUrl }`, by name then `key`, no user ids; `key` is the same opaque per-member key as the Hall of Fame),
   shown with the "Quem vai / Quem foi" tiles of /events (`WhoIsGoing`); `goingCount` is the Vou count.
 - Poll: 0-12 distinct dates (`pollDates`, `yyyy-MM-dd`). Saving diffs the options: kept dates keep their votes, removed
-  dates lose theirs. A new vote replaces the earlier one. The poll is open while the gathering has no date and is not
+  dates lose theirs. A member picks one or more dates; a new vote replaces their earlier set (400 `optionIds` for none, a
+  repeated date, or another gathering's option). Withdrawing every vote is not offered. The poll is open while the gathering has no date and is not
   historical.
 - The date: there is no date field. `POST /settle` with one of the gathering's own options sets `Date` and closes the
   poll (400 for another gathering's or an unknown option, 409 once settled or for a historical gathering). After that,

@@ -52,7 +52,9 @@ public sealed record GatheringPollDto(
     bool CanDelete,
     int? MyOptionId,
     int TotalVotes,
-    IReadOnlyList<GatheringPollOptionDto> Options);
+    IReadOnlyList<GatheringPollOptionDto> Options,
+    bool Multiple,
+    IReadOnlyList<int> MyOptionIds);
 
 /// <summary><c>Date</c> is "yyyy-MM-dd" (the edit form); <c>Text</c> is its Portuguese label.</summary>
 public sealed record GatheringPollOptionDto(int Id, string Text, string Date, int Votes);
@@ -64,6 +66,9 @@ public sealed record GatheringPollOptionDto(int Id, string Text, string Date, in
 public sealed record GatheringInput(string? Place, string? Description, string? OrganizerUserId, IReadOnlyList<string>? PollDates);
 
 public sealed record GatheringOptionInput(int OptionId);
+
+/// <summary>The date vote: <c>OptionIds</c>, the chosen dates. A body with only <c>OptionId</c> (a page of the previous release) is one date.</summary>
+public sealed record GatheringVoteInput(IReadOnlyList<int>? OptionIds, int? OptionId);
 
 public sealed record GatheringPresenceInput(bool WillAttend);
 

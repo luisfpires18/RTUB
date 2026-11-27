@@ -42,7 +42,8 @@ export const trintunaApi = {
   update: (id: number, input: GatheringInput) => call<Gathering>('PUT', one(id), input),
   remove: (id: number) => call<void>('DELETE', one(id)),
   settle: (id: number, optionId: number) => call<Gathering>('POST', `${one(id)}/settle`, { optionId }),
-  vote: (id: number, optionId: number) => call<Gathering>('PUT', `${one(id)}/vote`, { optionId }),
+  /** One or more dates (task 166); the new set replaces the member's earlier one. */
+  vote: (id: number, optionIds: number[]) => call<Gathering>('PUT', `${one(id)}/vote`, { optionIds }),
   answer: (id: number, willAttend: boolean) => call<Gathering>('PUT', `${one(id)}/presence`, { willAttend }),
   withdraw: (id: number) => call<void>('DELETE', `${one(id)}/presence`),
   /** Past gathering, Owner or its organizer: Fui for a person, by `key` (never a user id). */

@@ -179,6 +179,7 @@ public sealed partial class TrintunaService : ITrintunaService
         var closed = PollClosed(g);
         var options = g.PollOptions.OrderBy(o => o.Date).ToList();
         var mine = g.Participants.FirstOrDefault(p => p.UserId == me);
+        var myVotes = options.Where(o => g.PollVotes.Any(v => v.UserId == me && v.GatheringPollOptionId == o.Id)).Select(o => o.Id).ToList();
         var organizer = g.OrganizerUserId is { } organizerId && people.TryGetValue(organizerId, out var who)
             ? new TrintunaPersonDto(RowKey(organizerId), who.DisplayName, who.AvatarUrl)
             : null;
@@ -194,13 +195,16 @@ public sealed partial class TrintunaService : ITrintunaService
             false,
             !closed && options.Count > 0 && TrintunaAuthorization.CanAnswer(user, listed),
             false,
-            g.PollVotes.FirstOrDefault(v => v.UserId == me)?.GatheringPollOptionId,
-            g.PollVotes.Count,
+            myVotes.Count > 0 ? myVotes[0] : null,
+            // Members who voted, not rows: each date's bar is its share of the voters.
+            g.PollVotes.Select(v => v.UserId).Distinct().Count(),
             options.Select(o => new GatheringPollOptionDto(
                 o.Id,
                 o.Date.ToString("dddd, d 'de' MMMM 'de' yyyy", Pt),
                 Day(o.Date),
-                g.PollVotes.Count(v => v.GatheringPollOptionId == o.Id))).ToList());
+                g.PollVotes.Count(v => v.GatheringPollOptionId == o.Id))).ToList(),
+            true,
+            myVotes);
 
         return new GatheringDto(
             g.Id,

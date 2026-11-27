@@ -220,6 +220,9 @@ export type MeetingPoll = {
   myOptionId: number | null;
   totalVotes: number;
   options: MeetingPollOption[];
+  /** Trintuna only (task 166): one or more options; `myOptionIds` the chosen ones, `totalVotes` the voters. Meetings send neither. */
+  multiple?: boolean;
+  myOptionIds?: number[];
 };
 export type MeetingPollBoard = { createAudiences: MeetingPollAudienceOption[]; polls: MeetingPoll[] };
 export type MeetingPollInput = { audience: string; question: string; options: string[]; closesAt: string | null };
