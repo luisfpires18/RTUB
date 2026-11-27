@@ -31,7 +31,7 @@ public static class TrintunaEndpoints
         writes.MapPost("/gatherings/{id:int}/settle", async (int id, GatheringOptionInput input, HttpContext http, ITrintunaService service) =>
             Answer(await service.SettleAsync(id, input, http.User)));
 
-        writes.MapPut("/gatherings/{id:int}/vote", async (int id, GatheringOptionInput input, HttpContext http, ITrintunaService service) =>
+        writes.MapPut("/gatherings/{id:int}/vote", async (int id, GatheringVoteInput input, HttpContext http, ITrintunaService service) =>
             Answer(await service.VoteAsync(id, input, http.User)));
 
         writes.MapPut("/gatherings/{id:int}/presence", async (int id, GatheringPresenceInput input, HttpContext http, ITrintunaService service) =>

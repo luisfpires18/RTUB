@@ -1181,7 +1181,6 @@ namespace RTUB.Migrations
                     b.HasIndex("OrganizerUserId");
 
                     b.ToTable("Gatherings");
-
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.GatheringParticipant", b =>
@@ -1256,11 +1255,11 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GatheringPollOptionId");
-
                     b.HasIndex("UserId");
 
-                    b.HasIndex("GatheringId", "UserId")
+                    b.HasIndex("GatheringId", "UserId");
+
+                    b.HasIndex("GatheringPollOptionId", "UserId")
                         .IsUnique();
 
                     b.ToTable("GatheringPollVotes");

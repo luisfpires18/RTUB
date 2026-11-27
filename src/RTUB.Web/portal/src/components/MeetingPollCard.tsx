@@ -18,16 +18,26 @@ export const pollProblem = (outcome: Parameters<typeof problem>[0], what: string
       ? 'Esta votação já não existe ou deixou de estar disponível.'
       : problem(outcome, what);
 
-/** `onVote`: another area's vote call (Trintuna); the card then has no "Copiar link" (the link opens /meetings/polls). */
-export function PollCard({ poll, onChanged, onVote }: { poll: MeetingPoll; onChanged: () => void; onVote?: (optionId: number) => Promise<Outcome<unknown>> }) {
-  const [selected, setSelected] = useState<number | null>(poll.myOptionId);
+const chosen = (poll: MeetingPoll) => poll.myOptionIds ?? (poll.myOptionId === null ? [] : [poll.myOptionId]);
+
+/**
+ * `onVote`: another area's vote call (Trintuna); the card then has no "Copiar link" (the link opens /meetings/polls).
+ * `poll.multiple` (Trintuna): checkboxes, one or more options; otherwise radio buttons, one option.
+ */
+export function PollCard({ poll, onChanged, onVote }: { poll: MeetingPoll; onChanged: () => void; onVote?: (optionIds: number[]) => Promise<Outcome<unknown>> }) {
+  const multiple = poll.multiple === true;
+  const [selected, setSelected] = useState<number[]>(() => chosen(poll));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => setSelected(poll.myOptionId), [poll.myOptionId]);
+  const mine = chosen(poll).join();
+  // `mine`: the chosen ids as one comparable string, so a reload with the same choice keeps the selection.
+  useEffect(() => setSelected(mine ? mine.split(',').map(Number) : []), [mine]);
+  const pick = (id: number) =>
+    setSelected((now) => (!multiple ? [id] : now.includes(id) ? now.filter((x) => x !== id) : [...now, id]));
 
   // The link opens this poll for a signed-in member in its audience; anyone else is asked to sign in or sees nothing.
   const copyLink = async () => {
@@ -43,10 +53,10 @@ export function PollCard({ poll, onChanged, onVote }: { poll: MeetingPoll; onCha
   };
 
   const vote = async () => {
-    if (selected === null) return;
+    if (selected.length === 0) return;
     setBusy(true);
     setError(undefined);
-    const outcome = await (onVote ? onVote(selected) : meetingsApi.votePoll(poll.id, selected));
+    const outcome = await (onVote ? onVote(selected) : meetingsApi.votePoll(poll.id, selected[0]));
     setBusy(false);
     if (outcome.kind !== 'ok') return setError(pollProblem(outcome, 'registar o voto'));
     onChanged();
@@ -78,19 +88,22 @@ export function PollCard({ poll, onChanged, onVote }: { poll: MeetingPoll; onCha
       <p className="mtg-poll__meta">
         {poll.closesAt ? `Termina a ${longDateTime(poll.closesAt)}` : 'Sem data de fecho'}
         {' · '}
-        {poll.totalVotes} {poll.totalVotes === 1 ? 'voto' : 'votos'}
+        {multiple
+          ? `${poll.totalVotes} ${poll.totalVotes === 1 ? 'pessoa votou' : 'pessoas votaram'}`
+          : `${poll.totalVotes} ${poll.totalVotes === 1 ? 'voto' : 'votos'}`}
       </p>
+      {multiple && poll.canVote && <p className="mtg-poll__meta">Pode escolher mais do que uma opção.</p>}
       <fieldset className="mtg-poll__options" disabled={!poll.canVote || busy}>
         <legend className="sr-only">Opções para {poll.question}</legend>
         {poll.options.map((option) => (
           <label className="mtg-poll__option" key={option.id}>
             {poll.canVote && (
               <input
-                type="radio"
+                type={multiple ? 'checkbox' : 'radio'}
                 name={`poll-${poll.id}`}
                 value={option.id}
-                checked={selected === option.id}
-                onChange={() => setSelected(option.id)}
+                checked={selected.includes(option.id)}
+                onChange={() => pick(option.id)}
               />
             )}
             <span className="mtg-poll__option-text">{option.text}</span>
@@ -102,7 +115,7 @@ export function PollCard({ poll, onChanged, onVote }: { poll: MeetingPoll; onCha
       <FieldError text={error} />
       <div className="mtg-poll__actions">
         {poll.canVote && (
-          <button type="button" className="btn btn--primary btn--sm" onClick={vote} disabled={selected === null || busy}>
+          <button type="button" className="btn btn--primary btn--sm" onClick={vote} disabled={selected.length === 0 || busy}>
             {busy ? 'A guardar…' : poll.myOptionId === null ? 'Votar' : 'Alterar voto'}
           </button>
         )}

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RTUB.Core.Entities;
 
-/// <summary>A member's one vote in a <see cref="Gathering"/> date poll; a new vote replaces it.</summary>
+/// <summary>A member's vote for one date of a <see cref="Gathering"/> date poll: one row per chosen date; a new vote replaces the set.</summary>
 public class GatheringPollVote
 {
     public int Id { get; set; }

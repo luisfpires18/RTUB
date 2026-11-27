@@ -22,7 +22,7 @@ public interface ITrintunaService
     /// <summary>The only way to date a gathering: one of its own poll options. Closes the poll.</summary>
     Task<EventResult<GatheringDto>> SettleAsync(int id, GatheringOptionInput input, ClaimsPrincipal user);
 
-    Task<EventResult<GatheringDto>> VoteAsync(int id, GatheringOptionInput input, ClaimsPrincipal user);
+    Task<EventResult<GatheringDto>> VoteAsync(int id, GatheringVoteInput input, ClaimsPrincipal user);
 
     Task<EventResult<GatheringDto>> SetPresenceAsync(int id, GatheringPresenceInput input, ClaimsPrincipal user);
 

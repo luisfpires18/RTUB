@@ -30,7 +30,7 @@ point at `/meetings`.
   polls the member may see, so a poll outside their audience shows "não existe ou não tem acesso"; a visitor signs in
   first and comes back to the link.
 - Poll content: flexible questions with free-text options (dates, topics, or other choices), one vote per eligible
-  member, changeable until close, aggregate totals only, and an optional Portugal-local closing date/time. Expired polls
+  member (`PollCard` radio buttons; its checkbox mode, `poll.multiple`, is Trintuna only, task 166), changeable until close, aggregate totals only, and an optional Portugal-local closing date/time. Expired polls
   are treated as closed on every request. no background job is required.
 - Ata: number, actual start / end, location, AG quorum basis, president, secretaries (CV: chosen from those who said
   "Vou"; AG: the Mesa's secretaries), attendance, Ordem de Trabalhos (discussion, decision, votes, result), closing

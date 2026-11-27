@@ -51,7 +51,7 @@ public partial class TrintunaApiTests
     }
 
     [Fact]
-    public async Task Votes_ReplaceTheEarlierOne_AndKeptDatesKeepTheirVotes()
+    public async Task Votes_ReplaceTheEarlierSet_AndKeptDatesKeepTheirVotes()
     {
         var (owner, _) = await SignInAsync("Owner");
         var (member, me) = await SignInAsync();
@@ -67,7 +67,7 @@ public partial class TrintunaApiTests
         Votes(voted, b).Should().Be(1);
 
         var other = await CreateAsync(owner, null, c);
-        (await AreaHttp.Errors(await member.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}/vote", new { optionId = Option(other, c) }))).Should().ContainKey("optionId");
+        (await AreaHttp.Errors(await member.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}/vote", new { optionId = Option(other, c) }))).Should().ContainKey("optionIds");
 
         // b kept (its vote stays), a removed, c added.
         var edited = await AreaHttp.Json(await owner.PutAsJsonAsync($"/api/trintuna/gatherings/{Id(gathering)}", Input(null, b, c)));
