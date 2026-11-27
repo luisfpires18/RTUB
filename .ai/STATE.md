@@ -6,11 +6,11 @@ in the docs `CLAUDE.md` links. Overwrite stale entries.
 _Last updated: 2026-11-27_
 
 ## Release state
-- `master` (PROD): **2.3.20** (released 2026-11-25, tag `v2.3.20`, PR #382: shared links on www.rtub.pt, task 164; no member release notes, owner). `dev`: **2.3.21** (unreleased).
+- `master` (PROD): **2.3.21** (released 2026-11-27, tag `v2.3.21`, PR #388: Trintuna multi-date poll, task 166, migration `AllowTrintunaMultiVote`; no member release notes, owner). `dev`: **2.3.22** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-Task 166 (`feat/166/trintuna-multi-vote`, Issue #386, PR #387, Codex ACCEPTED round 3, merged into `dev`): the Trintuna date poll takes one or more dates
+Task 166 (`feat/166/trintuna-multi-vote`, Issue #386, PR #387, Codex ACCEPTED round 3, merged, released in 2.3.21): the Trintuna date poll takes one or more dates
 (`PUT /vote` `{ optionIds[] }`, checkboxes in `PollCard` when `poll.multiple`; `/meetings` polls stay single-choice).
 Migration `AllowTrintunaMultiVote` moves the vote unique index to `(GatheringPollOptionId, UserId)` (indexes only, N-1 safe).
 `totalVotes` counts members who voted. Check on DEV: vote for two dates on a phone.
