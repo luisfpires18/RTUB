@@ -3,13 +3,18 @@
 Living execution state. **Read this first.** A status board, not a diary: history is in git and GitHub, durable detail
 in the docs `CLAUDE.md` links. Overwrite stale entries.
 
-_Last updated: 2026-11-25_
+_Last updated: 2026-11-27_
 
 ## Release state
 - `master` (PROD): **2.3.20** (released 2026-11-25, tag `v2.3.20`, PR #382: shared links on www.rtub.pt, task 164; no member release notes, owner). `dev`: **2.3.21** (unreleased).
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
+Task 166 (`feat/166/trintuna-multi-vote`, Issue #386, PR #387): the Trintuna date poll takes one or more dates
+(`PUT /vote` `{ optionIds[] }`, checkboxes in `PollCard` when `poll.multiple`; `/meetings` polls stay single-choice).
+Migration `AllowTrintunaMultiVote` moves the vote unique index to `(GatheringPollOptionId, UserId)` (indexes only, N-1 safe).
+`totalVotes` counts members who voted. Check on DEV: vote for two dates on a phone.
+
 Task 160 (`feat/160/trintuna-mark-attendance`, Issue #375, PR #376, Codex ACCEPTED round 1, merged into `dev`): on a past gathering the Owner or its
 organizer marks who went (Fui) and removes a Fui (`PUT`/`DELETE /api/trintuna/gatherings/{id}/attendees/{key}`); a mark
 is the person's own answer row, so Quem foi and the Hall of Fame count it. Owner checks (plan defaults applied): any Fui

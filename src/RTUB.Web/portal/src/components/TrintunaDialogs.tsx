@@ -118,7 +118,7 @@ export function GatheringDialog({ gathering: g, people, onClose, onChanged }: { 
         </p>
       )}
       {g.poll.options.length > 0 ? (
-        <PollCard poll={g.poll} onChanged={onChanged} onVote={(optionId) => trintunaApi.vote(g.id, optionId)} />
+        <PollCard poll={g.poll} onChanged={onChanged} onVote={(optionIds) => trintunaApi.vote(g.id, optionIds)} />
       ) : (
         !g.date && !g.past && <EmptyNote>Ainda não há datas possíveis para votar.</EmptyNote>
       )}
