@@ -10,7 +10,7 @@ _Last updated: 2026-11-27_
 - Member release notes: `releases/<VERSION>.json` (`docs/release-and-rollback.md` → *Release notes*).
 
 ## Current
-Task 166 (`feat/166/trintuna-multi-vote`, Issue #386, PR #387): the Trintuna date poll takes one or more dates
+Task 166 (`feat/166/trintuna-multi-vote`, Issue #386, PR #387, Codex ACCEPTED round 3, merged into `dev`): the Trintuna date poll takes one or more dates
 (`PUT /vote` `{ optionIds[] }`, checkboxes in `PollCard` when `poll.multiple`; `/meetings` polls stay single-choice).
 Migration `AllowTrintunaMultiVote` moves the vote unique index to `(GatheringPollOptionId, UserId)` (indexes only, N-1 safe).
 `totalVotes` counts members who voted. Check on DEV: vote for two dates on a phone.
